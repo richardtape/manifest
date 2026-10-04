@@ -8,9 +8,8 @@ import type { LineRedactor } from './redact.js'
  * code, sitting 10), decided from the environment row before the driver is asked;
  * `INSTANCE_OUTPUT_UNAVAILABLE` (409) — the instance no longer runs, so its Incident is the place
  * to look; and `INCIDENT_LOG_CONFIDENTIAL` (403) — an Incident's log tail is an app's output too, and a
- * `confidential` project's staging and production ones are refused a delegated token while its building
- * agent may use the capable model (§7 as Spec action 10 amended it; the front-end enablement plan's Task
- * 14a).
+ * `high` or `very-high` project's staging and production ones are refused a delegated token, whatever the
+ * builder setting (§7 as Spec action 10 and the U1 spec action amended it; S9).
  */
 export class OutputError extends Error {
   constructor(

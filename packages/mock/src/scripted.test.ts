@@ -401,6 +401,20 @@ describe('Task 13 — the states the document’s examples cannot show', () => {
     expect(listed.sessions.map((s) => s.models)).toEqual([models, models])
   })
 
+  it('MANIFEST_MOCK_LEVEL=high refuses a token staging’s and production’s Incidents by code; medium answers them (U1 plan Task 5)', async () => {
+    const incidents = (at: string, env: string) =>
+      fetch(`${at}/v1/environments/${env}/incidents`, { headers: BEARER })
+    const medium = await serve({ level: 'medium' })
+    expect((await incidents(medium, f.STAGING_ID)).status).toBe(200) // the positive control
+    const high = await serve({ level: 'high' })
+    for (const env of [f.STAGING_ID, f.PRODUCTION_ID]) {
+      const refused = await incidents(high, env)
+      expect(refused.status, env).toBe(403)
+      expect(await codeOf(refused), env).toBe('INCIDENT_LOG_CONFIDENTIAL')
+    }
+    expect((await incidents(high, f.SANDBOX_ID)).status).toBe(200)
+  })
+
   it('answers the month’s budget from now, and a spent or unreadable month when scripted', async () => {
     const budget = async (at: string) =>
       (await (await fetch(`${at}/v1/agent-budget`, { headers: SESSION })).json()) as {

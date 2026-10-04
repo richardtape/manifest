@@ -7,12 +7,11 @@ import { mintTestToken } from '../tokens/testing.js'
 import { refusal, testDeps, withProjectServer, type TestProject } from './testing.js'
 
 /**
- * THE SAFEGUARD (§7 as Spec action 10 amended it; the front-end enablement plan's Task 14a): while a
- * `confidential` project's BUILDING agent may call the capable model — `MANIFEST_AGENT_BUILDER_MODELS`
- * `capable`, the default — a delegated token is refused that project's staging and production Incident
- * log tails, which can carry the input of the people the classification protects. A person's session
- * still reads them; the sandbox's are test users'. Every refusal asserts its CODE, and every one has
- * its positive control in the same test.
+ * THE SAFEGUARD (§7 as Spec action 10 and the U1 spec action amended it; S9 — Rich, 2026-10-03, 22:21: "Refuse at
+ * high and above"): a delegated token is refused the staging and production Incident log tails of every project at
+ * `high` or above, which can carry the input of the people the level protects — WHATEVER the builder setting, because
+ * a token's model is unattested. A person's session still reads them; the sandbox's are test users'. Every refusal
+ * asserts its CODE, and every one has its positive control in the same test.
  */
 
 const LOG_TAIL =
@@ -117,7 +116,7 @@ const reader = async (ctx: TestProject) =>
     })
   ).plaintext
 
-describe('listIncidents — a confidential project’s staging and production log tails (Spec action 10; Task 14a)', () => {
+describe('listIncidents — a high or very-high project’s staging and production log tails (Spec action 10; Task 14a; S9)', () => {
   it('refuses a token staging’s and production’s Incidents by its own code, while the builder may use the capable model — and answers the person, and the sandbox’s', async () => {
     await withSetting('capable', async (ctx) => {
       for (const env of [
@@ -144,13 +143,75 @@ describe('listIncidents — a confidential project’s staging and production lo
     })
   })
 
-  it('answers the token when the builder is kept on-premise', async () => {
+  it('refuses the token whatever the builder setting — a token’s model is unattested (S9; U1 plan Task 5)', async () => {
     await withSetting('on-premise', async (ctx) => {
       await incidentIn(ctx, ctx.stagingEnvironmentId)
       await confidential(ctx)
-      const res = await read(ctx, ctx.stagingEnvironmentId, { bearer: await reader(ctx) })
-      expect(res.statusCode, res.body).toBe(200)
-      expect(tailOf(res)).toEqual([LOG_TAIL])
+      expect(
+        refusal(await read(ctx, ctx.stagingEnvironmentId, { bearer: await reader(ctx) })),
+      ).toEqual({
+        status: 403,
+        code: 'INCIDENT_LOG_CONFIDENTIAL',
+      })
+      // The person still reads it.
+      expect(tailOf(await read(ctx, ctx.stagingEnvironmentId, {}))).toEqual([LOG_TAIL])
+    })
+  })
+
+  it('refuses a token a HIGH project’s staging and production tails, under either setting (Review Focus 4; U1 plan Task 5)', async () => {
+    for (const setting of ['capable', 'on-premise'] as const) {
+      await withSetting(setting, async (ctx) => {
+        for (const env of [
+          ctx.sandboxEnvironmentId,
+          ctx.stagingEnvironmentId,
+          ctx.productionEnvironmentId,
+        ]) {
+          await incidentIn(ctx, env)
+        }
+        await declared(ctx, 'high')
+        const token = await reader(ctx)
+        for (const env of [ctx.stagingEnvironmentId, ctx.productionEnvironmentId]) {
+          expect(
+            refusal(await read(ctx, env, { bearer: token })),
+            `${setting} ${env}`,
+          ).toEqual({
+            status: 403,
+            code: 'INCIDENT_LOG_CONFIDENTIAL',
+          })
+          expect(tailOf(await read(ctx, env, {})), env).toEqual([LOG_TAIL])
+        }
+        expect(
+          tailOf(await read(ctx, ctx.sandboxEnvironmentId, { bearer: token })),
+        ).toEqual([LOG_TAIL])
+      })
+    }
+  })
+
+  it('answers the token on a medium project — and on internal, its alias — the positive control (U1 plan Task 5)', async () => {
+    await withSetting('capable', async (ctx) => {
+      await incidentIn(ctx, ctx.stagingEnvironmentId)
+      await declared(ctx, 'medium')
+      const token = await reader(ctx)
+      expect(
+        tailOf(await read(ctx, ctx.stagingEnvironmentId, { bearer: token })),
+      ).toEqual([LOG_TAIL])
+      await declared(ctx, 'internal', 2000)
+      expect(
+        tailOf(await read(ctx, ctx.stagingEnvironmentId, { bearer: token })),
+      ).toEqual([LOG_TAIL])
+    })
+  })
+
+  it('refuses a token staging’s tails of a release frozen high after a commit lowers the manifest to medium (U1 plan Task 5)', async () => {
+    await withSetting('capable', async (ctx) => {
+      await incidentIn(ctx, ctx.stagingEnvironmentId, 'high')
+      await declared(ctx, 'medium', 2000)
+      expect(
+        refusal(await read(ctx, ctx.stagingEnvironmentId, { bearer: await reader(ctx) })),
+      ).toEqual({
+        status: 403,
+        code: 'INCIDENT_LOG_CONFIDENTIAL',
+      })
     })
   })
 

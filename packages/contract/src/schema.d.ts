@@ -233,7 +233,7 @@ export interface paths {
         };
         /**
          * An environment’s incidents
-         * @description The environment’s Incidents, newest first: each failed deploy’s exit, last 200 log lines, failing check and diff since the last healthy release, with a repair prompt. A delegated token is refused a `confidential` project’s staging and production Incidents (`INCIDENT_LOG_CONFIDENTIAL`) while the platform lets its building agent use the capable model; a session reads them, and any token reads the sandbox’s.
+         * @description The environment’s Incidents, newest first: each failed deploy’s exit, last 200 log lines, failing check and diff since the last healthy release, with a repair prompt. A delegated token is refused the staging and production Incidents of a project whose data is `high` or `very-high` (`INCIDENT_LOG_CONFIDENTIAL`); a session reads them, and any token reads the sandbox’s.
          */
         get: operations["listIncidents"];
         put?: never;
@@ -4861,7 +4861,7 @@ export interface components {
              * @description When it was recorded.
              */
             createdAt: string;
-            /** @description Shaped to be handed straight to an agent as a repair request — except a `confidential` project’s staging or production Incident while its building agent may use the capable model: it carries the log tail, which a delegated token is refused (`INCIDENT_LOG_CONFIDENTIAL`), so show it to the person and never hand it to a model. */
+            /** @description Shaped to be handed straight to an agent as a repair request — except a `high` or `very-high` project’s staging or production Incident: it carries the log tail, which a delegated token is refused (`INCIDENT_LOG_CONFIDENTIAL`), so show it to the person and never hand it to a model. */
             prompt: string;
         };
         /** @description One environment’s Incidents, newest first. */

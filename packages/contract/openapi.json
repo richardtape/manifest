@@ -883,7 +883,7 @@
           "delivery"
         ],
         "summary": "An environment’s incidents",
-        "description": "The environment’s Incidents, newest first: each failed deploy’s exit, last 200 log lines, failing check and diff since the last healthy release, with a repair prompt. A delegated token is refused a `confidential` project’s staging and production Incidents (`INCIDENT_LOG_CONFIDENTIAL`) while the platform lets its building agent use the capable model; a session reads them, and any token reads the sandbox’s.",
+        "description": "The environment’s Incidents, newest first: each failed deploy’s exit, last 200 log lines, failing check and diff since the last healthy release, with a repair prompt. A delegated token is refused the staging and production Incidents of a project whose data is `high` or `very-high` (`INCIDENT_LOG_CONFIDENTIAL`); a session reads them, and any token reads the sandbox’s.",
         "parameters": [
           {
             "name": "environmentId",
@@ -11147,7 +11147,7 @@
           "FORBIDDEN": "A member of the project whose role does not hold this capability.",
           "IDEMPOTENCY_KEY_REQUIRED": "A mutation arrived without an Idempotency-Key of at least 8 characters.",
           "IDEMPOTENCY_KEY_REUSED": "This Idempotency-Key was used on this route for a different request — another resource in the path, or a different body.",
-          "INCIDENT_LOG_CONFIDENTIAL": "A confidential project’s staging and production Incidents are not answered to a delegated token while the platform lets that project’s building agent use the capable model: their log tails can carry the input of the real people the classification protects, and redaction does not remove names or student numbers.",
+          "INCIDENT_LOG_CONFIDENTIAL": "A project’s staging and production Incidents are not answered to a delegated token when its data is `high` or `very-high`: their log tails can carry the input of the real people the level protects, and redaction does not remove names or student numbers.",
           "INSTANCE_OUTPUT_PRODUCTION": "A production instance’s output is not readable: it serves real people, whose input its output can carry.",
           "INSTANCE_OUTPUT_STAGING": "A staging instance’s output is not readable: staging serves real people — staging CWL holders at UBC — whose input its output can carry. Decided by the environment’s kind, so a laptop’s staging is refused too.",
           "INSTANCE_OUTPUT_UNAVAILABLE": "The instance no longer runs, or never started, so there is no output to read — Manifest keeps none.",
@@ -17444,7 +17444,7 @@
             "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
           },
           "prompt": {
-            "description": "Shaped to be handed straight to an agent as a repair request — except a `confidential` project’s staging or production Incident while its building agent may use the capable model: it carries the log tail, which a delegated token is refused (`INCIDENT_LOG_CONFIDENTIAL`), so show it to the person and never hand it to a model.",
+            "description": "Shaped to be handed straight to an agent as a repair request — except a `high` or `very-high` project’s staging or production Incident: it carries the log tail, which a delegated token is refused (`INCIDENT_LOG_CONFIDENTIAL`), so show it to the person and never hand it to a model.",
             "type": "string"
           }
         },
@@ -21808,7 +21808,7 @@
     },
     "INCIDENT_LOG_CONFIDENTIAL": {
       "status": 403,
-      "summary": "A confidential project’s staging and production Incidents are not answered to a delegated token while the platform lets that project’s building agent use the capable model: their log tails can carry the input of the real people the classification protects, and redaction does not remove names or student numbers.",
+      "summary": "A project’s staging and production Incidents are not answered to a delegated token when its data is `high` or `very-high`: their log tails can carry the input of the real people the level protects, and redaction does not remove names or student numbers.",
       "remedy": "Read the sandbox’s Incidents instead — its users are test users — or ask the person you work for to read this environment’s Incidents in their own session and tell you, in their own words, what failed — never to paste its log tail or prompt to you, which is what this protects."
     },
     "INSTANCE_OUTPUT_PRODUCTION": {

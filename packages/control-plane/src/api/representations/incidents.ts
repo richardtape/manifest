@@ -27,7 +27,7 @@ export const Incident = representation(
       prompt: z
         .string()
         .describe(
-          'Shaped to be handed straight to an agent as a repair request — except a `confidential` project’s staging or production Incident while its building agent may use the capable model: it carries the log tail, which a delegated token is refused (`INCIDENT_LOG_CONFIDENTIAL`), so show it to the person and never hand it to a model.',
+          'Shaped to be handed straight to an agent as a repair request — except a `high` or `very-high` project’s staging or production Incident: it carries the log tail, which a delegated token is refused (`INCIDENT_LOG_CONFIDENTIAL`), so show it to the person and never hand it to a model.',
         ),
     })
     .describe(

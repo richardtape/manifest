@@ -862,7 +862,10 @@ const CONFIDENTIAL_AGENT_MODELS = [
   'default-chat-large',
 ]
 
-/** The models `mock-app`'s agent sessions hold: `MANIFEST_MOCK_CONFIDENTIAL=1` makes them the confidential list. */
+/**
+ * The models `mock-app`'s agent sessions hold: `MANIFEST_MOCK_CONFIDENTIAL=1` — or `MANIFEST_MOCK_LEVEL` at `high` or above
+ * (the U1 plan's Task 5) — makes them the confidential list.
+ */
 export const agentModels = (confidential: boolean): string[] =>
   confidential ? CONFIDENTIAL_AGENT_MODELS : AGENT_MODELS
 

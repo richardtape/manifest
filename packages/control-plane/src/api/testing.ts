@@ -53,6 +53,7 @@ import { fileURLToPath } from 'node:url'
 import { join } from 'node:path'
 import { createBuildRunner, createRetirer } from '../releases/index.js'
 import { NullReviewer } from '../launch/index.js'
+import type { Classification } from '../spec/index.js'
 import type { AiKeyService } from '../ai/index.js'
 import type { FastifyInstance, LightMyRequestResponse } from 'fastify'
 import { buildServer, type ServerDeps } from './server.js'
@@ -310,7 +311,7 @@ export async function projectFor(
  */
 export interface FixtureOptions {
   env?: { name: string; value: string }[]
-  classification?: 'public' | 'internal' | 'confidential'
+  classification?: Classification
   overrides?: Partial<ServerDeps>
 }
 

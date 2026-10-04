@@ -3,6 +3,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import type { FastifyInstance } from 'fastify'
 import { appSpecs, instances } from '../db/index.js'
 import { resetDatabase } from '../db/testing.js'
+import type { Classification } from '../spec/index.js'
 import { ensureTestUser } from '../identity/testing.js'
 import { buildServer, type ServerDeps } from './server.js'
 import {
@@ -117,9 +118,8 @@ const PRODUCTION_OUTPUT = { status: 403, code: 'INSTANCE_OUTPUT_PRODUCTION' } as
 /** …and staging's, since FE-24's code (sitting 10; §14 as Spec action 6 left it), by its own code. */
 const STAGING_OUTPUT = { status: 403, code: 'INSTANCE_OUTPUT_STAGING' } as const
 /**
- * The safeguard (§7 as Spec action 10 amended it; the front-end enablement plan's Task 14a): a
- * confidential project's staging and production Incidents are refused a TOKEN, by its own code, while
- * its building agent may use the capable model — the harness's default setting.
+ * The safeguard (§7 as Spec action 10 and the U1 spec action amended it; S9): the staging and production Incidents of a
+ * project at `high` or above are refused a TOKEN, by its own code, whatever the builder setting.
  */
 const CONFIDENTIAL_INCIDENTS = { status: 403, code: 'INCIDENT_LOG_CONFIDENTIAL' } as const
 /**
@@ -285,11 +285,12 @@ interface Fixture {
    */
   adminIsMember: boolean
   /**
-   * Makes the fixture project `confidential` — a newer VALID manifest saying so, written once, which is
-   * what `classificationFloor` reads (the front-end enablement plan's Task 14a). ONLY the last row calls
-   * it: every row before it answers for an `internal` project.
+   * Declares the fixture project at `level` — a newer VALID manifest saying so, written ONCE per level (every actor's
+   * request calls it), each newer than the last, which is what `classificationFloor` reads (the front-end enablement
+   * plan's Task 14a; the U1 plan's Task 5). ONLY the last two rows call it: every row before them answers for a
+   * `medium` project.
    */
-  makeConfidential: () => Promise<void>
+  declareLevel: (level: Classification) => Promise<void>
   /**
    * One instance in SANDBOX and one in production, written directly (the front-end enablement
    * plan's Task 3) — what the output rows are aimed at. Both rows read `failed`, so neither
@@ -2233,20 +2234,42 @@ const ROUTES: RouteCase[] = [
     },
   },
   /**
-   * THE SAFEGUARD (§7 as Spec action 10 amended it; the front-end enablement plan's Task 14a) — LAST IN
-   * THIS TABLE, AND THE ORDER IS LOAD-BEARING: its request makes the fixture project CONFIDENTIAL, which
-   * no row before it may see (the agent-session rows would otherwise read another list, and the Incident
-   * row above another answer). The same route as that row, on the same staging environment: the
+   * THE SAFEGUARD (§7 as Spec action 10 and the U1 spec action amended it; S9) — THE LAST TWO ROWS IN THIS TABLE,
+   * AND THE ORDER IS LOAD-BEARING: their requests raise the fixture project to `high`, then to `very-high` by its
+   * earlier name, which no row before them may see (the agent-session rows would otherwise read another list, and
+   * the Incident row above another answer). The same route as that row, on the same staging environment: the
    * PEOPLE still read it; a token holding `project:read` — `token-capable`, `token-privileged` — is refused
    * by the safeguard's own code, decided after the capability and the scope, so `token-incapable` and
-   * `token-other-project` keep theirs.
+   * `token-other-project` keep theirs. WHATEVER the builder setting: the harness's is `capable`, and `incidents.test.ts`
+   * holds `on-premise`.
    */
   {
     method: 'GET',
     url: '/v1/environments/:environmentId/incidents',
-    label: 'a confidential project, while its builder may use the capable model',
+    label:
+      'a high project — a token is refused its Incidents, whatever the builder setting',
     request: async (f) => {
-      await f.makeConfidential()
+      await f.declareLevel('high')
+      return { url: `/v1/environments/${f.environmentId.staging}/incidents` }
+    },
+    expect: {
+      owner: 'pass',
+      collaborator: 'pass',
+      stranger: 404,
+      admin: 'pass',
+      anonymous: 401,
+      'token-capable': CONFIDENTIAL_INCIDENTS,
+      'token-incapable': 403,
+      'token-other-project': 404,
+      'token-privileged': CONFIDENTIAL_INCIDENTS,
+    },
+  },
+  {
+    method: 'GET',
+    url: '/v1/environments/:environmentId/incidents',
+    label: 'a very-high project, by its earlier name confidential',
+    request: async (f) => {
+      await f.declareLevel('confidential')
       return { url: `/v1/environments/${f.environmentId.staging}/incidents` }
     },
     expect: {
@@ -2553,7 +2576,7 @@ export function describeAuthorizationContract(
       await addMember(deps.db, body.id, removable.id, 'collaborator')
 
       // Written once, by the last row's first case (Task 14a).
-      let madeConfidential = false
+      const declaredLevels: Classification[] = []
       fixture = {
         projectId: body.id,
         otherProjectId,
@@ -2568,16 +2591,16 @@ export function describeAuthorizationContract(
         commitSha: body.spec.commitSha,
         mainHead: () =>
           deps.source.resolveRef(deps.source.repositoryFor('authz-fixture'), 'main'),
-        makeConfidential: async () => {
-          if (madeConfidential) return
-          madeConfidential = true
+        declareLevel: async (level) => {
+          if (declaredLevels.includes(level)) return
+          declaredLevels.push(level)
           await deps.db.insert(appSpecs).values({
             projectId: body.id,
             commitSha: body.spec.commitSha,
-            parsed: { data: { classification: 'confidential' } },
+            parsed: { data: { classification: level } },
             schemaVersion: 1,
             valid: true,
-            createdAt: new Date(Date.now() + 1000),
+            createdAt: new Date(Date.now() + 1000 * declaredLevels.length),
           })
         },
         throwaway: async () => {

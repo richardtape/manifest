@@ -31,7 +31,11 @@ import {
   recordPreview,
   ReleaseError,
 } from '../../releases/index.js'
-import { resolveConfig, toLevel, type ManifestSpec } from '../../spec/index.js'
+import {
+  CLASSIFICATION_RANK,
+  resolveConfig,
+  type ManifestSpec,
+} from '../../spec/index.js'
 import { requireSession } from '../actor.js'
 import type { ServerDeps } from '../server.js'
 import { defineRoute, NO_BODY, NO_QUERY } from '../contract/route.js'
@@ -1205,7 +1209,7 @@ export const releaseRoutes = [
     tag: 'delivery',
     summary: 'An environment’s incidents',
     description:
-      'The environment’s Incidents, newest first: each failed deploy’s exit, last 200 log lines, failing check and diff since the last healthy release, with a repair prompt. A delegated token is refused a `confidential` project’s staging and production Incidents (`INCIDENT_LOG_CONFIDENTIAL`) while the platform lets its building agent use the capable model; a session reads them, and any token reads the sandbox’s.',
+      'The environment’s Incidents, newest first: each failed deploy’s exit, last 200 log lines, failing check and diff since the last healthy release, with a repair prompt. A delegated token is refused the staging and production Incidents of a project whose data is `high` or `very-high` (`INCIDENT_LOG_CONFIDENTIAL`); a session reads them, and any token reads the sandbox’s.',
     params: EnvironmentParams,
     query: NO_QUERY,
     body: NO_BODY,
@@ -1239,22 +1243,22 @@ export const releaseRoutes = [
         actor,
         params.environmentId,
       )
-      // THE SAFEGUARD (§7 as Spec action 10 amended it; the front-end enablement plan's Task 14a),
-      // decided BEFORE anything is read: while a confidential project's building agent may call the
-      // capable model — which may route off-premise — a delegated token is the agent's credential,
-      // and staging's and production's log tails can carry real people's input. By the environment's
-      // KIND, as the output read decides, and by `environmentFloor`: the project's classification and
-      // every release that has run HERE — so a commit lowering the manifest does not unlock the
-      // Incidents of the confidential release before it (the review's I1).
+      // THE SAFEGUARD (§7 as the U1 spec action amended it; S9 — Rich, 2026-10-03, 22:21: "Refuse at high and above"),
+      // decided BEFORE anything is read: a delegated token is the credential of an agent the platform cannot see, so
+      // no administrator has attested the model it hands these tails to, and staging's and production's carry real
+      // people's input. At `high` and above, WHATEVER the builder setting or the capable model's level. By the
+      // environment's KIND, as the output read decides, and by `environmentFloor`: the project's level and every
+      // release that has run HERE — so a commit lowering the manifest does not unlock the Incidents of the release
+      // before it (the front-end enablement plan's review, I1).
       if (
         actor.credential === 'token' &&
         environment.kind !== 'sandbox' &&
-        deps.config.agent.builderModels === 'capable' &&
-        toLevel(await environmentFloor(deps.db, environment)) === 'very-high'
+        CLASSIFICATION_RANK[await environmentFloor(deps.db, environment)] >=
+          CLASSIFICATION_RANK.high
       )
         throw new OutputError(
           'INCIDENT_LOG_CONFIDENTIAL',
-          `the ${environment.kind} Incidents of a confidential project are not answered to a delegated token while its building agent may use the capable model; a person reads them in their own session`,
+          `the ${environment.kind} Incidents of a project whose data is high or very high are not answered to a delegated token; a person reads them in their own session`,
         )
       const [project] = await deps.db
         .select({ slug: projects.slug })

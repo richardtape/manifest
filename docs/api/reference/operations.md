@@ -780,7 +780,7 @@ Answer, `200`:
 
 `GET /v1/environments/{environmentId}/incidents` · a session or a delegated token
 
-The environment’s Incidents, newest first: each failed deploy’s exit, last 200 log lines, failing check and diff since the last healthy release, with a repair prompt. A delegated token is refused a `confidential` project’s staging and production Incidents (`INCIDENT_LOG_CONFIDENTIAL`) while the platform lets its building agent use the capable model; a session reads them, and any token reads the sandbox’s.
+The environment’s Incidents, newest first: each failed deploy’s exit, last 200 log lines, failing check and diff since the last healthy release, with a repair prompt. A delegated token is refused the staging and production Incidents of a project whose data is `high` or `very-high` (`INCIDENT_LOG_CONFIDENTIAL`); a session reads them, and any token reads the sandbox’s.
 
 | Parameter | In | Required | What it is |
 |---|---|---|---|

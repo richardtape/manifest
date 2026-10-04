@@ -78,6 +78,20 @@ const STEP_UP_COOKIE = 'manifest_mock_stepped_up'
 export const ISSUED_SESSION = 'mock-session'
 const DOCUMENT = new URL('../../contract/openapi.json', import.meta.url)
 
+/**
+ * UBC's U1 levels, least sensitive first, and their ranks — copied, not imported: the mock imports only
+ * `@manifest/contract`, and the front-end runs it from this tree (the U1 plan's Task 5).
+ */
+const LEVEL_RANK = { low: 0, medium: 1, high: 2, 'very-high': 3 } as const
+export type Level = keyof typeof LEVEL_RANK
+const isLevel = (value: unknown): value is Level =>
+  typeof value === 'string' && Object.hasOwn(LEVEL_RANK, value)
+
+/** Whether `mock-app` is scripted at `high` or above — `confidential` (very high), or the level (S9's line). */
+const atHigh = (options: Pick<MockOptions, 'confidential' | 'level'>): boolean =>
+  options.confidential === true ||
+  (options.level !== undefined && LEVEL_RANK[options.level] >= LEVEL_RANK.high)
+
 export interface MockOptions {
   /** `MANIFEST_MOCK_ROLE=admin` is what makes §26's fleet reachable. */
   role?: 'admin' | 'member'
@@ -100,6 +114,13 @@ export interface MockOptions {
    * and every agent session holds the on-premise models and `default-chat-large`.
    */
   confidential?: boolean
+  /**
+   * `MANIFEST_MOCK_LEVEL=<low|medium|high|very-high>` (the U1 plan's Task 5): `mock-app`'s UBC U1 level — any other value
+   * is ignored. At `high` or above a token is refused staging's and production's Incidents, `403
+   * INCIDENT_LOG_CONFIDENTIAL`, whatever the builder setting (S9), and every agent session holds the list
+   * `confidential` gives. `confidential: true` means `very-high`, and wins.
+   */
+  level?: Level
   agentBudget?: 'ok' | 'exhausted' | 'unavailable'
   intake?: 'open' | 'daily-limit' | 'budget-spent'
   /**
@@ -453,14 +474,14 @@ const ANSWERS: Record<string, Answerer> = {
   listIncidents: (ctx) => {
     const env = ctx.params.environmentId
     if (
-      ctx.options.confidential &&
+      atHigh(ctx.options) &&
       ctx.credential === 'token' &&
       (env === f.STAGING_ID || env === f.PRODUCTION_ID)
     )
       throw new MockRefusal(
         403,
         'INCIDENT_LOG_CONFIDENTIAL',
-        `the ${env === f.STAGING_ID ? 'staging' : 'production'} Incidents of a confidential project are not answered to a delegated token while its building agent may use the capable model; a person reads them in their own session`,
+        `the ${env === f.STAGING_ID ? 'staging' : 'production'} Incidents of a project whose data is high or very high are not answered to a delegated token; a person reads them in their own session`,
       )
     return ok(
       'IncidentList',
@@ -706,7 +727,7 @@ const ANSWERS: Record<string, Answerer> = {
     return created('AgentSessionStarted', {
       session: f.agentSession(ctx.now, {
         id: f.AGENT_SESSION_ID,
-        models: f.agentModels(ctx.options.confidential),
+        models: f.agentModels(atHigh(ctx.options)),
         name: body.name ?? 'an agent session',
         capUsd: body.capUsd ?? 2,
         via:
@@ -727,7 +748,7 @@ const ANSWERS: Record<string, Answerer> = {
       f.agentSessions(
         ctx.now,
         ctx.options.agentBudget === 'unavailable' ? 'unavailable' : 'known',
-        ctx.options.confidential,
+        atHigh(ctx.options),
       ),
     ),
   endAgentSession: (ctx) => {
@@ -1195,6 +1216,11 @@ export function createMockServer(options: MockOptions = {}): Server {
     fail: options.fail ?? process.env.MANIFEST_MOCK_FAIL === '1',
     launched: options.launched ?? process.env.MANIFEST_MOCK_LAUNCHED === '1',
     confidential: options.confidential ?? process.env.MANIFEST_MOCK_CONFIDENTIAL === '1',
+    level:
+      options.level ??
+      (isLevel(process.env.MANIFEST_MOCK_LEVEL)
+        ? process.env.MANIFEST_MOCK_LEVEL
+        : 'medium'),
     mayBuild: options.mayBuild ?? process.env.MANIFEST_MOCK_MAY_BUILD !== '0',
     agentBudget:
       options.agentBudget ??

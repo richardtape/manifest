@@ -356,10 +356,11 @@ sessions a `capable` platform started, and how a check that failed at a commit i
 ended is named in an operator line with what its key may still hold, and stays live until it expires or the next check — a commit, a
 production deploy, a rehearsal or a boot — finishes it; a commit is never refused for it.
 
-**The safeguard, while the setting is `capable`**: `listIncidents` for a `confidential` project's STAGING or PRODUCTION environment,
-asked with a delegated TOKEN, is refused **`403 INCIDENT_LOG_CONFIDENTIAL`** before anything is read — an Incident's log tail can
-carry the input of the people the classification protects, and redaction does not remove names or student numbers. A person's
-session still reads it, and every token reads the sandbox's. Under `on-premise` a token reads them as before.
+**The safeguard, whatever the setting** (S9, since the U1 plan's Task 5): `listIncidents` for the STAGING or PRODUCTION environment of a
+project at `high` or above (by its manifest or any release that has run there), asked with a delegated TOKEN, is refused **`403
+INCIDENT_LOG_CONFIDENTIAL`** before anything is read — an Incident's log tail can carry the input of the people the level protects,
+redaction does not remove names or student numbers, and a token's model is one no administrator has attested. A person's session still
+reads it, and every token reads the sandbox's. Neither the builder setting nor the capable model's level changes it.
 
 ## The four verbs
 
@@ -534,7 +535,8 @@ an instance (and keeps an earlier failed one), staging runs one, production none
 | `MANIFEST_MOCK_FAIL` | unset | `1` plays the deploy's other ending: `instance.failed` + `incident.opened` |
 | `MANIFEST_MOCK_LAUNCHED` | unset | `1`: `mock-app` has been to production — `launchedAt` set, and a delete is `409 PROJECT_LAUNCHED_NOT_DELETABLE` |
 | `MANIFEST_MOCK_AGENT_BUDGET` | `ok` | `exhausted`: the month is spent — a session start is `409 AGENT_BUDGET_EXHAUSTED`; `unavailable`: the gateway does not answer — every spend reads `null` with its reason, and a session start is `503 AI_BACKEND_UNAVAILABLE`, as the platform's is |
-| `MANIFEST_MOCK_CONFIDENTIAL` | unset | `1`: `mock-app`'s data is `confidential` and its building agent may use the capable model — a TOKEN is refused staging's and production's Incidents, `403 INCIDENT_LOG_CONFIDENTIAL` (a session and the sandbox are answered), and every agent session holds `default-chat-onprem`, `default-chat-onprem-reasoning` and `default-chat-large` |
+| `MANIFEST_MOCK_CONFIDENTIAL` | unset | `1`: `mock-app`'s data is `confidential` (`very-high`) and its building agent may use the capable model — a TOKEN is refused staging's and production's Incidents, `403 INCIDENT_LOG_CONFIDENTIAL` (a session and the sandbox are answered), and every agent session holds `default-chat-onprem`, `default-chat-onprem-reasoning` and `default-chat-large` |
+| `MANIFEST_MOCK_LEVEL` | `medium` | `mock-app`'s UBC U1 level — `low`, `medium`, `high` or `very-high`; anything else is ignored. At `high` or above it answers as `MANIFEST_MOCK_CONFIDENTIAL=1` does (the token's `403 INCIDENT_LOG_CONFIDENTIAL`, and the same agent models); `MANIFEST_MOCK_CONFIDENTIAL=1` wins |
 | `MANIFEST_MOCK_INTAKE` | `open` | `daily-limit` or `budget-spent`: describing a new app is paused — `409 INTAKE_DAILY_LIMIT_REACHED` or `INTAKE_BUDGET_EXHAUSTED` |
 | `MANIFEST_MOCK_RECORDS` | unset (`sent`) | Where `mock-app` stands in UBC's order (the launch path plan's Task 13, `packages/mock/src/launch.ts`). Unset: both registrations `active`, the privacy assessment sent again and with the Privacy Office — drafting is `409 LAUNCH_RECORD_SUBMITTED`. `none`: nothing recorded; `drafted`: all three drafted, the assessment sendable, a registration `409 LAUNCH_PIA_NOT_APPROVED`; `assessed`: the assessment approved, staging sendable, production `409 LAUNCH_STAGING_NOT_REGISTERED`; `approved`: every blocking item met (FE-40 (1)) — a production deploy answers production's own instance. Each draft and send is answered as the platform answers it from that stage |
 | `MANIFEST_MOCK_APPROVAL` | `approved` | FE-40 (3): `pending` — `getApproval` `404`, `admin-approval` unmet, `requestApproval` answers an open request; `rejected` — a rejection with its reason, `requestApproval` `409 RELEASE_REJECTED`. Unset, `requestApproval` is `409 APPROVAL_NOT_NEEDED` |
