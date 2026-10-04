@@ -902,3 +902,18 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
     fallbacks" read the key's page): "Don't worry about the fallback that's currently set I can sort that later, it's not a
     blocker for us here." While it stands, qwen3.6-35b-a3b cannot be `confidential` (§7, Spec action 1). Sitting 2's close
     chooses MANIFEST_GATEWAY_MODELS knowing it.
+
+    And at 21:25 PDT (the clock at this entry), the gateway plan's TASK 4 BRANCH (manifest-ec's [M5], 21:13; the premises
+    checked against infra/litellm/manifest_guard.py's header and the plan's Task 4 by manifest-af). Every gateway failure
+    measured falls back: (c-ii) a served model the key may not use 403, (d) a wrong key 401, (e) the key's budget spent 429
+    budget_exceeded, (g) unreachable 500. (a) malformed 400 is refused, correctly. The ONE Branch-C case is (c-i), a model the
+    gateway does not serve: 400 invalid_request_error, param None, which cannot be told from a malformed request but by its
+    message text. So the guard refuses its fallback. No 422 found; (f) unmeasured, as no rate limit is set. Through the question
+    tool — "Accept it" (the plan's Branch C (i); over the recommended boot probe, a make-verify-only probe, and matching the
+    message text): no guard code, no probe. A withdrawn or mistyped gateway model answers every caller 400 until an
+    administrator fixes the setting: loud, not silent. Letting every 400 with no param fall back was ruled out before asking,
+    because it reverses §7's rule that a malformed request is the caller's to correct. Task 4 keeps its witness Docker cases
+    for the cases that fall back.
+    Also at the close of the front-end's F5b sitting 1 (manifest-app-79, 21:22): FE-55, a CWL app asking no attribute passes
+    validation, builds and releases, then its staging deploy answers 500 INTERNAL (an unhandled SpEntityError from
+    deriveSpEntity). It is in manifest-app's docs/api-findings.md:1728 (5e4a61d) for the platform's queue, not yet placed by Rich.
