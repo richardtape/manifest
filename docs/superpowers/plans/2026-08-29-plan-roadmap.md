@@ -1422,7 +1422,7 @@ need **Spec actions 5 and 6** (above); and the rest is placed here.
   a session it did not issue, and a credential an operation does not list) — which ORIENTATION §7e asks Rich to confirm for the
   current plan's Task 13. On FE-20, Rich's word relayed: a sign-in limited to a class is coming, through the Academic API or Canvas,
   both runnable locally as fakes.
-- **THE ORDER SINCE 2026-09-30 (Rich), AS RE-CUT 2026-10-03 at 15:28 (*"FE-46/47/5 → A1 → B → FE-32 → Phase 3 → A2 is good"*, and the UBC AI Gateway *"Right after faculty-ready"*): THE LAUNCH PATH → *FACULTY-READY* → THE UBC AI GATEWAY AS MANIFEST'S UPSTREAM PROVIDER (a small plan, being written) → THE MANIFEST TEAM'S STEP (FE-46, FE-47, FE-5, FE-53; placed 2026-10-02, written and approved 2026-10-03, [`2026-10-03-fe46-fe47-fe5.md`](./2026-10-03-fe46-fe47-fe5.md)) → A1, PRODUCTION INSTANCES BY AUDIENCE (§24; *"Build §24's capacity first"*, then *"A1 → B → A2"*; [`2026-10-03-production-instances.md`](./2026-10-03-production-instances.md)) → B, THE LOAD REHEARSAL (§24, FE-44; *"Build the load rehearsal first"*; [`2026-10-03-load-rehearsal.md`](./2026-10-03-load-rehearsal.md)) → FE-32, WITH §12'S ALLOWLIST (written 2026-10-03, [`2026-10-03-fe32-dependencies.md`](./2026-10-03-fe32-dependencies.md); the allowlist *"Yes, in this plan"*) → PHASE 3, SANDBOXES (§17: agent `exec` with a real harness — S5's *"yes, on the capable model"* — per-session keys inside the sandbox, preview routes, the console's chat pane, the MCP server; unwritten) → A2, HIBERNATION AND WAKE-ON-REQUEST (§11, §24; *"Build hibernation in Plan A"*; [`2026-10-03-hibernation.md`](./2026-10-03-hibernation.md)) → THE VULNERABILITY DATABASE IN THE CONSOLE → FE-45 (an app that has been live, put away; placed 2026-10-03) → the FE-19…FE-3 plans below.** *As recorded before:* **AFTER THE FRONT-END ENABLEMENT PLAN, IN RICH'S ORDER: THE LAUNCH PATH FIRST — WRITTEN 2026-09-29 as [`2026-09-29-launch-path.md`](./2026-09-29-launch-path.md) (its section above), carrying FE-33, FE-34 and FE-38 at Rich's word.** **FE-6** — the three clocks (the staging
+- **THE ORDER SINCE 2026-09-30 (Rich), AS RE-CUT 2026-10-03 at 15:28 (*"FE-46/47/5 → A1 → B → FE-32 → Phase 3 → A2 is good"*, and the UBC AI Gateway *"Right after faculty-ready"*): THE LAUNCH PATH → *FACULTY-READY* → THE UBC AI GATEWAY AS MANIFEST'S UPSTREAM PROVIDER (WRITTEN AND APPROVED 2026-10-03, [`2026-10-03-ubc-ai-gateway.md`](./2026-10-03-ubc-ai-gateway.md); its sitting 1 NEXT) → THE MANIFEST TEAM'S STEP (FE-46, FE-47, FE-5, FE-53; placed 2026-10-02, written and approved 2026-10-03, [`2026-10-03-fe46-fe47-fe5.md`](./2026-10-03-fe46-fe47-fe5.md)) → A1, PRODUCTION INSTANCES BY AUDIENCE (§24; *"Build §24's capacity first"*, then *"A1 → B → A2"*; [`2026-10-03-production-instances.md`](./2026-10-03-production-instances.md)) → B, THE LOAD REHEARSAL (§24, FE-44; *"Build the load rehearsal first"*; [`2026-10-03-load-rehearsal.md`](./2026-10-03-load-rehearsal.md)) → FE-32, WITH §12'S ALLOWLIST (written 2026-10-03, [`2026-10-03-fe32-dependencies.md`](./2026-10-03-fe32-dependencies.md); the allowlist *"Yes, in this plan"*) → PHASE 3, SANDBOXES (§17: agent `exec` with a real harness — S5's *"yes, on the capable model"* — per-session keys inside the sandbox, preview routes, the console's chat pane, the MCP server; unwritten) → A2, HIBERNATION AND WAKE-ON-REQUEST (§11, §24; *"Build hibernation in Plan A"*; [`2026-10-03-hibernation.md`](./2026-10-03-hibernation.md)) → THE VULNERABILITY DATABASE IN THE CONSOLE → FE-45 (an app that has been live, put away; placed 2026-10-03) → the FE-19…FE-3 plans below.** *As recorded before:* **AFTER THE FRONT-END ENABLEMENT PLAN, IN RICH'S ORDER: THE LAUNCH PATH FIRST — WRITTEN 2026-09-29 as [`2026-09-29-launch-path.md`](./2026-09-29-launch-path.md) (its section above), carrying FE-33, FE-34 and FE-38 at Rich's word.** **FE-6** — the three clocks (the staging
   registration, the production registration, the privacy assessment): D19's generated drafts, an owner's *"I've sent it"*, a
   state that can say *waiting since*, and the staging registration as a tracked object like `IamRegistration`; **FE-25** — an
   owner's *"please sign this off"* for a release, feeding §26's queue (today no administrator is told and nothing records it).
@@ -1496,7 +1496,21 @@ administrator who is a collaborator; sitting 6's I2) **DECIDED (a) AND APPLIED 2
 the same morning at Rich's word: Task 15 (that rule's code) and Task 16 (sitting 4's M1, a question's end recorded in the transaction
 that ends it). **Sittings 3, 4 and 6's through-the-edge halves were run by Rich the same morning** (the plan's addendum after *Sitting 6*). **Then FE-32** — an agent can add a dependency (an operation that resolves a `package-lock.json` through the mirror).
 
-### The Manifest team's step — FE-46, FE-47, FE-5 and FE-53 — ✅ WRITTEN AND APPROVED 2026-10-03: [`2026-10-03-fe46-fe47-fe5.md`](./2026-10-03-fe46-fe47-fe5.md), 9 tasks in 5 sittings, AFTER *FACULTY-READY* AND BEFORE FE-32
+### UBC's AI Gateway as Manifest's upstream provider — ✅ WRITTEN AND APPROVED 2026-10-03: [`2026-10-03-ubc-ai-gateway.md`](./2026-10-03-ubc-ai-gateway.md), 7 tasks (0–6) in 3 sittings (a 2b if sitting 2 splits at its stop point), RIGHT AFTER *FACULTY-READY* — **SITTING 1 (TASKS 0 AND 1) IS NEXT**
+
+**Why.** Rich, 15:28: Manifest should reach good models — OpenAI's and UBC's on-premise ones — *"through the LiteLLM 'AI Gateway' hosted at
+UBC"* (`https://ai-gateway.apps.ltic.ubc.ca`), not straight to OpenAI. **Decided** ([`../2026-09-30-decisions.md`](../2026-09-30-decisions.md), 15:28,
+15:42, 15:57, 16:13, 16:23): Manifest KEEPS its own LiteLLM (per-person keys, budgets, the guard) and names the gateway as its UPSTREAM
+provider, with one virtual key (`UBC_AI_GATEWAY_API_KEY`, 20 USD a month, expiring ~2027-01-01); `default-chat` stays the laptop's Ollama
+(C1); the gateway's on-prem models arrive as new catalogue names from `MANIFEST_GATEWAY_MODELS`; agent keys gain `/v1/responses` only if Task 1
+measures it needed; `OPENAI_API_KEY` stays as a backup. This closes ORIENTATION §8's *"should Manifest use UBC's existing LiteLLM?"*.
+**Written** by `manifest-b7` (`f5faf87`), **reviewed** by a fresh read-only agent ([`2026-10-03-review-of-ubc-ai-gateway-plan.md`](./2026-10-03-review-of-ubc-ai-gateway-plan.md):
+one Critical — a key reference resolving to nothing would send the real `OPENAI_API_KEY` to the gateway and fall back silently), its fixes
+applied by `manifest-cd` (`61d4557`), **APPROVED with them** (Rich, 16:13). **Executed inline, a fresh session per sitting** (15:57). **Two spec
+actions drafted, neither applied** — 1 before sitting 2; 2 before sitting 2 only if measured needed. **The gateway key's `.env` line is
+COMMENTED until Task 0 scrubs it** (16:14). Sitting 1 needs Rich: the network, and a separate tiny-budget PROBE key (ORIENTATION §7e).
+
+### The Manifest team's step — FE-46, FE-47, FE-5 and FE-53 — ✅ WRITTEN AND APPROVED 2026-10-03: [`2026-10-03-fe46-fe47-fe5.md`](./2026-10-03-fe46-fe47-fe5.md), 9 tasks in 5 sittings, AFTER THE UBC AI GATEWAY PLAN (Rich, 15:28), BEFORE A1
 
 *Which sitting is next: its sittings table, and ORIENTATION §7e — once faculty-ready's sitting 7 has closed.* **Written 2026-10-03 by the
 planning session `manifest-c7`** (Rich spawned it; `manifest-94` coordinated) from the spec as `8def435` left it — **the three spec actions
@@ -1545,7 +1559,7 @@ Its acceptance is **`make demo-load`**. **Three spec actions DRAFTED, none appli
 (D24's person-only list; §26's settings), C (§11, the exemption's `Driver` verb). **Rich's** (2026-10-03): FE-44 *"Build the load rehearsal first"* (~13:46); *"As proposed"* and
 *"First launch + audience raised"* (~13:52); *"vegeta"* and *"Exempt the generator's IP"* (~13:56).
 
-### A2 — hibernation and wake-on-request (§11, §24) — WRITTEN 2026-10-03: [`2026-10-03-hibernation.md`](./2026-10-03-hibernation.md), 8 tasks in 6 sittings, AFTER B — REVISED TO A FRESH REVIEW (`2d74a5d`); A SECOND FRESH REVIEW BEFORE APPROVAL ([`2026-10-03-review-of-four-plans.md`](./2026-10-03-review-of-four-plans.md))
+### A2 — hibernation and wake-on-request (§11, §24) — WRITTEN 2026-10-03: [`2026-10-03-hibernation.md`](./2026-10-03-hibernation.md), 8 tasks in 6 sittings, AFTER PHASE 3 (Rich's re-cut, 15:28: *"… → FE-32 → Phase 3 → A2"*; it was after B) — REVISED TO A FRESH REVIEW (`2d74a5d`); A SECOND FRESH REVIEW BEFORE APPROVAL ([`2026-10-03-review-of-four-plans.md`](./2026-10-03-review-of-four-plans.md))
 
 *Which sitting is next: its sittings table, once its second fresh review is answered, Rich approves it, and B has closed.* **The review (`21dc368`): needs rework — REVISED to it (`2d74a5d`)**: S4's stand-in waker on the host; the waker's route with no health checks, known by a secret; three `Driver` verbs (a third spec action, C, §11) and a wake that starts the same instances; the intent written first; class apps woken at term start (Rich, ~14:33); the sweep bound at boot only with everything that keeps an asleep app asleep and launchable. **A second fresh review before approval** (Rich, 15:20: *"B and A2 later"*). **Written 2026-10-03 by `manifest-c7`** from the code at
 `e969f9d`; nothing executed. **Its Task 1 is spike S4** (§11: *"the spike decides it"*), with a real cold wake measured. **What it builds:**
@@ -1557,7 +1571,7 @@ not built"*), and comes back to him if the cold wake is more than a few seconds.
 and production's lifetime by audience — written from the spike), B (§24, §26, the term dates), C (§11, three `Driver` verbs). **Rich's** (2026-10-03): *"Build hibernation in
 Plan A"* (~13:56); *"A1 → B → A2"*, *"An admin platform setting"*, *"Record it as not built"* (~13:58).
 
-### FE-32 — an agent can add a dependency, with §12's allowlist — WRITTEN 2026-10-03: [`2026-10-03-fe32-dependencies.md`](./2026-10-03-fe32-dependencies.md), 6 tasks in 5 sittings, AFTER A2 (HIBERNATION) — REVISED TO A FRESH REVIEW (`2d74a5d`) AND APPROVED BY RICH 2026-10-03, 15:20 ([`2026-10-03-review-of-four-plans.md`](./2026-10-03-review-of-four-plans.md))
+### FE-32 — an agent can add a dependency, with §12's allowlist — WRITTEN 2026-10-03: [`2026-10-03-fe32-dependencies.md`](./2026-10-03-fe32-dependencies.md), 6 tasks in 5 sittings, AFTER B (Rich's re-cut, 15:28; it was after A2), BEFORE PHASE 3 — REVISED TO A FRESH REVIEW (`2d74a5d`) AND APPROVED BY RICH 2026-10-03, 15:20 ([`2026-10-03-review-of-four-plans.md`](./2026-10-03-review-of-four-plans.md))
 
 *Which sitting is next: its sittings table (sitting 1, Task 1), once A2 has closed.* **The review (`21dc368`): approve with fixes — REVISED to it (`2d74a5d`) and APPROVED as revised: *"A1 and FE-32 now; B and A2 later (Recommended)"* (15:20)** — the allowlist now refuses an alias, an override, a local specifier and a lockfile that maps a name to another tarball, at both doors, and the lockfile answered names the public registry. **Written 2026-10-03 by `manifest-c7`**
 from the code at `eee5648`; nothing executed. **What it builds:** `resolveDependencies` — an agent sends the `package.json` it wants and is
@@ -1572,7 +1586,7 @@ through a fixture whose lockfile the operation itself produced). **Three spec ac
 in the builder and a full install through the mirror stand as written, their spec-action words his at review. **Placed** after §24's
 three plans (*"A1 → B → A2"*), before the vulnerability database.
 
-### The vulnerability database in the console — AFTER *FACULTY-READY* AND FE-32 (Rich, 2026-09-30) — REQUESTED AND PLACED 2026-09-24: after the authoring API — and, since 2026-09-26, after Spec action 1's plan, which the front-end enablement plan replaced on 2026-09-27 in the same position — and, since 2026-09-27 (Rich), AFTER THE FRONT-END'S LAUNCH PATH (FE-6, FE-25)
+### The vulnerability database in the console — AFTER A2 (Rich's re-cut, 2026-10-03 15:28: … → FE-32 → Phase 3 → A2 → the vulnerability database → FE-45; it was after *FACULTY-READY* AND FE-32, 2026-09-30) — REQUESTED AND PLACED 2026-09-24: after the authoring API — and, since 2026-09-26, after Spec action 1's plan, which the front-end enablement plan replaced on 2026-09-27 in the same position — and, since 2026-09-27 (Rich), AFTER THE FRONT-END'S LAUNCH PATH (FE-6, FE-25)
 
 **Rich, 2026-09-24:** refresh the scanner's vulnerability database from the control plane's API, show its age and when
 it goes stale, let an administrator ADJUST the staleness threshold, behind an appropriately scoped API, with a console
@@ -1601,6 +1615,11 @@ sittings. **What it needs, read from the code on 2026-09-24:**
   outside any plan. It is what this plan's refresh operation replaces for an administrator.
 
 ### Phases 3–5 — not planned
+
+**PHASE 3 (SANDBOXES) IS PLACED, 2026-10-03 15:28 (Rich): after FE-32, before A2.** Its plan is not yet written. S5 (2026-10-01) answered its
+question: a real harness (pi, or opencode) in a container builds faculty apps on the capable model, and needs a development sign-in to test
+its own pages ([`../spikes/S5-findings.md`](../spikes/S5-findings.md)). It wants the capable model through `/v1/responses` — which the UBC
+AI Gateway plan's Task 1 measures. What follows is as written before.
 
 Deliberately. **Phase 3 depends on S5, which is unrun** — S6 reported on 2026-09-07 (as P3
 Task 18) and found container isolation adequate for staging and production apps, while §12 leaves

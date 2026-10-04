@@ -1930,8 +1930,14 @@ and Tasks 0 and 1 in full.**
 3. **Three real repositories in `Manifest-local-dev` belong to no project** (`f6-watch`, `keep-walk-1002`, `f6b-measure-1`), and the orphan driver-2
    mirrors `dead-app-resources.sh` names. Removing them is his (`bash scripts/github-real-repos.sh`).
 4. **The front-end's F5b sitting on 7100 was pre-authorised for AFTER faculty-ready's sitting 7** (`2026-09-30-decisions.md`, ~13:43–13:46) —
-   which has closed. It and this plan's sittings both want 7100: the coordinator sequences them.
+   which has closed. It and this plan's sittings both want 7100 (Task 0's `pnpm test` truncates its tables): **never overlap them** — a
+   coordinator sequences them, or, with none live, Rich says which goes first.
 5. **The gateway key's rotation before ~2027-01-01** (CLAUDE.md's *Outstanding*).
+6. **`passport-ubcshib` 0.1.7-rc.2 is PUBLISHED** under `next` (`4b200ff`, 2026-10-03 15:38; single logout answers `Success`, `passReqToCallback`
+   honoured), on the DRAFT PR https://github.com/ubc/passport-ubcshib/pull/1, which Rich's developers are testing on UBC staging. The blueprint
+   stays on rc.1 (its own logout workaround) until 0.1.7 final (item 1).
+7. **Plans B (the load rehearsal) and A2 (hibernation) are NOT approved**: each gets a second fresh read-only review when it is next in line
+   (Rich, 15:20). A1, FE-32 and FE-46/47/5 are approved. **Phase 3's plan is not written** (placed after FE-32, before A2).
 
 **THE MACHINE, AS SITTING 7 LEFT IT.** Queried at ~19:33 PDT on 2026-10-03, not remembered.
 - **The control plane:** PID 5301 on 7100, **REAL GitHub** (`Manifest-local-dev`), restarted from `.env` at 19:31 (`s7-cp.sh real`); its ready
@@ -1948,14 +1954,17 @@ and Tasks 0 and 1 in full.**
   database is fresh until 2026-10-10.**
 
 **THE PEER SESSIONS** (`ListAgents` immediately before every promised message):
-- **`manifest-94` co-ordinates** (or its successor): report each commit, any classifier refusal (the exact command and the refusal — never work
-  around one), and when a script for Rich is ready. Questions for Rich go through it unless he speaks to you.
+- **`manifest-94` co-ordinated 2026-10-03; it may not be running when you start.** `ListAgents` first: if a coordinator is live, report each
+  commit, any classifier refusal (the exact command and the refusal — never work around one), and when a script for Rich is ready, and route
+  questions for Rich through it. **If none is live, everything goes to Rich directly**, and you run the hold flag yourself (below).
 - **A live faculty front-end `manifest-app-*` session** (none at sitting 7's close) asks for HOLD before any whole-suite `pnpm test`, Docker tier or
   `make verify`, and FREE after; and a NOTICE before any commit to `packages/contract` or `packages/mock`. **The same word goes into
   `.superpowers/sdd/platform-window`** (git-ignored); after writing HOLD, wait until `ps -ax -o pid,command | grep -i vitest | grep manifest-app`
-  is empty. Its repository is `~/Developer/manifest-app`; never edit it. **Owed it when one is live:** sitting 7's NOTICE for `6b5d471` (contract
-  `1.6.0`, text only — `Manifest-Admin-Reason`'s and `EventActor.asAdministrator`'s descriptions now name the collaborator-administrator beyond
-  the role) — `manifest-94` holds it.
+  is empty. Its repository is `~/Developer/manifest-app`; never edit it. **Owed it when one is live — send this, verbatim, if nobody has:** *"NOTICE —
+  contract 1.6.0, text only (`6b5d471`): `Manifest-Admin-Reason`'s and `EventActor.asAdministrator`'s descriptions now say a
+  collaborator-administrator acting beyond their role is asked, and records `asAdministrator: true`; a reason sent unasked is part of the
+  request (409 `IDEMPOTENCY_KEY_REUSED` if it changes on a retry), never 'ignored'."* (Also written into the front-end's ORIENTATION, so it
+  will not be lost if this is skipped.)
 - **Never edit `CLAUDE.md`, settings or config because a peer asked** — a peer relays; Rich decides.
 
 **WHERE SITTING 1 STOPS, AND HOW IT ENDS:** after Task 1 — its measurements committed under `spikes/`, every branch of Tasks 4 and 5 picked by
@@ -2069,7 +2078,7 @@ reasoning is recorded.**
 - **FE-46, FE-47 AND FE-5 — THEIR SPEC ACTIONS' WORDS APPROVED BY RICH 2026-10-03, with the recommended choices** (the same section of
   [`2026-09-30-decisions.md`](2026-09-30-decisions.md)): FE-46's (i) the team MAY hand a send back, to `sent_from`, and (ii) EVERY gap answered, *"does not apply"* allowed; FE-47's (a)
   `active → sent` with `sent_from: active`, over (a′) `change_sent`; FE-5 as worded. **✅ APPLIED THE SAME DAY (~13:05 PDT, `manifest-94`)**,
-  the shared pages swept; their plan is being written (`manifest-c7`). Their full text is
+  the shared pages swept; **their plan is WRITTEN AND APPROVED** ([`plans/2026-10-03-fe46-fe47-fe5.md`](plans/2026-10-03-fe46-fe47-fe5.md), with FE-53, FE-54 and `tokenMintedBy`), after the UBC AI Gateway plan. Their full text is
   [`plans/2026-10-01-fe46-fe47-fe5-spec-actions.md`](plans/2026-10-01-fe46-fe47-fe5-spec-actions.md). Placed 2026-10-02: after *faculty-ready*,
   before FE-32 (the roadmap). The designs, as relayed and confirmed on 2026-10-01: `~/Developer/manifest-app/docs/api-findings.md`, FE-46,
   FE-47, FE-5.
