@@ -917,3 +917,14 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
     Also at the close of the front-end's F5b sitting 1 (manifest-app-79, 21:22): FE-55, a CWL app asking no attribute passes
     validation, builds and releases, then its staging deploy answers 500 INTERNAL (an unhandled SpEntityError from
     deriveSpEntity). It is in manifest-app's docs/api-findings.md:1728 (5e4a61d) for the platform's queue, not yet placed by Rich.
+
+    And at 21:25 PDT (the clock read just before this entry), the gateway plan's F5, the llm_provider-* header leak (manifest-ec's sitting 1,
+    spikes/gateway-baseline/README.md's "For sitting 2"). LiteLLM 1.98.0 forwards every gateway header as llm_provider-*
+    (get_headers.py:7-38): the gateway key's budget and spend, and the answering model's upstream address, reach every app and
+    agent. Where no fallback stands, the gateway's budget refusal reaches the caller verbatim, with the key's alias and last 4.
+    The same header prices hop 1 at UBC's price (cost_calculator.py:1698-1712). Premise checked by manifest-af: apps reach
+    manifest-litellm in-network, not through the edge (spec/injection.ts:112, config.ts:271). Through the question tool —
+    "Strip after costing, else record" (Recommended): sitting 2 adds a hook to infra/litellm/manifest_guard.py that removes
+    llm_provider-x-litellm-key-* and llm_provider-x-litellm-model-api-base from what callers receive, after LiteLLM has read the
+    cost, tested against the stub. If no 1.98.0 hook can remove outgoing headers, it is recorded on the before-production list
+    instead, and the sitting's record says so. Rejected: recording it until production; stripping at the edge only.
