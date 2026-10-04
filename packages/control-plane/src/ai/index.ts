@@ -49,6 +49,13 @@ export {
   type BuilderModels,
 } from './models.js'
 export {
+  appKeysAtBoot,
+  countLegacyKeys,
+  heldModels,
+  withdrawLoweredAppModels,
+} from './app-key-sweep.js'
+export type { AppKeysAtBoot, AppKeySweep, AppKeySweepDeps } from './app-key-sweep.js'
+export {
   CAPABLE_FALLBACK_SETTING,
   CAPABLE_MODEL_NAME,
   CAPABLE_MODEL_SETTING,

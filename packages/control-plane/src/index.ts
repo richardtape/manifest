@@ -31,6 +31,7 @@ import { createSamlSpFor } from './identity/index.js'
 import { createEventBus, createStreamRegistry } from './observability/index.js'
 import { NullReviewer, takeDownLeftRehearsals } from './launch/index.js'
 import {
+  appKeysAtBoot,
   createAiKeyService,
   createCatalogueCache,
   createLiteLlmClient,
@@ -530,6 +531,18 @@ const agentSessionsWithdrawn = await (async (): Promise<
   }
 })()
 
+/**
+ * **A LOWERED LEVEL TAKES EFFECT ON RUNNING APPS, AT EVERY BOOT** (§7 as the U1 spec action amended it; S11; the U1 plan's
+ * Task 6): each running instance's AI key loses every model it holds that the level of the release it runs no longer allows
+ * — or is revoked, when nothing it may use is left. STRAIGHT AFTER the agent sessions' sweep, so the catalogue it reads FRESH
+ * is the one this boot's registrations just made (M8). NEVER FATAL: each key it could not check is one operator line, and a
+ * gateway that does not answer is one more. With AI off there is no gateway, and nothing is read.
+ */
+const appKeysWithdrawn =
+  !catalogue.enabled || litellm === undefined
+    ? 'disabled'
+    : await appKeysAtBoot({ db, bus, llm: litellm, keys: masterKeypair })
+
 // Which driver actually booted is the one fact this file decides, and every
 // acceptance in P3 is meaningless if it is 'fake'. Printed once, so the answer is
 // observable rather than inferred from behaviour.
@@ -573,6 +586,9 @@ console.log(
     // how many active agent sessions this boot ended because their project no longer allows what they held.
     agentBuilderModels: config.agent.builderModels,
     agentSessionsWithdrawn,
+    // The U1 plan's Task 6 (S11): running apps' AI keys this boot narrowed, revoked or could not check — or failed (one
+    // line), or disabled with AI off. Read back by boot.docker.test.ts.
+    appKeysWithdrawn,
     // What the recovery above did, on the one line an operator reads — and the one
     // `boot.docker.test.ts` reads back, because a recovery nobody can see is
     // indistinguishable from one that never ran.

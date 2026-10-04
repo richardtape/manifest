@@ -151,6 +151,24 @@ The app’s AI key was replaced by a deploy that became healthy. The key itself 
 }
 ```
 
+## `ai.models_withdrawn`
+
+A running app’s AI key lost models now approved only below its data’s level — or was revoked, when nothing it declared is still allowed. Checked when the platform starts. The key itself is never in an event.
+
+```json
+{
+  "instanceId": "6f1c1d2e-8a4b-4c3d-9e2f-1a2b3c4d5e6f",
+  "environment": "production",
+  "withdrawn": [
+    "ubc-gpt-mini"
+  ],
+  "models": [
+    "default-chat-onprem"
+  ],
+  "revoked": false
+}
+```
+
 ## `instance.retiring`
 
 An instance a deploy replaced is finishing the requests it already had, before it stops.

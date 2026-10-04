@@ -124,6 +124,7 @@ Each type, and the one sentence that says what it means; *Event types* has an ex
 | `instance.failed` | The instance never became healthy — whatever was already serving keeps serving — and an Incident records why. |
 | `incident.opened` | An Incident was recorded for a failed instance: its logs, redacted, and a prompt an agent can work from. |
 | `ai.key_rotated` | The app’s AI key was replaced by a deploy that became healthy. The key itself is never in an event. |
+| `ai.models_withdrawn` | A running app’s AI key lost models now approved only below its data’s level — or was revoked, when nothing it declared is still allowed. Checked when the platform starts. The key itself is never in an event. |
 | `instance.retiring` | An instance a deploy replaced is finishing the requests it already had, before it stops. |
 | `instance.retired` | A replaced instance finished: its container is gone and its AI key is revoked. |
 | `instance.retire_failed` | A replaced instance could not be retired, and will be tried again — never silently. |

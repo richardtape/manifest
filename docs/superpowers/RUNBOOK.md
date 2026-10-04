@@ -328,6 +328,20 @@ order (`.env`, `make up`, restart), the fail-closed boot (every `manifest-gatewa
   loses the capable model's offline fallback** for the same reason: `default-chat-onprem` answers with the network off, a gateway model does
   not.
 
+**A LOWERED LEVEL REACHES RUNNING APPS AT THE NEXT BOOT** (*added 2026-10-04, the U1 plan's Task 6; §7's E3, S11*). Lowering a
+model's level — a `MANIFEST_GATEWAY_MODELS` entry's `@high` become `@medium` because its provider's zero retention lapsed, or
+`MANIFEST_CAPABLE_MODEL_CLASSIFICATION` lowered — makes D17 refuse it to new validations and deploys at once; a RUNNING app's key
+already holds it. So every boot, straight after the agent sessions' check, reads each live instance's key from LiteLLM itself
+(`/key/info`) and takes off every model the level of the release that instance runs (its FROZEN level) no longer allows —
+`/key/update` by the key's value, the same key going on — or, when nothing it may use is left, REVOKES it (never `models: []`, which
+LiteLLM reads as every model). Each change is an `ai.models_withdrawn` event on the project's stream and an `app key sweep: …` operator
+line. **Read the boot line's `appKeysWithdrawn`**: `{"narrowed":n,"revoked":k,"failed":m}`, `disabled` (AI off), or `failed` (ONE
+`[boot] the running apps' AI keys could not be checked …` line — the next boot tries again). A `failed` instance is named in its own
+line: its release names no level the platform reads, or LiteLLM refused the change. **What the owner does:** a narrowed app keeps
+working on what is left; a REVOKED one's AI calls fail until it is deployed again — change `ai.models` (or `data.classification`) in
+`manifest.yaml` to models its level allows, then deploy. A model the catalogue no longer lists at all stays on the key: LiteLLM refuses
+it. P4b's environment-level keys are counted in one line and not checked — redeploy those apps.
+
 ### The building agent's models
 
 *Added 2026-09-28 (the front-end enablement plan's Task 14a; §7, §10 and §26 as Spec action 10 amended them; in U1's words since the U1

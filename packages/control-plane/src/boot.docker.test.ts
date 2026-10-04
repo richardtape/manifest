@@ -5,7 +5,15 @@ import { promisify } from 'node:util'
 import { and, eq } from 'drizzle-orm'
 import pg from 'pg'
 import { afterAll, beforeAll, expect, it } from 'vitest'
-import { disabledAiKeyService, disabledCatalogue } from './ai/index.js'
+import {
+  createLiteLlmClient,
+  deleteAppUsers,
+  discardAppKey,
+  disabledAiKeyService,
+  disabledCatalogue,
+  mintAppKey,
+  storeInstanceKey,
+} from './ai/index.js'
 import { loadBlueprints } from './blueprints/index.js'
 import { loadConfig } from './config.js'
 import {
@@ -16,6 +24,7 @@ import {
   events,
   instances,
   pendingActions,
+  releases,
   users,
 } from './db/index.js'
 import { resetDatabase } from './db/testing.js'
@@ -39,7 +48,7 @@ import {
 } from './runtime/testing.js'
 import { createAppSecrets, loadMasterKeypair } from './secrets/index.js'
 import { createServiceCredentials } from './services/index.js'
-import { litellmMasterKey } from './ai/testing.js'
+import { litellmMasterKey, litellmUrl } from './ai/testing.js'
 import { deleteSpRow, readSpRow } from './sso/index.js'
 import { idpDatabaseUrl } from './sso/testing.js'
 import { testAudience, testReservedLabels } from './projects/testing.js'
@@ -213,6 +222,7 @@ describeDocker('boot recovers the routes, the interrupted deploys and the drains
     interrupted: number
     pendingActionsExpired: number
     agentSessionsWithdrawn: unknown
+    appKeysWithdrawn: unknown
   }
   let serving: { id: string; handle: string }
   let retired: { id: string; handle: string }
@@ -223,6 +233,13 @@ describeDocker('boot recovers the routes, the interrupted deploys and the drains
   let endedSession: string
   let narrowedSession: string
   let keptSession: string
+  let projectId: string
+  let sweptInstance: string
+  let sweptKey: string | undefined
+  const adminClient = createLiteLlmClient({
+    baseUrl: litellmUrl(),
+    masterKey: litellmMasterKey(),
+  })
   let probeAfterBoot: { status: number; body: string; instance: string }
 
   /**
@@ -520,6 +537,65 @@ describeDocker('boot recovers the routes, the interrupted deploys and the drains
     narrowedSession = await session(['default-chat', 'default-chat-onprem'])
     keptSession = await session(['default-chat-onprem'])
 
+    /**
+     * AND A RUNNING APP'S AI KEY HOLDING A MODEL ITS RELEASE'S LEVEL NO LONGER ALLOWS (the U1 plan's Task 6, S11; I1): an
+     * instance in the fixture's PRODUCTION environment — staging holds the drains above — whose release is frozen `high`,
+     * holding a REAL key minted on the running LiteLLM for `default-chat-onprem` and `default-chat`. `default-chat` is
+     * `internal` in config.yaml, so it is the model a `high` level no longer allows, and no LiteLLM row of this file's own is
+     * needed. Recorded under the platform's master key, as the booted process reads it. It is production's only instance and
+     * has no route, so it is the one the boot's retire pass counts as serving and leaves alone. Every other instance here was
+     * deployed with AI disabled and holds no key, so `narrowed: 1` is this one.
+     */
+    projectId = project.id
+    const production = environments.find((e) => e.kind === 'production')!
+    const [servingRow] = await db
+      .select()
+      .from(instances)
+      .where(eq(instances.id, serving.id))
+    const [servingRelease] = await db
+      .select()
+      .from(releases)
+      .where(eq(releases.id, servingRow!.releaseId))
+    const [highRelease] = await db
+      .insert(releases)
+      .values({
+        projectId: project.id,
+        buildId: servingRelease!.buildId,
+        appSpecId: spec!.id,
+        createdBy: user!.id,
+        resolvedConfig: {
+          production: {
+            classification: 'high',
+            ai: { models: ['default-chat-onprem', 'default-chat'] },
+          },
+        },
+      })
+      .returning()
+    sweptInstance = (
+      await db
+        .insert(instances)
+        .values({
+          environmentId: production.id,
+          releaseId: highRelease!.id,
+          driver: 'docker',
+          state: 'healthy',
+        })
+        .returning()
+    )[0]!.id
+    sweptKey = await mintAppKey(adminClient, {
+      projectId: project.id,
+      projectSlug: SLUG,
+      kind: 'production',
+      models: ['default-chat-onprem', 'default-chat'],
+      monthlyUsd: 1,
+    })
+    await storeInstanceKey(db, keys, {
+      projectId: project.id,
+      kind: 'production',
+      instanceId: sweptInstance,
+      key: sweptKey,
+    })
+
     // AND THE EDGE FORGETS THE ROUTE, which is what `docker restart manifest-caddy`
     // does to every runtime route. The hostname now answers the wildcard.
     await removeRoute(routing, HOST, KIND)
@@ -580,6 +656,10 @@ describeDocker('boot recovers the routes, the interrupted deploys and the drains
 
   afterAll(async () => {
     child?.kill('SIGTERM')
+    if (sweptKey !== undefined)
+      await discardAppKey(adminClient, sweptKey).catch(() => undefined)
+    if (projectId !== undefined)
+      await deleteAppUsers(adminClient, projectId).catch(() => undefined)
     await removeRoute(routing, HOST, KIND).catch(() => undefined)
     const left = await appContainers().catch(() => [])
     if (left.length > 0) {
@@ -652,6 +732,51 @@ describeDocker('boot recovers the routes, the interrupted deploys and the drains
       endedAt: null,
       models: ['default-chat-onprem'],
     })
+  }, 120_000)
+
+  it('narrows a running app’s AI key holding a model its release’s level no longer allows — through the booted entry point (the U1 plan’s Task 6, S11, I1)', async () => {
+    /**
+     * THE UNIT TIER CANNOT SEE THIS: `withdrawLoweredAppModels` has its own tests in `ai/app-key-sweep.test.ts`, and they stay
+     * green with the boot's call deleted. This is the only test that fails if `src/index.ts` stops calling it — and the
+     * only one that narrows a REAL key the real LiteLLM then refuses.
+     */
+    expect(boot.appKeysWithdrawn).toEqual({ narrowed: 1, revoked: 0, failed: 0 })
+    const held = await adminClient.get<{ info?: { models?: string[] } }>('/key/info', {
+      key: sweptKey!,
+    })
+    expect(held.info?.models).toEqual(['default-chat-onprem'])
+    const res = await fetch(`${litellmUrl()}/v1/chat/completions`, {
+      method: 'POST',
+      headers: {
+        authorization: `Bearer ${sweptKey!}`,
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'default-chat',
+        max_tokens: 8,
+        messages: [{ role: 'user', content: 'Answer with the single word ok.' }],
+      }),
+    })
+    const body = (await res.json().catch(() => ({}))) as { error?: { type?: unknown } }
+    expect({ status: res.status, type: body.error?.type }).toEqual({
+      status: 403,
+      type: 'key_model_access_denied',
+    })
+    // The project's people are told, and the key is not in what they read.
+    const said = await db
+      .select()
+      .from(events)
+      .where(and(eq(events.projectId, projectId), eq(events.type, 'ai.models_withdrawn')))
+    expect(said.map((e) => e.machineDetail)).toEqual([
+      {
+        instanceId: sweptInstance,
+        environment: 'production',
+        withdrawn: ['default-chat'],
+        models: ['default-chat-onprem'],
+        revoked: false,
+      },
+    ])
+    expect(JSON.stringify(said)).not.toContain(sweptKey!)
   }, 120_000)
 
   it('finishes a drain a restart cut short', async () => {

@@ -259,6 +259,30 @@ export const EVENT_DETAIL_SCHEMAS = {
     .describe(
       'The app’s AI key was replaced by a deploy that became healthy. The key itself is never in an event.',
     ),
+  'ai.models_withdrawn': z
+    .strictObject({
+      instanceId: Uuid.describe('The running instance whose key it is.'),
+      environment: Kind,
+      withdrawn: z
+        .array(z.string())
+        .min(1)
+        .describe(
+          'The logical models its key may no longer call: each is now approved only below the data of the release it runs. Never empty.',
+        ),
+      models: z
+        .array(z.string())
+        .describe(
+          'The logical models its key still holds — empty when the key was revoked, because nothing it held is still allowed.',
+        ),
+      revoked: z
+        .boolean()
+        .describe(
+          'Whether the key was revoked rather than narrowed: the app’s AI calls then fail until it is deployed again with models its level allows.',
+        ),
+    })
+    .describe(
+      'A running app’s AI key lost models now approved only below its data’s level — or was revoked, when nothing it declared is still allowed. Checked when the platform starts. The key itself is never in an event.',
+    ),
   'instance.retiring': RetireDetail.describe(
     'An instance a deploy replaced is finishing the requests it already had, before it stops.',
   ),

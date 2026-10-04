@@ -488,11 +488,15 @@ export function fakeLiteLlm(): FakeLiteLlm {
       }
       case '/key/update': {
         // As 1.98.0 answers (the launch path plan's Task 1, `[M3]`; Task 7's probe of an unknown alias):
-        // a key found by its ALIAS alone, its `models` REPLACED and every other bound left as it was;
+        // a key found by its ALIAS, its `models` REPLACED and every other bound left as it was;
         // an alias no key holds is `404 not_found_error`. Only `models` is modelled. The answer
         // carries the key's hash, as the real one does, as a marker no caller may carry on.
-        const alias = String(body.key_alias)
-        const k = [...keys.values()].find((x) => x.alias === alias)
+        // AND BY ITS VALUE (the U1 plan's Task 6, Step 1 measured on 1.102.0): `{ key: <value> }` narrows an app
+        // key, which has no alias, the same way; a value no key holds is `404` too.
+        const k =
+          typeof body.key === 'string'
+            ? keys.get(body.key)
+            : [...keys.values()].find((x) => x.alias === String(body.key_alias))
         if (k === undefined) return refuse(404, 'not_found_error')
         if (Array.isArray(body.models)) k.models = [...(body.models as string[])]
         return {
@@ -563,6 +567,21 @@ export function fakeLiteLlm(): FakeLiteLlm {
               output_cost_per_token: outputCostOf(d),
             },
           })),
+      } as T
+    }
+    if (path === '/key/info') {
+      // `GET /key/info?key=<value>` with the master key (the U1 plan's Task 6): what the key HOLDS now, as
+      // LiteLLM's own record says — its hash, never its value, and `404 not_found_error` for a value no key holds.
+      const k = keys.get(query?.key ?? '')
+      if (k === undefined) return refuse(404, 'not_found_error')
+      return {
+        key: `hash-of-${k.alias}`,
+        info: {
+          models: [...k.models],
+          user_id: k.userId,
+          max_budget: k.maxBudget,
+          metadata: k.metadata,
+        },
       } as T
     }
     if (path !== '/user/info') return refuse(404, 'not_found_error')

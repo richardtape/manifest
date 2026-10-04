@@ -49,6 +49,11 @@ export const EVENT_TYPES = [
   'incident.opened',
   /** §10: an app's AI key was replaced — committed once healthy. NEVER carries the key. */
   'ai.key_rotated',
+  /**
+   * §7 as the U1 spec action amended it (S11; the U1 plan's Task 6): a RUNNING app's AI key lost the models now
+   * approved only below its release's level — or was revoked, when nothing it held is still allowed. NEVER carries the key.
+   */
+  'ai.models_withdrawn',
   /** §11: an instance this deploy replaced is finishing its last requests (P4c). */
   'instance.retiring',
   /** §11: it finished, its container is gone and its AI key is revoked. */

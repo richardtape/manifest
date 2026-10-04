@@ -2703,6 +2703,57 @@ export interface components {
              * @description What happened. Switch on it: each type has one `machineDetail` shape.
              * @constant
              */
+            type: "ai.models_withdrawn";
+            /** @description What happened, in words for a person. Never parse it. */
+            humanMessage: string;
+            /** @description A running app’s AI key lost models now approved only below its data’s level — or was revoked, when nothing it declared is still allowed. Checked when the platform starts. The key itself is never in an event. */
+            machineDetail: {
+                /**
+                 * Format: uuid
+                 * @description The running instance whose key it is.
+                 */
+                instanceId: string;
+                /**
+                 * @description Which of the project’s three environments.
+                 * @enum {string}
+                 */
+                environment: "sandbox" | "staging" | "production";
+                /** @description The logical models its key may no longer call: each is now approved only below the data of the release it runs. Never empty. */
+                withdrawn: string[];
+                /** @description The logical models its key still holds — empty when the key was revoked, because nothing it held is still allowed. */
+                models: string[];
+                /** @description Whether the key was revoked rather than narrowed: the app’s AI calls then fail until it is deployed again with models its level allows. */
+                revoked: boolean;
+            };
+            /**
+             * Format: date-time
+             * @description When it was recorded.
+             */
+            createdAt: string;
+            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, retiring the instances a deploy replaced, or a push to GitHub (even one that a request’s own sync found). An event that a request’s work publishes later, such as a build ending, names who started it. */
+            actor: components["schemas"]["EventActor"] | null;
+        } | {
+            /**
+             * @description An audit event.
+             * @constant
+             */
+            kind: "event";
+            /**
+             * Format: uuid
+             * @description The event’s id; a replay after a reconnect repeats it, so a client can drop what it has seen.
+             */
+            id: string;
+            /**
+             * Format: uuid
+             * @description The project the event belongs to.
+             */
+            projectId: string;
+            /** @description What the event is about — `build:<id>`, `instance:<id>`. Opaque. */
+            subject: string;
+            /**
+             * @description What happened. Switch on it: each type has one `machineDetail` shape.
+             * @constant
+             */
             type: "instance.retiring";
             /** @description What happened, in words for a person. Never parse it. */
             humanMessage: string;

@@ -3898,6 +3898,21 @@
             }
           },
           {
+            "type": "ai.models_withdrawn",
+            "description": "A running app’s AI key lost models now approved only below its data’s level — or was revoked, when nothing it declared is still allowed. Checked when the platform starts. The key itself is never in an event.",
+            "example": {
+              "instanceId": "6f1c1d2e-8a4b-4c3d-9e2f-1a2b3c4d5e6f",
+              "environment": "production",
+              "withdrawn": [
+                "ubc-gpt-mini"
+              ],
+              "models": [
+                "default-chat-onprem"
+              ],
+              "revoked": false
+            }
+          },
+          {
             "type": "instance.retiring",
             "description": "An instance a deploy replaced is finishing the requests it already had, before it stops.",
             "example": {
@@ -12520,6 +12535,118 @@
                   "instanceId",
                   "environment",
                   "models"
+                ],
+                "additionalProperties": false
+              },
+              "createdAt": {
+                "description": "When it was recorded.",
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+              },
+              "actor": {
+                "description": "Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, retiring the instances a deploy replaced, or a push to GitHub (even one that a request’s own sync found). An event that a request’s work publishes later, such as a build ending, names who started it.",
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/EventActor"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "kind",
+              "id",
+              "projectId",
+              "subject",
+              "type",
+              "humanMessage",
+              "machineDetail",
+              "createdAt",
+              "actor"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "description": "An audit event.",
+                "type": "string",
+                "const": "event"
+              },
+              "id": {
+                "description": "The event’s id; a replay after a reconnect repeats it, so a client can drop what it has seen.",
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+              },
+              "projectId": {
+                "description": "The project the event belongs to.",
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+              },
+              "subject": {
+                "description": "What the event is about — `build:<id>`, `instance:<id>`. Opaque.",
+                "type": "string"
+              },
+              "type": {
+                "description": "What happened. Switch on it: each type has one `machineDetail` shape.",
+                "type": "string",
+                "const": "ai.models_withdrawn"
+              },
+              "humanMessage": {
+                "description": "What happened, in words for a person. Never parse it.",
+                "type": "string"
+              },
+              "machineDetail": {
+                "description": "A running app’s AI key lost models now approved only below its data’s level — or was revoked, when nothing it declared is still allowed. Checked when the platform starts. The key itself is never in an event.",
+                "type": "object",
+                "properties": {
+                  "instanceId": {
+                    "description": "The running instance whose key it is.",
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+                  },
+                  "environment": {
+                    "description": "Which of the project’s three environments.",
+                    "type": "string",
+                    "enum": [
+                      "sandbox",
+                      "staging",
+                      "production"
+                    ]
+                  },
+                  "withdrawn": {
+                    "description": "The logical models its key may no longer call: each is now approved only below the data of the release it runs. Never empty.",
+                    "minItems": 1,
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "models": {
+                    "description": "The logical models its key still holds — empty when the key was revoked, because nothing it held is still allowed.",
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "revoked": {
+                    "description": "Whether the key was revoked rather than narrowed: the app’s AI calls then fail until it is deployed again with models its level allows.",
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "instanceId",
+                  "environment",
+                  "withdrawn",
+                  "models",
+                  "revoked"
                 ],
                 "additionalProperties": false
               },

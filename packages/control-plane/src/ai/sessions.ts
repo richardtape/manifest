@@ -629,7 +629,7 @@ export async function endSessionsOf(
 // ---------------------------------------------------------------- withdrawn
 
 /** `a`, `a and b`, `a, b and c` — model names inside a sentence. */
-function inWords(names: readonly string[]): string {
+export function inWords(names: readonly string[]): string {
   if (names.length <= 1) return names[0] ?? ''
   return `${names.slice(0, -1).join(', ')} and ${names.at(-1)}`
 }

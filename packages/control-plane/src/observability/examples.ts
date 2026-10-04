@@ -82,6 +82,13 @@ export const EXAMPLE_DETAILS: { readonly [T in EventType]: Record<string, unknow
     environment: 'staging',
     models: ['default-chat'],
   },
+  'ai.models_withdrawn': {
+    instanceId: UUID,
+    environment: 'production',
+    withdrawn: ['ubc-gpt-mini'],
+    models: ['default-chat-onprem'],
+    revoked: false,
+  },
   'instance.retiring': {
     instanceId: UUID,
     handle: 'mf-chem-labs-staging-6f1c1d2e-9b8a7c6d-app',
