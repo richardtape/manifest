@@ -952,3 +952,20 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
         spec changes.
     Not Rich's alone, recorded for the external track (deferred 2026-09-30): under U1 §3.2.4 Manifest itself is likely a Very
     High Risk Electronic Service, which needs a Security Threat Risk Assessment and a Shared Responsibility Model (§4.2.3).
+
+    And at 22:08 PDT (the clock read just before this entry), the gateway plan's SITTING 2 CLOSE LINES (What Rich does 5; drafted
+    by manifest-61 at code level, its premises re-counted by manifest-af: .env's MANIFEST_CAPABLE_MODEL starts `openai/`, and
+    MANIFEST_GATEWAY_MODELS is absent). `make up` had already run (21:36), so none is owed. Through the question tool, each as
+    recommended:
+      - MANIFEST_CAPABLE_MODEL — "ubc-ai-gateway/gpt-6-luna": the same model through UBC's gateway, measured through both hops
+        (chat, streams, tools on chat completions, 35.2 s longest). Charged UBC's reported price on the 30 USD key; timeout
+        60 s, no retries; its fallback stays default-chat-onprem. Rejected: keeping openai/gpt-6-luna direct;
+        ubc-ai-gateway/gpt-5.6-luna (tools unmeasured).
+      - MANIFEST_GATEWAY_MODELS — "ubc-qwen-27b only": ubc-qwen-27b=ubc-ai-gateway/qwen3.8-27b@confidential. It runs on UBC
+        hardware with no gateway fallback seen. It is unpriced, so pinned at default-chat-onprem's synthetic $1/$3 a million. It
+        has no fallback of its own, so offline a call fails. Not possible today: qwen3.6-35b-a3b (the gateway falls back to
+        gpt-6-luna, and it is unpriced) and llama3 (unpriced); the fix for either is at the gateway. Rejected: adding an
+        off-prem internal entry; none.
+      - WHO WRITES THEM — "manifest-61, at your word": it replaces the capable line and appends the gateway line by sed/printf,
+        reading no value, from a 0600 backup checked by cmp and deleted at its close, then restarts the control plane after the
+        Docker tier.
