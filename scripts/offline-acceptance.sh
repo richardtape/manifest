@@ -16,7 +16,7 @@ cd "$(dirname "$0")/.."
 
 # WHICH SOURCE DRIVER the control plane runs (the D5 plan's Decision 3: ONE per process), asked
 # the way `make demo-github` asks it — an unsigned delivery: `local`, `github`, or `none`. Steps 6
-# to 12 are DRIVER 1's, step 13 is DRIVER 2's and steps 14 to 16 run on either; run a driver-1 demo on driver 2 and it CREATES
+# to 12 are DRIVER 1's, step 13 is DRIVER 2's and steps 14 to 17 run on either; run a driver-1 demo on driver 2 and it CREATES
 # its project there, where no route can delete it (P6a F5) and driver 1 refuses it for ever.
 source_driver() {
   local answer
@@ -310,6 +310,27 @@ case "$(source_driver)" in
   local | github)
     echo "  on driver $([ "$(source_driver)" = local ] && echo '1 — launchpath-local' || echo '2 — launchpath-github')"
     make demo-launch; echo "demo-launch exit=$?"
+    ;;
+  *) echo "  SKIPPED: no control plane answered 127.0.0.1:7100/webhooks/github — start one on either driver (RUNBOOK)." ;;
+esac
+
+echo
+echo "=== 17. The faculty-ready plan's acceptance: what stood before a faculty member's first day, offline ==="
+# APPENDED, like steps 7 to 16. WHAT THIS PROVES OFFLINE THAT THE OTHER SIXTEEN DO NOT: the session as a
+# `__Host-` cookie on both origins, and a plain one tossed from a sibling host ignored; a refusal's
+# reference as a header, in the body and in ONE operator line; the test blueprint not offered; a model
+# session's replayed start naming the session; an app container whose PID 1 is an init; an
+# administrator's reason — as no member, and as a collaborator beyond the role — shown to the owner
+# live; an agent's question ending with its token; a removal recorded once; and an app built on
+# passport-ubcshib 0.1.7-rc.1 answering the IdP's single logout `Success`. Nothing in it launches, so
+# it needs no fresh vulnerability database, and it calls no model.
+#
+# IT RUNS ON EITHER DRIVER, like steps 14 to 16, and says which slug: `facultyready-local` on driver 1,
+# `facultyready-github` on driver 2. A second run deletes the project and makes it again.
+case "$(source_driver)" in
+  local | github)
+    echo "  on driver $([ "$(source_driver)" = local ] && echo '1 — facultyready-local' || echo '2 — facultyready-github')"
+    make demo-faculty-ready; echo "demo-faculty-ready exit=$?"
     ;;
   *) echo "  SKIPPED: no control plane answered 127.0.0.1:7100/webhooks/github — start one on either driver (RUNBOOK)." ;;
 esac

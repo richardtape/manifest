@@ -16,7 +16,7 @@ LITELLM_DIGEST := $(shell awk '$$1 ~ /berriai\/litellm/ {print $$2}' infra/image
 LITELLM_DIGEST := $(or $(LITELLM_DIGEST),sha256:0000000000000000000000000000000000000000000000000000000000000000)
 COMPOSE := LITELLM_DIGEST=$(LITELLM_DIGEST) docker compose -f infra/compose.yaml -p manifest --env-file .env
 
-.PHONY: help seed refresh-vulndb up down reset github-up github-down github-conformance doctor verify demo demo-identity demo-ai demo-redeploy demo-journey demo-token demo-production demo-releases demo-github demo-authoring demo-frontend demo-launch demo-console ci-acceptance host-setup host-undo
+.PHONY: help seed refresh-vulndb up down reset github-up github-down github-conformance doctor verify demo demo-identity demo-ai demo-redeploy demo-journey demo-token demo-production demo-releases demo-github demo-authoring demo-frontend demo-launch demo-faculty-ready demo-console ci-acceptance host-setup host-undo
 
 # Every compose target needs .env to exist — `--env-file` on a missing file is a
 # hard error, not a warning. `make seed` also writes it; this makes `make up` on
@@ -180,6 +180,14 @@ demo-frontend: up  ## The front-end enablement plan's acceptance: a front-end's 
 # launchpath-github (RUNBOOK, `make demo-launch`).
 demo-launch: up  ## The launch path plan's acceptance: a faculty member launches an app themselves — either driver.
 	@bash scripts/demo-launch.sh
+
+# The faculty-ready plan's acceptance (its Task 11): __Host- cookies through the edge, a refusal's
+# reference, the test blueprint unlisted, a model session's replay, an init as PID 1, an
+# administrator's reason (as no member, and as a collaborator beyond the role), an agent's question
+# ending with its token, a removal recorded once, and an app's single logout answered Success. EITHER
+# driver: step 0 picks facultyready-local or facultyready-github (RUNBOOK, `make demo-faculty-ready`).
+demo-faculty-ready: up  ## The faculty-ready plan's acceptance: what stood before a faculty member's first day — either driver.
+	@bash scripts/demo-faculty-ready.sh
 
 demo-console: up  ## P5c: serve the reference console and print the checklist a person clicks.
 	@bash scripts/demo-console.sh

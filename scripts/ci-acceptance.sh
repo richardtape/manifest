@@ -12,12 +12,12 @@
 #
 # IT IS NOT scripts/offline-acceptance.sh. That one is C1's — run by hand with the network
 # OFF, because turning the network off from a tool call cuts the agent off too — and its
-# seventeen `=== n.` headings are numbered 0 to 16, where 0 is the precondition and 1-16 are
+# eighteen `=== n.` headings are numbered 0 to 17, where 0 is the precondition and 1-17 are
 # the work (this line said "ten, 0 to 9" through P5c's step 10; P6a Task 19 found it; P6b
 # Task 11 added step 12, `make demo-releases`; the D5 plan's Task 15 step 13, `make
 # demo-github`; the authoring API plan's Task 13 step 14, `make demo-authoring`; the front-end
 # enablement plan's Task 15 step 15, `make demo-frontend`; the launch path plan's Task 15 step
-# 16, `make demo-launch`).
+# 16, `make demo-launch`; the faculty-ready plan's Task 11 step 17, `make demo-faculty-ready`).
 # This one runs with the network on and asserts the gates' COUNTS as well.
 #
 # EVERY STEP REPORTS RATHER THAN EXITS (P4c Decision 26), so a red run is a MEASUREMENT of
@@ -412,6 +412,20 @@ esac
 case "$DRIVER" in
   local | github) run "make demo-launch" make demo-launch ;;
   *) record "make demo-launch" "NOT RUN" "no control plane answered the driver probe at 127.0.0.1:7100" ;;
+esac
+
+# ---------------------------------------------------------------- 10. the faculty-ready plan's acceptance
+#   demo-faculty-ready — what stood between the platform and a faculty member's first day (the
+#                     faculty-ready plan's Task 11): __Host- session cookies on console. and app., a
+#                     tossed plain cookie ignored; a refusal's reference as a header, in the body and
+#                     in one operator line; the test blueprint not offered; a model session's replayed
+#                     start naming the session; PID 1 an init; an administrator's reason, as no member
+#                     and as a collaborator beyond the role; an agent's question ending with its token;
+#                     a removal recorded once; an app's single logout answered Success. EITHER driver,
+#                     on its own project (facultyready-local or facultyready-github); it adds no test.
+case "$DRIVER" in
+  local | github) run "make demo-faculty-ready" make demo-faculty-ready ;;
+  *) record "make demo-faculty-ready" "NOT RUN" "no control plane answered the driver probe at 127.0.0.1:7100" ;;
 esac
 
 # ---------------------------------------------------------------- the summary
