@@ -190,7 +190,7 @@ at UBC — and the boot sets it as `default-chat-large`'s fallback.
    is priced only by the list LiteLLM fetches when it starts online, because the list bundled in 1.98.0 stops at gpt-5.6.
 3. **Start (or restart) the control plane** as above. RUNBOOK's `set -a; . ./.env` exports both lines into it; it reads
    `MANIFEST_CAPABLE_MODEL` and **scrubs `OPENAI_API_KEY` at boot**, before any child process can inherit it. **Straight after it
-   starts listening** it registers `default-chat-large` at `internal` through LiteLLM's admin API — never as an
+   starts listening** it registers `default-chat-large` at its LEVEL (step 3a) through LiteLLM's admin API — never as an
    `infra/litellm/config.yaml` line, which the admin API could not remove — **pinned at the price LiteLLM itself reported**, so a
    later LiteLLM restart without the network cannot make it free. **Read the boot line's `capableModel`**: `registered`,
    `unchanged`, `removed`, `absent`, `disabled` (AI off), or `refused` / `failed`, each of the last two with ONE `[boot] the
@@ -199,10 +199,23 @@ at UBC — and the boot sets it as `default-chat-large`'s fallback.
    `capableFallback`** reads `set`, `unchanged`, `removed`, `absent`, `disabled`, or `refused` (with ONE `[boot] the capable
    model's fallback (MANIFEST_CAPABLE_MODEL_FALLBACK) …` line) or `failed` (with one, or under the capable model's own line when
    that step failed — the fallback is then not tried). The boot always goes on.
+3a. **Its level is `MANIFEST_CAPABLE_MODEL_CLASSIFICATION`** (*added 2026-10-04, the U1 plan's Task 4; S3*): one of UBC's U1 levels —
+   `low`, `medium`, `high`, `very-high`, or an earlier name for one — and **the administrator's attestation of EVERYTHING that may answer
+   it**, the vendor behind the gateway and any gateway fallback included: `high` only when every one of them keeps nothing it is sent (zero
+   data retention), `very-high` only when every one runs on UBC's hardware. **`medium` when unset or empty** (the level it had before);
+   any other word refuses the boot (`CONFIG_INVALID`, naming the setting). **Rich's line is `high`** (OpenAI's `gpt-6-luna` through UBC's
+   gateway, ZDR on UBC's organisation). The boot line's `capableClassification` says which level is in force. **The ONE boot that changes
+   it RE-REGISTERS the model** (`registered`, then `unchanged` at every boot after; a row registered at an earlier name is its level, so
+   `internal` stored and `medium` asked re-creates nothing) — **and that re-registration needs LiteLLM's LAST START to have had the
+   network**, because `gpt-6-*` is priced only by the list LiteLLM fetches at its own start. Restarted offline, LiteLLM prices it at `0`
+   and the re-registration is REFUSED: a row at or BELOW the new level is kept (raising `medium` → `high` keeps the `medium` row, so `high`
+   apps cannot use it yet); a row ABOVE it is REMOVED, never kept at a level it no longer has (lowering `high` → `medium` offline leaves no
+   capable model until LiteLLM is restarted online, then this control plane). The fallback is refused if it ranks below the level.
 4. **Check it**: `curl -s http://127.0.0.1:7106/model/info -H "authorization: Bearer $LITELLM_MASTER_KEY"` — `default-chat-large`
-   with `max_classification: internal` and a positive `input_cost_per_token` in BOTH `litellm_params` (pinned) and `model_info`.
-   `startAgentSession` on an `internal` or `public` project lists it in `session.models`; a `confidential` project's lists it
-   only while `MANIFEST_AGENT_BUILDER_MODELS` is `capable` (the default — *The building agent's models*, below).
+   with `max_classification` at the setting's level (or its earlier name, on a row registered before 2026-10-04) and a positive
+   `input_cost_per_token` in BOTH `litellm_params` (pinned) and `model_info`. `startAgentSession` on a project at or below its level
+   lists it in `session.models`; a project above it lists it only while `MANIFEST_AGENT_BUILDER_MODELS` is `capable` (the default —
+   *The building agent's models*, below).
    `curl -s 'http://127.0.0.1:7106/fallback/default-chat-large?fallback_type=general' -H "authorization: Bearer
    $LITELLM_MASTER_KEY"` answers `"fallback_models":["default-chat-onprem"]`.
 
@@ -286,7 +299,7 @@ fallback does not answer** (Rich, 2026-10-03: *"accept it"*), so a mistyped sett
 
 *Added 2026-10-03 (the UBC AI Gateway plan's Task 3; Rich's Q1: *"New names from one setting"*).* **`MANIFEST_GATEWAY_MODELS`** puts the
 gateway's own models into the catalogue under names of their own:
-`MANIFEST_GATEWAY_MODELS=<name>=ubc-ai-gateway/<model>@<classification>,…` — for example
+`MANIFEST_GATEWAY_MODELS=<name>=ubc-ai-gateway/<model>@<level>,…` — for example
 `ubc-onprem=ubc-ai-gateway/<an on-premise model>@confidential, ubc-mini=ubc-ai-gateway/<another>@internal` (the names and
 classifications on this laptop are Rich's, in `.env`). Every boot registers each entry
 at its own classification, at the gateway's address with the key by reference, under an id beginning `manifest-gateway-`, and REMOVES every
@@ -299,8 +312,10 @@ order (`.env`, `make up`, restart), the fail-closed boot (every `manifest-gatewa
 - **The names are yours, and never one the catalogue already holds** — `default-chat-onprem` stays Ollama (the capable model's fallback and
   the offline floor for `confidential` apps), so naming it is refused and registers nothing; `default-chat-large` is refused at boot (it is
   `MANIFEST_CAPABLE_MODEL`'s). Lowercase letters, digits and `-`. A model id may hold `@` — the classification follows the LAST one.
-- **The classification is the entry's, never assumed**: an entry without one, or with any word but `public`, `internal` or `confidential`,
-  refuses the boot (`CONFIG_INVALID`, naming the entry). **`confidential` only for a model on UBC's own hardware with no gateway-side
+- **The level is the entry's, never assumed**: an entry without one, or with any word but UBC's U1 levels — `low`, `medium`, `high`,
+  `very-high` — or an earlier name for one (`public`, `internal`, `confidential`), refuses the boot (`CONFIG_INVALID`, naming the entry);
+  an earlier name is registered as its level, and a row stored at it is `unchanged`. **`high` only for a model whose every provider keeps
+  nothing it is sent (zero data retention); `very-high` (`confidential`) only for a model on UBC's own hardware with no gateway-side
   fallback off it** — the platform cannot see the gateway's fallbacks (measured on 2026-10-03: the gateway falls back from
   `qwen3.6-35b-a3b` to off-premise `gpt-6-luna`, so that model cannot be `confidential` while it does). D17 then hands each entry to
   whoever its classification allows: a `confidential` entry reaches a `confidential` project's agent and app; an `internal` one never does.
@@ -315,13 +330,15 @@ order (`.env`, `make up`, restart), the fail-closed boot (every `manifest-gatewa
 
 ### The building agent's models
 
-*Added 2026-09-28 (the front-end enablement plan's Task 14a; §7, §10 and §26 as Spec action 10 amended them).* **`MANIFEST_AGENT_BUILDER_MODELS`
-decides which models the agent that BUILDS a `confidential` app may call** — Rich: *"It's okay to use the larger models to BUILD the
-app, but if the app needs AI, then we should switch to use the on-prem model for the AI within the created app"*, and *"make this a
-setting"*. **`capable`, the default**: a `confidential` project's agent session lists the on-premise models AND `default-chat-large`
-(when it is registered). **`on-premise`**: the on-premise models alone. Nothing else is accepted — the boot refuses a mistyped or
-empty value rather than guess. **The app's own `ai.models` is validated by D17 whatever this says**, so a `confidential` app's own AI
-stays on-premise either way. It is a platform setting (§26): put the line in `.env` and restart the control plane.
+*Added 2026-09-28 (the front-end enablement plan's Task 14a; §7, §10 and §26 as Spec action 10 amended them; in U1's words since the U1
+plan's Task 4, S4).* **`MANIFEST_AGENT_BUILDER_MODELS` decides whether the agent that BUILDS an app whose level is ABOVE the capable model's
+may call it** — Rich: *"It's okay to use the larger models to BUILD the app, but if the app needs AI, then we should switch to use the
+on-prem model for the AI within the created app"*, and *"make this a setting"*. **`capable`, the default**: such a project's agent session
+lists the models its level allows AND `default-chat-large` (when it is registered) — with the capable model at `high`, a `very-high`
+project's; at `medium`, a `high` or `very-high` one's. **`on-premise`**: what its level allows alone. At or below the capable model's level
+D17 already allows it, so the setting changes nothing there. Nothing else is accepted — the boot refuses a mistyped or empty value rather
+than guess. **The app's own `ai.models` is validated by D17 whatever this says**, so a `very-high` app's own AI stays on-premise either way.
+It is a platform setting (§26): put the line in `.env` and restart the control plane.
 
 **A session never holds more than its project now allows** (FE-36; since the launch path plan's Task 7, Spec action 1, it is
 NARROWED IN PLACE). Every valid `manifest.yaml` the platform records — a commit through the API, a push, a validation — and every
@@ -329,8 +346,9 @@ PRODUCTION deploy, the rehearsal's included (the release production serves floor
 by a check of the project's ACTIVE agent sessions, and every session whose key names a model the project no longer allows is
 narrowed: its key's models cut at LiteLLM by `/key/update` on its alias, so the SAME key is refused the withdrawn models at once
 (`403 key_model_access_denied`) and still answers the rest; then its row's `models`, and `agent_session.narrowed` published. Raising a
-project from `internal` to `confidential` narrows the sessions started before it to the on-premise models (and the capable model
-while the setting is `capable`). **Only a session left with nothing it may use is ended** — its key revoked, `agent_session.ended`
+project from `medium` to `very-high` narrows the sessions started before it to the on-premise models (and the capable model
+while the setting is `capable`). So does a restart that sets `on-premise` — or, under `on-premise`, LOWERS the capable model's level — for each session whose
+project is now above the capable model's level. **Only a session left with nothing it may use is ended** — its key revoked, `agent_session.ended`
 with reason **`models_withdrawn`**. **Every boot** runs the same check over every project — which is how `on-premise` reaches the
 sessions a `capable` platform started, and how a check that failed at a commit is finished. **Read the boot line's
 `agentBuilderModels`** (the setting in force) **and `agentSessionsWithdrawn`**: `{"ended":n,"narrowed":k,"failed":m}`, `disabled`

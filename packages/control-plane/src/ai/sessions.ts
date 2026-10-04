@@ -436,7 +436,7 @@ const endReasonWords: Record<EndReason, string> = {
   project_archived: 'ended because the project was switched off',
   project_deleted: 'ended because the project was deleted',
   models_withdrawn:
-    'ended because its project no longer allows any of the models it held — its data classification was raised, or the platform now keeps a confidential project’s building agent on-premise',
+    'ended because its project no longer allows any of the models it held — its data classification was raised, or the platform no longer lets the agent that builds a project at this level use the capable model — its setting, or the capable model’s level, changed',
   member_removed: 'ended because the person it works for was removed from the project',
 }
 
@@ -636,8 +636,9 @@ function inWords(names: readonly string[]): string {
 
 /**
  * WHY `withdrawn` LEFT A SESSION, for its sentence: a model the setting `capable` would still allow was
- * withdrawn by the builder SETTING (`on-premise`, read at a restart); any other by the project's
- * classification — its manifest, or the release production serves.
+ * withdrawn by the builder SETTING (`on-premise`, read at a restart) or the capable model's LEVEL
+ * (MANIFEST_CAPABLE_MODEL_CLASSIFICATION, read at a restart); any other by the project's level — its manifest,
+ * or the release production serves.
  */
 function withdrawnBecause(
   snapshot: CatalogueSnapshot,
@@ -650,7 +651,9 @@ function withdrawnBecause(
       ? [`the project is now ${levelWords(floor)}`]
       : []),
     ...(withdrawn.some((m) => underCapable.has(m))
-      ? ['the platform now keeps a confidential project’s building agent on-premise']
+      ? [
+          'the platform no longer lets the agent that builds a project at this level use the capable model — its setting, or the capable model’s level, changed',
+        ]
       : []),
   ].join(' and ')
 }

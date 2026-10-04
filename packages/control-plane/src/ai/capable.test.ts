@@ -32,9 +32,9 @@ async function unpinned(lite: FakeLiteLlm, model: string): Promise<void> {
 }
 
 describe('the capable model (the front-end enablement plan’s Task 12a)', () => {
-  it('registers default-chat-large at internal from the setting, naming no key', async () => {
+  it('registers default-chat-large at the level it is given — medium, the default — from the setting, naming no key', async () => {
     const lite = fakeLiteLlm()
-    const result = await ensureCapableModel(lite, SETTING)
+    const result = await ensureCapableModel(lite, SETTING, undefined, 'medium')
     expect(result).toEqual({ state: 'registered', model: SETTING })
 
     const creates = lite.calls.filter((c) => c.path === '/model/new')
@@ -45,7 +45,7 @@ describe('the capable model (the front-end enablement plan’s Task 12a)', () =>
         litellm_params: { model: SETTING },
         model_info: {
           id: expect.stringMatching(/^manifest-capable-/),
-          max_classification: 'internal',
+          max_classification: 'medium',
         },
       })
       // The provider's key is LiteLLM's alone: nothing this process sends may carry one.
@@ -56,13 +56,13 @@ describe('the capable model (the front-end enablement plan’s Task 12a)', () =>
 
   it('pins the price LiteLLM reported onto what it registers — so an offline restart of LiteLLM cannot unprice it', async () => {
     const lite = fakeLiteLlm()
-    await ensureCapableModel(lite, SETTING)
+    await ensureCapableModel(lite, SETTING, undefined, 'medium')
     const [registered] = capable(lite)
     expect(registered!.inputCostPerToken).toBe(1e-7)
     expect(registered!.outputCostPerToken).toBe(5e-7)
     // A LiteLLM restarted with the network off: its map no longer prices the model.
     lite.price(SETTING, 0)
-    expect(await ensureCapableModel(lite, SETTING)).toEqual({
+    expect(await ensureCapableModel(lite, SETTING, undefined, 'medium')).toEqual({
       state: 'unchanged',
       model: SETTING,
     })
@@ -75,9 +75,9 @@ describe('the capable model (the front-end enablement plan’s Task 12a)', () =>
 
   it('changes nothing when it is already registered as the setting says', async () => {
     const lite = fakeLiteLlm()
-    await ensureCapableModel(lite, SETTING)
+    await ensureCapableModel(lite, SETTING, undefined, 'medium')
     const before = lite.calls.length
-    expect(await ensureCapableModel(lite, SETTING)).toEqual({
+    expect(await ensureCapableModel(lite, SETTING, undefined, 'medium')).toEqual({
       state: 'unchanged',
       model: SETTING,
     })
@@ -87,7 +87,7 @@ describe('the capable model (the front-end enablement plan’s Task 12a)', () =>
   it('re-registers, pinned, a registration LiteLLM prices but that was never pinned', async () => {
     const lite = fakeLiteLlm()
     await unpinned(lite, SETTING)
-    expect(await ensureCapableModel(lite, SETTING)).toEqual({
+    expect(await ensureCapableModel(lite, SETTING, undefined, 'medium')).toEqual({
       state: 'registered',
       model: SETTING,
     })
@@ -99,10 +99,12 @@ describe('the capable model (the front-end enablement plan’s Task 12a)', () =>
 
   it('repoints the ONE deployment when the setting changes — the new one pinned BEFORE the old one goes', async () => {
     const lite = fakeLiteLlm()
-    await ensureCapableModel(lite, SETTING)
+    await ensureCapableModel(lite, SETTING, undefined, 'medium')
     const [old] = capable(lite)
     const before = lite.calls.length
-    expect(await ensureCapableModel(lite, 'openai/gpt-6-sol')).toEqual({
+    expect(
+      await ensureCapableModel(lite, 'openai/gpt-6-sol', undefined, 'medium'),
+    ).toEqual({
       state: 'registered',
       model: 'openai/gpt-6-sol',
     })
@@ -126,9 +128,11 @@ describe('the capable model (the front-end enablement plan’s Task 12a)', () =>
 
   it('removes it when the setting is empty, and answers absent when there was nothing', async () => {
     const lite = fakeLiteLlm()
-    expect(await ensureCapableModel(lite, undefined)).toEqual({ state: 'absent' })
-    await ensureCapableModel(lite, SETTING)
-    expect(await ensureCapableModel(lite, undefined)).toEqual({
+    expect(await ensureCapableModel(lite, undefined, undefined, 'medium')).toEqual({
+      state: 'absent',
+    })
+    await ensureCapableModel(lite, SETTING, undefined, 'medium')
+    expect(await ensureCapableModel(lite, undefined, undefined, 'medium')).toEqual({
       state: 'removed',
       model: SETTING,
     })
@@ -140,7 +144,12 @@ describe('the capable model (the front-end enablement plan’s Task 12a)', () =>
   it('refuses a model LiteLLM cannot price — deletes what it registered, and says so', async () => {
     const lite = fakeLiteLlm()
     // `openai/gpt-6-terra`'s shape, measured: registered, and priced at 0.
-    const result = await ensureCapableModel(lite, 'openai/unpriced-model')
+    const result = await ensureCapableModel(
+      lite,
+      'openai/unpriced-model',
+      undefined,
+      'medium',
+    )
     expect(result.state).toBe('refused')
     expect(result.model).toBe('openai/unpriced-model')
     expect(result.reason).toContain('MANIFEST_CAPABLE_MODEL')
@@ -155,7 +164,7 @@ describe('the capable model (the front-end enablement plan’s Task 12a)', () =>
     await unpinned(lite, SETTING)
     // A LiteLLM restarted with the network off: the map that priced it was never fetched.
     lite.price(SETTING, 0)
-    const result = await ensureCapableModel(lite, SETTING)
+    const result = await ensureCapableModel(lite, SETTING, undefined, 'medium')
     expect(result.state).toBe('refused')
     expect(capable(lite)).toEqual([])
   })
@@ -164,7 +173,12 @@ describe('the capable model (the front-end enablement plan’s Task 12a)', () =>
     const lite = fakeLiteLlm()
     // Measured: `unpriced/whatever` is a 500 whose row STAYS, absent from /model/info. The gateway
     // ANSWERED, so this is the setting's fault, not an outage.
-    const result = await ensureCapableModel(lite, 'unpriced/whatever')
+    const result = await ensureCapableModel(
+      lite,
+      'unpriced/whatever',
+      undefined,
+      'medium',
+    )
     expect(result.state).toBe('refused')
     expect(result.reason).toContain("'unpriced/whatever'")
     expect(result.reason).toContain('MANIFEST_CAPABLE_MODEL')
@@ -174,8 +188,8 @@ describe('the capable model (the front-end enablement plan’s Task 12a)', () =>
   it('keeps the working model when a repoint names a model LiteLLM will not serve or cannot price, and says so', async () => {
     for (const typo of ['opneai/gpt-6-sol', 'openai/unpriced-model']) {
       const lite = fakeLiteLlm()
-      await ensureCapableModel(lite, SETTING)
-      const result = await ensureCapableModel(lite, typo)
+      await ensureCapableModel(lite, SETTING, undefined, 'medium')
+      const result = await ensureCapableModel(lite, typo, undefined, 'medium')
       expect(result.state, typo).toBe('refused')
       expect(result.reason, typo).toContain(`'${SETTING}' is kept`)
       const left = capable(lite)
@@ -188,23 +202,25 @@ describe('the capable model (the front-end enablement plan’s Task 12a)', () =>
 
   it('throws, keeping the working model, when the gateway stops answering mid-repoint', async () => {
     const lite = fakeLiteLlm()
-    await ensureCapableModel(lite, SETTING)
+    await ensureCapableModel(lite, SETTING, undefined, 'medium')
     lite.fail('/model/new', 0)
-    await expect(ensureCapableModel(lite, 'openai/gpt-6-sol')).rejects.toBeInstanceOf(
-      AiError,
-    )
+    await expect(
+      ensureCapableModel(lite, 'openai/gpt-6-sol', undefined, 'medium'),
+    ).rejects.toBeInstanceOf(AiError)
     expect(capable(lite).map((d) => d.model)).toEqual([SETTING])
   })
 
   it('throws when the gateway does not answer — never swallowed', async () => {
     const lite = fakeLiteLlm()
     lite.fail('/model/info', 503)
-    await expect(ensureCapableModel(lite, SETTING)).rejects.toBeInstanceOf(AiError)
+    await expect(
+      ensureCapableModel(lite, SETTING, undefined, 'medium'),
+    ).rejects.toBeInstanceOf(AiError)
   })
 
   it('gives an agent on an internal project the capable model, and one on a confidential project only while the builder setting allows it', async () => {
     const lite = fakeLiteLlm()
-    await ensureCapableModel(lite, SETTING)
+    await ensureCapableModel(lite, SETTING, undefined, 'medium')
     const snapshot = await loadModelCatalogue(lite)
     expect(snapshot.models).toContainEqual({
       name: 'default-chat-large',
@@ -238,7 +254,9 @@ describe('the capable model through UBC’s AI Gateway (the UBC AI Gateway plan�
 
   it('registers a ubc-ai-gateway setting at the gateway’s address, the key by reference — never a value', async () => {
     const lite = fakeLiteLlm()
-    expect(await ensureCapableModel(lite, 'ubc-ai-gateway/gpt-6-luna', GW)).toEqual({
+    expect(
+      await ensureCapableModel(lite, 'ubc-ai-gateway/gpt-6-luna', GW, 'medium'),
+    ).toEqual({
       state: 'registered',
       model: 'ubc-ai-gateway/gpt-6-luna',
     })
@@ -263,8 +281,10 @@ describe('the capable model through UBC’s AI Gateway (the UBC AI Gateway plan�
 
   it('changes nothing when the gateway registration is already as the setting says', async () => {
     const lite = fakeLiteLlm()
-    await ensureCapableModel(lite, 'ubc-ai-gateway/gpt-6-luna', GW)
-    expect(await ensureCapableModel(lite, 'ubc-ai-gateway/gpt-6-luna', GW)).toEqual({
+    await ensureCapableModel(lite, 'ubc-ai-gateway/gpt-6-luna', GW, 'medium')
+    expect(
+      await ensureCapableModel(lite, 'ubc-ai-gateway/gpt-6-luna', GW, 'medium'),
+    ).toEqual({
       state: 'unchanged',
       model: 'ubc-ai-gateway/gpt-6-luna',
     })
@@ -272,8 +292,10 @@ describe('the capable model through UBC’s AI Gateway (the UBC AI Gateway plan�
 
   it('repoints from OpenAI direct to the gateway’s same model — the address differs, so it is not unchanged (Review Focus 5)', async () => {
     const lite = fakeLiteLlm()
-    await ensureCapableModel(lite, 'openai/gpt-6-luna', GW)
-    expect(await ensureCapableModel(lite, 'ubc-ai-gateway/gpt-6-luna', GW)).toEqual({
+    await ensureCapableModel(lite, 'openai/gpt-6-luna', GW, 'medium')
+    expect(
+      await ensureCapableModel(lite, 'ubc-ai-gateway/gpt-6-luna', GW, 'medium'),
+    ).toEqual({
       state: 'registered',
       model: 'ubc-ai-gateway/gpt-6-luna',
     })
@@ -281,7 +303,7 @@ describe('the capable model through UBC’s AI Gateway (the UBC AI Gateway plan�
     expect(rest).toHaveLength(0)
     expect(only!.apiBase).toBe(GW.url)
     // And back: the direct setting is not `unchanged` against the gateway's deployment either.
-    expect(await ensureCapableModel(lite, 'openai/gpt-6-luna', GW)).toEqual({
+    expect(await ensureCapableModel(lite, 'openai/gpt-6-luna', GW, 'medium')).toEqual({
       state: 'registered',
       model: 'openai/gpt-6-luna',
     })
@@ -290,11 +312,16 @@ describe('the capable model through UBC’s AI Gateway (the UBC AI Gateway plan�
 
   it('POSITIVE CONTROL: a gateway setting with no key in .env still KEEPS a DIRECT working model — OpenAI’s key to OpenAI', async () => {
     const lite = fakeLiteLlm()
-    await ensureCapableModel(lite, 'openai/gpt-6-luna', GW)
-    const r = await ensureCapableModel(lite, 'ubc-ai-gateway/gpt-6-luna', {
-      ...GW,
-      keyInEnv: false,
-    })
+    await ensureCapableModel(lite, 'openai/gpt-6-luna', GW, 'medium')
+    const r = await ensureCapableModel(
+      lite,
+      'ubc-ai-gateway/gpt-6-luna',
+      {
+        ...GW,
+        keyInEnv: false,
+      },
+      'medium',
+    )
     expect(r.state).toBe('refused')
     expect(r.reason).toContain('UBC_AI_GATEWAY_API_KEY is not in .env')
     expect(capable(lite).map((d) => d.model)).toEqual(['openai/gpt-6-luna'])
@@ -302,12 +329,17 @@ describe('the capable model through UBC’s AI Gateway (the UBC AI Gateway plan�
 
   it('FAILS CLOSED: a gateway registration is REMOVED, never kept, when .env no longer carries the key (Review Focus 1, C1)', async () => {
     const lite = fakeLiteLlm()
-    await ensureCapableModel(lite, 'ubc-ai-gateway/gpt-6-luna', GW)
+    await ensureCapableModel(lite, 'ubc-ai-gateway/gpt-6-luna', GW, 'medium')
     expect(capable(lite)).toHaveLength(1)
-    const r = await ensureCapableModel(lite, 'ubc-ai-gateway/gpt-6-luna', {
-      ...GW,
-      keyInEnv: false,
-    })
+    const r = await ensureCapableModel(
+      lite,
+      'ubc-ai-gateway/gpt-6-luna',
+      {
+        ...GW,
+        keyInEnv: false,
+      },
+      'medium',
+    )
     expect(r.state).toBe('refused')
     expect(r.reason).toContain('UBC_AI_GATEWAY_API_KEY is not in .env')
     expect(r.reason).toContain('is unavailable meanwhile')
@@ -318,12 +350,17 @@ describe('the capable model through UBC’s AI Gateway (the UBC AI Gateway plan�
     // Rich drops the gateway: the key leaves .env, the setting names a direct model LiteLLM cannot price. Kept, the
     // gateway registration's reference would resolve to nothing, and LiteLLM sends OPENAI_API_KEY to UBC for one ([M7]).
     const lite = fakeLiteLlm()
-    await ensureCapableModel(lite, 'ubc-ai-gateway/gpt-6-luna', GW)
+    await ensureCapableModel(lite, 'ubc-ai-gateway/gpt-6-luna', GW, 'medium')
     lite.price('openai/gpt-direct-unpriced', 0)
-    const r = await ensureCapableModel(lite, 'openai/gpt-direct-unpriced', {
-      ...GW,
-      keyInEnv: false,
-    })
+    const r = await ensureCapableModel(
+      lite,
+      'openai/gpt-direct-unpriced',
+      {
+        ...GW,
+        keyInEnv: false,
+      },
+      'medium',
+    )
     expect(r.state).toBe('refused')
     expect(capable(lite).filter((d) => d.apiBase !== undefined)).toHaveLength(0)
     expect(r.reason).toContain('is unavailable meanwhile')
@@ -331,9 +368,9 @@ describe('the capable model through UBC’s AI Gateway (the UBC AI Gateway plan�
 
   it('POSITIVE CONTROL for I2: WITH the key in .env, a refused direct setting keeps the working gateway registration — and names it as the gateway’s', async () => {
     const lite = fakeLiteLlm()
-    await ensureCapableModel(lite, 'ubc-ai-gateway/gpt-6-luna', GW)
+    await ensureCapableModel(lite, 'ubc-ai-gateway/gpt-6-luna', GW, 'medium')
     lite.price('openai/gpt-direct-unpriced', 0)
-    const r = await ensureCapableModel(lite, 'openai/gpt-direct-unpriced', GW)
+    const r = await ensureCapableModel(lite, 'openai/gpt-direct-unpriced', GW, 'medium')
     expect(r.state).toBe('refused')
     expect(capable(lite).map((d) => d.apiBase)).toEqual([GW.url])
     expect(r.reason).toContain("'ubc-ai-gateway/gpt-6-luna' is kept")
@@ -342,7 +379,12 @@ describe('the capable model through UBC’s AI Gateway (the UBC AI Gateway plan�
   it('refuses a gateway model LiteLLM cannot price — an alias — and never registers it at $0 (Review Focus 4)', async () => {
     const lite = fakeLiteLlm()
     lite.price('openai/ubc-luna-alias', 0)
-    const r = await ensureCapableModel(lite, 'ubc-ai-gateway/ubc-luna-alias', GW)
+    const r = await ensureCapableModel(
+      lite,
+      'ubc-ai-gateway/ubc-luna-alias',
+      GW,
+      'medium',
+    )
     expect(r.state).toBe('refused')
     expect(r.reason).toContain('cannot price')
     expect(capable(lite)).toHaveLength(0)
@@ -350,7 +392,12 @@ describe('the capable model through UBC’s AI Gateway (the UBC AI Gateway plan�
 
   it('refuses a gateway setting on a control plane with no gateway configured, registering nothing', async () => {
     const lite = fakeLiteLlm()
-    const r = await ensureCapableModel(lite, 'ubc-ai-gateway/gpt-6-luna')
+    const r = await ensureCapableModel(
+      lite,
+      'ubc-ai-gateway/gpt-6-luna',
+      undefined,
+      'medium',
+    )
     expect(r.state).toBe('refused')
     expect(capable(lite)).toHaveLength(0)
     expect(lite.calls.filter((c) => c.path === '/model/new')).toHaveLength(0)
@@ -369,7 +416,8 @@ describe('the capable model at boot — never fatal, never silent', () => {
   it('answers the state, and writes nothing when it registered', async () => {
     const written = lines()
     expect(
-      (await capableModelAtBoot(fakeLiteLlm(), SETTING, undefined)).capableModel,
+      (await capableModelAtBoot(fakeLiteLlm(), SETTING, undefined, undefined, 'medium'))
+        .capableModel,
     ).toBe('registered')
     expect(written()).toEqual([])
   })
@@ -377,8 +425,15 @@ describe('the capable model at boot — never fatal, never silent', () => {
   it('writes ONE operator line naming the setting when the model is refused, and goes on', async () => {
     const written = lines()
     expect(
-      (await capableModelAtBoot(fakeLiteLlm(), 'openai/unpriced-model', undefined))
-        .capableModel,
+      (
+        await capableModelAtBoot(
+          fakeLiteLlm(),
+          'openai/unpriced-model',
+          undefined,
+          undefined,
+          'medium',
+        )
+      ).capableModel,
     ).toBe('refused')
     expect(written()).toHaveLength(1)
     expect(written()[0]).toMatch(/^\[boot\] the capable model \(MANIFEST_CAPABLE_MODEL\)/)
@@ -389,9 +444,10 @@ describe('the capable model at boot — never fatal, never silent', () => {
     const written = lines()
     const lite = fakeLiteLlm()
     lite.fail('/model/info', 503)
-    expect((await capableModelAtBoot(lite, SETTING, undefined)).capableModel).toBe(
-      'failed',
-    )
+    expect(
+      (await capableModelAtBoot(lite, SETTING, undefined, undefined, 'medium'))
+        .capableModel,
+    ).toBe('failed')
     expect(written()).toHaveLength(1)
     expect(written()[0]).toMatch(/^\[boot\] the capable model \(MANIFEST_CAPABLE_MODEL\)/)
     expect(written()[0]).toContain('AI_BACKEND_UNAVAILABLE')
@@ -401,14 +457,23 @@ describe('the capable model at boot — never fatal, never silent', () => {
     const written = lines()
     const lite = fakeLiteLlm()
     lite.fail('/model/info', 0)
-    expect((await capableModelAtBoot(lite, SETTING, undefined)).capableModel).toBe(
-      'failed',
-    )
+    expect(
+      (await capableModelAtBoot(lite, SETTING, undefined, undefined, 'medium'))
+        .capableModel,
+    ).toBe('failed')
     expect(written()[0]).toContain('LiteLLM did not answer')
 
     const refused = fakeLiteLlm()
     expect(
-      (await capableModelAtBoot(refused, 'unpriced/whatever', undefined)).capableModel,
+      (
+        await capableModelAtBoot(
+          refused,
+          'unpriced/whatever',
+          undefined,
+          undefined,
+          'medium',
+        )
+      ).capableModel,
     ).toBe('refused')
     expect(written()[1]).not.toContain('did not answer')
     expect(written()[1]).toContain("'unpriced/whatever'")
@@ -423,16 +488,29 @@ describe('the capable model at boot — never fatal, never silent', () => {
       keyInEnv: true,
     }
     expect(
-      (await capableModelAtBoot(lite, 'ubc-ai-gateway/gpt-6-luna', undefined, gateway))
-        .capableModel,
+      (
+        await capableModelAtBoot(
+          lite,
+          'ubc-ai-gateway/gpt-6-luna',
+          undefined,
+          gateway,
+          'medium',
+        )
+      ).capableModel,
     ).toBe('registered')
     expect(written()).toEqual([])
     expect(
       (
-        await capableModelAtBoot(lite, 'ubc-ai-gateway/gpt-6-luna', undefined, {
-          ...gateway,
-          keyInEnv: false,
-        })
+        await capableModelAtBoot(
+          lite,
+          'ubc-ai-gateway/gpt-6-luna',
+          undefined,
+          {
+            ...gateway,
+            keyInEnv: false,
+          },
+          'medium',
+        )
       ).capableModel,
     ).toBe('refused')
     expect(written()).toHaveLength(1)
@@ -466,14 +544,14 @@ async function entry(
 /** A gateway holding the capable model, registered as the boot registers it. */
 async function withCapable(): Promise<FakeLiteLlm> {
   const lite = fakeLiteLlm()
-  await ensureCapableModel(lite, SETTING)
+  await ensureCapableModel(lite, SETTING, undefined, 'medium')
   return lite
 }
 
 describe('the capable model’s fallback (the front-end enablement plan’s Task 12b)', () => {
   it('sets the on-premise model as default-chat-large’s general fallback, through LiteLLM’s own /fallback', async () => {
     const lite = await withCapable()
-    expect(await ensureCapableFallback(lite, FALLBACK)).toEqual({
+    expect(await ensureCapableFallback(lite, FALLBACK, 'medium')).toEqual({
       state: 'set',
       fallback: FALLBACK,
     })
@@ -490,9 +568,9 @@ describe('the capable model’s fallback (the front-end enablement plan’s Task
 
   it('changes nothing when it is already set as the setting says', async () => {
     const lite = await withCapable()
-    await ensureCapableFallback(lite, FALLBACK)
+    await ensureCapableFallback(lite, FALLBACK, 'medium')
     const before = lite.calls.length
-    expect(await ensureCapableFallback(lite, FALLBACK)).toEqual({
+    expect(await ensureCapableFallback(lite, FALLBACK, 'medium')).toEqual({
       state: 'unchanged',
       fallback: FALLBACK,
     })
@@ -501,8 +579,10 @@ describe('the capable model’s fallback (the front-end enablement plan’s Task
 
   it('replaces it in place when the setting names another catalogue entry', async () => {
     const lite = await withCapable()
-    await ensureCapableFallback(lite, FALLBACK)
-    expect(await ensureCapableFallback(lite, 'default-chat-onprem-reasoning')).toEqual({
+    await ensureCapableFallback(lite, FALLBACK, 'medium')
+    expect(
+      await ensureCapableFallback(lite, 'default-chat-onprem-reasoning', 'medium'),
+    ).toEqual({
       state: 'set',
       fallback: 'default-chat-onprem-reasoning',
     })
@@ -511,25 +591,33 @@ describe('the capable model’s fallback (the front-end enablement plan’s Task
 
   it('removes it when the setting is empty, and answers absent when there was nothing', async () => {
     const lite = await withCapable()
-    expect(await ensureCapableFallback(lite, undefined)).toEqual({ state: 'absent' })
-    await ensureCapableFallback(lite, FALLBACK)
-    expect(await ensureCapableFallback(lite, undefined)).toEqual({ state: 'removed' })
+    expect(await ensureCapableFallback(lite, undefined, 'medium')).toEqual({
+      state: 'absent',
+    })
+    await ensureCapableFallback(lite, FALLBACK, 'medium')
+    expect(await ensureCapableFallback(lite, undefined, 'medium')).toEqual({
+      state: 'removed',
+    })
     expect(fallbackOf(lite)).toBeUndefined()
   })
 
   it('removes it with the capable model — an entry outlives its primary and would re-attach to the next registration (measured)', async () => {
     const lite = await withCapable()
-    await ensureCapableFallback(lite, FALLBACK)
-    await ensureCapableModel(lite, undefined)
-    expect(await ensureCapableFallback(lite, FALLBACK)).toEqual({ state: 'removed' })
+    await ensureCapableFallback(lite, FALLBACK, 'medium')
+    await ensureCapableModel(lite, undefined, undefined, 'medium')
+    expect(await ensureCapableFallback(lite, FALLBACK, 'medium')).toEqual({
+      state: 'removed',
+    })
     expect(fallbackOf(lite)).toBeUndefined()
     // A positive control: with no capable model, nothing is set either — and nothing is asked to be.
-    expect(await ensureCapableFallback(lite, FALLBACK)).toEqual({ state: 'absent' })
+    expect(await ensureCapableFallback(lite, FALLBACK, 'medium')).toEqual({
+      state: 'absent',
+    })
     expect(lite.calls.some((c) => c.method === 'POST' && c.path === '/fallback')).toBe(
       true,
     )
     const before = lite.calls.length
-    await ensureCapableFallback(lite, FALLBACK)
+    await ensureCapableFallback(lite, FALLBACK, 'medium')
     expect(lite.calls.slice(before).some((c) => c.method === 'POST')).toBe(false)
   })
 
@@ -552,7 +640,7 @@ describe('the capable model’s fallback (the front-end enablement plan’s Task
     for (const [setting, prepare, phrase] of cases) {
       const lite = await withCapable()
       await prepare(lite)
-      const result = await ensureCapableFallback(lite, setting)
+      const result = await ensureCapableFallback(lite, setting, 'medium')
       expect(result.state, setting).toBe('refused')
       expect(result.fallback, setting).toBe(setting)
       expect(result.reason, setting).toContain(FALLBACK_SETTING)
@@ -566,21 +654,21 @@ describe('the capable model’s fallback (the front-end enablement plan’s Task
     }
     // A positive control: the same gateway sets a CONFIDENTIAL-rank on-premise chat model.
     const lite = await withCapable()
-    expect((await ensureCapableFallback(lite, FALLBACK)).state).toBe('set')
+    expect((await ensureCapableFallback(lite, FALLBACK, 'medium')).state).toBe('set')
   })
 
   it('refuses a public-rank fallback because the gateway falls back without consulting a key’s list of models', async () => {
     const lite = await withCapable()
     await entry(lite, 'probe-public-chat', { max_classification: 'public' })
-    const result = await ensureCapableFallback(lite, 'probe-public-chat')
+    const result = await ensureCapableFallback(lite, 'probe-public-chat', 'medium')
     expect(result.reason).toContain("below 'medium'")
     expect(result.reason).toContain('without consulting')
   })
 
   it('keeps a working fallback that still validates when a new setting is refused, and says so', async () => {
     const lite = await withCapable()
-    await ensureCapableFallback(lite, FALLBACK)
-    const result = await ensureCapableFallback(lite, 'default-chat-onprme')
+    await ensureCapableFallback(lite, FALLBACK, 'medium')
+    const result = await ensureCapableFallback(lite, 'default-chat-onprme', 'medium')
     expect(result.state).toBe('refused')
     expect(result.reason).toContain(`'${FALLBACK}' is kept`)
     expect(fallbackOf(lite)).toEqual([FALLBACK])
@@ -597,7 +685,7 @@ describe('the capable model’s fallback (the front-end enablement plan’s Task
         fallback_models: ['probe-public-chat'],
         fallback_type: 'general',
       })
-      const result = await ensureCapableFallback(lite, setting)
+      const result = await ensureCapableFallback(lite, setting, 'medium')
       expect(result.state, setting).toBe('refused')
       expect(result.reason, setting).not.toContain('is kept')
       expect(fallbackOf(lite), setting).toBeUndefined()
@@ -607,7 +695,7 @@ describe('the capable model’s fallback (the front-end enablement plan’s Task
   it('answers a /fallback refusal the gateway GAVE as refused, naming its status', async () => {
     const lite = await withCapable()
     lite.fail('/fallback', 400)
-    const result = await ensureCapableFallback(lite, FALLBACK)
+    const result = await ensureCapableFallback(lite, FALLBACK, 'medium')
     expect(result.state).toBe('refused')
     expect(result.reason).toContain('HTTP 400')
     expect(result.reason).toContain(FALLBACK_SETTING)
@@ -616,15 +704,19 @@ describe('the capable model’s fallback (the front-end enablement plan’s Task
   it('throws when the gateway does not answer — never swallowed', async () => {
     const lite = await withCapable()
     lite.fail('/model/info', 0)
-    await expect(ensureCapableFallback(lite, FALLBACK)).rejects.toBeInstanceOf(AiError)
+    await expect(ensureCapableFallback(lite, FALLBACK, 'medium')).rejects.toBeInstanceOf(
+      AiError,
+    )
     const again = await withCapable()
     again.fail(`/fallback/${CAPABLE_MODEL_NAME}`, 0)
-    await expect(ensureCapableFallback(again, FALLBACK)).rejects.toBeInstanceOf(AiError)
+    await expect(ensureCapableFallback(again, FALLBACK, 'medium')).rejects.toBeInstanceOf(
+      AiError,
+    )
   })
 
   it('a key holding ONLY the capable model is answered by the fallback when its provider cannot answer (the fake copying the measurement)', async () => {
     const lite = await withCapable()
-    await ensureCapableFallback(lite, FALLBACK)
+    await ensureCapableFallback(lite, FALLBACK, 'medium')
     await lite.post('/user/new', { user_id: 'mf-person-u', max_budget: 1 })
     const { key } = await lite.post<{ key: string }>('/key/generate', {
       user_id: 'mf-person-u',
@@ -643,7 +735,7 @@ describe('the capable model’s fallback (the front-end enablement plan’s Task
     })
     // The key may not call the fallback by NAME — only the gateway's fallback reaches it.
     expect(lite.use(key, FALLBACK)).toMatchObject({ status: 403 })
-    await ensureCapableFallback(lite, undefined)
+    await ensureCapableFallback(lite, undefined, 'medium')
     expect(lite.use(key, CAPABLE_MODEL_NAME)).toEqual({ status: 500 })
   })
 })
@@ -659,7 +751,9 @@ describe('the capable model and its fallback at boot — never fatal, never sile
 
   it('answers both states, and writes nothing when both were set', async () => {
     const written = lines()
-    expect(await capableModelAtBoot(fakeLiteLlm(), SETTING, FALLBACK)).toEqual({
+    expect(
+      await capableModelAtBoot(fakeLiteLlm(), SETTING, FALLBACK, undefined, 'medium'),
+    ).toEqual({
       capableModel: 'registered',
       capableFallback: 'set',
     })
@@ -668,7 +762,15 @@ describe('the capable model and its fallback at boot — never fatal, never sile
 
   it('writes ONE operator line naming the fallback’s setting when it is refused, and goes on', async () => {
     const written = lines()
-    expect(await capableModelAtBoot(fakeLiteLlm(), SETTING, 'default-embed')).toEqual({
+    expect(
+      await capableModelAtBoot(
+        fakeLiteLlm(),
+        SETTING,
+        'default-embed',
+        undefined,
+        'medium',
+      ),
+    ).toEqual({
       capableModel: 'registered',
       capableFallback: 'refused',
     })
@@ -683,7 +785,9 @@ describe('the capable model and its fallback at boot — never fatal, never sile
     const written = lines()
     const lite = fakeLiteLlm()
     lite.fail('/model/info', 503)
-    expect(await capableModelAtBoot(lite, SETTING, FALLBACK)).toEqual({
+    expect(
+      await capableModelAtBoot(lite, SETTING, FALLBACK, undefined, 'medium'),
+    ).toEqual({
       capableModel: 'failed',
       capableFallback: 'failed',
     })
@@ -696,7 +800,9 @@ describe('the capable model and its fallback at boot — never fatal, never sile
     const written = lines()
     const lite = fakeLiteLlm()
     lite.fail(`/fallback/${CAPABLE_MODEL_NAME}`, 0)
-    expect(await capableModelAtBoot(lite, SETTING, FALLBACK)).toEqual({
+    expect(
+      await capableModelAtBoot(lite, SETTING, FALLBACK, undefined, 'medium'),
+    ).toEqual({
       capableModel: 'registered',
       capableFallback: 'failed',
     })
@@ -711,12 +817,51 @@ describe('the capable model and its fallback at boot — never fatal, never sile
   it('with the capable model unset, removes both and says nothing', async () => {
     const written = lines()
     const lite = fakeLiteLlm()
-    await capableModelAtBoot(lite, SETTING, FALLBACK)
-    expect(await capableModelAtBoot(lite, undefined, FALLBACK)).toEqual({
+    await capableModelAtBoot(lite, SETTING, FALLBACK, undefined, 'medium')
+    expect(
+      await capableModelAtBoot(lite, undefined, FALLBACK, undefined, 'medium'),
+    ).toEqual({
       capableModel: 'removed',
       capableFallback: 'removed',
     })
     expect(fallbackOf(lite)).toBeUndefined()
     expect(written()).toEqual([])
+  })
+})
+
+describe('the capable model’s level is the setting’s (S3; U1 plan Task 4)', () => {
+  it('registers the capable model at the level it is given', async () => {
+    const lite = fakeLiteLlm()
+    expect(await ensureCapableModel(lite, SETTING, undefined, 'high')).toEqual({
+      state: 'registered',
+      model: SETTING,
+    })
+    expect(capable(lite).map((d) => d.modelInfo.max_classification)).toEqual(['high'])
+  })
+
+  it('an alias row is UNCHANGED at its level — nothing re-created for its name (Review Focus 2)', async () => {
+    const lite = fakeLiteLlm()
+    await ensureCapableModel(lite, SETTING, undefined, 'internal') // as the row registered before U1 was
+    const before = lite.calls.length
+    expect(await ensureCapableModel(lite, SETTING, undefined, 'medium')).toEqual({
+      state: 'unchanged',
+      model: SETTING,
+    })
+    expect(lite.calls.slice(before).filter((c) => c.path === '/model/new')).toEqual([])
+    // The positive control: a real change of level registers.
+    expect((await ensureCapableModel(lite, SETTING, undefined, 'high')).state).toBe(
+      'registered',
+    )
+  })
+
+  it('a fallback below the capable model’s level is refused — the floor moves with the setting', async () => {
+    const lite = await withCapable()
+    await entry(lite, 'probe-medium-chat', { max_classification: 'medium' })
+    const refused = await ensureCapableFallback(lite, 'probe-medium-chat', 'high')
+    expect(refused.state).toBe('refused')
+    expect(refused.reason).toContain("below 'high'")
+    expect((await ensureCapableFallback(lite, 'probe-medium-chat', 'medium')).state).toBe(
+      'set',
+    )
   })
 })

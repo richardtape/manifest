@@ -6,7 +6,6 @@ import {
   CLASSIFICATION_RANK,
   canonicalLevel,
   DEFAULT_LEVEL,
-  toLevel,
   type Classification,
   type Level,
 } from '../spec/index.js'
@@ -14,11 +13,11 @@ import { CAPABLE_MODEL_NAME } from './capable.js'
 import type { CatalogueSnapshot } from './catalogue.js'
 
 /**
- * WHICH MODELS THE AGENT THAT BUILDS A `confidential` APP MAY CALL (§7, §10 and §26 as Spec action 10
- * amended them; `MANIFEST_AGENT_BUILDER_MODELS`): `capable` — the default — adds the capable model to
- * the on-premise ones; `on-premise` is D17's rule alone. A platform setting, never a project's: the
- * app's OWN `ai.models` is validated by D17 whatever this says, so a `confidential` app's AI stays
- * on-premise either way.
+ * WHICH MODELS THE AGENT THAT BUILDS AN APP ABOVE THE CAPABLE MODEL'S LEVEL MAY CALL (§7, §10 and §26 as Spec
+ * action 10 and the U1 spec action amended them; `MANIFEST_AGENT_BUILDER_MODELS`; S4): `capable` — the default —
+ * adds the capable model to the ones the project's level allows; `on-premise` is D17's rule alone. A platform
+ * setting, never a project's: the app's OWN `ai.models` is validated by D17 whatever this says, so a `very-high`
+ * app's AI stays on-premise either way.
  */
 export type BuilderModels = 'capable' | 'on-premise'
 
@@ -29,19 +28,22 @@ export type BuilderModels = 'capable' | 'on-premise'
  * rule — it is refused on its own). Read from the catalogue: nothing here names a model but the
  * capable one.
  *
- * **AND, ON A `confidential` PROJECT WHILE THE BUILDER SETTING IS `capable`, THE CAPABLE MODEL TOO**
- * (Spec action 10; the front-end enablement plan's Task 14a — Rich: *"It's okay to use the larger
- * models to BUILD the app"*). Its NAME only, and only when the catalogue holds it classified — never
- * another entry the classification refuses (`default-chat`, `default-chat-reasoning` and
- * `default-embed` stay out), so the exception is exactly one model wide. Its fallback is the
- * on-premise model (Spec action 8), which the floor allows anyway.
+ * **AND, WHILE THE BUILDER SETTING IS `capable`, THE CAPABLE MODEL TOO — at every level above its own** (Spec
+ * action 10; the front-end enablement plan's Task 14a — Rich: *"It's okay to use the larger models to BUILD the
+ * app"*; S4, 2026-10-03: a `high` project's building agent gets it). Its NAME only, and only when the catalogue
+ * holds it classified — never another entry the level refuses (`default-chat`, `default-chat-reasoning` and
+ * `default-embed` stay out), so the exception is exactly one model wide. Its fallback is the on-premise model
+ * (Spec action 8), which the floor allows anyway.
  */
 export function agentModelsFor(
   catalogue: CatalogueSnapshot,
   floor: Classification,
   builder: BuilderModels,
 ): string[] {
-  const building = toLevel(floor) === 'very-high' && builder === 'capable'
+  // THE CAPABLE MODEL TO A PROJECT ABOVE ITS LEVEL while the builder setting is `capable` (S4) — at or below its
+  // level D17 already allows it — so whenever the setting is `capable`, the capable model is in every session's
+  // models while the catalogue lists it classified. No level enters: the rank filter covers the rest.
+  const building = builder === 'capable'
   return catalogue.models
     .filter(
       (entry) =>

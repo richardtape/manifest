@@ -112,9 +112,9 @@ async function listedCapable(
  */
 async function leaveNone(client: LiteLlmClient): Promise<void> {
   try {
-    await ensureCapableFallback(client, undefined)
+    await ensureCapableFallback(client, undefined, 'medium')
   } finally {
-    await ensureCapableModel(client, undefined)
+    await ensureCapableModel(client, undefined, undefined, 'medium')
   }
 }
 
@@ -185,7 +185,7 @@ describeDocker('the capable model against the running LiteLLM (Task 12a)', () =>
 
   it('registers default-chat-large at internal, priced; an agent on internal gets it, confidential never; unset removes it', async () => {
     try {
-      expect(await ensureCapableModel(client, PRICED)).toEqual({
+      expect(await ensureCapableModel(client, PRICED, undefined, 'medium')).toEqual({
         state: 'registered',
         model: PRICED,
       })
@@ -216,12 +216,12 @@ describeDocker('the capable model against the running LiteLLM (Task 12a)', () =>
       expect(held!.pinned).toBe(2e-7)
       expect(held!.listed).toBe(2e-7)
 
-      expect(await ensureCapableModel(client, PRICED)).toEqual({
+      expect(await ensureCapableModel(client, PRICED, undefined, 'medium')).toEqual({
         state: 'unchanged',
         model: PRICED,
       })
 
-      expect(await ensureCapableModel(client, undefined)).toEqual({
+      expect(await ensureCapableModel(client, undefined, undefined, 'medium')).toEqual({
         state: 'removed',
         model: PRICED,
       })
@@ -241,10 +241,52 @@ describeDocker('the capable model against the running LiteLLM (Task 12a)', () =>
     }
   })
 
+  it('registers default-chat-large at the level it is given, and a row at an earlier name is UNCHANGED at its level — LiteLLM round-trips max_classification as given (the U1 plan’s Task 4)', async () => {
+    /** Each `default-chat-large` deployment's id and stored level, as `/model/info` lists them. */
+    const held = async () =>
+      (
+        await client.get<{
+          data: {
+            model_name: string
+            model_info: { id: string; max_classification?: unknown }
+          }[]
+        }>('/model/info')
+      ).data
+        .filter((d) => d.model_name === CAPABLE_MODEL_NAME)
+        .map((d) => ({ id: d.model_info.id, level: d.model_info.max_classification }))
+    await startingClear(client)
+    try {
+      expect(await ensureCapableModel(client, PRICED, undefined, 'high')).toEqual({
+        state: 'registered',
+        model: PRICED,
+      })
+      expect((await held()).map((d) => d.level)).toEqual(['high'])
+
+      // A row as every row before U1 was registered — at an earlier name — then asked for at its level.
+      expect(
+        (await ensureCapableModel(client, PRICED, undefined, 'internal')).state,
+      ).toBe('registered')
+      const before = await held()
+      expect(before.map((d) => d.level)).toEqual(['internal'])
+      expect(await ensureCapableModel(client, PRICED, undefined, 'medium')).toEqual({
+        state: 'unchanged',
+        model: PRICED,
+      })
+      expect(await held()).toEqual(before)
+    } finally {
+      await leaveNone(client)
+    }
+  })
+
   it('refuses an openai model LiteLLM cannot price, and leaves no row behind', async () => {
     try {
       // `openai/gpt-6-terra`'s shape, measured: registered at cost 0.
-      const result = await ensureCapableModel(client, 'openai/manifest-unpriced-probe')
+      const result = await ensureCapableModel(
+        client,
+        'openai/manifest-unpriced-probe',
+        undefined,
+        'medium',
+      )
       expect(result.state).toBe('refused')
       expect(result.reason).toContain('MANIFEST_CAPABLE_MODEL')
       expect(await rowsNamedCapable()).toBe(0)
@@ -255,10 +297,15 @@ describeDocker('the capable model against the running LiteLLM (Task 12a)', () =>
 
   it('refuses a provider LiteLLM cannot serve, deletes the row LiteLLM saved anyway, and KEEPS the working model', async () => {
     try {
-      await ensureCapableModel(client, PRICED)
+      await ensureCapableModel(client, PRICED, undefined, 'medium')
       // Measured: a 500 whose row STAYS in LiteLLM's table, absent from /model/info. The gateway
       // ANSWERED, so it is the setting's fault (the review's I2) — and the working model stays.
-      const result = await ensureCapableModel(client, 'manifest-nowhere/probe')
+      const result = await ensureCapableModel(
+        client,
+        'manifest-nowhere/probe',
+        undefined,
+        'medium',
+      )
       expect(result.state).toBe('refused')
       expect(result.reason).toContain("'manifest-nowhere/probe'")
       expect(result.reason).toContain(`'${PRICED}' is kept`)
@@ -276,7 +323,9 @@ describeDocker('the capable model against the running LiteLLM (Task 12a)', () =>
     await startingClear(client)
     try {
       await unreachableCapable(client)
-      expect(await ensureCapableFallback(client, 'default-chat-onprem')).toEqual({
+      expect(
+        await ensureCapableFallback(client, 'default-chat-onprem', 'medium'),
+      ).toEqual({
         state: 'set',
         fallback: 'default-chat-onprem',
       })
@@ -318,7 +367,9 @@ describeDocker('the capable model against the running LiteLLM (Task 12a)', () =>
       )
 
       // A positive control: without the fallback, the same call is LiteLLM's own failure.
-      expect(await ensureCapableFallback(client, undefined)).toEqual({ state: 'removed' })
+      expect(await ensureCapableFallback(client, undefined, 'medium')).toEqual({
+        state: 'removed',
+      })
       expect((await chat(key)).status).toBe(500)
     } finally {
       try {
@@ -347,16 +398,16 @@ describeDocker('the capable model against the running LiteLLM (Task 12a)', () =>
         },
         model_info: { id: probe, max_classification: 'public' },
       })
-      const result = await ensureCapableFallback(client, 'probe-public-chat')
+      const result = await ensureCapableFallback(client, 'probe-public-chat', 'medium')
       expect(result.state).toBe('refused')
       // The catalogue answers the LEVEL: config's `public` is `low` (U1 plan Task 2).
       expect(result.reason).toContain("classified 'low'")
       await expect(
         client.get(`/fallback/${CAPABLE_MODEL_NAME}`, { fallback_type: 'general' }),
       ).rejects.toMatchObject({ status: 404 })
-      expect((await ensureCapableFallback(client, 'default-chat-onprem')).state).toBe(
-        'set',
-      )
+      expect(
+        (await ensureCapableFallback(client, 'default-chat-onprem', 'medium')).state,
+      ).toBe('set')
     } finally {
       try {
         await leaveNone(client)
@@ -378,7 +429,7 @@ describeDocker('the capable model against the running LiteLLM (Task 12a)', () =>
     await new Promise<void>((resolve) => holder.listen(7187, '127.0.0.1', resolve))
     const pool = new pg.Pool({ connectionString: idpDatabaseUrl() })
     try {
-      await ensureCapableModel(client, PRICED)
+      await ensureCapableModel(client, PRICED, undefined, 'medium')
       await run('pnpm', ['--filter', '@manifest/control-plane', 'build'], {
         cwd: REPO_ROOT,
       })
@@ -443,7 +494,7 @@ describeDocker('the capable model against the running LiteLLM (Task 12a)', () =>
         keyInEnv: true,
       }
       const setting = `ubc-ai-gateway/${PRICED.slice('openai/'.length)}`
-      expect(await ensureCapableModel(client, setting, gateway)).toMatchObject({
+      expect(await ensureCapableModel(client, setting, gateway, 'medium')).toMatchObject({
         state: 'registered',
       })
       // As LiteLLM lists it: the gateway's address, and NO api_key at all — not the value, not the reference ([M3]).

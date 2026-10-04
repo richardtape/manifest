@@ -33,12 +33,6 @@ export const CAPABLE_MODEL_SETTING = 'MANIFEST_CAPABLE_MODEL'
 /** Its fallback's setting (Spec action 8; Task 12b), named in every refusal an operator reads. */
 export const CAPABLE_FALLBACK_SETTING = 'MANIFEST_CAPABLE_MODEL_FALLBACK'
 
-/**
- * Rich, 2026-09-27: `internal` — the classification §7's catalogue already gives `default-chat`
- * (*"may route off-prem"*). `confidential` never leaves on-premise hardware.
- */
-const CAPABLE_CLASSIFICATION: Classification = 'internal'
-
 export interface CapableModelResult {
   state: 'registered' | 'unchanged' | 'removed' | 'absent' | 'refused'
   model?: string
@@ -80,7 +74,8 @@ async function deployments(client: LiteLlmClient): Promise<Deployment[]> {
 export async function ensureCapableModel(
   client: LiteLlmClient,
   setting: string | undefined,
-  gateway?: Gateway,
+  gateway: Gateway | undefined,
+  classification: Classification,
 ): Promise<CapableModelResult> {
   let ours = await deployments(client)
 
@@ -108,6 +103,7 @@ export async function ensureCapableModel(
       client,
       ours,
       setting,
+      classification,
       (kept) => resolved.refused + unavailable(CAPABLE_MODEL_NAME, kept),
     )
   }
@@ -121,7 +117,7 @@ export async function ensureCapableModel(
       settingName: CAPABLE_MODEL_SETTING,
       setting,
       params: resolved.params,
-      classification: CAPABLE_CLASSIFICATION,
+      classification,
     },
     ours,
   )
@@ -164,16 +160,19 @@ async function removeFallback(client: LiteLlmClient): Promise<boolean> {
 const rank = (c: Classification): number => CLASSIFICATION_RANK[c]
 
 /**
- * The most sensitive data a call to the capable model may carry: its own classification as the catalogue
- * lists it, and never less than the one this module registers.
+ * The most sensitive data a call to the capable model may carry: its own level as the catalogue lists it, and
+ * never less than `classification`, the level this boot registers it at (MANIFEST_CAPABLE_MODEL_CLASSIFICATION).
  */
-function capableFloor(snapshot: CatalogueSnapshot): Classification {
+function capableFloor(
+  snapshot: CatalogueSnapshot,
+  classification: Classification,
+): Classification {
   return snapshot.models
     .filter((m) => m.name === CAPABLE_MODEL_NAME)
     .map((m) => m.maxClassification)
     .reduce<Classification>(
       (a, b) => (rank(b) > rank(a) ? b : a),
-      toLevel(CAPABLE_CLASSIFICATION),
+      toLevel(classification),
     )
 }
 
@@ -184,7 +183,11 @@ function capableFloor(snapshot: CatalogueSnapshot): Classification {
  * fallback ranked below the capable model would carry its data where no key was allowed to send it. Every
  * deployment of the name must pass, because the router may pick any of them.
  */
-function unfit(snapshot: CatalogueSnapshot, name: string): string | undefined {
+function unfit(
+  snapshot: CatalogueSnapshot,
+  name: string,
+  classification: Classification,
+): string | undefined {
   if (name === CAPABLE_MODEL_NAME) {
     return 'the capable model itself, which cannot fall back to itself'
   }
@@ -201,7 +204,7 @@ function unfit(snapshot: CatalogueSnapshot, name: string): string | undefined {
   if (entries.some((m) => m.kind === 'embedding')) {
     return 'an embedding model, which a chat cannot fall back to'
   }
-  const floor = capableFloor(snapshot)
+  const floor = capableFloor(snapshot, classification)
   const low = entries.find((m) => rank(m.maxClassification) < rank(floor))
   if (low !== undefined) {
     return (
@@ -237,6 +240,7 @@ function unfit(snapshot: CatalogueSnapshot, name: string): string | undefined {
 export async function ensureCapableFallback(
   client: LiteLlmClient,
   setting: string | undefined,
+  classification: Classification,
 ): Promise<CapableFallbackResult> {
   const snapshot = await loadModelCatalogue(client)
   const served =
@@ -249,7 +253,8 @@ export async function ensureCapableFallback(
   const current = await currentFallback(client)
   const refuse = async (why: string): Promise<CapableFallbackResult> => {
     const keep =
-      current.length > 0 && current.every((m) => unfit(snapshot, m) === undefined)
+      current.length > 0 &&
+      current.every((m) => unfit(snapshot, m, classification) === undefined)
     if (!keep && current.length > 0) await removeFallback(client)
     return {
       state: 'refused',
@@ -263,7 +268,7 @@ export async function ensureCapableFallback(
     }
   }
 
-  const why = unfit(snapshot, setting)
+  const why = unfit(snapshot, setting, classification)
   if (why !== undefined) return refuse(why)
   if (current.length === 1 && current[0] === setting) {
     return { state: 'unchanged', fallback: setting }
@@ -305,12 +310,15 @@ export async function capableModelAtBoot(
   client: LiteLlmClient,
   setting: string | undefined,
   fallbackSetting: string | undefined,
-  gateway?: Gateway,
+  gateway: Gateway | undefined,
+  classification: Classification,
 ): Promise<CapableAtBoot> {
+  // The level is MANIFEST_CAPABLE_MODEL_CLASSIFICATION's (S3), never this file's — passed to both steps, so the
+  // fallback's check moves with it.
   const said = `[boot] the capable model (${CAPABLE_MODEL_SETTING})`
   let capableModel: CapableModelResult['state']
   try {
-    const result = await ensureCapableModel(client, setting, gateway)
+    const result = await ensureCapableModel(client, setting, gateway, classification)
     if (result.state === 'refused') console.error(`${said} was refused: ${result.reason}`)
     capableModel = result.state
   } catch (error) {
@@ -324,7 +332,7 @@ export async function capableModelAtBoot(
 
   const fell = `[boot] the capable model's fallback (${CAPABLE_FALLBACK_SETTING})`
   try {
-    const result = await ensureCapableFallback(client, fallbackSetting)
+    const result = await ensureCapableFallback(client, fallbackSetting, classification)
     if (result.state === 'refused') console.error(`${fell} was refused: ${result.reason}`)
     return { capableModel, capableFallback: result.state }
   } catch (error) {

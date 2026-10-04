@@ -147,6 +147,8 @@ describe('configuration', () => {
       enabled: true,
       // Task 12b: the capable model's fallback defaults to the on-premise model (Spec action 8).
       capableFallback: 'default-chat-onprem',
+      // The U1 plan's Task 4: the capable model's level is medium unless MANIFEST_CAPABLE_MODEL_CLASSIFICATION says.
+      capableClassification: 'medium',
       // The UBC AI Gateway plan's Task 3: no gateway model unless MANIFEST_GATEWAY_MODELS names one.
       gatewayModels: [],
     })
@@ -755,7 +757,7 @@ describe('UBC’s AI Gateway’s own models, from one setting (the UBC AI Gatewa
     }
   }
 
-  it('parses each entry to a name, a gateway setting and its classification', () => {
+  it('parses each entry to a name, a gateway setting and its classification — as its LEVEL (U1 plan Task 4)', () => {
     expect(
       loadConfig({
         ...base,
@@ -766,12 +768,12 @@ describe('UBC’s AI Gateway’s own models, from one setting (the UBC AI Gatewa
       {
         name: 'ubc-onprem',
         setting: 'ubc-ai-gateway/qwen-x',
-        classification: 'confidential',
+        classification: 'very-high',
       },
       {
         name: 'ubc-mini',
         setting: 'ubc-ai-gateway/gpt-6-mini',
-        classification: 'internal',
+        classification: 'medium',
       },
     ])
   })
@@ -786,7 +788,7 @@ describe('UBC’s AI Gateway’s own models, from one setting (the UBC AI Gatewa
         ...base,
         MANIFEST_GATEWAY_MODELS: ' , ubc-a=ubc-ai-gateway/a@public ,',
       }).litellm.gatewayModels,
-    ).toEqual([{ name: 'ubc-a', setting: 'ubc-ai-gateway/a', classification: 'public' }])
+    ).toEqual([{ name: 'ubc-a', setting: 'ubc-ai-gateway/a', classification: 'low' }])
   })
 
   it('splits on the LAST @, so a model id may hold one (M5 — Vertex-style ids carry one)', () => {
@@ -799,7 +801,7 @@ describe('UBC’s AI Gateway’s own models, from one setting (the UBC AI Gatewa
       {
         name: 'ubc-vertex',
         setting: 'ubc-ai-gateway/claude-x@20250101',
-        classification: 'internal',
+        classification: 'medium',
       },
     ])
   })
@@ -820,5 +822,66 @@ describe('UBC’s AI Gateway’s own models, from one setting (the UBC AI Gatewa
     }
     const twice = refusal('a=ubc-ai-gateway/m@internal,a=ubc-ai-gateway/n@public')
     expect(twice).toMatch(/^CONFIG_INVALID: .*MANIFEST_GATEWAY_MODELS.*'a'.*twice/)
+  })
+})
+
+describe('MANIFEST_CAPABLE_MODEL_CLASSIFICATION (S3; U1 plan Task 4)', () => {
+  it('is medium when absent or empty, and takes any of the seven names as its level', () => {
+    expect(loadConfig({ ...base }).litellm.capableClassification).toBe('medium')
+    expect(
+      loadConfig({ ...base, MANIFEST_CAPABLE_MODEL_CLASSIFICATION: '' }).litellm
+        .capableClassification,
+    ).toBe('medium')
+    expect(
+      loadConfig({ ...base, MANIFEST_CAPABLE_MODEL_CLASSIFICATION: 'high' }).litellm
+        .capableClassification,
+    ).toBe('high')
+    expect(
+      loadConfig({ ...base, MANIFEST_CAPABLE_MODEL_CLASSIFICATION: 'confidential' })
+        .litellm.capableClassification,
+    ).toBe('very-high')
+  })
+
+  it('refuses anything else by CONFIG_INVALID, naming the setting — never defaulted', () => {
+    for (const value of ['High', 'restricted', 'zdr']) {
+      expect(
+        () => loadConfig({ ...base, MANIFEST_CAPABLE_MODEL_CLASSIFICATION: value }),
+        value,
+      ).toThrow(
+        expect.objectContaining({
+          code: 'CONFIG_INVALID',
+          message: expect.stringContaining('MANIFEST_CAPABLE_MODEL_CLASSIFICATION'),
+        }),
+      )
+    }
+  })
+})
+
+describe('MANIFEST_GATEWAY_MODELS in U1’s names (U1 plan Task 4)', () => {
+  it('takes each of the seven names after the last @, as its level', () => {
+    expect(
+      loadConfig({
+        ...base,
+        MANIFEST_GATEWAY_MODELS:
+          'gw-a=ubc-ai-gateway/gpt-x@high, gw-b=ubc-ai-gateway/q@confidential, gw-c=ubc-ai-gateway/v@2025@very-high',
+      }).litellm.gatewayModels.map((e) => [e.name, e.setting, e.classification]),
+    ).toEqual([
+      ['gw-a', 'ubc-ai-gateway/gpt-x', 'high'],
+      ['gw-b', 'ubc-ai-gateway/q', 'very-high'],
+      ['gw-c', 'ubc-ai-gateway/v@2025', 'very-high'],
+    ])
+  })
+
+  it('still refuses an entry with no level, or a name that is none', () => {
+    for (const entry of [
+      'gw=ubc-ai-gateway/x',
+      'gw=ubc-ai-gateway/x@restricted',
+      'gw=ubc-ai-gateway/x@High',
+    ]) {
+      expect(
+        () => loadConfig({ ...base, MANIFEST_GATEWAY_MODELS: entry }),
+        entry,
+      ).toThrow(expect.objectContaining({ code: 'CONFIG_INVALID' }))
+    }
   })
 })

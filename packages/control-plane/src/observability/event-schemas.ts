@@ -850,7 +850,7 @@ export const EVENT_DETAIL_SCHEMAS = {
       tokenId: ActingToken,
     })
     .describe(
-      'An agent session’s key lost the models its project no longer allows — its data classification was raised, or the platform now keeps a confidential project’s building agent on-premise — and kept the rest. The session goes on with the same key.',
+      'An agent session’s key lost the models its project no longer allows — its data classification was raised, or the platform no longer lets the agent that builds a project at this level use the capable model — its setting, or the capable model’s level, changed — and kept the rest. The session goes on with the same key.',
     ),
   'agent_session.ended': z
     .strictObject({
@@ -865,7 +865,7 @@ export const EVENT_DETAIL_SCHEMAS = {
           'member_removed',
         ])
         .describe(
-          'Why: `endAgentSession`, the token that started it revoked, its project switched off or deleted, `models_withdrawn` — its project no longer allows any of the models it held (its data classification was raised, or the platform now keeps a confidential project’s building agent on-premise) — or `member_removed`: the person it works for was taken off the project. A session that keeps any model it may still use is narrowed instead (`agent_session.narrowed`).',
+          'Why: `endAgentSession`, the token that started it revoked, its project switched off or deleted, `models_withdrawn` — its project no longer allows any of the models it held (its data classification was raised, or the platform no longer lets the agent that builds a project at this level use the capable model — its setting, or the capable model’s level, changed) — or `member_removed`: the person it works for was taken off the project. A session that keeps any model it may still use is narrowed instead (`agent_session.narrowed`).',
         ),
       via: Via,
       userId: ActingUser,

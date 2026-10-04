@@ -1,5 +1,10 @@
 import { randomUUID } from 'node:crypto'
-import type { Classification } from '../spec/index.js'
+import {
+  CLASSIFICATION_RANK,
+  canonicalLevel,
+  toLevel,
+  type Classification,
+} from '../spec/index.js'
 import { CatalogueError } from './catalogue.js'
 import type { LiteLlmClient } from './client.js'
 import { AiError } from './errors.js'
@@ -60,7 +65,7 @@ export interface Registration {
   classification: Classification
   /**
    * The price to pin when LiteLLM prices the model at `0` — set only where a `$0` price is the platform's to
-   * replace (a `confidential` gateway model: on-premise hardware has no per-token price). Absent, `0` is refused.
+   * replace (a `very-high` gateway model: on-premise hardware has no per-token price). Absent, `0` is refused.
    */
   unpriced?: Price
 }
@@ -212,24 +217,32 @@ const unservedReason = (r: Registration, status: number, kept: Deployment[]): st
   unavailable(r.name, kept)
 
 /**
- * What a refusal keeps: the working registrations, never one that spends `$0`, which is removed. `ours` is what the
- * registration owns NOW.
+ * What a refusal keeps: the working registrations, never one that spends `$0`, and never one above `classification`
+ * — the level the registration was asked for — each of which is removed. `ours` is what the registration owns NOW.
  */
 export async function refuseKeeping(
   client: LiteLlmClient,
   ours: Deployment[],
   model: string,
+  classification: Classification,
   reason: (kept: Deployment[]) => string,
 ): Promise<RegistrationResult> {
-  const kept = ours.filter(priced)
-  for (const d of ours.filter((x) => !priced(x))) await remove(client, idOf(d))
+  // NEVER KEPT ABOVE THE LEVEL ASKED FOR (the U1 spec action's review, I1): a lowered level whose re-registration was
+  // refused must not leave the old, higher one serving — an entry at a level it no longer has fails OPEN.
+  const ceiling = CLASSIFICATION_RANK[classification]
+  const atOrBelow = (d: Deployment) => {
+    const level = canonicalLevel(d.model_info?.max_classification)
+    return level !== undefined && CLASSIFICATION_RANK[level] <= ceiling
+  }
+  const kept = ours.filter((d) => priced(d) && atOrBelow(d))
+  for (const d of ours.filter((x) => !kept.includes(x))) await remove(client, idOf(d))
   return { state: 'refused', model, reason: reason(kept) }
 }
 
 /**
  * Makes LiteLLM hold exactly `r` under `r.name`, given `ours` — the deployments `r.owns`, as just read from
  * `/model/info` (one read per call: the caller has already made it). `unchanged` when the one owned deployment is
- * already that model at that ADDRESS, at that classification, pinned and priced; otherwise registered, pinned, and
+ * already that model at that ADDRESS, at that LEVEL (an earlier name is its level), pinned and priced; otherwise registered, pinned, and
  * the old ones removed only after. Never a `.catch(() => undefined)`: a gateway that does not answer is THROWN.
  */
 export async function ensureRegistered(
@@ -238,14 +251,16 @@ export async function ensureRegistered(
   ours: Deployment[],
 ): Promise<RegistrationResult> {
   const refuse = (reason: (kept: Deployment[]) => string) =>
-    refuseKeeping(client, ours, r.setting, reason)
+    refuseKeeping(client, ours, r.setting, r.classification, reason)
 
   const [only] = ours
   if (
     ours.length === 1 &&
     modelOf(only!) === r.params.model &&
     apiBaseOf(only!) === r.params.api_base &&
-    only!.model_info?.max_classification === r.classification &&
+    // BY LEVEL, never by name (the U1 plan's Task 4, the review's I7): a row registered at an earlier name is its
+    // level, so `internal` stored and `medium` asked is unchanged — nothing is re-created for its name.
+    canonicalLevel(only!.model_info?.max_classification) === toLevel(r.classification) &&
     pinned(only!) &&
     priced(only!)
   ) {
@@ -257,7 +272,7 @@ export async function ensureRegistered(
     const status = asSet.refusedWith
     return refuse((kept) => unservedReason(r, status, kept))
   }
-  // The price LiteLLM gave the model — or, when it gave `0`, the registration's own `unpriced` (a confidential
+  // The price LiteLLM gave the model — or, when it gave `0`, the registration's own `unpriced` (a very-high
   // gateway model: on-premise hardware has no per-token price, and `$0` would bind no budget). Otherwise refused.
   const cost = asSet.entry.model_info
   const output = cost?.output_cost_per_token

@@ -224,8 +224,13 @@ step_done 0
 
 say "1. The catalogue: the capable model and the gateway's own at the gateway; the stand-ins on the laptop"
 GATEWAY_MODELS="$(env_value MANIFEST_GATEWAY_MODELS)"
+CAPABLE_LEVEL="$(env_value MANIFEST_CAPABLE_MODEL_CLASSIFICATION)"
 node -e '
-  const [file, statePath, gatewayUrl, setting] = process.argv.slice(1)
+  const [file, statePath, gatewayUrl, setting, capableLevel] = process.argv.slice(1)
+  // LEVELS COMPARED AS LEVELS (the U1 plan, I5): an earlier name is its U1 level, so a row stored at `internal` is the
+  // `medium` asked for. The journey imports no control-plane code, so the map is its own.
+  const LEVEL = { public: "low", internal: "medium", confidential: "very-high" }
+  const canon = (v) => LEVEL[v] ?? v
   const fs = require("node:fs")
   const data = require(file).data ?? []
   const strip = (u) => (u ?? "").replace(/\/+$/, "")
@@ -244,7 +249,7 @@ node -e '
   const atGateway = (d, model, cls) => {
     const p = d.litellm_params ?? {}
     ok(`${d.model_name}: ${p.model} at the gateway (${p.api_base}), ${d.model_info?.max_classification}`,
-      strip(p.api_base) === strip(gatewayUrl) && p.model === `openai/${model}` && d.model_info?.max_classification === cls,
+      strip(p.api_base) === strip(gatewayUrl) && p.model === `openai/${model}` && canon(d.model_info?.max_classification) === canon(cls),
       JSON.stringify({ model: p.model, api_base: p.api_base, cls: d.model_info?.max_classification }))
     ok(`${d.model_name}: no api_key listed, timeout ${p.timeout} s, ${p.num_retries} retries`,
       !("api_key" in p) && p.timeout === 60 && p.num_retries === 0)
@@ -255,9 +260,10 @@ node -e '
   }
   const capable = named("default-chat-large")
   ok("default-chat-large: exactly one deployment", capable.length === 1, String(capable.length))
-  if (capable[0]) atGateway(capable[0], (capable[0].litellm_params?.model ?? "").replace(/^openai\//, ""), "internal")
+  // The level MANIFEST_CAPABLE_MODEL_CLASSIFICATION names, `medium` unset — what the control plane registered it at.
+  if (capable[0]) atGateway(capable[0], (capable[0].litellm_params?.model ?? "").replace(/^openai\//, ""), canon(capableLevel || "medium"))
   const entries = setting.split(",").map((e) => e.trim()).filter(Boolean).map((e) => {
-    const m = /^([^=]+)=ubc-ai-gateway\/([^@]+)@(\w+)$/.exec(e)
+    const m = /^([^=]+)=ubc-ai-gateway\/(.+)@([a-z-]+)$/.exec(e)
     return m ? { name: m[1], model: m[2], classification: m[3] } : { name: e, model: "", classification: "" }
   })
   ok(`MANIFEST_GATEWAY_MODELS names at least one model (${entries.map((e) => e.name).join(", ") || "none"})`, entries.length > 0)
@@ -281,7 +287,7 @@ node -e '
   fs.writeFileSync(statePath, JSON.stringify({ ...prior, gatewayUrl, prices,
     gatewayModels: entries.map(({ name, classification }) => ({ name, classification })) }, null, 2) + "\n", { mode: 0o600 })
   process.exit(failed ? 1 : 0)
-' "$WORK/model-info.json" "$STATE" "$GATEWAY_URL" "$GATEWAY_MODELS" || FAILED="$FAILED
+' "$WORK/model-info.json" "$STATE" "$GATEWAY_URL" "$GATEWAY_MODELS" "$CAPABLE_LEVEL" || FAILED="$FAILED
   the catalogue (above)"
 step_done 1
 

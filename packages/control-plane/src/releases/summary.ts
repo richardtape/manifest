@@ -84,7 +84,8 @@ const SYSTEM_PROMPT =
 /**
  * §10's catalogue name, and the reason D17's routing question does not arise: the input is
  * a `manifest.yaml` diff — configuration, not personal information — and this model carries
- * `max_classification: confidential`, so nothing here needs a claim about where it goes.
+ * `max_classification: confidential` — `very-high`, by its earlier name — so nothing here needs a claim about where
+ * it goes.
  *
  * A LOGICAL name, never a vendor model id. `ai/errors.ts`'s hint for `AI_MODEL_UNKNOWN`
  * says the same thing to an app, and the platform holds itself to it. **A NON-REASONING

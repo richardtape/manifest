@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { validateSpec, type ValidationContext } from '../spec/index.js'
 import { CAPABLE_MODEL_NAME, ensureCapableModel } from './capable.js'
-import { loadModelCatalogue } from './catalogue.js'
+import { loadModelCatalogue, type CatalogueSnapshot } from './catalogue.js'
 import {
   ensureGatewayModels,
   gatewayModelsAtBoot,
@@ -113,7 +114,7 @@ describe('UBC’s AI Gateway’s own models (the UBC AI Gateway plan’s Task 3)
 
   it('FAILS CLOSED: every manifest-gateway- deployment is REMOVED when .env no longer carries the key (Decision 4, C1)', async () => {
     const lite = fakeLiteLlm()
-    await ensureCapableModel(lite, 'openai/gpt-6-luna', GW)
+    await ensureCapableModel(lite, 'openai/gpt-6-luna', GW, 'medium')
     await ensureGatewayModels(lite, [ONPREM, MINI], GW)
     expect(gatewayDeployments(lite)).toHaveLength(2)
     const configBefore = configEntries(lite).length
@@ -155,7 +156,7 @@ describe('UBC’s AI Gateway’s own models (the UBC AI Gateway plan’s Task 3)
 
   it('removes an entry the setting no longer lists, and never touches the capable model or a config entry', async () => {
     const lite = fakeLiteLlm()
-    await ensureCapableModel(lite, 'openai/gpt-6-luna', GW)
+    await ensureCapableModel(lite, 'openai/gpt-6-luna', GW, 'medium')
     await ensureGatewayModels(lite, [ONPREM, MINI], GW)
     const configBefore = configEntries(lite).length
     const r = await ensureGatewayModels(lite, [MINI], GW)
@@ -258,6 +259,7 @@ describe('UBC’s AI Gateway’s own models at boot — never fatal, never silen
           gatewayModels: [ONPREM],
           capableModel: 'ubc-ai-gateway/gpt-6-luna',
           capableFallback: 'ubc-onprem',
+          capableClassification: 'medium',
         },
         GW,
       ),
@@ -280,11 +282,129 @@ describe('UBC’s AI Gateway’s own models at boot — never fatal, never silen
         gatewayModels: [MINI],
         capableModel: 'openai/gpt-6-luna',
         capableFallback: undefined,
+        capableClassification: 'medium',
       },
       GW,
     )
     expect(r.gatewayModels).toBe('failed')
     expect(r.capableModel).toBe('registered')
     expect(written()).toHaveLength(1)
+  })
+})
+
+/** A setting the fake prices — `capable.test.ts`'s own. */
+const SETTING = 'openai/gpt-6-luna'
+
+/** A `high` app that names `model` in its `ai.models`. */
+const highAppUsing = (model: string) =>
+  `manifest: 1\nname: chem-lab-scheduler\nblueprint: node-ts-mongo@2\nruntime:\n  port: 3000\nai:\n  models: [${model}]\n` +
+  `  budget:\n    project_monthly_usd: 10\ndata:\n  classification: high\n`
+const validationContextFor = (s: CatalogueSnapshot): ValidationContext => ({
+  projectSlug: 'chem-lab-scheduler',
+  attributeWhitelist: ['ubcEduCwlPuid'],
+  serviceCatalogue: [],
+  modelCatalogue: s.models,
+  unclassifiedModels: s.unclassified,
+  aiEnabled: true,
+  quota: { maxCpu: 2, maxMemoryMi: 2048, maxServices: 3, aiMonthlyUsd: 100 },
+  projectBlueprint: 'node-ts-mongo@2',
+})
+const errorCodes = (text: string, c: ValidationContext) => {
+  const r = validateSpec(text, c)
+  return r.valid ? [] : r.errors.map((e) => e.code)
+}
+
+describe('registration by level — never kept above the level asked for (U1 plan Task 4)', () => {
+  it('a level LOWERED while its re-registration is refused leaves the catalogue — never kept higher (I1; Review Focus 3)', async () => {
+    const lite = fakeLiteLlm()
+    lite.price('openai/gpt-x', 1e-6)
+    await ensureGatewayModels(
+      lite,
+      [{ name: 'gw-zdr', setting: 'ubc-ai-gateway/gpt-x', classification: 'high' }],
+      GW,
+    )
+    expect(
+      (await loadModelCatalogue(lite)).models.find((m) => m.name === 'gw-zdr')
+        ?.maxClassification,
+    ).toBe('high')
+    lite.price('openai/gpt-x', 0) // LiteLLM restarted offline: it prices gpt-* at 0 (registration.ts's `pinned`)
+    const r = await ensureGatewayModels(
+      lite,
+      [{ name: 'gw-zdr', setting: 'ubc-ai-gateway/gpt-x', classification: 'medium' }],
+      GW,
+    )
+    expect(r.models).toEqual([
+      expect.objectContaining({ name: 'gw-zdr', state: 'refused' }),
+    ])
+    const after = await loadModelCatalogue(lite)
+    expect(after.models.map((m) => m.name)).not.toContain('gw-zdr')
+    // A high app is refused it — unknown now, which fails closed (Decision 6).
+    expect(errorCodes(highAppUsing('gw-zdr'), validationContextFor(after))).toEqual([
+      'SPEC_MODEL_UNKNOWN',
+    ])
+  })
+
+  it('a refusal KEEPS a working registration at or below the level asked for — the positive control', async () => {
+    const lite = fakeLiteLlm()
+    lite.price('openai/gpt-y', 1e-6)
+    await ensureGatewayModels(
+      lite,
+      [{ name: 'gw-y', setting: 'ubc-ai-gateway/gpt-y', classification: 'medium' }],
+      GW,
+    )
+    lite.price('openai/gpt-y', 0)
+    const r = await ensureGatewayModels(
+      lite,
+      [{ name: 'gw-y', setting: 'ubc-ai-gateway/gpt-y', classification: 'high' }],
+      GW,
+    )
+    expect(r.models[0]?.state).toBe('refused')
+    expect(
+      (await loadModelCatalogue(lite)).models.find((m) => m.name === 'gw-y')
+        ?.maxClassification,
+    ).toBe('medium')
+  })
+
+  it('a new high session is never given the removed entry; a live one is not narrowed for it — LiteLLM no longer serves it (M6)', async () => {
+    const lite = fakeLiteLlm()
+    lite.price('openai/gpt-x', 1e-6)
+    await ensureGatewayModels(
+      lite,
+      [{ name: 'gw-zdr', setting: 'ubc-ai-gateway/gpt-x', classification: 'high' }],
+      GW,
+    )
+    expect(agentModelsFor(await loadModelCatalogue(lite), 'high', 'capable')).toContain(
+      'gw-zdr',
+    )
+    lite.price('openai/gpt-x', 0)
+    await ensureGatewayModels(
+      lite,
+      [{ name: 'gw-zdr', setting: 'ubc-ai-gateway/gpt-x', classification: 'medium' }],
+      GW,
+    )
+    const after = await loadModelCatalogue(lite)
+    expect(agentModelsFor(after, 'high', 'capable')).not.toContain('gw-zdr')
+    // The agent sweep's rule: only a name the catalogue still SERVES is withdrawn from a live key.
+    expect([...after.models.map((m) => m.name), ...after.unclassified]).not.toContain(
+      'gw-zdr',
+    )
+  })
+
+  it('platformModelsAtBoot registers the capable model at MANIFEST_CAPABLE_MODEL_CLASSIFICATION’s level — the boot’s thread (I3)', async () => {
+    const lite = fakeLiteLlm()
+    await platformModelsAtBoot(
+      lite,
+      {
+        gatewayModels: [],
+        capableModel: SETTING,
+        capableFallback: 'default-chat-onprem',
+        capableClassification: 'high',
+      },
+      GW,
+    )
+    const listed = (await loadModelCatalogue(lite)).models.find(
+      (m) => m.name === CAPABLE_MODEL_NAME,
+    )
+    expect(listed?.maxClassification).toBe('high')
   })
 })

@@ -3,7 +3,13 @@ import { isAbsolute, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { z } from 'zod'
 import { resolveSocketPath } from './runtime/index.js'
-import type { Classification } from './spec/index.js'
+import {
+  CLASSIFICATIONS,
+  DEFAULT_LEVEL,
+  toLevel,
+  type Classification,
+  type Level,
+} from './spec/index.js'
 
 /**
  * The repository root, derived from THIS FILE rather than from `process.cwd()`.
@@ -39,22 +45,24 @@ export class ConfigError extends Error {
 
 /**
  * ONE ENTRY OF `MANIFEST_GATEWAY_MODELS` (the UBC AI Gateway plan's Task 3; Rich's Q1, 2026-10-03):
- * `<name>=ubc-ai-gateway/<model>@<classification>`. The name is the catalogue's; the setting is a GATEWAY setting
- * and nothing else; the classification is the setting's own and never defaulted (§7: an unclassified entry is never
- * resolvable). The setting group is greedy, so it backtracks to the LAST `@` and a model id may hold one (M5).
+ * `<name>=ubc-ai-gateway/<model>@<level>`. The name is the catalogue's; the setting is a GATEWAY setting
+ * and nothing else; the level is the setting's own and never defaulted (§7: an unclassified entry is never
+ * resolvable) — one of UBC's U1 levels or an earlier name (the U1 plan's Task 4), held as its LEVEL. The setting
+ * group is greedy, so it backtracks to the LAST `@` and a model id may hold one (M5).
  */
 const GATEWAY_MODEL_ENTRY =
-  /^([a-z0-9][a-z0-9-]{0,62})=(ubc-ai-gateway\/[^\s,]+)@(public|internal|confidential)$/
+  /^([a-z0-9][a-z0-9-]{0,62})=(ubc-ai-gateway\/[^\s,]+)@(low|medium|high|very-high|public|internal|confidential)$/
 
 /** `ai/capable.ts`'s name: the capable model is its own setting's, never an entry of this one. */
 const CAPABLE_NAME = 'default-chat-large'
 
 function parseGatewayModels(
   value: string,
-): { name: string; setting: string; classification: Classification }[] {
+): { name: string; setting: string; classification: Level }[] {
   const form =
-    '<name>=ubc-ai-gateway/<model>@<public|internal|confidential>, comma-separated'
-  const entries: { name: string; setting: string; classification: Classification }[] = []
+    "<name>=ubc-ai-gateway/<model>@<level>, comma-separated — a level is low, medium, high or very-high (UBC's U1), " +
+    'or an earlier name'
+  const entries: { name: string; setting: string; classification: Level }[] = []
   for (const entry of value
     .split(',')
     .map((e) => e.trim())
@@ -86,7 +94,7 @@ function parseGatewayModels(
         `invalid configuration — MANIFEST_GATEWAY_MODELS names '${name}' twice; each name is one entry`,
       )
     }
-    entries.push({ name, setting, classification })
+    entries.push({ name, setting, classification: toLevel(classification) })
   }
   return entries
 }
@@ -352,7 +360,8 @@ const envSchema = z.object({
   /**
    * THE CAPABLE MODEL'S PROVIDER AND MODEL (§26's platform settings, as Spec action 7 amended it; the
    * front-end enablement plan's Task 12a): a LiteLLM model string — `openai/<model>` today — that the
-   * boot registers as `default-chat-large` at `internal`, and removes when this is unset. **Unset by
+   * boot registers as `default-chat-large` at MANIFEST_CAPABLE_MODEL_CLASSIFICATION's level (below), and removes
+   * when this is unset. **Unset by
    * default**, because the provider's key is Rich's and a laptop without one registers nothing. EMPTY
    * IS UNSET, as for the master key above: a commented `.env` line reaches the export block as ''.
    */
@@ -373,6 +382,18 @@ const envSchema = z.object({
    */
   MANIFEST_CAPABLE_MODEL_FALLBACK: z.string().default('default-chat-onprem'),
   /**
+   * THE CAPABLE MODEL'S U1 LEVEL (§7, §26 as the U1 spec action amended them; S3 — Rich, 2026-10-03, 22:21): the most
+   * sensitive data `default-chat-large` may receive, which is the administrator's attestation of EVERYTHING that may
+   * answer it — the vendor behind the gateway and any gateway fallback included. `medium` by default (`internal`, its
+   * old hard-coded level); Rich sets `high` for `gpt-6-luna` through UBC's gateway, with zero data retention. No cap: a
+   * capable model on UBC's own hardware may be `very-high`. EMPTY IS UNSET. Anything but the seven names is refused,
+   * never defaulted.
+   */
+  MANIFEST_CAPABLE_MODEL_CLASSIFICATION: z.preprocess(
+    (value) => (value === '' ? undefined : value),
+    z.enum(CLASSIFICATIONS).default(DEFAULT_LEVEL),
+  ),
+  /**
    * UBC'S AI GATEWAY'S ADDRESS (§7, §21, §26 as the UBC AI Gateway plan's Spec action 1 amended them; its
    * Decision 5): where LiteLLM reaches a `ubc-ai-gateway/<model>` setting, `/v1` included. Not a secret — every
    * gateway registration sends it. EMPTY IS UNSET, so the default. Plain `http` is refused off loopback below.
@@ -389,8 +410,8 @@ const envSchema = z.object({
   UBC_AI_GATEWAY_API_KEY: z.string().optional(),
   /**
    * UBC'S AI GATEWAY'S OWN MODELS IN THE CATALOGUE (the UBC AI Gateway plan's Task 3; Rich's Q1, 2026-10-03):
-   * `<name>=ubc-ai-gateway/<model>@<classification>,…`, each registered at boot under its own name and classification
-   * and removed when the setting no longer lists it. EMPTY OR UNSET IS NONE. Parsed by `parseGatewayModels`, above.
+   * `<name>=ubc-ai-gateway/<model>@<level>,…`, each registered at boot under its own name and U1 level (an earlier
+   * name is its level) and removed when the setting no longer lists it. EMPTY OR UNSET IS NONE. Parsed by `parseGatewayModels`, above.
    */
   MANIFEST_GATEWAY_MODELS: z.string().default(''),
   /**
@@ -401,14 +422,14 @@ const envSchema = z.object({
   MANIFEST_AGENT_MONTHLY_USD: z.coerce.number().positive().default(10),
   MANIFEST_AGENT_SESSION_CAP_USD: z.coerce.number().positive().default(2),
   /**
-   * THE AGENT THAT BUILDS A `confidential` APP (§7, §10 and §26 as Spec action 10 amended them; the
-   * front-end enablement plan's Task 14a — Rich, 2026-09-28: *"make this a setting … We can use the
-   * default large models for sensitive apps now, but if we need to change it to the on prem models,
-   * then we can adjust"*). `capable` — the default — lets a `confidential` project's agent sessions call
-   * the capable model as well as the on-premise models, and refuses delegated tokens that project's
-   * staging and production Incident log tails; `on-premise` gives those sessions the on-premise models
-   * alone, and the next boot ENDS every session holding more. **Nothing else is accepted — an empty line
-   * included**: a mistyped value must not quietly become the more permissive one.
+   * THE AGENT THAT BUILDS AN APP WHOSE LEVEL IS ABOVE THE CAPABLE MODEL'S (§7, §10 and §26 as Spec action 10 and
+   * the U1 spec action amended them; the front-end enablement plan's Task 14a — Rich, 2026-09-28: *"make this a
+   * setting … We can use the default large models for sensitive apps now, but if we need to change it to the on
+   * prem models, then we can adjust"*; S4, 2026-10-03). `capable` — the default — lets such a project's agent
+   * sessions call the capable model as well as the models its level allows; `on-premise` gives those sessions what
+   * D17 allows alone, and the next boot NARROWS every session holding more (ending one left with nothing). At or
+   * below the capable model's level D17 already allows it, so the setting changes nothing there. **Nothing else is
+   * accepted — an empty line included**: a mistyped value must not quietly become the more permissive one.
    */
   MANIFEST_AGENT_BUILDER_MODELS: z.enum(['capable', 'on-premise']).default('capable'),
   /**
@@ -582,12 +603,14 @@ export interface Config {
     capableModel?: string
     /** `MANIFEST_CAPABLE_MODEL_FALLBACK`: the catalogue entry that answers for it; absent, none does. */
     capableFallback?: string
-    /** `MANIFEST_GATEWAY_MODELS`: the gateway's own models, each under its own name and classification. */
-    gatewayModels: { name: string; setting: string; classification: Classification }[]
+    /** `MANIFEST_CAPABLE_MODEL_CLASSIFICATION`: the level `default-chat-large` is registered at — `medium` unset. */
+    capableClassification: Level
+    /** `MANIFEST_GATEWAY_MODELS`: the gateway's own models, each under its own name and LEVEL. */
+    gatewayModels: { name: string; setting: string; classification: Level }[]
   }
   /**
    * An agent session's bounds (Decision 22): a person's month, one session's cap, where its key is
-   * used — and which models a `confidential` project's building agent may call (Spec action 10).
+   * used — and whether the agent building a project above the capable model's level may call it (Spec action 10, S4).
    */
   agent: {
     monthlyUsd: number
@@ -895,6 +918,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
       ...(raw.MANIFEST_CAPABLE_MODEL_FALLBACK === ''
         ? {}
         : { capableFallback: raw.MANIFEST_CAPABLE_MODEL_FALLBACK }),
+      capableClassification: toLevel(raw.MANIFEST_CAPABLE_MODEL_CLASSIFICATION),
       gatewayModels: parseGatewayModels(raw.MANIFEST_GATEWAY_MODELS),
     },
     agent: {

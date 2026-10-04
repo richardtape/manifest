@@ -637,7 +637,7 @@ An agent was given a model key for this project, charged to the person who start
 
 ## `agent_session.narrowed`
 
-An agent session’s key lost the models its project no longer allows — its data classification was raised, or the platform now keeps a confidential project’s building agent on-premise — and kept the rest. The session goes on with the same key.
+An agent session’s key lost the models its project no longer allows — its data classification was raised, or the platform no longer lets the agent that builds a project at this level use the capable model — its setting, or the capable model’s level, changed — and kept the rest. The session goes on with the same key.
 
 ```json
 {

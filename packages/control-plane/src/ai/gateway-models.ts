@@ -18,11 +18,11 @@ import {
 /**
  * UBC'S AI GATEWAY'S OWN MODELS IN THE CATALOGUE (§7, §21, §26 as the UBC AI Gateway plan's Spec action 1 amended
  * them; that plan's Task 3 — Rich's Q1, 2026-10-03: *"New names from one setting"*). `MANIFEST_GATEWAY_MODELS` names
- * each as `<name>=ubc-ai-gateway/<model>@<classification>`, and every boot makes LiteLLM hold exactly those: each
- * registered through `ensureRegistered` under its own name and classification, at the gateway's address with its key
+ * each as `<name>=ubc-ai-gateway/<model>@<level>`, and every boot makes LiteLLM hold exactly those: each
+ * registered through `ensureRegistered` under its own name and U1 level, at the gateway's address with its key
  * by reference (`ai/providers.ts`), and every one the setting no longer lists removed. **D17 then hands each to
- * whoever its classification allows**, with no code here (`ai/models.ts`): a `confidential` entry reaches a
- * `confidential` project's agent. **`default-chat-onprem` stays Ollama** — the capable model's fallback and the
+ * whoever its level allows**, with no code here (`ai/models.ts`): a `very-high` entry (`confidential`, its alias)
+ * reaches a `very-high` project's agent. **`default-chat-onprem` stays Ollama** — the capable model's fallback and the
  * offline floor — so a name the catalogue already holds is refused. **An entry has NO fallback**: with the network
  * off, a call to it fails.
  */
@@ -33,7 +33,7 @@ export const GATEWAY_MODELS_SETTING = 'MANIFEST_GATEWAY_MODELS'
 /** What every id this module chooses begins with, so its cleanup never touches the capable model or a config entry. */
 export const ID_PREFIX = 'manifest-gateway-'
 
-/** The on-premise stand-in whose price a `confidential` gateway model LiteLLM cannot price is pinned at. */
+/** The on-premise stand-in whose price a `very-high` gateway model LiteLLM cannot price is pinned at. */
 const STAND_IN = 'default-chat-onprem'
 
 /** One `MANIFEST_GATEWAY_MODELS` entry, as `loadConfig` parses it. */
@@ -78,7 +78,7 @@ export function standInPrice(listed: Deployment[]): Price | undefined {
  * per entry: a name a deployment it does not own already holds is refused (and any of its own under that name
  * removed, so the router never shares the name); a setting `resolveSetting` refuses is refused — and on `failClosed`
  * (no key in `.env`) that entry's deployments are REMOVED rather than kept (Decision 4); otherwise it is registered,
- * pinned, and a `confidential` one LiteLLM cannot price pinned at the stand-in's price (Decision 6). One `/model/info`
+ * pinned, and a `very-high` one LiteLLM cannot price pinned at the stand-in's price (Decision 6). One `/model/info`
  * read a call when nothing changes. A gateway that does not answer is THROWN.
  */
 export async function ensureGatewayModels(
@@ -124,6 +124,7 @@ export async function ensureGatewayModels(
             client,
             kept,
             e.setting,
+            e.classification,
             (k) => resolved.refused + unavailable(e.name, k),
           ),
         ),
@@ -205,6 +206,8 @@ export async function platformModelsAtBoot(
     gatewayModels: GatewayModel[]
     capableModel: string | undefined
     capableFallback: string | undefined
+    /** MANIFEST_CAPABLE_MODEL_CLASSIFICATION's level (S3) — the capable model's registration and its fallback's floor. */
+    capableClassification: Classification
   },
   gateway: Gateway,
 ): Promise<PlatformModelsAtBoot> {
@@ -214,6 +217,7 @@ export async function platformModelsAtBoot(
     settings.capableModel,
     settings.capableFallback,
     gateway,
+    settings.capableClassification,
   )
   return { gatewayModels, ...capable }
 }

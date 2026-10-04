@@ -263,3 +263,46 @@ describe('the floors answer a stored name as its LEVEL (U1 plan Task 2)', () => 
     })
   })
 })
+
+describe('the builder exception by S4 — the capable model at EVERY level above its own (U1 plan Task 4)', () => {
+  const at = (capable: Classification): CatalogueSnapshot => ({
+    models: [
+      { name: 'default-chat', maxClassification: 'medium', kind: 'chat' },
+      { name: 'default-chat-onprem', maxClassification: 'very-high', kind: 'chat' },
+      { name: CAPABLE_MODEL_NAME, maxClassification: capable, kind: 'chat' },
+    ],
+    unclassified: [],
+  })
+
+  it('with the capable model at medium, a high project’s agent gets it while the setting is capable — and not on-premise', () => {
+    expect(agentModelsFor(at('medium'), 'high', 'capable')).toEqual([
+      'default-chat-onprem',
+      CAPABLE_MODEL_NAME,
+    ])
+    expect(agentModelsFor(at('medium'), 'high', 'on-premise')).toEqual([
+      'default-chat-onprem',
+    ])
+  })
+
+  it('with the capable model at high, a high project gets it either way — D17 allows it — and very-high only by the setting', () => {
+    expect(agentModelsFor(at('high'), 'high', 'on-premise')).toEqual([
+      'default-chat-onprem',
+      CAPABLE_MODEL_NAME,
+    ])
+    expect(agentModelsFor(at('high'), 'very-high', 'on-premise')).toEqual([
+      'default-chat-onprem',
+    ])
+    expect(agentModelsFor(at('high'), 'very-high', 'capable')).toEqual([
+      'default-chat-onprem',
+      CAPABLE_MODEL_NAME,
+    ])
+  })
+
+  it('never adds default-chat above medium — the exception is one model wide', () => {
+    for (const floor of ['high', 'very-high'] as const) {
+      expect(agentModelsFor(at('medium'), floor, 'capable'), floor).not.toContain(
+        'default-chat',
+      )
+    }
+  })
+})

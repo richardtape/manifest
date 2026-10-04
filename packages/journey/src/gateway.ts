@@ -42,6 +42,13 @@ import { Checks, JourneyStop } from './check.js'
 const PHASES = ['prepare', 'internal', 'confidential', 'ended'] as const
 type Phase = (typeof PHASES)[number]
 
+/** UBC's U1 level each earlier name means — never wider (`confidential` is `very-high`). */
+const LEVEL: Record<string, string> = {
+  public: 'low',
+  internal: 'medium',
+  confidential: 'very-high',
+}
+
 /** `make demo-launch`'s app's manifest — its classification is the only thing this demo changes. */
 const FIXTURE = new URL(
   '../../../fixtures/launch-path-app/manifest.yaml',
@@ -524,8 +531,10 @@ async function confidentialPhase(): Promise<void> {
     'the confidential project, from prepare',
     state.confidentialProjectId,
   )
+  // A level compared as a level (the U1 plan, I5): `confidential` is `very-high` by its earlier name. The journey
+  // imports no control-plane code, so the map is its own.
   const confidential = (state.gatewayModels ?? []).filter(
-    (m) => m.classification === 'confidential',
+    (m) => (LEVEL[m.classification] ?? m.classification) === 'very-high',
   )
   const target = checks.must(
     'a confidential gateway model in the catalogue (MANIFEST_GATEWAY_MODELS)',

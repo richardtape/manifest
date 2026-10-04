@@ -1297,8 +1297,9 @@ describe('FE-36 — a session never holds more than its project now allows (Spec
       expect(narrowed?.machineDetail).toMatchObject({ withdrawn: ['default-chat-large'] })
       expect(narrowed?.humanMessage).toBe(
         `${held.session.person.name}'s agent session 'Build the bulletin board' can no longer use ` +
-          'default-chat-large, because the platform now keeps a confidential project’s building agent ' +
-          'on-premise; it keeps default-chat-onprem and default-chat-onprem-reasoning.',
+          'default-chat-large, because the platform no longer lets the agent that builds a project at this ' +
+          'level use the capable model — its setting, or the capable model’s level, changed; it keeps ' +
+          'default-chat-onprem and default-chat-onprem-reasoning.',
       )
     })
   })

@@ -495,6 +495,7 @@ const capable =
           gatewayModels: config.litellm.gatewayModels,
           capableModel: config.litellm.capableModel,
           capableFallback: config.litellm.capableFallback,
+          capableClassification: config.litellm.capableClassification,
         },
         gateway,
       )
@@ -560,14 +561,16 @@ console.log(
     // Task 12a: what the boot did to `default-chat-large` — registered, unchanged, removed, absent,
     // refused or failed (each of the last two with its own operator line), or disabled with AI off.
     capableModel: capable.capableModel,
+    // The U1 plan's Task 4: the level it is registered at — MANIFEST_CAPABLE_MODEL_CLASSIFICATION's, medium unset.
+    capableClassification: config.litellm.capableClassification,
     // Task 12b: what it did to that name's fallback — set, unchanged, removed, absent, refused or failed
     // (refused with its own line; failed with one, or under the capable model's when that step failed).
     capableFallback: capable.capableFallback,
     // The UBC AI Gateway plan's Task 3: each MANIFEST_GATEWAY_MODELS entry's state — registered, unchanged or
     // refused (each refusal with its own operator line) — or failed (one line), or disabled with AI off.
     gatewayModels: capable.gatewayModels,
-    // Task 14a (FE-36): which models a confidential project's building agent may call, and how many active
-    // agent sessions this boot ended because their project no longer allows what they held.
+    // Task 14a (FE-36), S4: whether the agent building a project above the capable model's level may call it, and
+    // how many active agent sessions this boot ended because their project no longer allows what they held.
     agentBuilderModels: config.agent.builderModels,
     agentSessionsWithdrawn,
     // What the recovery above did, on the one line an operator reads — and the one

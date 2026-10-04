@@ -1352,7 +1352,7 @@ export interface components {
             state: "active" | "ended" | "expired";
             /** @description When it was ended; null while it has not been. */
             endedAt: string | null;
-            /** @description Why it ended: `endAgentSession`, the token that started it revoked, its project switched off or deleted, `models_withdrawn` — its project no longer allows any of the models it held (its data classification was raised, or the platform now keeps a confidential project’s building agent on-premise); a session that keeps any model it may still use is narrowed instead, and goes on — or `member_removed`: the person it works for was taken off the project. Null while it has not been ended; a session that ran out of time or money is never ended by that. */
+            /** @description Why it ended: `endAgentSession`, the token that started it revoked, its project switched off or deleted, `models_withdrawn` — its project no longer allows any of the models it held (its data classification was raised, or the platform no longer lets the agent that builds a project at this level use the capable model — its setting, or the capable model’s level, changed); a session that keeps any model it may still use is narrowed instead, and goes on — or `member_removed`: the person it works for was taken off the project. Null while it has not been ended; a session that ran out of time or money is never ended by that. */
             endReason: ("ended" | "token_revoked" | "project_archived" | "project_deleted" | "models_withdrawn" | "member_removed") | null;
             /** @description What this session’s key has spent, in US dollars — for an ended session, what the gateway had recorded when it ended (a call in its last seconds may not be counted). Null, never 0, when it is not known: `spentUnavailable` says why. */
             spentUsd: number | null;
@@ -4433,7 +4433,7 @@ export interface components {
             type: "agent_session.narrowed";
             /** @description What happened, in words for a person. Never parse it. */
             humanMessage: string;
-            /** @description An agent session’s key lost the models its project no longer allows — its data classification was raised, or the platform now keeps a confidential project’s building agent on-premise — and kept the rest. The session goes on with the same key. */
+            /** @description An agent session’s key lost the models its project no longer allows — its data classification was raised, or the platform no longer lets the agent that builds a project at this level use the capable model — its setting, or the capable model’s level, changed — and kept the rest. The session goes on with the same key. */
             machineDetail: {
                 /**
                  * Format: uuid
@@ -4497,7 +4497,7 @@ export interface components {
                  */
                 sessionId: string;
                 /**
-                 * @description Why: `endAgentSession`, the token that started it revoked, its project switched off or deleted, `models_withdrawn` — its project no longer allows any of the models it held (its data classification was raised, or the platform now keeps a confidential project’s building agent on-premise) — or `member_removed`: the person it works for was taken off the project. A session that keeps any model it may still use is narrowed instead (`agent_session.narrowed`).
+                 * @description Why: `endAgentSession`, the token that started it revoked, its project switched off or deleted, `models_withdrawn` — its project no longer allows any of the models it held (its data classification was raised, or the platform no longer lets the agent that builds a project at this level use the capable model — its setting, or the capable model’s level, changed) — or `member_removed`: the person it works for was taken off the project. A session that keeps any model it may still use is narrowed instead (`agent_session.narrowed`).
                  * @enum {string}
                  */
                 reason: "ended" | "token_revoked" | "project_archived" | "project_deleted" | "models_withdrawn" | "member_removed";
