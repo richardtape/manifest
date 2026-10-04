@@ -16,7 +16,7 @@ LITELLM_DIGEST := $(shell awk '$$1 ~ /berriai\/litellm/ {print $$2}' infra/image
 LITELLM_DIGEST := $(or $(LITELLM_DIGEST),sha256:0000000000000000000000000000000000000000000000000000000000000000)
 COMPOSE := LITELLM_DIGEST=$(LITELLM_DIGEST) docker compose -f infra/compose.yaml -p manifest --env-file .env
 
-.PHONY: help seed refresh-vulndb up down reset github-up github-down github-conformance doctor verify demo demo-identity demo-ai demo-redeploy demo-journey demo-token demo-production demo-releases demo-github demo-authoring demo-frontend demo-launch demo-faculty-ready demo-console ci-acceptance host-setup host-undo
+.PHONY: help seed refresh-vulndb up down reset github-up github-down github-conformance doctor verify demo demo-identity demo-ai demo-redeploy demo-journey demo-token demo-production demo-releases demo-github demo-authoring demo-frontend demo-launch demo-faculty-ready demo-gateway demo-console ci-acceptance host-setup host-undo
 
 # Every compose target needs .env to exist — `--env-file` on a missing file is a
 # hard error, not a warning. `make seed` also writes it; this makes `make up` on
@@ -188,6 +188,13 @@ demo-launch: up  ## The launch path plan's acceptance: a faculty member launches
 # driver: step 0 picks facultyready-local or facultyready-github (RUNBOOK, `make demo-faculty-ready`).
 demo-faculty-ready: up  ## The faculty-ready plan's acceptance: what stood before a faculty member's first day — either driver.
 	@bash scripts/demo-faculty-ready.sh
+
+# The UBC AI Gateway plan's acceptance (its Task 6): the capable model and the gateway's own models answered BY UBC's
+# AI Gateway through an agent's key, each call charged exactly; the gateway's own spend rising by what Manifest charged;
+# the key in no log and no database row. NEEDS THE NETWORK AND THE KEY (.env's UBC_AI_GATEWAY_API_KEY) — in no offline
+# or CI step. Driver 1 or the GitHub fake, never real GitHub (RUNBOOK, `make demo-gateway`).
+demo-gateway: up  ## The UBC AI Gateway plan's acceptance: models answered by UBC's AI Gateway, charged exactly — the network on.
+	@bash scripts/demo-gateway.sh
 
 demo-console: up  ## P5c: serve the reference console and print the checklist a person clicks.
 	@bash scripts/demo-console.sh
