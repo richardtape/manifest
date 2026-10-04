@@ -883,14 +883,16 @@ async function step7Question(): Promise<void> {
       expired.length === 1,
       `${expired.length}`,
     )
+    const ended = expired[0]
     checks.ok(
       'cause token_revoked, by the instructor — and its sentence names them',
-      detailOf(expired[0]!, 'cause') === 'token_revoked' &&
-        detailOf(expired[0]!, 'by') === state.meId &&
-        expired[0]!.humanMessage.includes('Test Instructor'),
-      expired[0] === undefined
+      ended !== undefined &&
+        detailOf(ended, 'cause') === 'token_revoked' &&
+        detailOf(ended, 'by') === state.meId &&
+        ended.humanMessage.includes('Test Instructor'),
+      ended === undefined
         ? '(none)'
-        : `${String(detailOf(expired[0], 'cause'))} ${String(detailOf(expired[0], 'by'))} — ${expired[0].humanMessage}`,
+        : `${String(detailOf(ended, 'cause'))} ${String(detailOf(ended, 'by'))} — ${ended.humanMessage}`,
     )
 
     // ─ a removal, recorded once (Task 16b) ─
