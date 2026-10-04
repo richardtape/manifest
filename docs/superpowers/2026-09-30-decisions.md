@@ -840,3 +840,7 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
       - Its budget: 0.01 USD (Rich's words). GET /key/info on the probe key answers 403, so it cannot read its own budget.
       - In his words, a fact for [M9]: "that model won't actually cost UBC anything as it's hosted on prem, it's fine."
         qwen3.6-35b-a3b runs on UBC's own hardware.
+      - The regenerated probe key expires in 1 day (Rich, 20:2x: "the key's expiry is 1d"; confirmed through the question tool
+        to be the PROBE key, not UBC_AI_GATEWAY_API_KEY, which keeps its 90-day expiry of 16:23, about 2027-01-01). He has
+        DELETED the first probe key (the all-models one) at the gateway. The regenerated one is deleted by him after Task 1's
+        Step 10.
