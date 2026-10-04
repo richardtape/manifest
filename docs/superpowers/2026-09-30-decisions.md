@@ -881,3 +881,12 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
         /v1/responses, its plan must force store:false or refuse GET /v1/responses/{id} and …/input_items, with a test that one
         key cannot read another's answer. It goes in the gateway plan's findings, ORIENTATION §8, TRAPS and the roadmap's
         Phase 3 line. No code tonight. Rejected: a note in the findings only.
+
+    And at 20:5x PDT, Rich ran operator's admin grant himself, in his terminal: the command manifest-be's classifier had
+    refused ([Permission Grant], pre-authorised 13:45 for F5b sitting 1). Its output: "NOTICE: PUID opr000001 is now admin /
+    Done. A session issued before this still carries the old role — sign in again."
+    And the real gateway key's facts, read by him from the gateway's admin UI (the key's own /key/info answers 403): "The
+    platform key has $30 budget. Expires Jan 1, 2027 at 3:23 PM. No rpm/tpm limits. All models. No fallbacks set up." So the
+    budget is 30 USD, NOT the 20 recorded at 16:23. The gateway's own x-litellm-key-max-budget header reads 30.0 (manifest-ec,
+    [M2]); CLAUDE.md's Outstanding is to be corrected at the day's sweep. UBC_AI_GATEWAY_KEY_EXPIRES=2027-01-01, appended by
+    manifest-ec under his 19:58 yes. No gateway-side fallback exists, which settles [M9]'s second fact.
