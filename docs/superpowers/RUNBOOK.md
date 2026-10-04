@@ -180,7 +180,9 @@ at UBC — and the boot sets it as `default-chat-large`'s fallback.
 
 1. **In `.env`, set the two lines `.env.example`'s section 2f documents**: `OPENAI_API_KEY=` (the provider's key — real money; it
    is yours, and no agent types, reads or prints it) and `MANIFEST_CAPABLE_MODEL=openai/gpt-6-luna` (a LiteLLM model string;
-   Rich's choice on 2026-09-28 — a more capable model, `openai/gpt-6-sol`, is a one-line REPOINT, never a fallback). Both are
+   Rich's choice on 2026-09-28 — a more capable model, `openai/gpt-6-sol`, is a one-line REPOINT, never a fallback). **Since 2026-10-03
+   (Rich, 22:08) this laptop's line is `MANIFEST_CAPABLE_MODEL=ubc-ai-gateway/gpt-6-luna`** — the same model through UBC's AI Gateway, with
+   `MANIFEST_GATEWAY_MODELS=ubc-qwen-27b=ubc-ai-gateway/qwen3.8-27b@confidential` beside it (*Through UBC's AI Gateway*, below). Both are
    commented in `.env.example`, because `make doctor` reads every uncommented line there as a key every `.env` must have.
 2. **`make up`, with the network ON** — LiteLLM reads its environment only when it is CREATED (`docker restart` keeps the old
    one), and `infra/compose.yaml` hands it `OPENAI_API_KEY` and hands the key to nothing else. Check with

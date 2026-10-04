@@ -108,9 +108,9 @@ because responses are stored by default and every Manifest key reaches the gatew
 | Sitting | Tasks | What it delivers | `pnpm test:docker` owed? | Spec action needed first | Status |
 |---|---|---|---|---|---|
 | 1 | 0, 1 | **The key scrubbed, then uncommented** (Task 0: one name in `secrets/scrub.ts` and its test, the four gates, a commit, THEN the `.env` line). **The measurements** (the network on, Rich's key and his tiny-budget probe key): the gateway's models, the key's ceiling and expiry; chat, streamed and not, through both hops; `/v1/responses` through both hops, with a tool, its spend and its stored responses; the error shapes the guard meets, streamed too; the price Manifest's LiteLLM records against the gateway's own charge; where the key goes in four cases on both providers; each model's classification, in Rich's words | **Not the tier — ONE file**: Task 0's scrub name is executed by one Docker case only, `boot.docker.test.ts` (its `:135` asserts `secretsScrubbed >= 3`; grepped 2026-10-03), so that file runs alone, as the lean budget rules for a change one Docker file executes. The four gates, `pnpm test` twice, are owed by Task 0 | — | ✅ **DONE 2026-10-03** (19:59–21:17 PDT, `manifest-ec`): Task 0 `90bca1e`, Task 1 `ec8a755` — *What executing this plan found*, *Sitting 1* |
-| 2 | 2, 3 — **stop point** — 4 (**Task 5 DROPPED**) | **The capable model through the gateway**, the key by reference only, failing closed. **The gateway's own models**, from one setting. **Task 4: no guard code** (Rich, 21:17: Branch C (i)) — its witness Docker cases only. *Contract stays `1.6.0`.* | Yes — `ai/`, `infra/` | **1** (§7, §21, §26) — **APPLIED 20:03**; **2** — **NOT NEEDED** (`[M4]`.8) | ← **next** |
-| 2b | 4 — **only if sitting 2 runs out of room at its stop point** | As sitting 2's last task | Yes — `ai/` | — | |
-| 3 | 6 | **The acceptance**: `make demo-gateway` three times, its controls seen red, every other demo still green, the plan's one whole-branch review, and Rich watching the gateway's spend move — compared by the answers' `x-litellm-key-spend` header (the key's own `/key/info` answers `403`, `[M1]`), not by eye | Yes, if any code changes | — | |
+| 2 | 2, 3 — **stop point** — 4 (**Task 5 DROPPED**) | **The capable model through the gateway**, the key by reference only, failing closed. **The gateway's own models**, from one setting. **Task 4: no guard code** (Rich, 21:17: Branch C (i)) — its witness Docker cases only. *Contract stays `1.6.0`.* | Yes — `ai/`, `infra/` | **1** (§7, §21, §26) — **APPLIED 20:03**; **2** — **NOT NEEDED** (`[M4]`.8) | ✅ **DONE 2026-10-03** (21:27–23:10 PDT, `manifest-61`): Task 2 `3c05c7f` (+ `75ed30b`), Task 3 `475dfcb` + `13f351c`, Task 4 `a1fad27` + `f439fc6` (F5) — *What executing this plan found*, *Sitting 2*; the tier owed and run |
+| 2b | 4 — **only if sitting 2 runs out of room at its stop point** | As sitting 2's last task | Yes — `ai/` | — | **NOT NEEDED** — sitting 2 took Task 4 |
+| 3 | 6 | **The acceptance**: `make demo-gateway` three times, its controls seen red, every other demo still green, the plan's one whole-branch review, and Rich watching the gateway's spend move — compared by a DIRECT call's `x-litellm-key-spend` (the key's own `/key/info` answers `403`, `[M1]`; and since sitting 2's F5 strip, Manifest's answers no longer carry the gateway's `llm_provider-x-litellm-key-spend`), not by eye | Yes, if any code changes | — | ← **next** |
 
 **EVERY SITTING ENDS THE SAME WAY, and none of these four steps is optional:**
 
@@ -373,6 +373,9 @@ as *C1* — so `make doctor` warns ahead of the expiry (Decision 11).
    `/v1`). It is not a secret; the control plane sends it in each registration. **Empty is unset** (the default), and **plain `http`
    is refused off loopback** with `ConfigError('CONFIG_UBC_AI_GATEWAY_INSECURE_URL')`, in `config.ts:688-706`'s pattern for the GitHub
    URLs — the bearer key would otherwise cross the network in clear (*I10*). Loopback `http` stays allowed, for Task 6's control (a).
+   **Corrected at sitting 2 (F19; the coordinator accepted it, 2026-10-03):** the code is the published `CONFIG_INVALID`, with a message
+   naming `MANIFEST_UBC_AI_GATEWAY_URL` and the fix — a `ConfigError` code is a value of the published `ErrorCode` enum, so a new one
+   would have changed the contract this plan holds at `1.6.0`. Task 3's `CONFIG_GATEWAY_MODELS_INVALID` the same.
 6. **PRICES.**
    - A gateway model is priced by LiteLLM's own map **for the gateway's model name**, then pinned, as the capable model is today.
    - **An alias LiteLLM cannot price is REFUSED**, and the fix is at the gateway: Rich, its administrator, exposes the model under its
@@ -420,6 +423,9 @@ as *C1* — so `make doctor` warns ahead of the expiry (Decision 11).
     hold a caller up to 600 s before the fallback answers. **Too short cuts off a long legitimate answer** — so `[M2]` times the capable
     candidate's longest plausible non-streamed answer, and a streamed call is bounded by `stream_timeout` only if `[M3]` measures
     LiteLLM 1.98.0 honouring it. *To change course:* the one constant.
+    **Set at sitting 2 (F21; the coordinator accepted it):** `GATEWAY_TIMEOUT_S = 60` WITH `GATEWAY_NUM_RETRIES = 0`, both in
+    `litellm_params` (F12: the timeout is per attempt and LiteLLM retries twice). The trade-off is beside the constant: a non-streamed
+    answer past ~5,000 tokens is cut and the fallback answers; one transient 5xx goes straight to the fallback.
 
 ---
 
@@ -1366,6 +1372,12 @@ must NOT gain the route.
 
 **Alone, and last. It needs the network and the key**, so it is in no offline or CI step (Decision 10). Its caller is the `Makefile`.
 
+> **SITTING 2 CHANGED FOUR OF THIS TASK'S CHECKS — read its record first** (F20, F26; and sitting 1's F4, F10): phase 2's *no
+> `x-litellm-attempted-fallbacks` header* is `'0'` on a primary's answer; its *spent rose by `usage × the pinned price`* is, for a model the
+> gateway prices (`gpt-6-luna`), the GATEWAY's reported cost (`x-litellm-response-cost`) — the pin binds only for `ubc-qwen-27b`; its
+> gateway-side spend can no longer be read from Manifest's answers (F5 strips `llm_provider-x-litellm-key-*`) — read it from a direct call
+> to the gateway or Rich's admin UI; and phase 0's expiry cannot come from the key's own `/key/info` (`403`). Phase 3 does not run.
+
 **Files:**
 - Create: `packages/journey/src/gateway.ts`, `scripts/demo-gateway.sh` (the sign-in prelude of `scripts/demo-launch.sh`, copied),
   `scripts/gateway-controls.sh` (restore-safe: stop, start with a changed setting, run, restore by `trap`, in
@@ -1704,3 +1716,132 @@ reads 0 dead — F5b's), 48 `mf-` containers, 0 `gw-probe*`, 7197/7198 free; the
 `app-images.sh --apply` (5 dead daemon copies — 4 older `f5b-measure-1` builds and 1 `boot-recover`; re-run reads 0); **`litellm-orphans.sh`
 NOT applied** — its one orphan is `instructor`'s agent budget, F5b's (`manifest-af`'s call, 21:17); `dead-app-resources.sh` 0 dead (13 orphan
 mirrors named, Rich's). The four protected containers running. Free disk 61 GiB. `platform-window` FREE.
+
+### Sitting 2 — 2026-10-03, 21:27–23:10 PDT (`manifest-61`, coordinated by `manifest-af`): Tasks 2, 3 and 4
+
+**Task 2 — `3c05c7f`** (and `75ed30b`, the trade-off beside the constant). `ai/providers.ts` (`resolveSetting`, `Gateway`, `GATEWAY_TIMEOUT_S`,
+`GATEWAY_NUM_RETRIES`); `ensureCapableModel(client, setting, gateway?)` resolves first, compares the ADDRESS in `unchanged`, and on
+`failClosed` removes every capable deployment that names an `api_base` before the existing refusal keeps a direct one; `config.ubcAiGateway`
+(`MANIFEST_UBC_AI_GATEWAY_URL`, empty is unset; `keyInEnv`); `index.ts` builds the `Gateway`; `infra/compose.yaml` hands LiteLLM
+`UBC_AI_GATEWAY_API_KEY` and `MANIFEST_STUB_BEARER: probe-not-a-key`; `make verify`'s fingerprint check (`EXPECT_VERIFY` 66 → 67) and
+`make doctor`'s expiry warning (`EXPECT_DOCTOR` 21 → 22); `.env.example`'s two lines and the capable model's second form; RUNBOOK's
+*Through UBC's AI Gateway*. The new unit cases red at the expected lines first (`providers.js` absent, then every gateway case `refused`
+because today's code sent `ubc-ai-gateway/…` as a provider string), then green; every existing `capable.test.ts` case green unchanged.
+**`make up` ran at 21:36** (Step 5): LiteLLM holds both variables, the key's value counted 0 in the `make up` log and in `docker logs
+manifest-litellm`. The Docker case: the stub on 7193 saw one call carrying the bearer LiteLLM resolved from ITS environment;
+`/model/info` lists the gateway's `api_base` and no `api_key` at all.
+
+**Task 3 — `475dfcb` (the refactor, `capable.test.ts` 48/48 unedited) and `13f351c`.** `ai/registration.ts`'s `ensureRegistered` (with
+`unpriced`); `ai/gateway-models.ts` (`ensureGatewayModels`, `standInPrice`, `gatewayModelsAtBoot`, `platformModelsAtBoot`);
+`MANIFEST_GATEWAY_MODELS` parsed in `config.ts`; the boot line's `gatewayModels`; the fake seeds a config entry's output price (M2 — no other
+`ai/` case's expectation moved; `config.test.ts`'s *defaults the LiteLLM settings* gained `gatewayModels: []`, by design). The Docker case
+against the running LiteLLM: a `confidential` entry at `openai/probe-onprem-<run>` (which LiteLLM prices `0`) registered at `1e-6` / `3e-6`,
+`max_classification: confidential`, an id beginning `manifest-gateway-`, no `api_key` listed; a key holding only it was charged exactly
+`usage × those`; removed with the setting empty, and no row of its name left in `LiteLLM_ProxyModelTable`.
+
+**Task 4 — `a1fad27` (the witness, no guard code — Rich, 21:17) and `f439fc6` (F5, Rich, 21:25).** The stub's `/gwfail/budget/v1` (the gateway's
+own `429 budget_exceeded` body from `[M5]`(e)) and `/gwfail/model-not-on-key/v1` (see F25); both fall back, and a malformed `400` asked after
+them is still the caller's — green at once, which on Branch A is the witness. F5: see F26–F27.
+
+**What this sitting found** (each with the measurement that found it):
+
+1. **F19 A `ConfigError` code is a value of the published `ErrorCode` enum** — `api/error-codes.test.ts` scans every `new ConfigError(…)` and
+   the registry is the contract's enum — so Decision 5's `CONFIG_UBC_AI_GATEWAY_INSECURE_URL` and Task 3's `CONFIG_GATEWAY_MODELS_INVALID`
+   would each have changed the contract the plan holds at `1.6.0`. **Both are the published `CONFIG_INVALID`**, with a message naming the
+   setting (and the entry), and the tests assert the message. **A sitting decision, accepted by the coordinator** (22:0x); Decision 5 is
+   marked. TRAPS.
+2. **F20 `x-litellm-attempted-fallbacks` reads `'0'` on an answer the primary gave, not no header** (LiteLLM 1.98.0): the plan's Docker case
+   asserted `toBeNull()`, never measured, and was red on a healthy call; it asserts `'0'`. TRAPS.
+3. **F21 `GATEWAY_TIMEOUT_S = 60`, `GATEWAY_NUM_RETRIES = 0`** — a sitting decision, accepted by the coordinator: F12 measured the timeout per
+   attempt with two retries, and `[M2]`'s longest answer was 35.2 s. The trade-off, beside the constant: at ~85 tokens a second a
+   NON-streamed answer past ~5,000 tokens is cut and the on-premise fallback answers; a stream waits only for its start (13.0 s measured;
+   that a healthy stream longer than 60 s is never cut is not measured); one transient gateway 5xx goes straight to the fallback.
+   `ProviderParams` gained `num_retries`; Decision 12 is marked.
+4. **F22 The plan's Task 3 control (c) — the `ID_PREFIX` filter removed — throws rather than testing what it names**: the cleanup's first
+   `/model/delete` of a config entry is refused `400`, as LiteLLM's is, so 10 of 12 cases go red for that one reason. Run as written, then
+   as **(c′)** — any DB-held deployment the setting does not list removed — red at exactly *never touches the capable model* and *FAILS
+   CLOSED*'s capable-untouched check.
+5. **F23 `ensureRegistered(client, r)` could not keep `capable.test.ts` unedited**: its *changes nothing* case counts ONE `/model/info` a call,
+   and a registration that re-read its own deployments made two. `ensureRegistered(client, r, ours)` takes what the caller already read.
+6. **F24 The boot's order lived in `index.ts`, which no unit test runs** — so control (d) could not fail anywhere but the Docker tier.
+   `platformModelsAtBoot` (in `gateway-models.ts`) holds it and `index.ts` calls it; control (d) went red at *registered BEFORE the capable
+   model's fallback* AND at *a gateway-models step that fails never stops the capable model's* — unpredicted, its cause read: that case's
+   one-shot `/model/info` failure lands on whichever step reads first.
+7. **F25 `[M5]`(c-ii)'s body was never recorded** (only `APIError 403`), so the plan's *"each MEASURED, never invented"* had no shape for the
+   stub. Measured at 21:5x on the RUNNING `manifest-litellm` with a throwaway key (deleted, `200`): LiteLLM 1.98.0 answers it `403
+   {"error":{"type":"key_model_access_denied","param":"model","code":"403",…}}`, streamed or not. The Global Constraint says measure in a
+   throwaway LiteLLM — a read of its own refusal, nothing registered — recorded, not hidden. The guard decides by status alone.
+8. **F26 F5's mechanism in 1.98.0, read in the pinned image**: a request's headers are re-read from `_hidden_params["additional_headers"]` AFTER
+   the post-call success hook, so the guard REMOVES `llm_provider-x-litellm-key-*` and `llm_provider-x-litellm-model-api-base` there; a
+   STREAM's are built before any hook sees it and the only later hook sets with `update`, so a stream's are EMPTIED (the names reach the
+   caller, valueless); **a failure forwards no upstream header at all** — measured as a Docker case first: a refused `400` and a `429` with no
+   fallback carried no `llm_provider-*` header — so no failure-path strip was built (it would have no observable effect), and a witness case
+   goes red if an upgrade starts forwarding them. `llm_provider-x-litellm-response-cost` is kept; the non-streamed case, on a key of its own,
+   was charged the stub's reported `0.000777` after the strip (the pin would charge `6e-6`). TRAPS.
+9. **F27 NOT covered, recorded for *before production*** (beside LiteLLM's four tracked leaks): the BODY of a failure — the gateway's budget
+   `429` reaches a caller with no fallback verbatim, its key's alias and `sk-...` last four — and LiteLLM's own `x-litellm-*` headers. No
+   hook rewrites a body without widening F5 (the coordinator's word: do not).
+10. **F28 LiteLLM 1.98.0 prices none of the gateway's self-hosted models** (its map read in a throwaway, network on, 4,472 entries):
+    `openai/gpt-6-luna`, `gpt-5.6-luna`, `gpt-5.6-terra`, `gpt-5.4-mini` priced; `llama3`, `qwen3.8-27b`, `qwen3.6-35b-a3b`, `phi3.5` not. So
+    an entry for any of the four registers only at `confidential` (pinned at the stand-in's `$1 / $3`), and `qwen3.6-35b-a3b` and `llama3`
+    cannot be registered at all today (Decision 6's fix is the gateway's). Put to Rich with his `MANIFEST_GATEWAY_MODELS`. TRAPS.
+11. **F29 The stub never streamed**: an `ok` path answered JSON to a `stream: true` request. It answers SSE now (a role frame, `ok`, the
+    finish, usage, `[DONE]`) — no existing case sent a streamed request to an `ok` path, so none moved.
+12. **F30 The plan's Interfaces had `capableModelAtBoot(…, gateway)` required**, which would have edited every existing boot case; it is
+    optional (`index.ts` always passes it). And `GatewayModel`'s shape is stated twice, structurally (config.ts's parse, `gateway-models.ts`),
+    because no production module imports `config.ts` and `config.ts` imports no `ai/` module.
+13. **F31 The Docker tier ran out of Docker Desktop's address pools** (TRAPS, *DOCKER DESKTOP RUNS OUT OF NETWORKS AT ~31*): 28 networks at
+    its start — 16 `mf-` networks held by LIVE containers, F5b's three among them, none dead — and ~6 subnets free where it needs 7, so five
+    files went red on `POST /networks/create failed (400): all predefined address pools have been fully subnetted` (51 times): 24 failed and
+    17 skipped, in `runtime/docker/driver`, `runtime/docker/networks`, `runtime/docker/egress`, `releases/app-secrets` and
+    `sso/login`. Predicted before the run, and handled as TRAPS says: `dead-app-resources.sh --apply` (the tier's own five), then
+    `driver` + `networks` alone **40/40** (203 s) and the other three alone **16/16** (82 s). Removing the live apps' containers, or
+    widening the pools, is Rich's.
+
+**Negative controls**, each predicted, seen red, restored (`git diff` empty; the guard's written through its inode, LiteLLM restarted, the
+container's copy read back equal to HEAD's):
+- **Task 2:** (a) `unchanged` by the model string alone → red at *repoints from OpenAI direct* only; (b) `keyInEnv` forced true → red at
+  providers' *refuses … no key*, capable's POSITIVE CONTROL, *FAILS CLOSED* and the boot's keyless case; (b2) the fail-closed removal
+  skipped → *FAILS CLOSED* and the boot's keyless case, the POSITIVE CONTROL green; (c) `api_key` dropped (unit tier only, I2) → the two
+  *sends/registers … by reference* cases; (d) the insecure-URL refusal removed → its case only; (e) `make verify`'s check against scratch
+  files — a canary key `differs`, no key while LiteLLM holds one `LiteLLM holds a key … does not`, the real `.env` `matches`, and before the
+  `make up` `absent from LiteLLM` and `not configured`; (f) `make doctor`'s — tomorrow WARN, a year PASS, no expiry WARN *unknown*, three
+  days past WARN *EXPIRED*, `next-year` WARN *not a date*, no key PASS; (c2) the Docker case with the stub expecting another bearer → red at
+  `authorized` 0, `hits` 1.
+- **Task 3:** (a) `unpriced` ignored → *pins an unpriced CONFIDENTIAL entry* only; (b) the foreign-name check removed → *refuses a name the
+  catalogue already holds* only; (c) and (c′), F22; (d), F24; (e) the fail-closed removal skipped → *FAILS CLOSED* only.
+- **Task 4:** the guard told 403 and 429 are malformed → red at exactly the two witness cases and the existing `403` and `429` (4/24);
+  (f5a) the success hook's removal skipped → the non-streamed F5 case only (`''`, not `null` — the headers hook then empties them); (f5b)
+  the headers hook returning nothing → the streamed case only (`'30.0'`).
+
+**Rich's words this sitting** (the decisions file): **21:25** (F5: *"Strip after costing, else record"*), **22:08** (through the question tool, each as
+recommended: `MANIFEST_CAPABLE_MODEL=ubc-ai-gateway/gpt-6-luna`; `MANIFEST_GATEWAY_MODELS=ubc-qwen-27b=ubc-ai-gateway/qwen3.8-27b@confidential`;
+the agent writes them) — and the coordinator's acceptances of F19 and F21. **The two lines were written at 23:04, just before the restart, by `sed`/`printf` reading no
+value** (a `0600` backup taken, exactly those two names differing, the backup deleted at the close); `.env` mode `600`.
+
+**After the restart (23:04, `s2-cp.sh real` — RUNBOOK's block, real GitHub as found):** the ready line read `capableModel: registered`,
+`capableFallback: set`, `gatewayModels: [{ubc-qwen-27b, registered}]`, `secretsScrubbed: 16`, no `[boot]` line; the key's value 0 in the boot
+and migrate logs. `/model/info`: `default-chat-large` = `openai/gpt-6-luna` at `https://ai-gateway.apps.ltic.ubc.ca/v1`, `internal`, pinned
+`1e-7` / `5e-7`, timeout 60, retries 0, no `api_key` listed, its fallback `default-chat-onprem`; `ubc-qwen-27b` = `openai/qwen3.8-27b` at the
+same address, `confidential`, pinned `1e-6` / `3e-6` (the stand-in's), an id `manifest-gateway-…`. **One call on each through Manifest's
+LiteLLM** (a throwaway key, deleted): both `200`, `x-litellm-model-api-base` the gateway's address, the forwarded `llm_provider-x-litellm-version`
+`1.102.0` (the gateway's), `x-litellm-attempted-fallbacks: 0` — and **0 `llm_provider-x-litellm-key-*` headers on the REAL gateway's answers**
+(F5 against the gateway itself, not only the stub). `default-chat-large`: 10 prompt tokens, charged `1e-06` (the gateway's price);
+`ubc-qwen-27b`: 55 + 1 (a reasoning token), charged `5.8e-05` = 55 × 1e-6 + 1 × 3e-6 — the pin, as F4 says for a model the gateway does not
+price.
+
+**The gates at the close:** `pnpm test` twice, alone, on the final tree — **3323/3323, 203 files**, 982 s and 948 s (load 3.4–5.5) —
+`EXPECT_TESTS` 3289 → 3323 and `EXPECT_FILES` 201 → 203 (+34: `providers.test.ts` 6 and `gateway-models.test.ts` 12, new; `capable.test.ts` 8;
+`config.test.ts` 8); `pnpm lint`, `pnpm typecheck`, `pnpm format:check` clean. **`pnpm test:docker` once** (22:38–22:58, 1218 s): 240 passed, 24
+failed and 17 skipped in the five files F31 names, every one on the address pools; those five alone 40/40 and 16/16 — so **281 tests, all green,
+42 files** (273 + 8: `capable.docker.test.ts` 2, `fallback-guard.docker.test.ts` 6). `make doctor` **22**/0/0 (`EXPECT_DOCTOR` 21 → 22) and
+`make verify` **67**/0/0, `matches` (`EXPECT_VERIFY` 66 → 67), both after the restart.
+
+**The machine at the close, queried at 23:06 PDT:** 7100 is PID 69387 (restarted at 23:08 after a single-file test run the RUNBOOK edit owed, its
+ready line reading `unchanged` for the capable model, its fallback and `ubc-qwen-27b` — the boot is idempotent; real GitHub), with Rich's two lines; F5b's rows truncated
+by the close's `pnpm test` (`f5b-measure-1`, a real repository in `Manifest-local-dev`, is unowned; its 9 containers and 3 networks still run —
+Rich's). **28 Docker networks** (28 at the start, the same names), **48 `mf-` containers** (the same names), 86 volumes (the same), 0 `gw-probe*`;
+`manifest-litellm` re-created by `make up` at 21:36 (it holds the gateway key and `MANIFEST_STUB_BEARER`). The cleanup scripts bare, then
+`--apply`: `dead-app-resources` the tier's five dead networks and then the re-run's two; `litellm-orphans` three users with no live key
+(`mf-platform-intake`, `p4b-probe-user`, F5b's person budget — 8 held users survived); `app-images` 15 dead images (re-run reads 0). The four
+protected containers running. Free disk 63 GiB. `platform-window` FREE.

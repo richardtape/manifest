@@ -2626,3 +2626,33 @@ sitting 1, `[M1]`, `[M3]`). UBC's gateway answers its keys `403` *"Only allowed 
 keys (three routes) are refused the same way, so a spend read with the key itself reads `null`. Read a scratch key's spend through the admin
 (`/key/info?key=`), and a gateway key's from its answers' `x-litellm-key-spend` and `x-litellm-key-max-budget` headers (its expiry is the
 administrator's, from the gateway's admin UI).
+
+**A `ConfigError` CODE IS A VALUE OF THE PUBLISHED `ErrorCode` ENUM — A NEW ONE IS A CONTRACT CHANGE** (2026-10-03, the UBC AI Gateway
+plan's sitting 2). `api/error-codes.test.ts` scans every `new ConfigError('<CODE>'…)` in `src/` and requires the code registered in
+`api/error-codes.ts`, whose registry IS the published `ErrorCode` enum (`packages/contract/openapi.json`, `schema.d.ts`,
+`docs/api/reference/errors.md`) — so a refusal that stops the BOOT still moves the contract. The plan named two new codes
+(`CONFIG_UBC_AI_GATEWAY_INSECURE_URL`, `CONFIG_GATEWAY_MODELS_INVALID`) while holding the contract at `1.6.0`; both are
+`CONFIG_INVALID` with a message naming the setting and the entry, and the tests assert the message. Search the registry before naming a
+code.
+
+**LiteLLM 1.98.0 SENDS `x-litellm-attempted-fallbacks: 0` ON AN ANSWER THE PRIMARY GAVE — NOT NO HEADER** (2026-10-03, the UBC AI Gateway
+plan's sitting 2, `capable.docker.test.ts`). A test asserting `toBeNull()` for "no fallback answered" is red on a healthy call;
+`fallback-guard.docker.test.ts` already asserts `'0'` for its healthy positive control, and accepts `[null, '0']` on a refusal. Assert
+`not '1'`, or the measured `'0'`.
+
+**A STREAM'S RESPONSE HEADERS CANNOT BE REMOVED BY A LiteLLM 1.98.0 HOOK — ONLY SET** (2026-10-03, the UBC AI Gateway plan's sitting 2, F5;
+read in the pinned image). A request's headers are re-read from `response._hidden_params["additional_headers"]` AFTER the post-call
+success hook (`proxy/common_request_processing.py`, *"get any updated response headers"*), so that hook can delete one. A STREAM's are
+built from the same dict BEFORE any hook sees the stream and copied (`create_response`), and the one hook after —
+`async_post_call_response_headers_hook`, detected only when the callback's OWN class defines it — merges with `update`: it can add or
+overwrite, never delete. `manifest_guard.py` therefore EMPTIES a stream's upstream headers (the names reach the caller, valueless) and
+removes a request's. A FAILURE forwards no `llm_provider-*` header at all (measured: a refused 400, a 429 with no fallback).
+
+**LiteLLM 1.98.0 PRICES NONE OF UBC'S GATEWAY'S SELF-HOSTED MODELS — SO EACH REGISTERS ONLY AS `confidential`** (2026-10-03, the UBC AI
+Gateway plan's sitting 2; its map read in a throwaway from the pinned digest, network on — 4,472 entries). `openai/gpt-6-luna`,
+`gpt-5.6-luna`, `gpt-5.6-terra` and `gpt-5.4-mini` are priced; `openai/llama3`, `qwen3.8-27b`, `qwen3.6-35b-a3b` and `phi3.5` are not, so
+LiteLLM prices them `0`. `MANIFEST_GATEWAY_MODELS` refuses an unpriced entry at `public` or `internal` (a `$0` model binds no budget) and
+pins a `confidential` one at `default-chat-onprem`'s synthetic `$1 / $3` — so `qwen3.6-35b-a3b` (the gateway falls back from it to
+off-premise `gpt-6-luna`, so never `confidential`) and `llama3` (off-premise, so `internal`) cannot be registered at all until the gateway
+exposes them under a name LiteLLM prices. `/get/litellm_model_cost_map` answers `404` on 1.98.0; read `litellm.get_model_info` in a
+throwaway instead.

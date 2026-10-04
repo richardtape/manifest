@@ -212,8 +212,15 @@ red() { printf '\033[31m%s\033[0m' "$1"; }
 # of §26's reason — the Manifest-Admin-Reason header and EventActor.asAdministrator — name the collaborator beyond their role, and
 # never call a sent reason ignored; the plan's whole-branch review's I1). Measured twice on the final tree, 3289 in 201 (once inside
 # `make ci-acceptance`).
-EXPECT_TESTS=3289
-EXPECT_FILES=201
+# Then the UBC AI Gateway plan's sitting 2 (2026-10-03, Tasks 2–4): +34, two new files — `ai/providers.test.ts` (6, new: a
+# setting resolved — direct passed through, a gateway one by reference with its timeout and retries, the bound, failing closed,
+# the bare prefix and no gateway), `ai/gateway-models.test.ts` (12, new: each entry at its classification, the stand-in's price,
+# failing closed, a foreign name, an unlisted one removed, the setting empty, D17's hand-out, and five at boot — the order
+# among them), `ai/capable.test.ts` (8: the gateway's registration, unchanged, the repoint both ways, the positive control,
+# failing closed, an alias, no gateway, and the boot's line) and `config.test.ts` (8: the URL, http off loopback, keyInEnv,
+# the value never kept; MANIFEST_GATEWAY_MODELS parsed, empty, the last @, every malformed entry).
+EXPECT_TESTS=3323
+EXPECT_FILES=203
 # EXPECT_DOCTOR 21 -> 22 (2026-10-03, the UBC AI Gateway plan's sitting 2, Task 2): the gateway key's expiry, a
 # check_warn — counted, never failing — from 14 days ahead (its Decision 11). Measured: 22 checks, 0 failed, 0 warnings.
 EXPECT_DOCTOR=22

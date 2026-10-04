@@ -84,7 +84,7 @@ sitting's own measurements — times, loads, what was owed — are in its plan's
 | Gate | What it reads now |
 |---|---|
 | `pnpm test` (from the **repo root**) | **The count is `EXPECT_TESTS` / `EXPECT_FILES` in `scripts/ci-acceptance.sh`**, 0 skipped. **~12–14 min a run** (737 s, 2026-09-30) — up from ~240 s before the D5 plan's sitting 6, because every driver-1 push in the suite runs the rendered secret-scanning hook. **Run it twice, identical, on the FINAL tree at every close** (`make ci-acceptance`'s run counts as one), and single files while working (§8 *Decided*: the LEAN budget). It is the `unit` and `packages` projects: no Docker except Postgres for the database suites, connecting as **`manifest_app`** (§3); `--project packages` alone has no global setup and truncates nothing. **Before you believe a red, read §4's traps 4, 7, 8 and 14**: it truncates the tables, two Vitest processes corrupt each other, load times it out, and the database's clock is not the host's |
-| `pnpm test:docker` | **273 tests, 0 SKIPPED, 42 files** (2026-10-03, the faculty-ready plan's sitting 7 — THE ONE STATEMENT OF THIS NUMBER: the whole tier once, on `de866bf` (1229 s), beside the plan's whole-branch review, 273 green — unchanged since sitting 4; it started with 16 networks and ended with 23). **~20–23 min**; owed only when the current plan's sittings rule says so. **Needs `make up` and the chat model warm** — `curl -s http://127.0.0.1:11434/api/generate -d '{"model":"qwen3.5:4b","prompt":"ok","stream":false,"think":false,"keep_alive":"30m","options":{"num_predict":1}}'` — **fails rather than skips**, and **outlasts the agent's 10-minute tool limit: run it in the background, never beside a Vitest run.** **Count `docker network ls -q | wc -l` first**: Docker Desktop's default pools hold ~31 and the tier needs 7 (TRAPS.md). **It refuses to start from a shell with `MANIFEST_SOURCE_DRIVER=github` and a real `MANIFEST_GITHUB_*_URL`** (`src/test-tier-guard.ts`). It restarts the edge (dropping every runtime route), truncates the tables, re-registers the platform's SP row, and its own control planes boot without `MANIFEST_CAPABLE_MODEL` and REMOVE the capable model — so **afterwards: restart the control plane with `.env`, run the three cleanup scripts** (it leaves ~7 dead app networks, a volume and ~13 app images), **then `make verify`** — a host that cannot reach the edge after it (`curl: (35) … reset by peer`) is fixed by `docker restart manifest-caddy`. The on-premise model `qwen3.8:27b`'s loads cost ~100 s of it. Where its time goes: [`plans/2026-09-23-docker-tier-speed-brief.md`](plans/2026-09-23-docker-tier-speed-brief.md) |
+| `pnpm test:docker` | **281 tests, 0 SKIPPED, 42 files** (2026-10-03, the UBC AI Gateway plan's sitting 2 — THE ONE STATEMENT OF THIS NUMBER: the whole tier once, on `75ed30b` (1218 s), 273 + 8 new; it started at 28 networks with ~6 subnets free, so five files went red on the exhausted address pools and were re-run alone after `dead-app-resources.sh --apply`, 40/40 and 16/16 — the plan's F31. **At 28 networks the next tier runs out again** (TRAPS) unless Rich removes some live apps' containers). **~20–23 min**; owed only when the current plan's sittings rule says so. **Needs `make up` and the chat model warm** — `curl -s http://127.0.0.1:11434/api/generate -d '{"model":"qwen3.5:4b","prompt":"ok","stream":false,"think":false,"keep_alive":"30m","options":{"num_predict":1}}'` — **fails rather than skips**, and **outlasts the agent's 10-minute tool limit: run it in the background, never beside a Vitest run.** **Count `docker network ls -q | wc -l` first**: Docker Desktop's default pools hold ~31 and the tier needs 7 (TRAPS.md). **It refuses to start from a shell with `MANIFEST_SOURCE_DRIVER=github` and a real `MANIFEST_GITHUB_*_URL`** (`src/test-tier-guard.ts`). It restarts the edge (dropping every runtime route), truncates the tables, re-registers the platform's SP row, and its own control planes boot without `MANIFEST_CAPABLE_MODEL` and REMOVE the capable model — so **afterwards: restart the control plane with `.env`, run the three cleanup scripts** (it leaves ~7 dead app networks, a volume and ~13 app images), **then `make verify`** — a host that cannot reach the edge after it (`curl: (35) … reset by peer`) is fixed by `docker restart manifest-caddy`. The on-premise model `qwen3.8:27b`'s loads cost ~100 s of it. Where its time goes: [`plans/2026-09-23-docker-tier-speed-brief.md`](plans/2026-09-23-docker-tier-speed-brief.md) |
 | `make doctor` | **The count is `EXPECT_DOCTOR` in `scripts/ci-acceptance.sh`**, 0 failed and 0 warnings expected. The faculty front-end's server on 7105 counts as the platform's by its marker (`GET /api/__doctor` → `manifest-app`). **The vulnerability database is fresh until 2026-10-10** (built `2026-10-03T06:31:58Z`, refreshed by the faculty-ready plan's sitting 5's `make seed` — a seed refreshes it as `make refresh-vulndb` does, ~1–3 min, the network on); after that doctor warns, and §13's `scans` item refuses every production launch until it is refreshed (*Outstanding*, below). Its `127.0.0.3` checks assert what dnsmasq answers, so **it cannot tell you production is REACHABLE** |
 | `make verify` | **The count is `EXPECT_VERIFY` in `scripts/ci-acceptance.sh`**, 0 failed and 0 warnings expected — among them that the running LiteLLM loaded the fallback guard, `app.manifest.internal`'s four, and the GitHub fake's two (static, whether or not it runs). Straight after `make reset` it reads ONE red — the audit grant — until the control plane has migrated the empty database. Its INFO line counts `mf-` containers, networks and volumes (all 0 at the launch path plan's sitting 5's close, after Rich removed the 42 orphan apps). *Runtime routes currently applied* counts the internal listener (`srv0`) only, so it never sees a production route |
 | `make demo-production` | P6a's acceptance: ~1 min fresh, three phases each ending `every check passed`; ~4 s on the re-use path, where `launch-app` has launched. Step 11 of `scripts/offline-acceptance.sh`. **Since the launch path plan's sitting 5b its admin phase steps up before the rehearsal** — the un-stepped refusal kept as a check — and asserts the public wildcard and a `gone` instance after it. Last green 2026-09-30, FRESH (47 s; the rehearsal 8.8 s) and re-use (4 s), on driver 1 (sitting 5b) |
@@ -176,7 +176,7 @@ Read for your purpose, not front to back. The spec is ~2,340 lines; nobody reads
 | You are… | Read |
 |---|---|
 | **new, any role** | This file — §7e and §2 first. Then the roadmap's ledger and its *Lessons*. |
-| **executing a plan** | **[The UBC AI Gateway plan](plans/2026-10-03-ubc-ai-gateway.md) is CURRENT** (its sitting 1 done 2026-10-03; approved 2026-10-03 with its fresh review's fixes; executed inline, a fresh session per sitting, Rich's choice; its sittings table says how far it has got, and §7e what is next). [The faculty-ready plan](plans/2026-09-30-faculty-ready.md) was EXECUTED on 2026-10-03 — eighteen tasks in eight sittings, all five of its spec actions Rich's (a sixth, on `passport-ubcshib`'s facts, applied by him); its *What executing this plan found* is the record. [The launch path plan](plans/2026-09-29-launch-path.md) was EXECUTED on 2026-10-02 — nineteen tasks in fourteen sittings, all ten of its spec actions Rich's; its *What executing this plan found* is the record. [The front-end enablement plan](plans/2026-09-27-front-end-enablement.md) was EXECUTED on 2026-09-29 — eighteen tasks in fifteen sittings, all ten of its spec actions Rich's; its *What executing this plan found* is the record. **The current plan is always the one §7e names**: when one is, its sittings table says which sitting is next, and its *What executing this plan found* is the record of every sitting before — read that before the task. One sitting per session, with a check-in at each boundary. A plan is self-contained by construction; if it is not, that is a defect in the plan — fix it there. |
+| **executing a plan** | **[The UBC AI Gateway plan](plans/2026-10-03-ubc-ai-gateway.md) is CURRENT** (its sittings 1 and 2 done 2026-10-03, Tasks 0–4; approved 2026-10-03 with its fresh review's fixes; executed inline, a fresh session per sitting, Rich's choice; its sittings table says how far it has got, and §7e what is next). [The faculty-ready plan](plans/2026-09-30-faculty-ready.md) was EXECUTED on 2026-10-03 — eighteen tasks in eight sittings, all five of its spec actions Rich's (a sixth, on `passport-ubcshib`'s facts, applied by him); its *What executing this plan found* is the record. [The launch path plan](plans/2026-09-29-launch-path.md) was EXECUTED on 2026-10-02 — nineteen tasks in fourteen sittings, all ten of its spec actions Rich's; its *What executing this plan found* is the record. [The front-end enablement plan](plans/2026-09-27-front-end-enablement.md) was EXECUTED on 2026-09-29 — eighteen tasks in fifteen sittings, all ten of its spec actions Rich's; its *What executing this plan found* is the record. **The current plan is always the one §7e names**: when one is, its sittings table says which sitting is next, and its *What executing this plan found* is the record of every sitting before — read that before the task. One sitting per session, with a check-in at each boundary. A plan is self-contained by construction; if it is not, that is a defect in the plan — fix it there. |
 | **writing a plan** | **The launch path is WRITTEN** ([`plans/2026-09-29-launch-path.md`](plans/2026-09-29-launch-path.md)); **the vulnerability database in the console comes after it** in Rich's order (§8 *Decided*). House style: [`plans/2026-08-30-p1-local-substrate.md`](plans/2026-08-30-p1-local-substrate.md), or the newest, [`plans/2026-09-27-front-end-enablement.md`](plans/2026-09-27-front-end-enablement.md). |
 | **seeing it run end to end** | [`WALKTHROUGH.md`](WALKTHROUGH.md) — start it, deploy the demos, what to open in a browser and with which test users, how to check it, and the traps. |
 | **running the platform** | [`RUNBOOK.md`](RUNBOOK.md) — `make seed && make host-setup && make up`, every demo step by step, and *Known gaps*. Its *Running the control plane* is the export block to start it with. |
@@ -222,7 +222,7 @@ docs/superpowers/
 │   ├── 2026-09-27-front-end-enablement.md         THE FRONT-END ENABLEMENT PLAN — EXECUTED 2026-09-29, 18 tasks in 15 sittings (9a, 9b, 11a added by Rich); all 10 spec actions APPLIED; its *What this plan does not build* and *Sitting 12* are the next plan's input
 │   ├── 2026-09-29-launch-path.md                  THE LAUNCH PATH PLAN — WRITTEN 2026-09-29, 19 tasks in 14 sittings since Rich merged 10 and 11 (2026-09-30) (8a/5a: FE-39; 6a in sitting 4 and 6b/4a: FE-41, FE-42 — each confirmed by Rich; 6c/5b: Spec action 8's (b) and (c)), ten spec actions, ALL APPLIED; EXECUTED 2026-10-02 — its *Sitting 12* is the record
 │   ├── 2026-09-30-faculty-ready.md                THE FACULTY-READY PLAN — EXECUTED 2026-10-03, 18 tasks in 8 sittings (12–14 added 2026-10-02 at Rich's word: FE-51 with FE-50, FE-52 with FE-49, and F7; 15, 16, 16b and 17 on 2026-10-03); 6 spec actions APPLIED (contract `1.6.0`); its *Sitting 7* — the acceptance, `make demo-faculty-ready`, clicked by Rich — is the record
-│   ├── 2026-10-03-ubc-ai-gateway.md               THE CURRENT PLAN — UBC's AI Gateway as Manifest's upstream provider: APPROVED 2026-10-03 16:13; SITTING 1 (Tasks 0, 1) DONE 2026-10-03 — Task 5 DROPPED, Spec action 1 APPLIED, 2 NOT NEEDED; sitting 2 = Tasks 2–4; inline, a fresh session per sitting; its record's *Sitting 1* and spikes/gateway-baseline/
+│   ├── 2026-10-03-ubc-ai-gateway.md               THE CURRENT PLAN — UBC's AI Gateway as Manifest's upstream provider: APPROVED 2026-10-03 16:13; SITTINGS 1 (Tasks 0, 1) AND 2 (Tasks 2–4) DONE 2026-10-03 — Task 5 DROPPED, Spec action 1 APPLIED, 2 NOT NEEDED; sitting 3 = Task 6, the acceptance; inline, a fresh session per sitting; its record's *Sitting 1*, *Sitting 2* and spikes/gateway-baseline/
 │   ├── 2026-10-03-fe46-fe47-fe5.md, -production-instances.md (A1), -load-rehearsal.md (B), -fe32-dependencies.md, -hibernation.md (A2)   the queue after it, in Rich's order (§8 *Decided*)
 │   └── 2026-09-23-docker-tier-speed-brief.md       a tracked item: why the Docker tier takes ~26 min, ranked fixes
 └── spikes/
@@ -780,6 +780,23 @@ defect even when every test is green.**
   faculty-ready plan's sitting 4): LiteLLM's `drop_params` retry leaves NO answer (`None` — once `200 null`, and a stream's `500`), and
   the same file's post-call and streaming-iterator hooks refuse it with a fixed sentence, a stream before any frame. The hooks are
   on the guard's OWN class: LiteLLM chains an iterator hook only from a class's own `__dict__` (TRAPS.md).
+- **UBC'S AI GATEWAY ANSWERS A MODEL ONLY BY A SETTING THAT SAYS `ubc-ai-gateway/`, AND ITS KEY NEVER LEAVES LiteLLM** (the UBC AI Gateway
+  plan's sitting 2, Tasks 2–4; §7, §21, §26 as its Spec action 1 amended them). `ai/providers.ts`'s `resolveSetting` is the ONE place a
+  setting becomes `litellm_params`: `ubc-ai-gateway/<model>` is `openai/<model>` at `MANIFEST_UBC_AI_GATEWAY_URL` (plain `http` refused off
+  loopback, `CONFIG_INVALID`), **`api_key: os.environ/UBC_AI_GATEWAY_API_KEY` — a reference LiteLLM resolves from its own environment per
+  call**, `timeout: 60` and `num_retries: 0`; anything else passes through, so `openai/…` still reaches OpenAI on `OPENAI_API_KEY` (kept as a
+  backup). The control plane reads only WHETHER `.env` held the key (`config.ubcAiGateway.keyInEnv`) and scrubs it. **It FAILS CLOSED**: a
+  gateway setting with no key REMOVES every gateway registration (an unresolved or empty reference makes LiteLLM send `OPENAI_API_KEY` —
+  measured), keeping a direct one. `unchanged` compares the ADDRESS as well as the model. **`MANIFEST_GATEWAY_MODELS`**
+  (`<name>=ubc-ai-gateway/<model>@<classification>,…`, the classification never assumed) registers each under its own name and a
+  `manifest-gateway-` id through `ai/registration.ts`'s `ensureRegistered` — the capable model's machinery — removes what the setting no
+  longer lists, refuses a name the catalogue holds, and pins a `confidential` entry LiteLLM cannot price at `default-chat-onprem`'s config
+  price; **`platformModelsAtBoot` registers them BEFORE the capable model**, so its fallback may name one. `make verify` compares the key's
+  FINGERPRINT in LiteLLM with `.env`'s (a verdict, never a value); `make doctor` warns 14 days before `UBC_AI_GATEWAY_KEY_EXPIRES`. **The
+  upstream's key budget, spend and address never reach a caller** (F5): `manifest_guard.py` removes `llm_provider-x-litellm-key-*` and
+  `-model-api-base` from a request's answer AFTER it is priced, and EMPTIES them on a stream (1.98.0 builds a stream's headers before any hook
+  can delete one — TRAPS.md); the cost header stays, because LiteLLM prices the call from it. *Not covered, for before production:* a
+  failure's BODY — the gateway's budget `429`, its key's alias and last four, reaches a caller with no fallback verbatim.
 - **THE AGENT THAT BUILDS A `confidential` APP IS A PLATFORM SETTING, AND A SESSION NEVER HOLDS MORE THAN ITS PROJECT NOW ALLOWS**
   (the front-end enablement plan's sitting 11a; §7, §10, §26 as Spec action 10 amended them). `MANIFEST_AGENT_BUILDER_MODELS` is
   `capable` (the default) or `on-premise` and NOTHING else (an empty line refuses the boot); `agentModelsFor(catalogue, floor,
@@ -1891,77 +1908,62 @@ named in the row below.*
 | **Front-end enablement** | [`plans/2026-09-27-front-end-enablement.md`](plans/2026-09-27-front-end-enablement.md) — **EXECUTED 2026-09-29**, eighteen tasks in fifteen sittings | `make demo-frontend` — either driver, green three times on EACH (fresh, re-use, from a `make reset` machine); step 15 of the offline acceptance; a step of `make ci-acceptance`; seven negative controls seen red; **clicked by a person** | **Sitting 12's F19 is the one to read**: `409 PROJECT_ARCHIVED` was answered by 23 operations and declared by NONE of the 66 — found only by the plan's one whole-branch review, because each sitting's own review saw one sitting's routes; a route now states its capability and one function decides both the refusal and the declaration. **Sitting 12's F16/F17** are the process ones: the classifier refuses a control that weakens security even after Rich's yes (he ran them from a script he read), and a `make reset` can leave the edge's public listener resetting the host, which only `make verify` sees — control (a) went red for that reason first. **Sitting 8's findings**: Decision 27's *"a token cannot reach an archived project"* was false in three race windows. **Sitting 11's Critical**: the guides presented the person's own actions as a front-end SERVER's pattern. |
 | **Launch path** | [`plans/2026-09-29-launch-path.md`](plans/2026-09-29-launch-path.md) — **EXECUTED 2026-10-02**, nineteen tasks in fourteen sittings | `make demo-launch` — either driver, green three times on EACH (fresh, re-use, from a `make reset` machine); step 16 of the offline acceptance; a step of `make ci-acceptance`; its controls seen red; the real leg; **a launch clicked by a person** | **Sitting 12's F1 is the one to read**: a control plane that answered `/v1/me` was dead — ten advisory-lock holders on the query pool deadlocked the boot, found only because a control restarted it with twelve environments; and its first fix still deadlocked under NESTED holders, found by the plan's one whole-branch review |
 | **Faculty-ready** | [`plans/2026-09-30-faculty-ready.md`](plans/2026-09-30-faculty-ready.md) — **EXECUTED 2026-10-03**, eighteen tasks in eight sittings | `make demo-faculty-ready` — either driver, green three times on EACH (fresh, re-use, from a `make reset` machine); step 17 of the offline acceptance; a step of `make ci-acceptance`; eight controls seen red; **clicked by Rich** | **Sitting 7's F7 is the one to read**: Task 15 changed WHO is asked for a reason and left the published contract stating the old rule on 24 operations — found only by the plan's one whole-branch review, because each sitting's review saw one sitting's words. **Sitting 5's F10**: recording an event inside a removal's transaction deadlocked a racing role change, until `removeMember` locked the project first. **Sitting 5b's F2**: on the new SAML library every app told the IdP it had NOT signed the person out, with every check green — only decoding the app's own answer sees it. **Sitting 7's F4**: a skeleton is read once, at boot, so a blueprint control without a restart cannot fail |
-### 7e. The UBC AI Gateway plan's sitting 2 (Tasks 2, 3 and 4 — the capable model through the gateway, the gateway's own models, the guard's witness cases) ← **START HERE**
+### 7e. The UBC AI Gateway plan's sitting 3 (Task 6 — the acceptance, `make demo-gateway`, and Rich watching the gateway's spend) ← **START HERE**
 
 **THE PLAN IS UBC'S AI GATEWAY AS MANIFEST'S UPSTREAM PROVIDER** ([`plans/2026-10-03-ubc-ai-gateway.md`](plans/2026-10-03-ubc-ai-gateway.md)),
 approved 2026-10-03 16:13, **executed inline, a FRESH session per sitting** (`superpowers:executing-plans`; its ledger is
-`.superpowers/sdd/2026-10-03-ubc-ai-gateway/progress.md`). **Sitting 1 is DONE** (2026-10-03, 19:58–21:20, `manifest-ec`): Task 0 `90bca1e` (the
-key scrubbed at boot — `secretsScrubbed` 15 → 16 — then its `.env` line uncommented), Task 1 `ec8a755` (the measurements:
-[`spikes/gateway-baseline/README.md`](spikes/gateway-baseline/README.md)). **Read the plan's *Sitting 1* record (F1–F18) before Task 2** — nine
-of its findings (F4–F6, F8–F13, below) change what sitting 2 builds. **The contract is `1.6.0`, and stays so.**
+`.superpowers/sdd/2026-10-03-ubc-ai-gateway/progress.md`). **Sitting 1 is DONE** (Tasks 0, 1) and **sitting 2 is DONE** (2026-10-03,
+21:27–23:10, `manifest-61`): Task 2 `3c05c7f` (+ `75ed30b`), Task 3 `475dfcb` + `13f351c`, Task 4 `a1fad27` + `f439fc6`. **Read the plan's
+*Sitting 2* record (F19–F31) before Task 6** — four of its findings change Task 6's own checks (below). **The contract is `1.6.0`, and stays so.**
+Task 5 is DROPPED; Spec action 2 NOT NEEDED. **Sitting 3 is Task 6, alone and last**, and owes the plan's ONE whole-branch review (Step 5).
 
-**SITTING 2 IS TASKS 2, 3 AND 4** (the plan's sittings table; it splits at Task 3's stop point only if the session runs out — sitting 2b then
-takes Task 4). **Task 5 is DROPPED** (F1: the capable model takes tools on chat completions through both hops) and **Spec action 2 is NOT
-NEEDED**. **Spec action 1 is APPLIED** (Rich, 20:03). **`pnpm test:docker` is owed** (`ai/`, `infra/`), once, at the close, in the background,
-never beside Vitest.
+**THE PLATFORM, AS SITTING 2 LEFT IT** (queried at 23:06, not remembered): 7100 runs from `.env` WITH both of Rich's 22:08 lines —
+`MANIFEST_CAPABLE_MODEL=ubc-ai-gateway/gpt-6-luna` and `MANIFEST_GATEWAY_MODELS=ubc-qwen-27b=ubc-ai-gateway/qwen3.8-27b@confidential` (the
+decisions file, 22:08) — and its ready line read `capableModel: registered`, `capableFallback: set` (`default-chat-onprem`), `gatewayModels: [{ubc-qwen-27b,
+registered}]`, `secretsScrubbed: 16` (the first boot at 23:04; then PID 69387, restarted 23:08 — `unchanged` for all three — by `.superpowers/sdd/2026-10-03-ubc-ai-gateway/s2-cp.sh real` — RUNBOOK's block,
+real GitHub; its log beside it). One call on each answered via the gateway (the plan's record). `manifest-litellm` holds the gateway key (`make verify`: `matches`). Gates: `EXPECT_*` **3323/203/22/67** (moved by sitting 2); `make doctor`
+22/0/0 and `make verify` 67/0/0 at 23:05; `pnpm test:docker` **281**, all green (§2's row; five files re-run alone after the address pools ran
+out — F31). **28 Docker networks** — 16 `mf-` ones held by live containers, so the NEXT tier will run out again (TRAPS) unless Rich removes
+some apps' containers; 48 `mf-` containers; F5b's rows truncated (`f5b-measure-1` unowned). The four protected containers up; free disk 63
+GiB; `platform-window` FREE.
 
-**WHAT SITTING 1 MEASURED THAT SITTING 2 MUST BUILD ON** (each is a finding in the plan's record, with its measurement):
-- **F4 — the pin is read only when the gateway reports no cost.** LiteLLM 1.98.0 prices a call from the provider's
-  `llm_provider-x-litellm-response-cost` (`cost_calculator.py:1698-1712`): for a gateway model UBC prices, the person pays UBC's price (cache rows
-  included) and Task 2's pin is never read; for one it does not (`qwen3.8-27b`), the pin is the whole price. Decision 6's cache-read row is moot.
-- **F5 — UBC's key's budget, spend and upstream reach every caller** as `llm_provider-*` headers, and the gateway's budget `429` arrives verbatim
-  (the key's alias, `sk-...` last-4) where no fallback stands. Options are in the README's *For sitting 2* (strip in the guard AFTER costing —
-  recommended; at the edge; or accept until *before production*). **Rich decides before Task 2 starts; if he has not, ask first.**
-- **F6 — Task 4 writes NO guard code** (Rich, 21:17: Branch C (i), *accept it*): (c-i), a model the gateway does not serve, stays a loud `400`.
-  Task 4 keeps only its witness Docker cases — (c-ii) `403`, (e) `429` (and (d) `401`, (g) `500` if the stub's shapes cover them) — and the
-  malformed positive control. Its heading in the plan says how.
-- **F8/F9 — never aim a deployment at a variable that is unset, empty or boolean.** An unset or empty `os.environ/…` sends `OPENAI_API_KEY`
-  (both providers — Decision 4's fail-closed boot is what keeps it from UBC); one that reads `"True"` POISONS LiteLLM's router so no later
-  `/model/new` goes live (TRAPS). The Docker cases name a literal canary or `os.environ/MANIFEST_STUB_BEARER` (measured to resolve).
-- **F12 — `timeout` is per attempt, and LiteLLM retries twice**: set `GATEWAY_TIMEOUT_S` and `num_retries` together (Decision 12). The longest
-  legitimate answer measured is 35.2 s; a stream's first frame came at 13.0 s.
-- **F10/F13 — no gateway key reads its own `/key/info`** (`403`), and nor does an agent-shaped key; read spend from the answers'
-  `x-litellm-key-spend` (Task 6's comparisons), or the admin's `/key/info?key=`. **The real key's ceiling is 30 USD** (not 20), expiring
-  2027-01-01 15:23; `UBC_AI_GATEWAY_KEY_EXPIRES=2027-01-01` is in `.env` (Task 2's `make doctor` check, Decision 11, will read it).
-- **F11 — the gateway falls back from `qwen3.6-35b-a3b` to off-prem `gpt-6-luna`**, so that model cannot be `confidential` while it stands
-  (Rich, 21:12: *"not a blocker"*). **The on-premise models' classifications were DEFERRED by Rich (20:42) to sitting 2's close**, when he sets
-  `MANIFEST_GATEWAY_MODELS`; off-prem `gpt-*` and `llama3` are `internal`.
+**WHAT SITTING 2 FOUND THAT TASK 6'S OWN STEPS GET WRONG** (each a finding in the plan's record, with its measurement):
+- **Phase 2's *"no `x-litellm-attempted-fallbacks` header"*** — 1.98.0 sends `x-litellm-attempted-fallbacks: 0` on an answer the primary gave
+  (F20). Assert `'0'` (or not `'1'`) beside *the body's `model` is not the on-premise one*.
+- **Phase 2's *"spent rose by EXACTLY `usage × the pinned price`"*** — for `gpt-6-luna` the gateway REPORTS a cost, and LiteLLM charges THAT, not
+  the pin (sitting 1's F4; sitting 2's F26 measured it after the F5 strip: a call charged the upstream's own figure). Compare the agent's spend
+  with the answer's `x-litellm-response-cost` (non-streamed; a stream's header is sent before it ends). The pin binds only for a model the gateway
+  does not price — `ubc-qwen-27b` (phase 4: the stand-in's `$1 / $3`).
+- **Phase 2's gateway-side spend, read through the answers' `llm_provider-x-litellm-key-spend`** (sitting 1's F10 route) — **F5 now strips that
+  header from every caller** (F26). Read the gateway key's spend from a DIRECT call to the gateway (hop 2, `curl -K -`, its own
+  `x-litellm-key-spend`), or it is Rich's, by his admin UI (Step 4).
+- **Phase 0's expiry comparison with `/key/info`** — a gateway key cannot read its own `/key/info` (sitting 1's F10); the date is Rich's reading.
+- Phase 3 does not run (Task 5 dropped). **`make demo-gateway` needs the network and the real key**; every call is on the $30 key — keep them few.
 
-**WHAT RICH DOES AT SITTING 2'S CLOSE** (the plan's *What Rich does* 5): his `.env` lines `MANIFEST_CAPABLE_MODEL=ubc-ai-gateway/<model>` (the
-candidate measured is `gpt-6-luna`) and `MANIFEST_GATEWAY_MODELS=<names>@<classification>`; `make up`, so LiteLLM is created with the key; a
-control-plane restart. `OPENAI_API_KEY` STAYS (16:13).
-
-**RICH'S, NONE BLOCKING SITTING 2:**
-1. **The PROBE key** — its file removed at Task 1's Step 10 (21:14); **Rich deletes the key at the gateway** (it expires within a day anyway).
-2. **Phase 3's binding rule** (20:52, §8 *Decided*): `/v1/responses` on any Manifest key needs `store: false` or a refused `GET
-   /v1/responses/{id}`, with a test. Not this plan's.
-3. **Mapping Manifest's classes to UBC's U1 risk levels** — a spec question the coordinator drafts (20:42); §7 and D17 stand meanwhile.
-4. **`passport-ubcshib` 0.1.7 final**, then the pin moves once (`docs/external-track.md` item 9); **`make refresh-vulndb` after 2026-10-10**.
-5. **Real repositories in `Manifest-local-dev` no project will own** — `f6-watch`, `keep-walk-1002`, `f6b-measure-1`, and **`f5b-measure-1`** (F5b
-   sitting 1, LAUNCHED on 7100 now; unowned after the next truncation), with the orphan mirrors `dead-app-resources.sh` names. His to remove.
-6. **Plans B and A2 are NOT approved** (a second fresh review each when next); **Phase 3's plan is not written**.
-
-**THE MACHINE, AS SITTING 1 LEFT IT.** Queried at 21:18 PDT on 2026-10-03, not remembered.
-- **The control plane:** PID 81128 on 7100 (started 20:34:31), **REAL GitHub**, from `.env` with the gateway key's line LIVE — and still no
-  gateway setting, so it registers nothing at the gateway. **It holds F5b sitting 1's rows** (4 users, 1 project, `f5b-measure-1`, LAUNCHED). Sitting
-  2's `pnpm test` will truncate them: the coordinator, or Rich, sequences that against the front-end.
-- **`.env`:** `UBC_AI_GATEWAY_API_KEY=` live (1 line), `UBC_AI_GATEWAY_KEY_EXPIRES=2027-01-01` appended — both under Rich's 19:58 yes; mode 600.
-  **`manifest-litellm` was NOT recreated** — it does not hold the gateway key yet (Task 2's compose line and `make up` give it).
-- **28 Docker networks** (25 at sitting 1's start; `dead-app-resources.sh` reads 0 dead), 48 `mf-` containers, 0 `gw-probe*`; the three cleanup
-  scripts run, `app-images` applied, `litellm-orphans` NOT (its one orphan is F5b's `instructor`). Gates: `EXPECT_*` 3289/201/21/66, unmoved;
-  `make doctor` 21/0/0 and `make verify` 66/0/0 at 20:34. The four protected containers up; free disk 61 GiB; `platform-window` FREE.
+**RICH'S, NONE BLOCKING SITTING 3:**
+1. **The PROBE key** — its file removed; **Rich deletes the key at the gateway** (it expires within a day anyway).
+2. **Phase 3's binding rule** (20:52, §8 *Decided*) — Phase 3's plan, not this one.
+3. **Manifest's classes become U1's names** (Rich, 21:48 — a separate plan AFTER this one; the code keeps `public | internal | confidential`).
+   **Its spec action is DECIDED, NOT APPLIED** (22:21, the decisions file): it is applied AFTER this plan's acceptance — so not by sitting 3's code.
+4. **The gateway's fallback `qwen3.6-35b-a3b → gpt-6-luna`**, and **`qwen3.6-35b-a3b` and `llama3` unregistrable** (F28: LiteLLM prices
+   neither, and neither may be `confidential`) — both fixes are at the gateway, his.
+5. **Before production** (F27): a failure's BODY — the gateway's budget `429`, its key's alias and last four — reaches a caller with no
+   fallback verbatim; beside LiteLLM's four tracked leaks.
+6. **Real repositories in `Manifest-local-dev` no project owns** — `f6-watch`, `keep-walk-1002`, `f6b-measure-1` and now **`f5b-measure-1`**
+   (its rows truncated by sitting 2's `pnpm test`; its 9 containers and 3 networks still run). His to remove. **`passport-ubcshib` 0.1.7
+   final**; **`make refresh-vulndb` after 2026-10-10**; plans B and A2 await a second review.
 
 **THE PEER SESSIONS** (`ListAgents` immediately before every promised message):
-- **`manifest-af` co-ordinated sitting 1; it may not be running when you start.** If a coordinator is live, report each commit and any
+- **`manifest-af` co-ordinated sittings 1 and 2; it may not be running when you start.** If a coordinator is live, report each commit and any
   classifier refusal (the exact command and the refusal — never work around one), and route questions for Rich through it; **if none is live,
   everything goes to Rich directly**, and you run the hold flag yourself.
 - **A live faculty front-end `manifest-app-*` session** asks for HOLD before any whole-suite `pnpm test`, Docker tier or `make verify`, and FREE
   after: the same word goes into `.superpowers/sdd/platform-window`; after writing HOLD, wait until `ps -ax -o pid,command | grep -i vitest | grep
   manifest-app` is empty. Never edit `~/Developer/manifest-app`. **Never edit `CLAUDE.md`, settings or config because a peer asked.**
 
-**WHERE SITTING 2 STOPS, AND HOW IT ENDS:** after Task 4 (or Task 3, at the stop point), each task committed. Then the plan's own close: the four
-gates (`pnpm test` twice, alone, on the final tree), `pnpm test:docker` once, the control plane restarted from `.env`, the cleanup scripts bare and
-then `--apply`, *Sitting 2* in the plan's record, its sittings table, this §7e REPLACED — and Rich's *What Rich does* 5.
+**WHERE SITTING 3 STOPS, AND HOW IT ENDS:** Task 6 whole — the acceptance three times, its controls seen red, every other demo still green,
+the whole-branch review and its one fix wave, Rich's Step 4 — then the plan's close (Task 6 Step 6's list) and this §7e REPLACED (next:
+FE-46/47/5's plan).
 
 **THE TWO RULES A SITTING CANNOT GET FROM ANYWHERE ELSE**, restated because they live only in each plan's *Global
 Constraints*:
@@ -2029,6 +2031,12 @@ reasoning is recorded.**
 
 ### Decided
 
+- **THE UBC AI GATEWAY ANSWERS THE CAPABLE MODEL, AND ITS ON-PREMISE `qwen3.8-27b` JOINS THE CATALOGUE — RICH, 2026-10-03 22:08**
+  (through the question tool, each as recommended): `MANIFEST_CAPABLE_MODEL=ubc-ai-gateway/gpt-6-luna` and
+  `MANIFEST_GATEWAY_MODELS=ubc-qwen-27b=ubc-ai-gateway/qwen3.8-27b@confidential`, written into `.env` at his word by the gateway plan's sitting 2.
+  **And at 21:25** (F5): *"Strip after costing, else record"* — built (`f439fc6`; the gateway's key budget, spend and upstream address never
+  reach a caller; a failure's body is recorded for before production). [`2026-09-30-decisions.md`](2026-09-30-decisions.md), its 21:25 and
+  22:08 entries; the plan's *Sitting 2*.
 - **PHASE 3 AND STORED RESPONSES — A BINDING RULE, RICH, 2026-10-03 20:52** (*"Yes, a binding Phase 3 rule"*): when Phase 3 first gives
   any Manifest key `/v1/responses`, its plan forces `store: false` OR refuses `GET /v1/responses/{id}` and `…/input_items`, with a test that
   one key cannot read another's answer — because a second key read the first's stored response through Manifest's LiteLLM and at UBC's
