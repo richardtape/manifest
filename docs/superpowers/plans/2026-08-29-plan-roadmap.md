@@ -1507,7 +1507,7 @@ measures it needed; `OPENAI_API_KEY` stays as a backup. This closes ORIENTATION 
 **Written** by `manifest-b7` (`f5faf87`), **reviewed** by a fresh read-only agent ([`2026-10-03-review-of-ubc-ai-gateway-plan.md`](./2026-10-03-review-of-ubc-ai-gateway-plan.md):
 one Critical — a key reference resolving to nothing would send the real `OPENAI_API_KEY` to the gateway and fall back silently), its fixes
 applied by `manifest-cd` (`61d4557`), **APPROVED with them** (Rich, 16:13). **Executed inline, a fresh session per sitting** (15:57). **Two spec
-actions drafted, neither applied** — 1 before sitting 2; 2 before sitting 2 only if measured needed. **The gateway key's `.env` line is
+actions drafted: 1 APPLIED 2026-10-03, 20:03 (Rich; its price sentence reads "a `confidential` one")**; 2 before sitting 2 only if measured needed. **The gateway key's `.env` line is
 COMMENTED until Task 0 scrubs it** (16:14). Sitting 1 needs Rich: the network, and a separate tiny-budget PROBE key (ORIENTATION §7e).
 
 ### The Manifest team's step — FE-46, FE-47, FE-5 and FE-53 — ✅ WRITTEN AND APPROVED 2026-10-03: [`2026-10-03-fe46-fe47-fe5.md`](./2026-10-03-fe46-fe47-fe5.md), 9 tasks in 5 sittings, AFTER THE UBC AI GATEWAY PLAN (Rich, 15:28), BEFORE A1

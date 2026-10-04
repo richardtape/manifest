@@ -1912,7 +1912,7 @@ and Tasks 0 and 1 in full.**
   at the path you name, removed at Task 1's Step 10 and deleted by him at the gateway after; for each model `[M1]` lists, where it runs and the
   classification he gives it (only UBC's own hardware may be `confidential`); three facts only the gateway's administrator sees; and
   `UBC_AI_GATEWAY_KEY_EXPIRES=<YYYY-MM-DD>` from `[M1]`.3's reading. **The real key's 20 USD is never spent to measure.**
-- **Two spec actions are DRAFTED, neither applied**: 1 (§7, §21, §26) before sitting 2; 2 (§10) before sitting 2 only if `[M4]` measures it
+- **Two spec actions were drafted. Spec action 1 (§7, §21, §26) is APPLIED** (Rich, 20:03 PDT, its price sentence reading "a `confidential` one"; applied by the coordinator `manifest-af`); 2 (§10) before sitting 2 only if `[M4]` measures it
   needed. Rich reads and decides each words-first.
 
 **WHAT SITTING 7 LEARNED THAT THIS ONE INHERITS:**

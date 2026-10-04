@@ -787,3 +787,21 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
         asked through the coordinator. Rejected: showing him the date first.
     The probe key's file, named by the coordinator: /Users/rich/manifest-gw-probe.env (one line GW_PROBE_KEY=<value>, chmod 600),
     written by Rich, removed at Task 1's Step 10.
+
+    And at 20:03 PDT, the gateway plan's SPEC ACTION 1 (§7, §21, §26 — UBC's AI Gateway as the platform's upstream provider),
+    put to him before sitting 2, through the question tool. Its premises checked by manifest-af first: all five quoted passages
+    exist in the spec (§7's catalogue at :511 and its sentence at :517, the fallback paragraph at :530, §21's LiteLLM row at
+    :2165, §26's Platform settings at :2961-2965, wrapped). One mismatch found and put to him: the drafted §7 paragraph said an
+    unpriced ON-PREMISE gateway model is charged the synthetic price. The plan (Decision 6; Task 3's test, plan:1126) pins
+    only an unpriced CONFIDENTIAL one and refuses an unpriced internal one, because the platform sees a model's classification,
+    never where it runs.
+      - THE WORDS — "As proposed, 'confidential' wording" (Recommended): the five edits as drafted, with the price sentence
+        reading "A model the platform cannot price is refused, except a `confidential` one, which is charged the on-premise
+        model's synthetic price so budgets bind." No code change: an on-premise model he classifies `internal` that LiteLLM
+        cannot price is refused, so he classifies it `confidential` or exposes it under a priced name.
+        Rejected: word for word (Task 3 would need an @onprem marker apart from the classification); without the price
+        sentence; a D35 row instead.
+      - WHO APPLIES — "manifest-af, now" (Recommended): the coordinator applies it tonight, documents only, beside sitting 1:
+        the spec, and manifest-schematic.html:1072-1073 ("a commercial provider's for now" becomes "a commercial provider's,
+        through UBC's own AI Gateway, for now"). manifest-decisions.html's D17 is unchanged, as option (c) was not chosen.
+        Rejected: sitting 2's worker applying it first.

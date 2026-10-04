@@ -6,7 +6,7 @@
 > `manifest-94`, each as recommended (*Decided by Rich*, below). **Every fact in *Read this first* was read from the code at `d1e7eae`**
 > while `manifest-9d` held the faculty-ready plan's sitting 5b (`ORIENTATION.md`, `TRAPS.md`, `external-track.md` and that plan
 > uncommitted). Line numbers WILL have moved by the time this runs, and Task 1 re-reads each one marked *(T1: M<n>)*.
-> **Two spec actions are drafted below, and neither is applied.** No task that a spec action changes runs before Rich has read and
+> **Two spec actions are drafted below. Spec action 1 is APPLIED (Rich, 2026-10-03, 20:03 PDT: as proposed, its price sentence reading "a `confidential` one" for "an on-premise one"); Spec action 2 is not.** No task that a spec action changes runs before Rich has read and
 > decided its words. At 15:57 PDT Rich sent the plan to a quick fresh review first (a read-only agent of `manifest-94`), and chose
 > **INLINE execution, a fresh session per sitting** (`superpowers:executing-plans`).
 
@@ -101,7 +101,7 @@ acceptance) closes.**
 | Sitting | Tasks | What it delivers | `pnpm test:docker` owed? | Spec action needed first | Status |
 |---|---|---|---|---|---|
 | 1 | 0, 1 | **The key scrubbed, then uncommented** (Task 0: one name in `secrets/scrub.ts` and its test, the four gates, a commit, THEN the `.env` line). **The measurements** (the network on, Rich's key and his tiny-budget probe key): the gateway's models, the key's ceiling and expiry; chat, streamed and not, through both hops; `/v1/responses` through both hops, with a tool, its spend and its stored responses; the error shapes the guard meets, streamed too; the price Manifest's LiteLLM records against the gateway's own charge; where the key goes in four cases on both providers; each model's classification, in Rich's words | **Not the tier — ONE file**: Task 0's scrub name is executed by one Docker case only, `boot.docker.test.ts` (its `:135` asserts `secretsScrubbed >= 3`; grepped 2026-10-03), so that file runs alone, as the lean budget rules for a change one Docker file executes. The four gates, `pnpm test` twice, are owed by Task 0 | — | ← **next** (after faculty-ready's sitting 7) |
-| 2 | 2, 3 — **stop point** — 4, 5 | **The capable model through the gateway**, the key by reference only, failing closed. **The gateway's own models**, from one setting. **The guard**, if `[M5]` needs it. **Agent keys reach `/v1/responses`**, if `[M4]` needs it — contract `1.6.1` | Yes — `ai/`, `infra/` | **1** (§7, §21, §26) before Tasks 2–3; **2** (§10) before Task 5 | |
+| 2 | 2, 3 — **stop point** — 4, 5 | **The capable model through the gateway**, the key by reference only, failing closed. **The gateway's own models**, from one setting. **The guard**, if `[M5]` needs it. **Agent keys reach `/v1/responses`**, if `[M4]` needs it — contract `1.6.1` | Yes — `ai/`, `infra/` | **1** (§7, §21, §26) before Tasks 2–3 — **APPLIED 20:03**; **2** (§10) before Task 5 | |
 | 2b | 4, 5 — **only if sitting 2 split at its stop point** | As sitting 2's second half | Yes — `infra/` (Branch B), `ai/` | **2** (§10) before Task 5 | |
 | 3 | 6 | **The acceptance**: `make demo-gateway` three times, its controls seen red, every other demo still green, the plan's one whole-branch review, and Rich watching the gateway's spend move — compared by `/key/info`, not by eye | Yes, if any code changes | — | |
 
@@ -1447,11 +1447,13 @@ must NOT gain the route.
 
 ## Spec actions
 
-**TWO, DRAFTED 2026-10-03 WITH THIS PLAN. NEITHER IS APPLIED.** Each is decided by Rich before the sitting that builds it, and applied
+**TWO, DRAFTED 2026-10-03 WITH THIS PLAN. SPEC ACTION 1 IS APPLIED (Rich, 20:03 PDT); SPEC ACTION 2 IS NOT.** Each is decided by Rich before the sitting that builds it, and applied
 only after he has read the words. **A spec action is not finished when the spec changes**: the shared HTML pages restate it, and are
 swept with it.
 
-### 1. §7, §21 and §26 — UBC's AI Gateway as the platform's upstream provider (before sitting 2)
+### 1. §7, §21 and §26 — UBC's AI Gateway as the platform's upstream provider (before sitting 2) — ✅ APPLIED 2026-10-03
+
+> **DECIDED by Rich, 2026-10-03, 20:03 PDT**, through the question tool (`../2026-09-30-decisions.md`, its 20:03 entry): ***"As proposed, 'confidential' wording"*** — option (a), with ONE change the coordinator `manifest-af` found and put to him: the new §7 paragraph's price sentence reads *"A model the platform cannot price is refused, except a `confidential` one, which is charged the on-premise model's synthetic price so budgets bind"*, not *"except an on-premise one"* — because Decision 6 and Task 3 (`unpriced` pinned only for a `confidential` entry; its test refuses an unpriced `internal` one) see a model's classification, never where it runs. **Applied by `manifest-af` at his word** (*"manifest-af, now"*): the spec's five places and `manifest-schematic.html:1072-1073`; `manifest-decisions.html`'s D17, `manifest-phases.html` and `manifest-stories.html` checked, unchanged. The words below are the DRAFT as it was.
 
 **Why.** Rich decided it at 15:28 (*"As the upstream provider"*), and decided the shape of its models at 15:42 (Q1 (a)). The spec still
 says the capable model is *"a commercial provider's"*, reached *"through the same LiteLLM"*, and names no way to add the gateway's models.
