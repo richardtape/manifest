@@ -2,7 +2,7 @@ import { and, desc, eq } from 'drizzle-orm'
 import type { Db } from '../db/index.js'
 import { appSpecs, environments, instances, releases } from '../db/index.js'
 import { servingInstanceOf } from '../projects/index.js'
-import { CLASSIFICATION_RANK, type Classification } from '../spec/index.js'
+import { CLASSIFICATION_RANK, toLevel, type Classification } from '../spec/index.js'
 import { CAPABLE_MODEL_NAME } from './capable.js'
 import type { CatalogueSnapshot } from './catalogue.js'
 
@@ -34,7 +34,7 @@ export function agentModelsFor(
   floor: Classification,
   builder: BuilderModels,
 ): string[] {
-  const building = floor === 'confidential' && builder === 'capable'
+  const building = toLevel(floor) === 'very-high' && builder === 'capable'
   return catalogue.models
     .filter(
       (entry) =>
@@ -54,8 +54,9 @@ interface FrozenConfig {
   production?: { classification?: unknown }
 }
 
+/** A stored value as one of the seven names, as stored — an OWN key of the rank table, never `in` (which finds `toString`). */
 const asClassification = (value: unknown): Classification | undefined =>
-  typeof value === 'string' && value in CLASSIFICATION_RANK
+  typeof value === 'string' && Object.hasOwn(CLASSIFICATION_RANK, value)
     ? (value as Classification)
     : undefined
 

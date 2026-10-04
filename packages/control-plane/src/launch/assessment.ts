@@ -1,5 +1,5 @@
 import type { ModelEntry } from '../ai/index.js'
-import type { Classification, ManifestSpec } from '../spec/index.js'
+import { toLevel, type Classification, type ManifestSpec } from '../spec/index.js'
 import type { Contact } from '../sso/index.js'
 import { ATTRIBUTE_PURPOSES } from './package.js'
 import { vancouverDayInWords } from './records.js'
@@ -93,8 +93,8 @@ const REPOSITORY = 'the project’s repository'
 /** A word a person reads — `internal` as *Internal*, for the start of a sentence. */
 const capitalised = (word: string) => `${word.charAt(0).toUpperCase()}${word.slice(1)}`
 
-/** Approved for `confidential` data means on-premise only (§7: such an app resolves to nothing else). */
-const staysOnPremise = (ceiling: Classification) => ceiling === 'confidential'
+/** Approved for `very-high` data — or `confidential`, its alias — means on-premise only (§7: such an app resolves to nothing else). */
+const staysOnPremise = (ceiling: Classification) => toLevel(ceiling) === 'very-high'
 
 function collected(spec: ManifestSpec): Section {
   const facts: Fact[] =
@@ -203,10 +203,9 @@ function modelFlow(name: string, catalogue: readonly ModelEntry[] | null): Fact 
 function flows(input: AssessmentInput): Section {
   const { spec, catalogue } = input
   const ceiling = spec.data.classification
-  const rule =
-    ceiling === 'confidential'
-      ? 'every AI model the app uses must run on on-premise hardware.'
-      : `every AI model the app uses must be approved for ${ceiling} data.`
+  const rule = staysOnPremise(ceiling)
+    ? 'every AI model the app uses must run on on-premise hardware.'
+    : `every AI model the app uses must be approved for ${ceiling} data.`
   const facts: Fact[] = [
     input.declared.classification
       ? {

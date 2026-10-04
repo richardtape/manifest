@@ -71,11 +71,20 @@ import { STREAM_PATH, streamPathItem } from './websocket.js'
  * as the http name). A browser is unaffected but for signing in once more. The cookie is issued by
  * the sign-in endpoints, which stand outside the versioned contract, so this rides on the minor.
  *
+ * **`1.7.0` SINCE THE U1 PLAN'S TASK 1 (2026-10-04)**: `data.classification` takes UBC's four U1
+ * levels — `low`, `medium`, `high`, `very-high` — beside the three earlier names, which stay valid for ever as aliases (`public`
+ * is `low`, `internal` is `medium`, `confidential` is `very-high`). **The behaviour change, stated, as Tasks 2–6 land on this one
+ * bump:** the default becomes `medium` (`internal`'s level); the platform ANSWERS in U1's names — `getSpec`'s
+ * `data.classification` and every release's frozen `classification` read `medium` where they read `internal`, old rows too; a
+ * delegated token is refused staging's and production's Incidents on every project at `high` or above
+ * (`INCIDENT_LOG_CONFIDENTIAL`), whatever the building agent's setting; and `ai.models_withdrawn` is a new event. A client that
+ * compares a classification must compare the level, never the string. Nothing is published between this plan's tasks.
+ *
  * Three files carry it and two tests hold them together: this constant,
  * `packages/contract/openapi.json`'s `info.version` (GENERATED — `pnpm contract:write`,
  * never edited) and `packages/contract/package.json`.
  */
-export const CONTRACT_VERSION = '1.6.0'
+export const CONTRACT_VERSION = '1.7.0'
 
 type JsonSchema = Record<string, unknown>
 

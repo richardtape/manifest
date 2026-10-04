@@ -31,7 +31,7 @@ import {
   recordPreview,
   ReleaseError,
 } from '../../releases/index.js'
-import { resolveConfig, type ManifestSpec } from '../../spec/index.js'
+import { resolveConfig, toLevel, type ManifestSpec } from '../../spec/index.js'
 import { requireSession } from '../actor.js'
 import type { ServerDeps } from '../server.js'
 import { defineRoute, NO_BODY, NO_QUERY } from '../contract/route.js'
@@ -1250,7 +1250,7 @@ export const releaseRoutes = [
         actor.credential === 'token' &&
         environment.kind !== 'sandbox' &&
         deps.config.agent.builderModels === 'capable' &&
-        (await environmentFloor(deps.db, environment)) === 'confidential'
+        toLevel(await environmentFloor(deps.db, environment)) === 'very-high'
       )
         throw new OutputError(
           'INCIDENT_LOG_CONFIDENTIAL',

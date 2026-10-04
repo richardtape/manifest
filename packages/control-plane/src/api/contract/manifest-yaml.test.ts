@@ -200,4 +200,23 @@ describe('the published ManifestYaml agrees with §7’s own schema ([M7])', () 
     expect(published.$schema).toBeUndefined()
     expect(published.description).toMatch(/DOCUMENTATION FOR THE FILE/)
   })
+
+  it('publishes data.classification as the seven names, its description naming U1 and the aliases (U1 plan Task 1)', () => {
+    const doc = manifestYamlSchema() as {
+      properties: { data: { properties: { classification: Record<string, unknown> } } }
+    }
+    const node = doc.properties.data.properties.classification
+    expect(node.enum).toEqual([
+      'low',
+      'medium',
+      'high',
+      'very-high',
+      'public',
+      'internal',
+      'confidential',
+    ])
+    expect(node.default).toBe('internal')
+    expect(String(node.description)).toContain('U1')
+    expect(String(node.description)).toMatch(/`confidential` is `very-high`/)
+  })
 })

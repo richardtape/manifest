@@ -63,12 +63,13 @@ const input = (over: Partial<AssessmentInput> = {}): AssessmentInput => ({
 })
 
 /** A spec with everything optional left out — the sparsest manifest that validates. */
-const BARE = manifestSchema.parse({
+const BARE_INPUT = {
   manifest: 1,
   name: 'lp-bare',
   blueprint: 'fixture-node@1',
   runtime: { port: 3000 },
-})
+}
+const BARE = manifestSchema.parse(BARE_INPUT)
 const UNDECLARED = { retention: false, classification: false }
 
 const section = (draft: { sections: Section[] }, id: Section['id']): Section =>
@@ -389,6 +390,27 @@ describe('assembleAssessment (Task 11)', () => {
       assembleAssessment(input({ warnings: ['Nothing is serving staging yet.'] }))
         .warnings,
     ).toEqual(['Nothing is serving staging yet.'])
+  })
+
+  it('a very-high app’s rule is on-premise hardware, written in the U1 name (U1 plan Task 1, C1)', () => {
+    const spec = manifestSchema.parse({
+      ...BARE_INPUT,
+      data: { classification: 'very-high' },
+    })
+    const flows = section(assembleAssessment(input({ spec })), 'flows')
+    expect(valueOf(flows, 'Classification')?.value).toMatch(
+      /must run on on-premise hardware\.$/,
+    )
+  })
+
+  it('a catalogue entry at very-high stays on premises in the words (U1 plan Task 1, C1)', () => {
+    const catalogue: ModelEntry[] = [
+      { name: 'default-chat-onprem', maxClassification: 'very-high', kind: 'chat' },
+    ]
+    const flows = section(assembleAssessment(input({ catalogue })), 'flows')
+    expect(valueOf(flows, 'default-chat-onprem')?.value).toMatch(
+      /runs on on-premise hardware/,
+    )
   })
 })
 

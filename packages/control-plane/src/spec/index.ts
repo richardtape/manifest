@@ -4,9 +4,22 @@ import { manifestSchema, type ManifestSpec } from './schema.js'
 import { toManifestErrors, SPEC_CODES } from './errors.js'
 import { checkPolicy, policyWarnings, type ValidationContext } from './policy.js'
 
-export type { ManifestSpec, Classification } from './schema.js'
+export type { ManifestSpec, Classification, Level } from './schema.js'
 export type { ValidationContext } from './policy.js'
-export { CLASSIFICATION_RANK, SLUG, AUTH_PATH, manifestSchema } from './schema.js'
+export {
+  CLASSIFICATION_RANK,
+  CLASSIFICATIONS,
+  DEFAULT_LEVEL,
+  LEVEL_ALIASES,
+  LEVELS,
+  SLUG,
+  AUTH_PATH,
+  canonicalLevel,
+  levelName,
+  levelWords,
+  manifestSchema,
+  toLevel,
+} from './schema.js'
 export { toMebibytes, POLICY_CODES } from './policy.js'
 export { SPEC_CODES } from './errors.js'
 export {

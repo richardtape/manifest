@@ -2,6 +2,7 @@ import { desc, eq } from 'drizzle-orm'
 import { describe, expect, it } from 'vitest'
 import type { BuilderModels } from '../ai/index.js'
 import { appSpecs, builds, incidents, instances, releases } from '../db/index.js'
+import type { Classification } from '../spec/index.js'
 import { mintTestToken } from '../tokens/testing.js'
 import { refusal, testDeps, withProjectServer, type TestProject } from './testing.js'
 
@@ -24,7 +25,7 @@ const LOG_TAIL =
 async function incidentIn(
   ctx: TestProject,
   environmentId: string,
-  classification?: 'internal' | 'confidential',
+  classification?: Classification,
 ): Promise<void> {
   const [spec] = await ctx.db
     .select({ id: appSpecs.id })
@@ -73,11 +74,7 @@ async function incidentIn(
 }
 
 /** A newer VALID manifest saying `classification` — what `classificationFloor` reads. */
-const declared = (
-  ctx: TestProject,
-  classification: 'internal' | 'confidential',
-  inMs = 1000,
-) =>
+const declared = (ctx: TestProject, classification: Classification, inMs = 1000) =>
   ctx.db.insert(appSpecs).values({
     projectId: ctx.projectId,
     commitSha: ctx.commitSha,
@@ -195,6 +192,20 @@ describe('listIncidents — a confidential project’s staging and production lo
       expect(
         tailOf(await read(ctx, ctx.productionEnvironmentId, { bearer: token })),
       ).toEqual([LOG_TAIL])
+    })
+  })
+
+  it('refuses a token the tails of a project written very-high — the U1 name — as of one written confidential (U1 plan Task 1, C1)', async () => {
+    await withSetting('capable', async (ctx) => {
+      await incidentIn(ctx, ctx.stagingEnvironmentId)
+      await declared(ctx, 'very-high')
+      expect(
+        refusal(await read(ctx, ctx.stagingEnvironmentId, { bearer: await reader(ctx) })),
+      ).toEqual({
+        status: 403,
+        code: 'INCIDENT_LOG_CONFIDENTIAL',
+      })
+      expect(tailOf(await read(ctx, ctx.stagingEnvironmentId, {}))).toEqual([LOG_TAIL])
     })
   })
 })

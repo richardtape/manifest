@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Manifest",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "description": "Manifest's public API. Resource routes are under /v1, and a breaking change gets a new prefix beside it. Response objects may gain fields under /v1, so a client ignores fields it does not know. Every mutation carries an Idempotency-Key, and a mutation made with a session also carries Origin."
   },
   "servers": [
@@ -1785,7 +1785,7 @@
                   "openapi": "3.1.0",
                   "info": {
                     "title": "Manifest",
-                    "version": "1.6.0"
+                    "version": "1.7.0"
                   },
                   "paths": {}
                 }
@@ -18610,12 +18610,16 @@
               "classification": {
                 "type": "string",
                 "enum": [
+                  "low",
+                  "medium",
+                  "high",
+                  "very-high",
                   "public",
                   "internal",
                   "confidential"
                 ],
                 "default": "internal",
-                "description": "How sensitive the app’s data is: `public`, `internal` or `confidential` — what its models must be approved for."
+                "description": "How sensitive the app’s data is, in UBC’s four levels (Information Security Standard U1): `low`, `medium`, `high` or `very-high` — what every model in `ai.models` must be approved for. Any personal information, such as students’ names, ID numbers or grades, is `high` at least, and `very-high` data reaches only models on UBC’s own hardware. The earlier names are still accepted, each meaning one level: `public` is `low`, `internal` is `medium`, `confidential` is `very-high`. `internal` when absent."
               },
               "retention_days": {
                 "type": "integer",

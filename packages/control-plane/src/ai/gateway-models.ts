@@ -1,4 +1,4 @@
-import type { Classification } from '../spec/index.js'
+import { toLevel, type Classification } from '../spec/index.js'
 import { capableModelAtBoot, type CapableAtBoot } from './capable.js'
 import type { LiteLlmClient } from './client.js'
 import { resolveSetting, type Gateway } from './providers.js'
@@ -132,7 +132,7 @@ export async function ensureGatewayModels(
     }
 
     const unpriced =
-      e.classification === 'confidential' ? standInPrice(listed) : undefined
+      toLevel(e.classification) === 'very-high' ? standInPrice(listed) : undefined
     models.push(
       said(
         await ensureRegistered(

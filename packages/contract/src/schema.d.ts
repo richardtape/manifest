@@ -5343,11 +5343,11 @@ export interface components {
              */
             data: {
                 /**
-                 * @description How sensitive the app’s data is: `public`, `internal` or `confidential` — what its models must be approved for.
+                 * @description How sensitive the app’s data is, in UBC’s four levels (Information Security Standard U1): `low`, `medium`, `high` or `very-high` — what every model in `ai.models` must be approved for. Any personal information, such as students’ names, ID numbers or grades, is `high` at least, and `very-high` data reaches only models on UBC’s own hardware. The earlier names are still accepted, each meaning one level: `public` is `low`, `internal` is `medium`, `confidential` is `very-high`. `internal` when absent.
                  * @default internal
                  * @enum {string}
                  */
-                classification: "public" | "internal" | "confidential";
+                classification: "low" | "medium" | "high" | "very-high" | "public" | "internal" | "confidential";
                 /**
                  * @description How many days the app keeps its data.
                  * @default 365
@@ -7561,7 +7561,7 @@ export interface operations {
                      *       "openapi": "3.1.0",
                      *       "info": {
                      *         "title": "Manifest",
-                     *         "version": "1.6.0"
+                     *         "version": "1.7.0"
                      *       },
                      *       "paths": {}
                      *     }

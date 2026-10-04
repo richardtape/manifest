@@ -96,6 +96,21 @@ describe('UBC’s AI Gateway’s own models (the UBC AI Gateway plan’s Task 3)
     ).toHaveLength(0)
   })
 
+  it('pins an unpriced very-high entry — the U1 name — at the stand-in’s price, as confidential (U1 plan Task 1, C1)', async () => {
+    for (const level of ['very-high', 'confidential'] as const) {
+      const lite = fakeLiteLlm()
+      lite.price('openai/qwen-x', 0)
+      const r = await ensureGatewayModels(
+        lite,
+        [{ name: 'ubc-onprem', setting: 'ubc-ai-gateway/qwen-x', classification: level }],
+        GW,
+      )
+      expect(r.models[0]?.state, level).toBe('registered')
+      const d = gatewayDeployments(lite).find((x) => x.modelName === 'ubc-onprem')!
+      expect([d.inputCostPerToken, d.outputCostPerToken], level).toEqual([1e-6, 3e-6])
+    }
+  })
+
   it('FAILS CLOSED: every manifest-gateway- deployment is REMOVED when .env no longer carries the key (Decision 4, C1)', async () => {
     const lite = fakeLiteLlm()
     await ensureCapableModel(lite, 'openai/gpt-6-luna', GW)

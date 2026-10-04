@@ -157,6 +157,18 @@ describe('agentModelsFor — the building agent’s setting (Spec action 10; the
       )
     }
   })
+
+  it('a project written very-high — the U1 name — keeps the builder exception, as confidential does (U1 plan Task 1, C1)', async () => {
+    const catalogue = await withCapable()
+    for (const floor of ['very-high', 'confidential'] as const) {
+      expect(agentModelsFor(catalogue, floor, 'capable'), floor).toContain(
+        CAPABLE_MODEL_NAME,
+      )
+      expect(agentModelsFor(catalogue, floor, 'on-premise'), floor).not.toContain(
+        CAPABLE_MODEL_NAME,
+      )
+    }
+  })
 })
 
 describe('classificationFloor (Decision 23)', () => {

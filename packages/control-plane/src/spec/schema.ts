@@ -5,14 +5,73 @@ export const AUTH_PATH = /^\/[A-Za-z0-9/_-]{1,64}$/
 const BLUEPRINT_REF = /^[a-z][a-z0-9-]*@\d+$/
 const QUANTITY = /^\d+(\.\d+)?(Mi|Gi)?$/
 
-export const CLASSIFICATIONS = ['public', 'internal', 'confidential'] as const
+/** UBC's U1 levels (Information Security Standard U1, §2.1), least sensitive first (§7). */
+export const LEVELS = ['low', 'medium', 'high', 'very-high'] as const
+export type Level = (typeof LEVELS)[number]
+
+/**
+ * MANIFEST'S EARLIER NAMES, ALIASES FOR EVER, EACH WITH ONE FIXED MEANING (Rich, 2026-10-03, 21:48: "Keep them as
+ * aliases"). An alias NEVER comes to mean anything wider: `confidential` is `very-high`, so a confidential app stays on
+ * premises.
+ */
+export const LEVEL_ALIASES = {
+  public: 'low',
+  internal: 'medium',
+  confidential: 'very-high',
+} as const satisfies Record<string, Level>
+
+/** Every name accepted wherever a level is — the four levels, then the three aliases. */
+export const CLASSIFICATIONS = [...LEVELS, 'public', 'internal', 'confidential'] as const
 export type Classification = (typeof CLASSIFICATIONS)[number]
 
-/** public < internal < confidential (D17). */
+/**
+ * low < medium < high < very-high (D17) — AND EVERY ALIAS AT ITS LEVEL'S RANK (the U1 spec action's review, I6), so a read
+ * that never canonicalizes still ranks a stored alias right, and the next read a change misses fails CLOSED. `levels.test.ts`
+ * holds RANK[alias] === RANK[its level]: the trap is a partial edit that appends the U1 names and leaves `confidential: 2`,
+ * which reads it as `high` and sends it to a commercial model.
+ */
 export const CLASSIFICATION_RANK: Record<Classification, number> = {
+  low: 0,
+  medium: 1,
+  high: 2,
+  'very-high': 3,
   public: 0,
   internal: 1,
-  confidential: 2,
+  confidential: 3,
+}
+
+/** §7's level for an app that declares none (S5): `medium`, today's `internal` — the schema's default from Task 2. */
+export const DEFAULT_LEVEL: Level = 'medium'
+
+/** The level a known name means. */
+export const toLevel = (name: Classification): Level =>
+  Object.hasOwn(LEVEL_ALIASES, name)
+    ? LEVEL_ALIASES[name as keyof typeof LEVEL_ALIASES]
+    : (name as Level)
+
+/**
+ * The level a stored or written value means; `undefined` for anything that is not one of the seven names. An OWN key of
+ * the rank table — never `in`, which finds `toString` (`ai/catalogue.ts`'s warning, finding 47).
+ */
+export const canonicalLevel = (value: unknown): Level | undefined =>
+  typeof value === 'string' && Object.hasOwn(CLASSIFICATION_RANK, value)
+    ? toLevel(value as Classification)
+    : undefined
+
+/** A level as a VALUE a person may copy into manifest.yaml (`very-high`), or the value as written when it is none. */
+export const levelName = (value: unknown): string =>
+  canonicalLevel(value) ?? String(value)
+
+/** A level as a person READS it — U1's own "Very High Risk", so `very high`, never the hyphen — or the value as written. */
+const LEVEL_WORDS: Record<Level, string> = {
+  low: 'low',
+  medium: 'medium',
+  high: 'high',
+  'very-high': 'very high',
+}
+export const levelWords = (value: unknown): string => {
+  const level = canonicalLevel(value)
+  return level === undefined ? String(value) : LEVEL_WORDS[level]
 }
 
 // EVERY FIELD IS DESCRIBED (the authoring API plan's Task 9): `api/contract/document.ts`
@@ -260,7 +319,7 @@ export const manifestSchema = z
           .enum(CLASSIFICATIONS)
           .default('internal')
           .describe(
-            'How sensitive the app’s data is: `public`, `internal` or `confidential` — what its models must be approved for.',
+            'How sensitive the app’s data is, in UBC’s four levels (Information Security Standard U1): `low`, `medium`, `high` or `very-high` — what every model in `ai.models` must be approved for. Any personal information, such as students’ names, ID numbers or grades, is `high` at least, and `very-high` data reaches only models on UBC’s own hardware. The earlier names are still accepted, each meaning one level: `public` is `low`, `internal` is `medium`, `confidential` is `very-high`. `internal` when absent.',
           ),
         retention_days: z
           .number()
