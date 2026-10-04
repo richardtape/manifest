@@ -699,6 +699,12 @@ export interface StubProvider {
  *   not tell a malformed request from a failed credential. That is the case the fallback guard must get right.
  * - `/ok/v1` — a valid completion whose content is `ok`.
  * - `/slow/v1` — a valid completion after 20 s, for a deployment's `timeout`.
+ * - `/gwfail/<kind>/v1` — UBC's AI Gateway's OWN failure, in the shape MEASURED (the UBC AI Gateway plan's Task 4,
+ *   never invented): `budget`, the gateway's budget for Manifest's key spent — `429 budget_exceeded`, as the gateway
+ *   (LiteLLM 1.102.0) answered it at `[M5]`(e), 2026-10-03 21:13; `model-not-on-key`, a model the key may not use —
+ *   `403 key_model_access_denied`, LiteLLM 1.98.0's own answer to that case measured on `manifest-litellm` at sitting
+ *   2 (the gateway's own body was not recorded at `[M5]`(c-ii), only its status, 403). The alias and fragment are
+ *   the stub's, not a key's.
  *
  * Bound to 127.0.0.1 (Docker Desktop's `host.docker.internal` reaches the host's loopback — measured at
  * Task 1), on a port the caller names inside the platform's 7100–7199 block. It logs nothing: a test reads
@@ -735,6 +741,28 @@ export async function startStubProvider(
     // Drained before answering: a provider that answers before reading the body is not what LiteLLM meets.
     req.resume()
     req.on('end', () => {
+      const gw = /^\/(?:[a-z0-9-]+\/)?gwfail\/(budget|model-not-on-key)\/v1\//.exec(path)
+      if (gw !== null) {
+        return gw[1] === 'budget'
+          ? answer(429, {
+              error: {
+                message:
+                  'Budget has been exceeded! Key=stub-gateway-key (sk-...stub) Current cost: 0.01769484999999999, Max budget: 0.01',
+                type: 'budget_exceeded',
+                param: null,
+                code: '429',
+              },
+            })
+          : answer(403, {
+              error: {
+                message:
+                  "key not allowed to access model. This key can only access models=['qwen3.6-35b-a3b']. Tried to access stub-model",
+                type: 'key_model_access_denied',
+                param: 'model',
+                code: '403',
+              },
+            })
+      }
       const m = /^\/(?:[a-z0-9-]+\/)?(s(\d{3})|ok|slow)\/v1\//.exec(path)
       if (m === null) {
         answer(404, {

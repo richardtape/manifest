@@ -120,6 +120,18 @@ for (const [c, s] of [
     path: `/${tag}/s${s}/v1/chat/completions`,
   }
 }
+// The UBC AI Gateway plan's Task 4: the gateway's OWN failures, in the shapes measured (`ai/testing.ts`'s
+// `/gwfail/`), and a malformed request's 400 asked after them — the positive control.
+for (const kind of ['budget', 'model-not-on-key']) {
+  PRIMARIES[`gwfail-${kind}`] = {
+    apiBase: `${STUB}/gwfail/${kind}/v1`,
+    path: `/gwfail/${kind}/v1/chat/completions`,
+  }
+}
+PRIMARIES['s400-after-gw'] = {
+  apiBase: `${STUB}/after/s400/v1`,
+  path: '/after/s400/v1/chat/completions',
+}
 for (const s of [400, 401, 403, 404, 408, 413, 422, 429, 500, 502, 503]) {
   PRIMARIES[String(s)] = {
     apiBase: `${STUB}/s${s}/v1`,
@@ -396,6 +408,28 @@ describeDocker(
       expect(r.text, r.seen).not.toContain('data:')
       expect(stub!.hits(PRIMARIES['stream-422']!.path!)).toBe(2)
       expect(stub!.hits(FALLBACK_PATH), 'the fallback was called').toBe(before)
+    })
+
+    // THE UBC AI GATEWAY PLAN'S TASK 4 — a WITNESS, no guard code (Rich, 2026-10-03 21:17: Branch C (i), "accept it").
+    // UBC's gateway answers its own failures with non-malformed statuses ([M5]): a model the key may not use 403, its
+    // budget for Manifest spent 429 — so the guard lets the fallback answer, as it does the generic 401 and 500 above
+    // ((d) and (g), FAILED). A model the gateway does not serve is a 400 it does not tell from a malformed request, and
+    // is refused like one by Rich's choice — so it is NOT here.
+    it.each(['model-not-on-key', 'budget'])(
+      'the GATEWAY’s own failure (%s) is answered by the fallback — the shape UBC’s gateway answers (the UBC AI Gateway plan’s Task 4, Review Focus 2)',
+      async (kind) => {
+        const before = stub!.hits(FALLBACK_PATH)
+        const r = await chat(probe(`gwfail-${kind}`))
+        expectTheFallbacksAnswer(r)
+        expect(stub!.hits(PRIMARIES[`gwfail-${kind}`]!.path!)).toBe(1)
+        expect(stub!.hits(FALLBACK_PATH)).toBe(before + 1)
+      },
+    )
+
+    it('POSITIVE CONTROL: a malformed request’s 400, asked after the gateway’s cases, is still the caller’s — no fallback (Task 4)', async () => {
+      const before = stub!.hits(FALLBACK_PATH)
+      expectTheProvidersRefusal(await chat(probe('s400-after-gw')), 400)
+      expect(stub!.hits(FALLBACK_PATH)).toBe(before)
     })
 
     it.each(FAILED)(
