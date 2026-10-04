@@ -220,7 +220,7 @@ UBC's gateway sees one key and the messages, and cannot attribute a call to a Ma
 - **A reference that resolves to a BOOLEAN poisons LiteLLM's router.** LiteLLM's `get_secret` turns `"True"` into `True`, which fails
   `LiteLLM_Params`'s string check at the router's reload (*"Input should be a valid string … input_type=bool"*), and **from then on every
   later `/model/new` answers `500` *"saved to the database, but … not live in this pod's router"*** — five registrations in a row never
-  went live. Deleting the row is not enough while a second such row remains; with both gone, every pending row went live within ~45 s.
+  went live. Deleting the row is not enough while a second such row remains; with both gone, every pending row went live within ~60 s (21:02:03 → 21:03:06).
   The plan's Global Constraints already forbid a boolean-looking reference; this is why, measured (TRAPS).
 - **The real key's value**: **0** in `docker logs gw-probe`, **0** in the probe's raw files.
 

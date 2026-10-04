@@ -2595,3 +2595,34 @@ held the verify (`docker exec <app> grep -c 'done(null, null)' /app/auth/ubcshib
 sitting 7). Inside a `node:24-alpine` app container, `cat /proc/7/comm` reads `MainThread`; PID 1 under `Init: true` reads `docker-init`, and
 without the init PID 1 itself reads `MainThread`. A probe matching `comm` against `node` found nothing and failed for its own reason. Read
 `/proc/<pid>/cmdline` (`node server.js`) and `PPid:` in `/proc/<pid>/status` instead.
+
+**A STORED `/v1/responses` ANSWER IS READABLE BY ANY KEY THAT HOLDS ITS ID — AT MANIFEST'S LITELLM AND AT UBC'S GATEWAY** (2026-10-03, the
+UBC AI Gateway plan's sitting 1, `[M4]` and `[M4c]`). Responses are stored by default (`store: true`). Manifest's LiteLLM forwards `GET
+/v1/responses/{id}` to the provider with the DEPLOYMENT's key, and every Manifest key reaches the gateway on ONE upstream key — so a second
+scratch key read the first key's response `200`, and its `…/input_items` (the prompt). At the gateway itself a probe key on another team, with
+one other model, read the real key's the same way. **And `allowed_routes` matches by PREFIX**: a key listing only `/v1/responses` was
+admitted to `/v1/responses/{id}` and `/input_items`. Nothing Manifest mints today holds the route (three routes, `ai/keys.ts`). **Rich's
+binding rule (the decisions file, 20:52): when Phase 3 first gives any Manifest key `/v1/responses`, its plan forces `store: false` OR
+refuses `GET /v1/responses/{id}` and `…/input_items`, with a test that one key cannot read another's answer.**
+
+**AN `api_key` REFERENCE THAT RESOLVES TO A BOOLEAN STOPS EVERY LATER LiteLLM REGISTRATION GOING LIVE** (2026-10-03, the UBC AI Gateway
+plan's sitting 1, `[M7]`, LiteLLM 1.98.0). `os.environ/STORE_MODEL_IN_DB` reads `"True"`, which `get_secret` turns into `True`; the row is
+SAVED, and then `LiteLLM_Params` refuses it at every router reload (*"Input should be a valid string … input_type=bool"* in `docker logs`) —
+and **every `/model/new` after it answers `500` *"saved to the database, but … not live in this pod's router"***. Eleven registrations stayed
+dead until BOTH such rows were deleted (`POST /model/delete`); then all went live within a minute. In `manifest-litellm` it would silently
+block every capable-model and gateway registration a boot makes. Never point an `api_key` at a variable that is unset, empty or
+boolean-looking — and an unset or EMPTY one is no better: it sends `OPENAI_API_KEY` instead, on `openai/` and `litellm_proxy/` alike (`[M7]`).
+
+**MANIFEST'S LiteLLM CHARGES WHAT AN UPSTREAM LiteLLM REPORTS, AND FORWARDS THAT LiteLLM'S KEY TO EVERY CALLER** (2026-10-03, the UBC AI
+Gateway plan's sitting 1, `[M3]`, `[M5]`). LiteLLM 1.98.0 forwards every provider header as `llm_provider-{header}`
+(`litellm_core_utils/llm_response_utils/get_headers.py`) and prices the call from `llm_provider-x-litellm-response-cost` when present
+(`cost_calculator.py:1698-1712`) — a deployment's own pinned price is NOT read then (a pin at 10× charged the gateway's figure to the digit);
+it binds only when the upstream sends no cost. The same forwarding hands every app and agent the upstream key's
+`llm_provider-x-litellm-key-max-budget`, `-key-spend` and the upstream's `x-litellm-model-api-base`, and with no fallback the upstream's
+budget `429` arrives verbatim with its key's alias and `sk-...` last-4. Strip them only AFTER costing, or billing moves with them.
+
+**A GATEWAY VIRTUAL KEY — OR ANY KEY WHOSE `allowed_routes` OMIT IT — CANNOT READ ITS OWN `/key/info`** (2026-10-03, the UBC AI Gateway plan's
+sitting 1, `[M1]`, `[M3]`). UBC's gateway answers its keys `403` *"Only allowed to call routes: ['llm_api_routes']"*; Manifest's own agent-shaped
+keys (three routes) are refused the same way, so a spend read with the key itself reads `null`. Read a scratch key's spend through the admin
+(`/key/info?key=`), and a gateway key's from its answers' `x-litellm-key-spend` and `x-litellm-key-max-budget` headers (its expiry is the
+administrator's, from the gateway's admin UI).

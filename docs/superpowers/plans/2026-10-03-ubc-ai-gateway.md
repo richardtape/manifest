@@ -81,9 +81,12 @@ UBC's as its provider). S5's unapplied spec row on the Responses API (`spikes/S5
 **Predecessor:** [`2026-09-30-faculty-ready.md`](./2026-09-30-faculty-ready.md). **This plan starts only after that plan's sitting 7 (its
 acceptance) closes.**
 
-**Successor:** [`2026-10-03-fe46-fe47-fe5.md`](./2026-10-03-fe46-fe47-fe5.md) (approved). **If Task 5 runs, the contract it inherits is
-`1.6.1`, not `1.6.0`** (Decision 9). Then A1, B, FE-32, Phase 3, A2, the vulnerability database and FE-45 (ORIENTATION §8 *Decided*).
-**Phase 3 inherits Task 5**: its harness reaches the capable model on `/v1/responses` through an agent key.
+**Successor:** [`2026-10-03-fe46-fe47-fe5.md`](./2026-10-03-fe46-fe47-fe5.md) (approved). **Task 5 DROPPED at sitting 1, so the contract
+it inherits is `1.6.0`** (Decision 9 does not apply). Then A1, B, FE-32, Phase 3, A2, the vulnerability database and FE-45 (ORIENTATION §8
+*Decided*). **Phase 3 does NOT inherit Task 5** — the capable model takes tools on chat completions through both hops (`[M4]`.8). **It
+inherits Rich's binding rule instead** (the decisions file, 20:52): when Phase 3 first gives any Manifest key `/v1/responses`, its plan
+forces `store: false` OR refuses `GET /v1/responses/{id}` and `…/input_items`, with a test that one key cannot read another's answer —
+because responses are stored by default and every Manifest key reaches the gateway on ONE upstream key (`[M4]`'s STOP, `[M4c]`).
 
 ---
 
@@ -97,13 +100,17 @@ acceptance) closes.**
 > AND Task 5 runs, sitting 2 ends after Task 3 and **sitting 2b** takes Tasks 4 and 5, each sitting running the Docker tier once at
 > its close (one more ~20–23 min run is the price of fitting in a session); otherwise sitting 2 continues past the stop point if the
 > session has room, and splits there if it does not. The acceptance is alone and last.
+>
+> **SITTING 1 SETTLED IT (2026-10-03):** Task 5 is DROPPED (`[M4]`.8 — the capable model takes tools on chat completions through both
+> hops) and Task 4 writes no guard code (Rich, 21:17: Branch C (i)), so the forced split cannot happen. **Sitting 2 is Tasks 2, 3 and 4**,
+> and splits at its stop point only if the session runs out.
 
 | Sitting | Tasks | What it delivers | `pnpm test:docker` owed? | Spec action needed first | Status |
 |---|---|---|---|---|---|
-| 1 | 0, 1 | **The key scrubbed, then uncommented** (Task 0: one name in `secrets/scrub.ts` and its test, the four gates, a commit, THEN the `.env` line). **The measurements** (the network on, Rich's key and his tiny-budget probe key): the gateway's models, the key's ceiling and expiry; chat, streamed and not, through both hops; `/v1/responses` through both hops, with a tool, its spend and its stored responses; the error shapes the guard meets, streamed too; the price Manifest's LiteLLM records against the gateway's own charge; where the key goes in four cases on both providers; each model's classification, in Rich's words | **Not the tier — ONE file**: Task 0's scrub name is executed by one Docker case only, `boot.docker.test.ts` (its `:135` asserts `secretsScrubbed >= 3`; grepped 2026-10-03), so that file runs alone, as the lean budget rules for a change one Docker file executes. The four gates, `pnpm test` twice, are owed by Task 0 | — | ← **next** (after faculty-ready's sitting 7) |
-| 2 | 2, 3 — **stop point** — 4, 5 | **The capable model through the gateway**, the key by reference only, failing closed. **The gateway's own models**, from one setting. **The guard**, if `[M5]` needs it. **Agent keys reach `/v1/responses`**, if `[M4]` needs it — contract `1.6.1` | Yes — `ai/`, `infra/` | **1** (§7, §21, §26) before Tasks 2–3 — **APPLIED 20:03**; **2** (§10) before Task 5 | |
-| 2b | 4, 5 — **only if sitting 2 split at its stop point** | As sitting 2's second half | Yes — `infra/` (Branch B), `ai/` | **2** (§10) before Task 5 | |
-| 3 | 6 | **The acceptance**: `make demo-gateway` three times, its controls seen red, every other demo still green, the plan's one whole-branch review, and Rich watching the gateway's spend move — compared by `/key/info`, not by eye | Yes, if any code changes | — | |
+| 1 | 0, 1 | **The key scrubbed, then uncommented** (Task 0: one name in `secrets/scrub.ts` and its test, the four gates, a commit, THEN the `.env` line). **The measurements** (the network on, Rich's key and his tiny-budget probe key): the gateway's models, the key's ceiling and expiry; chat, streamed and not, through both hops; `/v1/responses` through both hops, with a tool, its spend and its stored responses; the error shapes the guard meets, streamed too; the price Manifest's LiteLLM records against the gateway's own charge; where the key goes in four cases on both providers; each model's classification, in Rich's words | **Not the tier — ONE file**: Task 0's scrub name is executed by one Docker case only, `boot.docker.test.ts` (its `:135` asserts `secretsScrubbed >= 3`; grepped 2026-10-03), so that file runs alone, as the lean budget rules for a change one Docker file executes. The four gates, `pnpm test` twice, are owed by Task 0 | — | ✅ **DONE 2026-10-03** (19:59–21:17 PDT, `manifest-ec`): Task 0 `90bca1e`, Task 1 `ec8a755` — *What executing this plan found*, *Sitting 1* |
+| 2 | 2, 3 — **stop point** — 4 (**Task 5 DROPPED**) | **The capable model through the gateway**, the key by reference only, failing closed. **The gateway's own models**, from one setting. **Task 4: no guard code** (Rich, 21:17: Branch C (i)) — its witness Docker cases only. *Contract stays `1.6.0`.* | Yes — `ai/`, `infra/` | **1** (§7, §21, §26) — **APPLIED 20:03**; **2** — **NOT NEEDED** (`[M4]`.8) | ← **next** |
+| 2b | 4 — **only if sitting 2 runs out of room at its stop point** | As sitting 2's last task | Yes — `ai/` | — | |
+| 3 | 6 | **The acceptance**: `make demo-gateway` three times, its controls seen red, every other demo still green, the plan's one whole-branch review, and Rich watching the gateway's spend move — compared by the answers' `x-litellm-key-spend` header (the key's own `/key/info` answers `403`, `[M1]`), not by eye | Yes, if any code changes | — | |
 
 **EVERY SITTING ENDS THE SAME WAY, and none of these four steps is optional:**
 
@@ -1210,6 +1217,17 @@ yet in the catalogue (Read this first 18). *The first draft ran it after, so a f
 
 ## Task 4: The guard and the gateway's own failures — `[M5]`'s branch
 
+> **DECIDED AT SITTING 1 — NO GUARD CODE.** `[M5]` measured (`spikes/gateway-baseline/README.md`): a served model the key may not use
+> answers **`403`**, a wrong key **`401`**, the key's budget spent **`429` `budget_exceeded`**, the gateway unreachable **`500`** — each
+> non-malformed, each falling back (Branch A) — and **a model the gateway does not serve answers `400 invalid_request_error`**, told from a
+> malformed request by nothing but `param=None` (Branch C). **Rich, 21:17 (the decisions file): (i), *accept it*** — over a boot probe, a
+> `make verify`-only probe and message matching. So (c-i) stays a LOUD `400` to callers, with no fallback, until an administrator fixes
+> the setting. **This task therefore writes no guard code and no probe**: Steps 2–4's Branch B do not run. It keeps Step 1's WITNESS
+> Docker cases, rewritten to the cases that fall back — **(c-ii) `403` and (e) `429`**, in the shapes `[M5]` recorded (and (d) `401` and
+> (g) `500` if the stub's existing shapes cover them) — **plus the malformed positive control**; `model-unserved` is NOT among the
+> fall-back kinds (it is refused like a malformed request, by Rich's choice). On Branch A they are green at once, which IS the witness:
+> commit them, then break the guard's status check and watch them go red.
+
 **Its branch is `[M5]`'s.** Its caller is LiteLLM, through `config.yaml`'s `callbacks`.
 - **Branch A** (the gateway's own failures arrive as non-malformed statuses): **no code changes.** The Docker case below is written
   anyway, as the witness that they fall back.
@@ -1265,7 +1283,12 @@ yet in the catalogue (Read this first 18). *The first draft ran it after, so a f
 
 ---
 
-## Task 5: An agent key reaches the Responses API (Rich's Q2) — only if `[M4]` measured it needed
+## Task 5: An agent key reaches the Responses API (Rich's Q2) — only if `[M4]` measured it needed — **DROPPED AT SITTING 1**
+
+> **DROPPED (2026-10-03, sitting 1).** `[M4]`.8 measured the capable model, `gpt-6-luna` through UBC's gateway, ACCEPTING a function tool
+> on `/v1/chat/completions` through both hops (`finish_reason: tool_calls`, `reasoning_effort` unset and `"none"`) — S5's refusal does not
+> reproduce there. So nothing below runs, Spec action 2 is NOT NEEDED, and the contract stays `1.6.0`. **What replaces it for Phase 3 is
+> Rich's binding rule (the decisions file, 20:52)** — see the header's *Successor*. Kept as written, for the record.
 
 **It runs only if Task 1 Step 4.8 measured the capable candidate refusing tools on chat completions THROUGH BOTH HOPS** (*M9*; Step 2.4
 is hop 2 alone), **and Step 4.1 measured `/v1/responses` charged at the pinned price** (*I7*). **Spec action 2 is decided first.**
@@ -1498,7 +1521,10 @@ says the capable model is *"a commercial provider's"*, reached *"through the sam
 own AI Gateway, for now"*. `manifest-decisions.html:137` (D17's why) speaks of a model in the United States, so check it; it is
 unchanged unless (c). `manifest-phases.html` and `manifest-stories.html`: no mention (checked).
 
-### 2. §10 — an agent key also reaches the Responses API (before sitting 2; ONLY IF `[M4]`.8 MEASURES IT NEEDED, THROUGH BOTH HOPS)
+### 2. §10 — an agent key also reaches the Responses API (before sitting 2; ONLY IF `[M4]`.8 MEASURES IT NEEDED, THROUGH BOTH HOPS) — **NOT NEEDED**
+
+> **NOT NEEDED (2026-10-03, sitting 1):** `[M4]`.8 measured tools accepted on chat completions through both hops, so Task 5 dropped and
+> §10 keeps its three routes. Not put to Rich; kept as drafted, for the record.
 
 **Why.** Rich's Q2 (*"Yes, in this plan, if measured"*). S5 measured that the capable model answers a tool-calling agent only on
 `/v1/responses` (`spikes/S5-findings.md:89-93`), and §10 confines every key to three routes. S5's own spec row (its *Spec actions*,
@@ -1575,5 +1601,106 @@ marked in place with its id.*
 
 ## What executing this plan found
 
-*Nothing yet. Each sitting adds a dated entry: every defect with the measurement that found it, every negative control (and which could
-not fail, and why), the gate numbers and the machine at the close.*
+*Each sitting adds a dated entry: every defect with the measurement that found it, every negative control (and which could not fail,
+and why), the gate numbers and the machine at the close.*
+
+### Sitting 1 — 2026-10-03, 19:58–21:20 PDT (`manifest-ec`, coordinated by `manifest-af`): Tasks 0 and 1
+
+**Task 0 — `90bca1e`.** `UBC_AI_GATEWAY_API_KEY` named in `secrets/scrub.ts` and in `scrub.test.ts`'s list. The test was RED at exactly its one
+case before the name (*"expected [ … ] to include 'UBC_AI_GATEWAY_API_KEY'"*), green after. **The four gates:** `pnpm test` twice, alone —
+**3289/3289, 201 files**, 978 s and 963 s (load 3.3–4.5) — and `pnpm lint`, `pnpm typecheck`, `pnpm format:check` clean;
+`boot.docker.test.ts` alone, after the platform was already up, **7/7** (56 s). **The negative control** (the name removed after the
+commit): 1 failed at the one case, restored 4/4. **The real boot** (`s7-cp.sh real`, RUNBOOK's start block): **`secretsScrubbed` 15** with
+the line commented (20:34:00), the line uncommented by the plan's `sed` at Rich's 19:58 word (`grep -c` → 1), **16** after it (20:34:25) —
+the real process removed the key, which no test tier shows. The key's value in both boot logs and the migrate log: **0**. `make doctor`
+21/0/0, `make verify` 66/0/0. **These two `pnpm test` runs are the sitting's close runs**: nothing under `packages/` changed after them.
+7100 was then F5b's, 20:35:46–21:17.
+
+**Task 1 — `ec8a755`**: [`../spikes/gateway-baseline/README.md`](../spikes/gateway-baseline/README.md) is the record, one section per
+measurement; this entry is its findings. **No key's value was printed or written** (counted 0 in every file the sitting wrote); the
+gateway's upstream addresses and OpenAI organisation are recorded as a class only (M9).
+
+1. **F1 Task 5 DROPS** (`[M4]`.8). Through both hops, `gpt-6-luna` on `/v1/chat/completions` with a function tool answers
+   `finish_reason: tool_calls`, `reasoning_effort` unset and `"none"` (hop 2 alone the same, `[M2]`.4). S5's refusal (`S5-findings.md:89-93`)
+   does not reproduce on UBC's gateway. *Read this first* 10's premise is wrong for this provider. Spec action 2 NOT NEEDED; contract `1.6.0`.
+2. **F2 THE STOP: one Manifest key reads another's stored response** (`[M4]`.3). Responses are stored by default (`store: true`); hop 1
+   forwards `GET /v1/responses/{id}` to the provider with the DEPLOYMENT's key, and every Manifest key reaches the gateway on one key — so
+   a second scratch key read the first's response (`200`), and a key listing only `/v1/responses` read `…/input_items` (the prompt):
+   **`allowed_routes` matches by prefix**. Nothing open today is exposed (every key holds the three routes; Task 5 dropped). **Rich, 20:52:
+   *"Yes, a binding Phase 3 rule"*** — when Phase 3 first gives any Manifest key `/v1/responses`, its plan forces `store: false` OR refuses
+   `GET /v1/responses/{id}` and `…/input_items`, with a test that one key cannot read another's answer (ORIENTATION §8, TRAPS, the roadmap).
+3. **F3 The same at UBC's gateway itself** (`[M4c]`, Rich's ask, 20:48:32): the PROBE key — another team, one other model — read the real
+   key's stored response and its `input_items` (`200` each); the real key's `DELETE` then answered `200`, its `GET` `404`. A response id is
+   all any virtual key there needs. A fact for Rich as the gateway's administrator.
+4. **F4 Hop 1 charges what the gateway REPORTS, not its own pin** (`[M3]`.6, 6c, 6d). LiteLLM 1.98.0 prices a call from the provider's
+   `llm_provider-x-litellm-response-cost` header when one is sent (`cost_calculator.py:1698-1712`): a pin at 10× the map's price still
+   charged the gateway's `$0.00003124`, cache creation and cache reads included (the ratio Decision 6 rests on is **1.0**). When the gateway
+   sends none (`qwen3.8-27b`), the pin binds (`$0.000149` = 59×1e-6 + 30×3e-6; unpinned, `$0`). **What Task 2's pin then means:** for a
+   model the gateway prices, the pin is never read and the person pays UBC's price; for one it does not, the pin is the whole price —
+   Decision 6's `confidential` synthetic pin works as written, and its cache-read row is moot.
+5. **F5 UBC's key's budget, spend and upstream reach every hop-1 caller** (`[M3]`.6, `[M5]`(e)). LiteLLM forwards every provider header as
+   `llm_provider-{header}` (`get_headers.py:7-38`), so every Manifest app and agent reads `llm_provider-x-litellm-key-max-budget: 30.0`,
+   `…-key-spend` and the gateway's upstream address; **and with no fallback the gateway's budget `429` reaches the caller verbatim**, with
+   the key's alias and its `sk-...` last-4 fragment. The same headers carry F4's cost, so stripping them before costing moves billing. Options
+   (README, *For sitting 2*): strip in the guard file AFTER costing (recommended), strip at the edge (console and agents only), or accept
+   until *before production*. **Put to Rich before sitting 2.**
+6. **F6 Task 4's branch: A for every case but (c-i)** (`[M5]`). (c-ii) `403`, (d) `401`, (e) `429`, (g) `500` fall back; (a) is refused,
+   correctly; **(c-i), a model the gateway does not serve, is `400 invalid_request_error`, told from (a) only by `param=None`** — Branch C.
+   **Rich, 21:17: (i) *accept it*** — no guard code, no probe; Task 4 keeps its witness cases (its heading says how).
+7. **F7 The gateway's budget refusal is `429 budget_exceeded`, not `400`** (`[M5]`(e)) — so `manifest_guard.py:48-50`'s known limit (*"a
+   provider may answer its OWN failure — a billing one, say — with 400"*) does not bite on UBC's gateway; the guard reads `RateLimitError`
+   429 and falls back, plain and streamed.
+8. **F8 Every unresolved, empty or absent `api_key` sends `OPENAI_API_KEY` — on BOTH providers** (`[M7]`): `os.environ/PROBE_UNSET`,
+   `os.environ/PROBE_EMPTY` (what `${…:-}` gives) and no key at all each reached the stub as gw-probe's canary, on `openai/` and on
+   `litellm_proxy/` alike. Decision 4's mechanism is LIVE, and **Decision 2's hoped-for difference does not exist** — `openai/` stands.
+   `os.environ/MANIFEST_STUB_BEARER` resolves as a plain string (Task 2's stand-in works).
+9. **F9 A reference that resolves to a BOOLEAN poisons LiteLLM's router** (`[M7]`, found by its case 3). `get_secret` turns `"True"` into
+   `True`, `LiteLLM_Params` refuses it at every reload (*"Input should be a valid string … input_type=bool"*), and **every later `/model/new`
+   answers `500` *"saved to the database, but … not live"*** — eleven registrations stayed dead until BOTH such rows were deleted, then went
+   live within ~60 s. In `manifest-litellm` that would silently block every later capable-model or gateway registration. TRAPS.
+10. **F10 The key's ceiling is 30 USD, not 20** (`x-litellm-key-max-budget: 30.0`; Rich, 20:56: *"The platform key has $30 budget. Expires Jan
+    1, 2027 at 3:23 PM. No rpm/tpm limits. All models."*) — the 16:23 figure is superseded. **A gateway key cannot read its own
+    `/key/info`** (`403`, *"Only allowed to call routes: ['llm_api_routes']"*), so `UBC_AI_GATEWAY_KEY_EXPIRES=2027-01-01` is Rich's reading
+    (appended at 20:57) and **Task 6's `/key/info` comparisons become the answers' `x-litellm-key-spend` header**.
+11. **F11 The gateway HAS a fallback** (`[M5]`): its own `400`s quote its router, *"Fallbacks=[{'qwen3.6-35b-a3b': ['gpt-6-luna']}]"* — on-prem
+    to off-prem — though the key's page shows none. While it stands `qwen3.6-35b-a3b` cannot be `confidential` (Decision 7). Rich, 21:12:
+    *"Don't worry about the fallback that's currently set I can sort that later, it's not a blocker for us here."*
+12. **F12 Decision 12's `timeout` is per ATTEMPT, and LiteLLM retries twice** (`[M3]`.9): `timeout: 2` at a stalled stub answered `408`
+    after ~10.8 s (3 attempts), streamed or not; `stream_timeout: 2` bounds only a stream; with `num_retries: 0` beside it, ~2.05 s. So
+    Task 2 sets `GATEWAY_TIMEOUT_S` and the retries together. The longest legitimate answer: `[M2]`'s **35.2 s** (~3,000 tokens); a stream's
+    first frame after **13.0 s** (reasoning first).
+13. **F13 A scratch key's `allowed_routes` refuse its own `/key/info`** (`[M3]`.6): the plan's spend reading through the key itself read
+    `null`; read through the admin (`/key/info?key=`) or the answers' `x-litellm-key-spend`. `/key/update { models }` KEEPS
+    `allowed_routes` (`[M4]`.7, re-measured that way).
+14. **F14 The gateway shows every virtual key its `litellm_params`**, an `api_base` for three self-hosted models (`[M1]`), and names each
+    answer's upstream in `x-litellm-model-api-base`. Recorded as present/absent and as a class; a fact for Rich as its administrator.
+15. **F15 Hop 1 forwards only `model` and `messages`** (`[M6]`): neither the end-user hash (`user`), nor key or request metadata, nor any
+    trace header reached the provider. UBC's gateway sees one key and the messages, and cannot attribute a call to a person or an app.
+16. **F16 The PROBE key's budget was `$0.10`, not `$0.01`, and the gateway's prompt cache charged twelve identical 32k-token calls
+    `$0.0000118` each after the first** (`[M5]`(e)) — (e) needed unique prefixes and then Rich lowering the budget to `$0.01` (21:12); measured
+    in three calls, never hammering. Both keys' facts are read from response headers, since neither key reads `/key/info`.
+17. **F17 Four of my probes were broken by my own bodies** — a brace expansion (`m3.sh` step 7: `422`), a backslash-laden default (`m5.sh`
+    a–d: every case `400 "Invalid JSON payload"`), a `jq --argjson` with a leading comma (`m3b.sh` 6c), and a copied script resolving
+    `lib.sh` beside itself. **Each read as the provider's refusal until its body was read**; each was re-run and the record says which.
+18. **F18 The redactor's first version let the gateway's upstream addresses and OpenAI organisation into the results file**
+    (`x-litellm-model-api-base`, `llm_provider-*`) — caught before any commit by reading the file; `redact.pl` now classes upstreams, keeps the
+    gateway's own address and the cost numbers, and drops organisation, project, request ids, cookies and response ids.
+
+**Negative controls.** Task 0's (above), red at the one case. Task 1 is measurement; its controls are the canaries: `OPENAI_API_KEY` a
+canary in gw-probe (F8 is it firing), the stub's digest classes for both keys (never fired), the real key's value counted in every file
+(0), and `decrypt-verdict.py`'s `other` branch (`[M3]`.5 read `equals the reference`).
+
+**Rich's words this sitting** (the decisions file, clock times): 19:58 (the 7100 order; the `sed`; the expiry from `/key/info`), 20:27, 20:42,
+20:52, 20:56, 21:12, 21:17 — each quoted where it is used above and in the README.
+
+**The gates at the close:** no new `pnpm test` (the lean budget; Task 0's two runs above are the close runs, nothing under `packages/` changed
+since). `pnpm lint` and `pnpm format:check` clean with the spike committed. `EXPECT_TESTS=3289`, `EXPECT_FILES=201`, `EXPECT_DOCTOR=21`,
+`EXPECT_VERIFY=66` — unmoved. `pnpm test:docker`'s count unmoved (only `boot.docker.test.ts` ran).
+
+**The machine at the close, queried at 21:18 PDT:** 7100 is PID 81128 (started 20:34:31, real GitHub), holding F5b's rows (4 users, 1
+project: `f5b-measure-1`, LAUNCHED — a real private repository in `Manifest-local-dev`, Rich's). `.env`: the gateway key's line live (1),
+none commented, `UBC_AI_GATEWAY_KEY_EXPIRES=2027-01-01` (1), mode 600. **28 Docker networks** (25 at the start; `dead-app-resources.sh`
+reads 0 dead — F5b's), 48 `mf-` containers, 0 `gw-probe*`, 7197/7198 free; the probe key's file gone. The cleanup scripts bare, then:
+`app-images.sh --apply` (5 dead daemon copies — 4 older `f5b-measure-1` builds and 1 `boot-recover`; re-run reads 0); **`litellm-orphans.sh`
+NOT applied** — its one orphan is `instructor`'s agent budget, F5b's (`manifest-af`'s call, 21:17); `dead-app-resources.sh` 0 dead (13 orphan
+mirrors named, Rich's). The four protected containers running. Free disk 61 GiB. `platform-window` FREE.

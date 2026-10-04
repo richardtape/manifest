@@ -14,7 +14,7 @@ names the next job** and the current plan's sittings table says how far it has g
 
 **The design is approved and complete, five spikes are done, and sixteen plans are executed** — each with an acceptance that
 passes; the newest is **the faculty-ready plan** (`docs/superpowers/plans/2026-09-30-faculty-ready.md`), EXECUTED 2026-10-03. **The current
-plan, the UBC AI Gateway as Manifest's upstream provider** (`docs/superpowers/plans/2026-10-03-ubc-ai-gateway.md`), is APPROVED and next,
+plan, the UBC AI Gateway as Manifest's upstream provider** (`docs/superpowers/plans/2026-10-03-ubc-ai-gateway.md`), is IN PROGRESS (approved; its sitting 1 done 2026-10-03),
 executed inline, a fresh session per sitting; then FE-46, FE-47 and FE-5 (their spec actions applied, their plan, `docs/superpowers/plans/2026-10-03-fe46-fe47-fe5.md`, approved); then A1 (production instances by audience, approved), B (the load rehearsal, FE-44), FE-32 with §12's package allowlist (approved), Phase 3 (sandboxes), A2 (hibernation), the
 vulnerability database in the console, and FE-45 (Rich, 2026-10-03, 15:28; B and A2 await a second review). Rich's decisions since 2026-09-30 are in `docs/superpowers/2026-09-30-decisions.md`. Each plan's *What executing this plan found* is its record; this file keeps none of it.
 
@@ -43,12 +43,15 @@ vulnerability database in the console, and FE-45 (Rich, 2026-10-03, 15:28; B and
 - **the second-machine clean clone**;
 - **`make refresh-vulndb`, weekly, with the network on** — next due after **2026-10-10** (the faculty-ready plan's sitting 5's `make seed` refreshed it, built 2026-10-03T06:31:58Z); past seven days `make doctor` warns and
   §13's `scans` item refuses every production launch;
-- **the UBC AI Gateway's virtual key** (`UBC_AI_GATEWAY_API_KEY`; Rich created it 2026-10-03 with a **20 USD budget that resets monthly
-  and a 90-day expiry — it expires about 2027-01-01**). Rotate it before then: an expired key answers 401, which today's fallback turns
-  into a silent switch to the on-prem model. Until the gateway plan's sitting 1 scrubs it, its `.env` line is commented out;
+- **the UBC AI Gateway's virtual key** (`UBC_AI_GATEWAY_API_KEY`; Rich created it 2026-10-03 — **a 30 USD budget** (not the 20 first
+  recorded; Rich, 20:56), **expiring 2027-01-01 15:23**, no rpm/tpm limits, all models). Rotate it before then: an expired key answers 401,
+  which today's fallback turns into a silent switch to the on-prem model. **Its `.env` line is live** since the gateway plan's Task 0 scrubbed
+  it at boot (`90bca1e`), with `UBC_AI_GATEWAY_KEY_EXPIRES=2027-01-01` beside it; sitting 1's PROBE key — its file removed — is Rich's to
+  delete at the gateway;
 - **any real repository in `Manifest-local-dev` that no project owns** — THREE on 2026-10-03, `f6-watch`, `keep-walk-1002` and
   `f6b-measure-1` (the faculty front-end's F6 sitting 1, its F6 walk and its F6b measurements; their rows truncated by the launch path
-  plan's sittings 8 and 12 and the faculty-ready plan's sitting 2, at Rich's word) (`bash scripts/github-real-repos.sh`);
+  plan's sittings 8 and 12 and the faculty-ready plan's sitting 2, at Rich's word) — and a FOURTH to come, `f5b-measure-1` (the front-end's
+  F5b sitting 1, LAUNCHED on 7100 now: owned by its project until the next truncation, unowned after it) (`bash scripts/github-real-repos.sh`);
   removing one is his;
 - **the UBC external track — DEFERRED by Rich, 2026-09-30** (*"I have to get all of this working first locally. And then show
   demos"*): not a blocker; do not raise it as urgent;
