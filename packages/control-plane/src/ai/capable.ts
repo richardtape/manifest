@@ -1,4 +1,3 @@
-import { randomUUID } from 'node:crypto'
 import { CLASSIFICATION_RANK, type Classification } from '../spec/index.js'
 import {
   CatalogueError,
@@ -7,12 +6,19 @@ import {
 } from './catalogue.js'
 import type { LiteLlmClient } from './client.js'
 import { AiError } from './errors.js'
+import { resolveSetting, type Gateway } from './providers.js'
 import {
-  resolveSetting,
-  viaGateway,
-  type Gateway,
-  type ProviderParams,
-} from './providers.js'
+  answered,
+  apiBaseOf,
+  ensureRegistered,
+  idOf,
+  listDeployments,
+  modelOf,
+  refuseKeeping,
+  remove,
+  unavailable,
+  type Deployment,
+} from './registration.js'
 
 /**
  * THE CAPABLE MODEL (§7, §21, §26 as Spec action 7 amended them; the front-end enablement plan's
@@ -42,144 +48,12 @@ export interface CapableModelResult {
   reason?: string
 }
 
-/** The part of `/model/info` this module reads (measured, LiteLLM 1.98.0, sitting 9a). */
-interface Deployment {
-  model_name: string
-  litellm_params?: {
-    model?: unknown
-    /** The provider's address — a gateway registration names one; a direct one never does (`[M3]`). */
-    api_base?: unknown
-    input_cost_per_token?: unknown
-    output_cost_per_token?: unknown
-  }
-  model_info?: {
-    id?: unknown
-    max_classification?: unknown
-    input_cost_per_token?: unknown
-    output_cost_per_token?: unknown
-  }
-}
-
-const idOf = (d: Deployment): string => String(d.model_info?.id)
-const modelOf = (d: Deployment): string | undefined =>
-  typeof d.litellm_params?.model === 'string' ? d.litellm_params.model : undefined
-const apiBaseOf = (d: Deployment): string | undefined =>
-  typeof d.litellm_params?.api_base === 'string' ? d.litellm_params.api_base : undefined
-const positive = (value: unknown): value is number =>
-  typeof value === 'number' && Number.isFinite(value) && value > 0
-
-/**
- * A price LiteLLM can charge. **A model it cannot price spends `$0` for ever**, so no agent
- * budget, session cap or intake month would ever bind on real money — measured at sitting 9a as
- * `0` for an `openai/*` model neither of its price maps knows, never `null`.
- */
-const priced = (d: Deployment): boolean => positive(d.model_info?.input_cost_per_token)
-
-/**
- * THE PRICE IS THE DEPLOYMENT'S OWN (sitting 9a's review, I1). LiteLLM prices `gpt-6-*` only from the
- * list it downloads at its own start with the network on, so a LiteLLM restarted OFFLINE under a
- * running control plane would serve the model at `$0` once the network came back. A price sent in
- * `litellm_params` overrides both of its lists, shows in `/model/info` and charges spend exactly
- * (measured: 19 × 5e-05 + 2 × 1e-04 = 0.00115). So what is registered carries the price LiteLLM itself
- * reported for the model — never a price this platform invents — and no restart can take it away.
- */
-const pinned = (d: Deployment): boolean =>
-  positive(d.litellm_params?.input_cost_per_token)
-
+/** The deployments named `default-chat-large`, as `/model/info` lists them. */
 async function deployments(client: LiteLlmClient): Promise<Deployment[]> {
-  const body = await client.get<{ data?: Deployment[] }>('/model/info')
-  return (body.data ?? []).filter((d) => d.model_name === CAPABLE_MODEL_NAME)
+  return (await listDeployments(client)).filter(
+    (d) => d.model_name === CAPABLE_MODEL_NAME,
+  )
 }
-
-const remove = (client: LiteLlmClient, id: string) => client.post('/model/delete', { id })
-
-/**
- * The cleanup after a registration that failed, or a stand-in no longer needed. `400` is LiteLLM's answer
- * for an id its database does not hold (measured) — nothing was saved, which is what the cleanup wants.
- * Any other failure is the OPERATOR's to see, and never replaces the error the caller is about to throw.
- */
-async function removeIfSaved(client: LiteLlmClient, id: string): Promise<void> {
-  try {
-    await remove(client, id)
-  } catch (error) {
-    if (error instanceof AiError && (error.status === 400 || error.status === 404)) return
-    console.error(
-      JSON.stringify({
-        level: 'error',
-        msg: `a failed registration of ${CAPABLE_MODEL_NAME} may have left a deployment in LiteLLM's database`,
-        id,
-        code: error instanceof AiError ? error.code : 'UNKNOWN',
-        fix: `POST /model/delete {"id":"${id}"} on LiteLLM's admin port`,
-      }),
-    )
-  }
-}
-
-/**
- * Whether the gateway ANSWERED. Status `0` is the client's own *timeout* or *unreachable*
- * (`ai/client.ts`) — an outage; anything else is LiteLLM refusing what it was asked, which for
- * `/model/new` is the SETTING's fault (the review's I2: an unknown provider is a measured `500`).
- */
-const answered = (error: unknown): error is AiError =>
-  error instanceof AiError && error.status > 0
-
-type Created = { entry: Deployment; id: string } | { refusedWith: number }
-
-/**
- * One `/model/new` under an id this process chooses, read back from `/model/info`. A refusal the
- * gateway ANSWERED is returned, its saved-anyway row removed; an outage is thrown.
- */
-async function create(
-  client: LiteLlmClient,
-  params: ProviderParams,
-  price?: { input_cost_per_token: number; output_cost_per_token?: number },
-): Promise<Created> {
-  const id = `manifest-capable-${randomUUID()}`
-  try {
-    await client.post('/model/new', {
-      model_name: CAPABLE_MODEL_NAME,
-      litellm_params: { ...params, ...price },
-      model_info: { id, max_classification: CAPABLE_CLASSIFICATION },
-    })
-  } catch (error) {
-    await removeIfSaved(client, id)
-    if (answered(error)) return { refusedWith: error.status }
-    throw error
-  }
-  const entry = (await deployments(client)).find((d) => idOf(d) === id)
-  if (entry === undefined) {
-    await removeIfSaved(client, id)
-    return { refusedWith: 0 }
-  }
-  return { entry, id }
-}
-
-const unavailable = (kept: Deployment[]): string => {
-  const model = kept.map(modelOf).find((m) => m !== undefined)
-  return model === undefined
-    ? ` ${CAPABLE_MODEL_NAME} is unavailable meanwhile, and default-chat still serves.`
-    : ` '${model}' is kept as ${CAPABLE_MODEL_NAME} until the setting names a model LiteLLM serves and prices.`
-}
-
-const unpricedReason = (model: string, kept: Deployment[]): string =>
-  `${CAPABLE_MODEL_SETTING} names '${model}', which LiteLLM cannot price, so it was not registered: ` +
-  'a model priced at $0 would never bind an agent budget, a session cap or the intake month. ' +
-  'LiteLLM prices from the list it ships with and from the one it fetches at its own start when the ' +
-  'network is on — restart LiteLLM with the network on (`docker restart manifest-litellm`), then this ' +
-  'control plane; or name a model it prices.' +
-  (viaGateway(model)
-    ? " LiteLLM prices a gateway model by the gateway's own name for it: the gateway's administrator " +
-      'exposes it under its vendor name.'
-    : '') +
-  unavailable(kept)
-
-const unservedReason = (model: string, status: number, kept: Deployment[]): string =>
-  `${CAPABLE_MODEL_SETTING} names '${model}', which LiteLLM would not serve` +
-  (status > 0 ? ` (it answered HTTP ${status})` : '') +
-  ': check the provider prefix — `openai/<model>` direct, or `ubc-ai-gateway/<model>` — and that LiteLLM ' +
-  "holds that provider's key " +
-  '(`docker logs manifest-litellm` says why).' +
-  unavailable(kept)
 
 /**
  * Makes LiteLLM's catalogue hold exactly what `MANIFEST_CAPABLE_MODEL` says — called at every boot.
@@ -220,13 +94,6 @@ export async function ensureCapableModel(
     return { state: 'removed', ...(previous === undefined ? {} : { model: previous }) }
   }
 
-  // What a refusal keeps: the working registrations, never one that spends $0.
-  const refuse = async (reason: (kept: Deployment[]) => string) => {
-    const kept = ours.filter(priced)
-    for (const d of ours.filter((x) => !priced(x))) await remove(client, idOf(d))
-    return { state: 'refused' as const, model: setting, reason: reason(kept) }
-  }
-
   const resolved = resolveSetting(CAPABLE_MODEL_SETTING, setting, gateway)
   if ('refused' in resolved) {
     if (resolved.failClosed === true) {
@@ -235,50 +102,27 @@ export async function ensureCapableModel(
       }
       ours = ours.filter((x) => apiBaseOf(x) === undefined)
     }
-    return refuse((kept) => resolved.refused + unavailable(kept))
-  }
-  const { params } = resolved
-
-  const [only] = ours
-  if (
-    ours.length === 1 &&
-    modelOf(only!) === params.model &&
-    apiBaseOf(only!) === params.api_base &&
-    only!.model_info?.max_classification === CAPABLE_CLASSIFICATION &&
-    pinned(only!) &&
-    priced(only!)
-  ) {
-    return { state: 'unchanged', model: setting }
+    return refuseKeeping(
+      client,
+      ours,
+      setting,
+      (kept) => resolved.refused + unavailable(CAPABLE_MODEL_NAME, kept),
+    )
   }
 
-  const asSet = await create(client, params)
-  if ('refusedWith' in asSet) {
-    const status = asSet.refusedWith
-    return refuse((kept) => unservedReason(setting, status, kept))
-  }
-  const cost = asSet.entry.model_info
-  if (!priced(asSet.entry)) {
-    await removeIfSaved(client, asSet.id)
-    return refuse((kept) => unpricedReason(setting, kept))
-  }
-  const output = cost?.output_cost_per_token
-  const atPrice = await create(client, params, {
-    input_cost_per_token: cost!.input_cost_per_token as number,
-    ...(typeof output === 'number' && Number.isFinite(output) && output >= 0
-      ? { output_cost_per_token: output }
-      : {}),
-  })
-  await removeIfSaved(client, asSet.id)
-  if ('refusedWith' in atPrice) {
-    const status = atPrice.refusedWith
-    return refuse((kept) => unservedReason(setting, status, kept))
-  }
-  if (!pinned(atPrice.entry) || !priced(atPrice.entry)) {
-    await removeIfSaved(client, atPrice.id)
-    return refuse((kept) => unpricedReason(setting, kept))
-  }
-  for (const d of ours) await remove(client, idOf(d))
-  return { state: 'registered', model: setting }
+  return ensureRegistered(
+    client,
+    {
+      name: CAPABLE_MODEL_NAME,
+      owns: (d) => d.model_name === CAPABLE_MODEL_NAME,
+      idPrefix: 'manifest-capable-',
+      settingName: CAPABLE_MODEL_SETTING,
+      setting,
+      params: resolved.params,
+      classification: CAPABLE_CLASSIFICATION,
+    },
+    ours,
+  )
 }
 
 export interface CapableFallbackResult {
