@@ -1086,3 +1086,11 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
     removes every gateway deployment whenever .env has no key, and make verify fails while one is listed. I3: a spent budget
     (429) or a revoked key (401) falls back silently, so the guard writes one line per allowed fallback. I4: the acceptance
     goes green on 1.102.0. manifest-be fixes all four in sitting 3, each red first.
+
+    And at 00:30 PDT on 2026-10-04 (the clock read just before this entry), THE GATEWAY ACCEPTANCE'S CLICKED HALF (Task 6 Step 4, staged by
+    manifest-be, relayed by manifest-af). Before it: make demo-gateway three times green on LiteLLM 1.102.0; Manifest's charge ÷
+    the gateway's own rise 1.000000000 each run, streamed calls included; the key 0 times in every log, output and database. Rich
+    ran make demo-gateway himself and compared the gateway's admin UI. In his words: "I ran it separately, and yes the figures
+    matched with the figures the script produced." Step 5, the expiry, rests on his 20:56 reading of the same admin UI ("Expires
+    Jan 1, 2027 at 3:23 PM"), which the demo's printed .env date, 2027-01-01, agrees with. The half that has him build an app on
+    app.manifest.internal was NOT RUN: the faculty front-end was in mock mode, not on 7100.
