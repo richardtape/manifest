@@ -805,3 +805,22 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
         the spec, and manifest-schematic.html:1072-1073 ("a commercial provider's for now" becomes "a commercial provider's,
         through UBC's own AI Gateway, for now"). manifest-decisions.html's D17 is unchanged, as option (c) was not chosen.
         Rejected: sitting 2's worker applying it first.
+
+    And at 20:07 PDT, four of the front-end's minors (the sixth minors round, manifest-app-c1). Their premises were checked by
+    manifest-af against manifest-app at a01aed3. Asked through the question tool:
+      - m16, the sign-off row's race (going-live.tsx:68-81 reads the checklist, then the approval; a decision between the reads
+        draws "Signed off by a Manifest administrator." over a rejection, or "It has changed since it was signed off…" over an
+        approval, until the page is shown again or pressed) — "Accept it" (over the recommended re-read when decidedAt is
+        under a minute old). The platform's gate decides any press.
+      - m46, a page opening on a round already at needs:{kind:'token'} renewing by itself (building.tsx:250-260) — "Interrupted
+        card" (Recommended): it renews by itself only when this page watched the round go to needs:token. A page that opens on
+        one already there shows the interrupted card and its press (needs.tsx:357; the existing words). No new words.
+      - m67, the first keeping of an older app emailing one "still waiting" per long-stale wait an hour later (keeper.ts:399-401,
+        :639-647; every restart postponing the scan an hour, :755) — "Accept it" (over the recommended kept_at column and a
+        first scan a minute after start()).
+      - m82, a member added since the last members read getting 201 on a change, then 404 on their own conversation
+        (sharing.ts:23-27) — "Re-read on a stranger" (Recommended): when someone the kept members do not name asks for a
+        change, read the members with that change's own token (platformWatching(...).members, platform/watching.ts:39) and
+        keep them before answering. If the read fails, the old list and the 404 stay.
+    Also recorded, no decision needed: m133's shape is the front-end's own, within his 17:23 ruling ("it takes the port"). The
+    marks move into Fastify's onListen, before the keeper starts, with no lock.
