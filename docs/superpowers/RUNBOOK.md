@@ -272,8 +272,11 @@ not`** FAIL, each naming `make up`. **`make doctor`'s *the UBC AI Gateway key is
 fallback answers that silently, every capable call moving to the on-premise model. **To rotate:** a new key in the gateway's admin UI; both
 `.env` lines; `make up`; restart the control plane; `make verify` reads `matches`.
 
-**What a person is charged.** For a model the gateway prices, LiteLLM 1.98.0 charges what the GATEWAY reports
+**What a person is charged.** For a model the gateway prices, LiteLLM charges what the GATEWAY reports
 (`llm_provider-x-litellm-response-cost`), cache reads included — the pin is never read; for one it does not price, the pin is the whole price.
+**A streamed call too, since LiteLLM 1.102.0** (re-pinned 2026-10-03, the gateway plan's F32): the gateway sends a stream's usage and cost
+in a frame that also carries an empty choice, and 1.98.0 dropped it and charged its own count of the visible text — a model's reasoning
+tokens uncharged. `fallback-guard.docker.test.ts`'s F32 case holds it.
 A gateway model LiteLLM cannot price at all is refused, as above; the fix is at the gateway (its administrator exposes it under its vendor
 name). **The gateway's own failures** — the key refused a model (`403`), a wrong or expired key (`401`), its budget spent (`429
 budget_exceeded`), the gateway unreachable (`500`) — fall back to the on-premise model; **a model the gateway does not serve is a `400` the
@@ -1552,6 +1555,49 @@ DEMO_FACULTY_READY_CP_LOG=<file> make demo-faculty-ready # the control plane's o
 **What it does not cover:** the CLICKED half (a person seeing the cookie, a refusal's reference and the reason panel —
 WALKTHROUGH); production; a model call. **Its eight negative controls**, one per step, each red where predicted, are in the plan's
 *Sitting 7*. **A green run leaves** the project on staging, a `mf-person-` user at LiteLLM and the operator an administrator.
+
+## `make demo-gateway` — the UBC AI Gateway plan's acceptance: models answered by UBC's AI Gateway, charged exactly
+
+*Added by the UBC AI Gateway plan's sitting 3, 2026-10-03 (Task 6).*
+
+The capable model and the gateway's own models (`MANIFEST_GATEWAY_MODELS`) ANSWERED BY UBC'S AI GATEWAY through an agent's key, each
+call charged to the person who asked, and the gateway's key nowhere but LiteLLM's environment. The bash half
+(`scripts/demo-gateway.sh`) reads LiteLLM's catalogue with its master key, the gateway's own spend for its key, and counts the key
+in every log; the TypeScript half (`packages/journey/src/gateway.ts`) is every client call, through `@manifest/contract` and an
+agent's key alone. **It needs the network and the key** (*Through UBC's AI Gateway*, above), so it is in no offline or CI step; on a
+control plane whose catalogue does not put `default-chat-large` at the gateway it prints **`NOT RUN`** and exits `2`. **Driver 1 or
+the GitHub fake, never real GitHub**: it makes two projects (`gateway-int-<driver>`, `gateway-conf-<driver>`), and on real GitHub each
+would be a real repository. **Every call is on the gateway key's budget** — one run makes five calls through Manifest's LiteLLM and a
+few `$0` reads of the gateway's spend, a fraction of a cent in all.
+
+```bash
+make demo-gateway                                   # the network on, the key in .env
+DEMO_GATEWAY_STOP_AFTER=2 make demo-gateway         # stop after a step, 0 to 6
+MANIFEST_ENV_FILE=<copy of .env> make demo-gateway  # read a scratch copy of .env instead (a control's)
+bash scripts/gateway-controls.sh all local          # the five negative controls, restoring 7100 from .env after
+```
+
+| Step | What happens | What must be true |
+|---|---|---|
+| 0 | the build; `/v1/me`; the driver; LiteLLM's `/model/info`; the key; its expiry; the gateway's own spend for its key | `default-chat-large`'s `api_base` is the gateway's address (else `NOT RUN`, exit `2`); `make verify`'s fingerprint check reads **`matches`**; `make doctor`'s expiry check passes (a date, not past, not within 14 days — that it is the RIGHT date is a person's, by the gateway's admin UI: the key cannot read its own `/key/info`); the spend read from a `$0` direct call's `x-litellm-key-spend` |
+| 1 | the catalogue | `default-chat-large` and each `MANIFEST_GATEWAY_MODELS` name: ONE deployment each, `openai/<model>` at the gateway's address, its classification, **no `api_key` listed**, timeout 60 s, 0 retries, priced above `$0`; each gateway id `manifest-gateway-…` and none the setting does not name; `default-chat` and `default-chat-onprem` on the laptop's Ollama |
+| 2 | an `internal` project's agent session: `default-chat-large` asked plainly, streamed, and malformed (`max_tokens: -1`) | the session holds `default-chat-large` and the gateway's models; each answer **`x-litellm-attempted-fallbacks: 0`**, `x-litellm-model-api-base` the gateway, a body `model` that is not the on-premise one; the plain answer's cost = its `x-litellm-response-cost` = usage × the listed price (12 places); the stream ends `[DONE]` with content; the malformed request is the provider's **`400`**, no fallback; the session's spend is EXACTLY the answers' cost |
+| 4 | a `confidential` project's agent session: the gateway's confidential model | the session holds it and `default-chat-large`, and NOT `default-chat`; `200` from the gateway; the model pinned at `default-chat-onprem`'s price, and the spend EXACTLY usage × it |
+| 2 (cont.) | the gateway's own spend, read again (polled up to 120 s) | it rose by what Manifest charged for the calls the gateway prices — the ratio 1 to a millionth; **Manifest charging LESS fails** |
+| 5 | the key counted, never printed | its value and its `sk-...<last 4>` fragment **0 times** in `docker logs manifest-litellm`, the control plane's log (7100's stderr file), the run's own output and LiteLLM's database; every gateway row's stored `api_key`, DECRYPTED inside `manifest-litellm` with LiteLLM's own helper, **`equals the reference`** |
+| 6 | both sessions | ended |
+
+(Step 3, the Responses API with a tool, is not run: the plan's Task 5 was dropped — the capable model takes a tool on chat completions.)
+
+**`scripts/gateway-controls.sh`** restarts 7100 on one driver (`local` by default) with ONE setting changed, runs the demo, says
+whether it went red where predicted, and restores 7100 from `.env` by a trap on any exit: **(a)** the gateway's address black-holed
+(`http://127.0.0.1:9/v1`) — the on-premise fallback answers and step 2 goes red; **(b)** the control plane's key empty — the
+fail-closed boot, nothing at the gateway, `NOT RUN`; **(b2)** a DIRECT capable model first, then (b) — the direct one is kept;
+**(d)** `MANIFEST_GATEWAY_MODELS` empty — step 1 red; **(e)** the expiry moved in a scratch copy — yesterday fails step 0 and makes
+`make doctor` warn; a day later than the real date PASSES (no machine can tell). `start [driver]` restarts 7100 from `.env` alone.
+
+**A green run leaves** the two projects (re-used next time), a `mf-person-` user at LiteLLM holding two ended sessions' keys, and the
+key's spend a fraction of a cent higher.
 
 ## `make ci-acceptance` and `make demo-console` — 1c's acceptance, in two halves
 

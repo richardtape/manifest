@@ -12,10 +12,10 @@ names the next job** and the current plan's sittings table says how far it has g
 `EXPECT_` lines and ORIENTATION §2's `pnpm test:docker` row, stated nowhere else; and the roadmap's ledger
 (`docs/superpowers/plans/2026-08-29-plan-roadmap.md`) outranks every document on status (Rich, 2026-09-24 and 2026-09-30).*
 
-**The design is approved and complete, five spikes are done, and sixteen plans are executed** — each with an acceptance that
-passes; the newest is **the faculty-ready plan** (`docs/superpowers/plans/2026-09-30-faculty-ready.md`), EXECUTED 2026-10-03. **The current
-plan, the UBC AI Gateway as Manifest's upstream provider** (`docs/superpowers/plans/2026-10-03-ubc-ai-gateway.md`), is IN PROGRESS (approved; its sittings 1 and 2 done 2026-10-03 — Tasks 0–4),
-executed inline, a fresh session per sitting; then FE-46, FE-47 and FE-5 (their spec actions applied, their plan, `docs/superpowers/plans/2026-10-03-fe46-fe47-fe5.md`, approved); then A1 (production instances by audience, approved), B (the load rehearsal, FE-44), FE-32 with §12's package allowlist (approved), Phase 3 (sandboxes), A2 (hibernation), the
+**The design is approved and complete, five spikes are done, and seventeen plans are executed** — each with an acceptance that
+passes; the newest is **the UBC AI Gateway plan** (`docs/superpowers/plans/2026-10-03-ubc-ai-gateway.md`), EXECUTED 2026-10-04 — LiteLLM now
+1.102.0. **The current plan, Manifest's data classes as UBC's U1 levels** (`docs/superpowers/plans/2026-10-03-u1-classification.md`), is APPROVED
+and next (Rich, 21:48, 22:21, 23:22), executed inline, a fresh session per sitting; then FE-46, FE-47 and FE-5 (their spec actions applied, their plan, `docs/superpowers/plans/2026-10-03-fe46-fe47-fe5.md`, approved); then A1 (production instances by audience, approved), B (the load rehearsal, FE-44), FE-32 with §12's package allowlist (approved), Phase 3 (sandboxes), A2 (hibernation), the
 vulnerability database in the console, and FE-45 (Rich, 2026-10-03, 15:28; B and A2 await a second review). Rich's decisions since 2026-09-30 are in `docs/superpowers/2026-09-30-decisions.md`. Each plan's *What executing this plan found* is its record; this file keeps none of it.
 
 | Plan | Executed | What it made true | Acceptance |
@@ -36,6 +36,7 @@ vulnerability database in the console, and FE-45 (Rich, 2026-10-03, 15:28; B and
 | Front-end enablement | 2026-09-29 | A second origin (`app.`) for the faculty front-end; a project's name, people by CWL login, agent and intake model keys, recent output (sandbox), binary files, archive/restore and delete, the capable model and its on-premise fallback, the building agent's models as a setting | `make demo-frontend` (either driver), **and a person clicking it** |
 | Launch path | 2026-10-02 | A faculty member takes their own app to production: the privacy assessment and both UBC IAM registrations drafted from the app, sent in UBC's order and dated; the sign-off request and the administrators' queue; the owner's rehearsal; a session narrowed, not ended; a removed member's access gone; only faculty build; the advisory locks on pools of their own | `make demo-launch` (either driver), **and a person clicking a launch** |
 | Faculty-ready | 2026-10-03 | Before faculty use it for real: `__Host-` cookies no sibling app can plant; a request id on every answer and every refusal logged; a limit's facts as fields; the test blueprint unlisted; a provider's `422` answered `422`; `node:24-alpine` with an init; the IdP store's own role; §26's administrator's reason, shown to the project's people; an agent's question ending with its token; `passport-ubcshib` 0.1.7-rc.1 | `make demo-faculty-ready` (either driver), **and a person clicking it** |
+| UBC AI Gateway | 2026-10-04 | The capable model answered by UBC's AI Gateway: the key by reference, failing closed whatever the setting; the gateway's own models by name and classification; the upstream's key headers stripped; an allowed fallback logged; LiteLLM re-pinned to 1.102.0 so a stream is charged its provider's usage | `make demo-gateway` (the network on, the key), **and Rich watching the key's spend** |
 
 **Outstanding, and Rich's** (ORIENTATION §2 and §8 have the detail):
 - **the offline acceptance** — `scripts/offline-acceptance.sh`, run by hand, because turning the network off from a tool call cuts the
@@ -45,7 +46,8 @@ vulnerability database in the console, and FE-45 (Rich, 2026-10-03, 15:28; B and
   §13's `scans` item refuses every production launch;
 - **the UBC AI Gateway's virtual key** (`UBC_AI_GATEWAY_API_KEY`; Rich created it 2026-10-03 — **a 30 USD budget** (not the 20 first
   recorded; Rich, 20:56), **expiring 2027-01-01 15:23**, no rpm/tpm limits, all models). Rotate it before then: an expired key answers 401,
-  which today's fallback turns into a silent switch to the on-prem model. **Its `.env` line is live** since the gateway plan's Task 0 scrubbed
+  which the fallback answers with the on-prem model — since the gateway plan's sitting 3 with one `manifest_guard: allowed a fallback` line in
+  `docker logs manifest-litellm` per call, and `make doctor` warns 14 days ahead. **Its `.env` line is live** since the gateway plan's Task 0 scrubbed
   it at boot (`90bca1e`), with `UBC_AI_GATEWAY_KEY_EXPIRES=2027-01-01` beside it; sitting 1's PROBE key — its file removed — is Rich's to
   delete at the gateway;
 - **any real repository in `Manifest-local-dev` that no project owns** — THREE on 2026-10-03, `f6-watch`, `keep-walk-1002` and

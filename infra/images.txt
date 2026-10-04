@@ -36,5 +36,8 @@ anchore/grype:v0.118.0
 # whenever the provider sent its usage on a chunk that also carried a choice —
 # the gateway's shape — so a model's hidden and reasoning tokens went uncharged
 # (the plan's F32; `fallback-guard.docker.test.ts`'s F32 case). The Docker tier
-# re-proved every mapping and guard behaviour on it.
+# re-proved it, 2026-10-04: 282 of 283 green on the first run — the guard whole —
+# and the one red, §16's unknown-model row (1.102.0 answers `invalid_request_error`
+# where 1.98.0 said `"None"`), fixed forward in ai/errors.ts at Rich's word; 286
+# green with the fixes.
 ghcr.io/berriai/litellm@sha256:32cfd7a427f6470033b4dcc9e75dfbea2aa32dbc298b0b511a40e962ce818362

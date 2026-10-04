@@ -219,7 +219,10 @@ red() { printf '\033[31m%s\033[0m' "$1"; }
 # among them), `ai/capable.test.ts` (8: the gateway's registration, unchanged, the repoint both ways, the positive control,
 # failing closed, an alias, no gateway, and the boot's line) and `config.test.ts` (8: the URL, http off loopback, keyInEnv,
 # the value never kept; MANIFEST_GATEWAY_MODELS parsed, empty, the last @, every malformed entry).
-EXPECT_TESTS=3323
+# Then the UBC AI Gateway plan's sitting 3 (2026-10-04, the fix pass on LiteLLM 1.102.0): +3, no new file — `ai/errors.test.ts`
+# (1: 1.102.0's unknown model, never a provider's 400 quoting it, nor any other 400 — F33) and `ai/capable.test.ts` (2: failing
+# closed whatever the setting, and its positive control naming a kept gateway registration — F34).
+EXPECT_TESTS=3326
 EXPECT_FILES=203
 # EXPECT_DOCTOR 21 -> 22 (2026-10-03, the UBC AI Gateway plan's sitting 2, Task 2): the gateway key's expiry, a
 # check_warn — counted, never failing — from 14 days ahead (its Decision 11). Measured: 22 checks, 0 failed, 0 warnings.

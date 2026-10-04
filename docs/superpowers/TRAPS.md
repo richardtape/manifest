@@ -2656,3 +2656,31 @@ pins a `confidential` one at `default-chat-onprem`'s synthetic `$1 / $3` — so 
 off-premise `gpt-6-luna`, so never `confidential`) and `llama3` (off-premise, so `internal`) cannot be registered at all until the gateway
 exposes them under a name LiteLLM prices. `/get/litellm_model_cost_map` answers `404` on 1.98.0; read `litellm.get_model_info` in a
 throwaway instead.
+
+**LiteLLM 1.98.0 CHARGES A STREAMED CALL BY ITS OWN COUNT OF THE VISIBLE TEXT, NOT THE PROVIDER'S USAGE** (2026-10-03, the UBC AI Gateway
+plan's sitting 3, F32; `make demo-gateway`'s gateway-side comparison read 0.788). Through Manifest's LiteLLM a streamed `gpt-6-luna` call was
+recorded 14 prompt + 1 completion tokens (`LiteLLM_SpendLogs`, `$0.0000019`); the same call direct to the gateway is 13 + 4 (`$0.0000033`,
+its own usage frame and spend), and the non-streamed call matched exactly. In a throwaway from the pinned digest, hop 1 SENDS
+`stream_options: {include_usage: true}` to the provider (the stub saw it, whether or not the client asked) and still charged its local
+count — for the gateway, and for a stub that reported 5 + 1. A model's hidden or reasoning tokens are never charged on a stream; a
+person's budget binds late while the gateway's own budget is spent at the real price. A non-streamed call's cost tells you nothing about
+a stream's: compare `LiteLLM_SpendLogs` with the provider's own spend.
+
+**A GATEWAY'S KEY SPEND IS READ FREE FROM ITS OWN ANSWER — ON A MODEL IT DOES NOT PRICE** (2026-10-03, the UBC AI Gateway plan's sitting
+3). The key cannot read `/key/info` (`403`), `GET /v1/models` carries no `x-litellm-key-*` header, and Manifest's LiteLLM strips the
+forwarded copy (F5). A direct `max_tokens: 1` completion on `qwen3.8-27b` (`$0` at the gateway) answers `x-litellm-key-spend` for the
+key — but the gateway writes spend in batches, so two equal reads 15 s apart are not proof it has settled: a call's spend landed after
+such a pair (the plan's *Sitting 3* record). Poll until the rise you expect arrives, with a bound.
+
+**A PROVIDER'S EXPLICIT `0.0` COST IS CHARGED `$0` — THE PIN IS READ ONLY WHEN NO COST IS REPORTED** (2026-10-04, the UBC AI Gateway plan's
+sitting 3, F36). `cost_calculator.get_response_cost_from_hidden_params` (identical in LiteLLM 1.98.0 and 1.102.0) returns the forwarded
+`llm_provider-x-litellm-response-cost` whenever it is present — `0.0` included — so a stub reporting `0.0` (a plain header, or `cost: 0` in a
+stream's usage) was charged `$0` against a deployment pinned at `$1 / $3`. UBC's gateway reports NO cost for a model it does not price
+(`qwen3.8-27b`: charged the pin through 1.102.0, plain and streamed), so the pin binds today. If it ever starts reporting `0.0`, every such call
+costs a person nothing — `make demo-gateway`'s step 4 goes red that day.
+
+**LiteLLM 1.102.0 ANSWERS AN UNKNOWN MODEL `400 invalid_request_error`, NOT 1.98.0's `type: "None"`** (2026-10-04, the UBC AI Gateway plan's
+sitting 3, F33): §16's mapping read the string `"None"` as its only discriminator. It now reads LiteLLM's own words ANCHORED at the message's
+start (`/<route>: Invalid model name passed in model=`), so a PROVIDER's 400 quoting them — the gateway refusing a model it does not serve,
+wrapped as `litellm.BadRequestError: OpenAIException - …` — stays the provider's. Only a key with no model list reaches it; an app key is
+refused an off-list model `403 key_model_access_denied` first. After any LiteLLM re-pin, run `ai-path.docker.test.ts` before trusting the mapping.
