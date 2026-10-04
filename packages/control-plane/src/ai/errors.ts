@@ -75,8 +75,8 @@ export class AiError extends Error {
  * never escapes" holds by construction rather than by filtering afterwards (§14 —
  * the revocation body carries the full key hash, and a 422 echoes its input).
  *
- * Pinned to LiteLLM 1.98.0 (`sha256:20b5044b`). `ai/ai-path.docker.test.ts`
- * re-measures the rows a test can provoke.
+ * Pinned to LiteLLM 1.102.0 (`sha256:32cfd7a4…`, since 2026-10-04 — it was 1.98.0, `sha256:20b5044b`,
+ * where S3 measured it). `ai/ai-path.docker.test.ts` re-measures the rows a test can provoke.
  */
 export function mapLiteLlmError(status: number, body: unknown): AiError {
   const b = (typeof body === 'object' && body !== null ? body : {}) as {
@@ -124,6 +124,18 @@ export function mapLiteLlmError(status: number, body: unknown): AiError {
   // alone, a malformed admin request reads as "asked for a model the platform does
   // not offer".
   if (status === 400 && type === 'None') {
+    return new AiError(AI_CODES.MODEL_UNKNOWN, status, { status })
+  }
+  // 1.102.0 answers the same refusal `invalid_request_error`, which every malformed request shares — so it is
+  // told apart by LiteLLM's OWN words, AT THE START of the message (a route, then "Invalid model name passed in
+  // model="). Anchored, because a PROVIDER's 400 quoting those words — UBC's gateway refusing a model it does not
+  // serve — arrives wrapped (`litellm.BadRequestError: OpenAIException - …`) and stays the provider's refusal.
+  // Matched on the message as the budget row is; measured on the pin, 2026-10-04 (the UBC AI Gateway plan's sitting 3).
+  if (
+    status === 400 &&
+    type === 'invalid_request_error' &&
+    /^\/[\w/.-]*: Invalid model name passed in model=/.test(message)
+  ) {
     return new AiError(AI_CODES.MODEL_UNKNOWN, status, { status })
   }
   if (status >= 500) return new AiError(AI_CODES.BACKEND_UNAVAILABLE, status, { status })

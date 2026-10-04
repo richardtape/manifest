@@ -160,7 +160,7 @@ describeDocker('AI-path regression (§16, S3 Evidence 8 and 9)', () => {
     }
   })
 
-  it('every mapped condition an APP key can provoke is still the shape 1.98.0 produces', async () => {
+  it('every mapped condition an APP key can provoke is still the shape the pinned LiteLLM (1.102.0) produces', async () => {
     // What makes Task 4's recorded bodies evidence rather than folklore, and what
     // re-measures them when the digest pin moves. The two budget rows are NOT
     // provoked: reaching a budget needs S3's synthetic-cost setup and a stream of

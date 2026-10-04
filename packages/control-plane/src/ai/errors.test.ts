@@ -45,6 +45,30 @@ const EXPIRED = {
 const MODEL_UNKNOWN = {
   error: { message: 'model not found', type: 'None', param: null, code: '400' },
 }
+// Recorded from LiteLLM 1.102.0 (sha256:32cfd7a4…, the pin since 2026-10-04 — the UBC AI Gateway plan's F32), the
+// master key asking `/v1/chat/completions` for a model the catalogue lacks: the `type` is no longer `"None"`.
+const UNKNOWN_MESSAGE =
+  '/chat/completions: Invalid model name passed in model=no-such-model. Call `/v1/models` to view available models for your key.'
+const MODEL_UNKNOWN_1102 = {
+  error: {
+    message: UNKNOWN_MESSAGE,
+    type: 'invalid_request_error',
+    param: null,
+    code: '400',
+    provider_specific_fields: { error: UNKNOWN_MESSAGE },
+  },
+}
+// A PROVIDER's own 400 quoting the same words — UBC's gateway refusing a model it does not serve (the UBC AI Gateway
+// plan's [M5](c-i)) — is the provider's refusal, wrapped by LiteLLM: never "a model the platform does not offer".
+const PROVIDER_UNKNOWN = {
+  error: {
+    message:
+      'litellm.BadRequestError: OpenAIException - {"error":{"message":"/chat/completions: Invalid model name passed in model=gpt-6-luna."}}',
+    type: 'invalid_request_error',
+    param: null,
+    code: '400',
+  },
+}
 const BACKEND = {
   error: {
     message: 'litellm.APIConnectionError: All connection attempts failed',
@@ -86,7 +110,7 @@ const ADMIN_USER_EXISTS = {
   },
 }
 
-describe('LiteLLM error mapping (§20, S3 Evidence 13, pinned to 1.98.0)', () => {
+describe('LiteLLM error mapping (§20, S3 Evidence 13, pinned to 1.102.0)', () => {
   it('tells a key budget from an END USER budget, which share a status AND a type', () => {
     // The only difference is the message. This is brittle by construction and the
     // Docker tier re-measures what it can — but a wrong answer here tells a faculty
@@ -127,6 +151,22 @@ describe('LiteLLM error mapping (§20, S3 Evidence 13, pinned to 1.98.0)', () =>
     expect(JSON.stringify(mapped)).not.toContain('1badf2fea768945550f4327759f5c9ba')
     expect(JSON.stringify(mapped)).not.toContain('sk-')
     expect(mapped.message).not.toContain('1badf2fea768945550f4327759f5c9ba')
+  })
+
+  it('maps 1.102.0’s unknown model — `invalid_request_error`, LiteLLM’s OWN words at the start — and never a provider’s 400 quoting them, nor any other 400', () => {
+    expect(mapLiteLlmError(400, MODEL_UNKNOWN_1102).code).toBe(AI_CODES.MODEL_UNKNOWN)
+    expect(mapLiteLlmError(400, PROVIDER_UNKNOWN).code).toBe(AI_CODES.UNMAPPED)
+    expect(
+      mapLiteLlmError(400, {
+        error: {
+          message: 'Invalid max_tokens',
+          type: 'invalid_request_error',
+          code: '400',
+        },
+      }).code,
+    ).toBe(AI_CODES.UNMAPPED)
+    const mapped = mapLiteLlmError(400, MODEL_UNKNOWN_1102)
+    expect(mapped.message).not.toContain('no-such-model')
   })
 
   it('maps expiry, an unknown model, a denied model and a dead backend', () => {
