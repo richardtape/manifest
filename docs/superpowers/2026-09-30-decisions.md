@@ -903,7 +903,7 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
     blocker for us here." While it stands, qwen3.6-35b-a3b cannot be `confidential` (§7, Spec action 1). Sitting 2's close
     chooses MANIFEST_GATEWAY_MODELS knowing it.
 
-    And at 21:25 PDT (the clock at this entry), the gateway plan's TASK 4 BRANCH (manifest-ec's [M5], 21:13; the premises
+    And at 21:17 PDT (the clock at this entry), the gateway plan's TASK 4 BRANCH (manifest-ec's [M5], 21:13; the premises
     checked against infra/litellm/manifest_guard.py's header and the plan's Task 4 by manifest-af). Every gateway failure
     measured falls back: (c-ii) a served model the key may not use 403, (d) a wrong key 401, (e) the key's budget spent 429
     budget_exceeded, (g) unreachable 500. (a) malformed 400 is refused, correctly. The ONE Branch-C case is (c-i), a model the
