@@ -1,0 +1,33 @@
+# The UBC AI Gateway plan's Task 1: gw-probe's config — the platform's own settings (infra/litellm/config.yaml's
+# drop_params, callbacks and store_prompts_in_spend_logs), and two bootstrap entries: `probe-ok` at the host stub
+# (the [M5] fallback target, naming its literal stub bearer — never a keyless openai/ deployment, the Global
+# Constraints' I3) and `default-chat` exactly as the platform has it ([M4].6). Every gateway deployment is
+# registered through /model/new by the probe scripts, so none is a config line.
+model_list:
+  - model_name: probe-ok
+    litellm_params:
+      model: openai/probe-ok
+      api_base: http://host.docker.internal:7198/v1
+      api_key: probe-not-a-key
+      input_cost_per_token: 0.000001
+      output_cost_per_token: 0.000003
+    model_info:
+      max_classification: internal
+  - model_name: default-chat
+    litellm_params:
+      model: ollama_chat/qwen3.5:4b
+      api_base: http://host.docker.internal:11434
+      think: false
+      input_cost_per_token: 0.000001
+      output_cost_per_token: 0.000003
+    model_info:
+      max_classification: internal
+
+litellm_settings:
+  drop_params: true
+  # The REAL guard decides; guard_inspect.py subclasses it only to print the failure's class and status attributes.
+  callbacks: guard_inspect.proxy_handler_instance
+
+general_settings:
+  master_key: os.environ/LITELLM_MASTER_KEY
+  store_prompts_in_spend_logs: false
