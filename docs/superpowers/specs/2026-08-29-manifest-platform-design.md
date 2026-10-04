@@ -579,8 +579,9 @@ Two facts about `passport-ubcshib` shape this table, and both are easy to get
 wrong:
 
 1. **The library itself reads exactly two environment variables** —
-   `SAML_ENVIRONMENT` (`index.js:120` and again at `:307`) and `SAML_LOGOUT_URL`
-   (`index.js:305`). Everything else is a *constructor option*. So this is
+   `SAML_ENVIRONMENT` (read twice in its `index.js`) and `SAML_LOGOUT_URL`; §16's drift
+   test checks both, and the fail-open `'STAGING'` default, against the source of the
+   PINNED version. Everything else is a *constructor option*. So this is
    **Manifest's contract with the blueprint**, which passes these values into the
    strategy; it is not a set of names the library picks up by itself.
 2. **`SAML_ENVIRONMENT` defaults to `'STAGING'`** — at *both* sites, `:120` and
@@ -942,9 +943,10 @@ naming **per SP, from the metadata row** (`attributes.NameFormat` plus a per-SP
 vocabulary production uses. Two conditions come with it: the blueprint must pass
 `attributeConfig` to `passport-ubcshib` — the library only runs its OID mapping when
 that option is non-empty — and must carry a complete attribute map, because the
-library's own covers six names, has **no OID entry at all for `uid` or
-`eduPersonPrincipalName`**, and its MACE entry for `ubcEduCwlPuid` is unreachable (a
-reverse-map collision). `ubcEduCwlPuid` is in no attribute map SimpleSAMLphp ships,
+library's own — up to `0.1.6` — covered six names, had **no OID entry at all for `uid` or
+`eduPersonPrincipalName`**, and never reached its MACE entry for `ubcEduCwlPuid` (a
+reverse-map collision). `0.1.7` maps all three; the bridge stays, because it reads the OID
+first and so answers the same on either version. `ubcEduCwlPuid` is in no attribute map SimpleSAMLphp ships,
 so its OID is supplied inline.
 
 **Use OID, not MACE. Confirmed:** `tlef-biocbot` authenticates against UBC

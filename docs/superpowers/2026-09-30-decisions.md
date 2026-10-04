@@ -727,3 +727,19 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
     And at 16:23 PDT, Rich's ceiling on the gateway's virtual key (UBC_AI_GATEWAY_API_KEY), set by him in the gateway's admin
     UI: a 20 USD budget that resets monthly, and a 90-day expiry — about 2027-01-01. Recorded in CLAUDE.md's Outstanding (rotate
     before it expires: an expired key answers 401, which the fallback turns into a silent switch to the on-prem model).
+
+    And at 17:21 PDT, at faculty-ready sitting 5b's close (manifest-9d, 38c9251), through the question tool, each as
+    recommended:
+      - SITTING 7's ACCEPTANCE — "Add all three": Task 11 gains phases for Task 15 (an administrator who is a collaborator
+        gives a reason beyond their role), Task 16b (a member's removal recorded exactly once) and Task 17 (the app's answer
+        to the IdP's LogoutRequest decoded as Success, as s5b-edge-proof.sh's step 3 does).
+      - THE BLUEPRINT'S passport-ubcshib PIN — "Once, at the final 0.1.7": no move to rc.2; one pin move and one lockfile
+        regeneration after the developers confirm rc.2 on UBC staging and Rich publishes 0.1.7. Manifest is correct on rc.1
+        meanwhile (the blueprint's own SLO workaround, 1dcb905).
+      - SPEC ACTION 6 (§8's index.js line numbers; §9's "covers six names") — "Apply as proposed": APPLIED by manifest-94 at
+        17:22. No shared page names the library; no code.
+
+    Also recorded, no decision needed: the UBC AI Gateway plan is APPROVED with the review's fixes applied (manifest-cd,
+    61d4557; Rich's "Approve with the fixes", 16:13). And manifest-app-f6 closed the front-end's fifth minors round
+    (6280fe1): Rich's minors built word for word; new words of its own under "change on sight" — m117 "We couldn't copy it.
+    Select it and copy it yourself." and m114 "We can't tell right now whether you can answer this."

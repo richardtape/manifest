@@ -1422,7 +1422,9 @@ and promote a release, none of which a collaborator can, with no reason and `asA
 
 *Options:* **(a) as proposed** (recommended); **(b) keep §26 as worded.** **Shared pages:** none mentions audit or a reason (checked by sitting 6).
 
-### 6. §8 and §9 — what the spec says about `passport-ubcshib`'s source, after 0.1.7 (PROPOSED by sitting 5b, 2026-10-03; HELD FOR RICH)
+### 6. §8 and §9 — what the spec says about `passport-ubcshib`'s source, after 0.1.7 (PROPOSED by sitting 5b, 2026-10-03; ✅ DECIDED (a) AND APPLIED 2026-10-03, 17:22 PDT)
+
+**✅ APPLIED as proposed, both sentences, at Rich's *"Apply as proposed (Recommended)"* (17:21 PDT, through `manifest-94`; `2026-09-30-decisions.md`).**
 
 **Raised by Task 17** (sitting 5b). Since `1dcb905` the blueprint pins `passport-ubcshib@0.1.7-rc.1`, and two sentences in the spec are true
 only of `0.1.6`. Neither changes a rule; both are facts the spec states about the library's source. **Not applied: the spec is Rich's.**
