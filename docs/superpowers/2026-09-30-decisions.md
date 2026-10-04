@@ -864,3 +864,20 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
     OpenAI and only Very High may not, is a SPEC question. It is to be drafted with U1 read, and is not tonight's blocker. The on-prem models'
     classifications are DEFERRED to sitting 2's close, when he chooses MANIFEST_GATEWAY_MODELS (What Rich does 5). Task 1
     does not need them, and the three on old hardware are likely left out.
+
+    And at 20:5x PDT, the gateway plan's [M4] STOP (manifest-ec, 20:43, on gw-probe, Manifest's LiteLLM 1.98.0): a second key
+    read the first key's stored /v1/responses answer (GET /v1/responses/{id} 200, /input_items 200 = the prompt), because
+    responses are stored by default (store: true) and every Manifest key reaches the gateway on ONE upstream key. Nothing is
+    exposed today: every key Manifest mints carries only the three routes (ai/keys.ts:22, agent-keys.ts:118, keys.ts:155;
+    /v1/responses appears nowhere in src/, checked by manifest-af) and is refused /v1/responses with 403. [M4].8 measured
+    gpt-6-luna calling tools on chat completions through both hops, so TASK 5 DROPS, Spec action 2 is NOT NEEDED, and the
+    contract stays 1.6.0. Explained to Rich twice in plain terms, then asked through the question tool:
+      - "Yes, measure it" (Recommended), ~20:47: whether two DIFFERENT virtual keys read each other's stored responses at
+        UBC's gateway itself. Measured by manifest-ec at 20:48:32: YES. The real key's response (gpt-6-luna, store: true by
+        default) was read in full by the PROBE key, on another team and restricted to qwen3.6-35b-a3b: GET 200 and
+        /input_items 200. The response was then deleted (DELETE 200, GET 404). Only field names were recorded. A fact for Rich
+        as the gateway's administrator: holding a response id is enough to read the conversation with any virtual key there.
+      - THE PHASE 3 RULE — "Yes, a binding Phase 3 rule" (Recommended): when Phase 3 first gives any Manifest key
+        /v1/responses, its plan must force store:false or refuse GET /v1/responses/{id} and …/input_items, with a test that one
+        key cannot read another's answer. It goes in the gateway plan's findings, ORIENTATION §8, TRAPS and the roadmap's
+        Phase 3 line. No code tonight. Rejected: a note in the findings only.
