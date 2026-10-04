@@ -1094,3 +1094,15 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
     matched with the figures the script produced." Step 5, the expiry, rests on his 20:56 reading of the same admin UI ("Expires
     Jan 1, 2027 at 3:23 PM"), which the demo's printed .env date, 2027-01-01, agrees with. The half that has him build an app on
     app.manifest.internal was NOT RUN: the faculty front-end was in mock mode, not on 7100.
+
+    And at 13:53 PDT on 2026-10-04 (the clock read just after his answers), THE U1 PLAN'S SITTING 1 OPENED (manifest-41; no
+    coordinator live, so asked directly), three through the question tool:
+      - the U1 spec action — "Apply it now (Recommended)": Task 0 applies the 22:21 words; the gateway plan's acceptance is closed.
+      - E3's wording point (ORIENTATION §7e's first cold-start item) — "Name the frozen level (Recommended)": E3's last sentence
+        reads "…every agent session loses each model its project's level no longer allows, and every running app's key each model
+        the level of the release it runs no longer allows." So the spec says what Task 6 builds (its Decision 8, the review's
+        M12). Rejected: the decided words with the reading recorded only in the plan; the project's current level for app keys
+        (Task 6 reading classificationFloor, so a raise narrows a running app before its redeploy).
+      - the project-less app containers (22 networks and 30 mf- containers at 13:51, the control database at 0 projects) —
+        "You try it first": manifest-af's 23:12 script, unchanged but for its header, run by manifest-41 and ALLOWED. Measured
+        after: 12 networks, 0 mf- containers, 39 volumes; the four protected containers running.
