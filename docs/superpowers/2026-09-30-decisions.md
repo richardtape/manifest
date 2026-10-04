@@ -1002,3 +1002,13 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
       - m45, the Overview not learning of a launch made elsewhere while its draft serves nothing (overview.tsx:90, :124) —
         "Accept it". It needs a launch in another tab and a draft serving nothing, and a reload fixes it. Rejected: reading the
         checklist for every unlaunched app.
+
+    And at 23:13 PDT (the clock read just before this entry), the project-less app containers, put to him before the gateway
+    acceptance (TRAPS, "DOCKER DESKTOP RUNS OUT OF NETWORKS AT ~31"). There were 28 networks, 16 of them mf- networks held by 48
+    mf- containers: the demos' apps and F5b's f5b-measure-1, every one with no project (the control database read 0 projects
+    and 0 users at 23:12, since sitting 2's pnpm test). In his words: "Let's remove them now. Is there a script I can run to
+    help? Unless that's going to cause a problem with currently running items". manifest-af wrote a script that removes
+    nothing unless the control database holds zero projects. It runs `docker rm -f -v` on each mf- container, then
+    dead-app-resources.sh --apply. manifest-be held its demos meanwhile. Rich ran it himself ("ok I ran it"). Measured after:
+    12 networks, 0 mf- networks, 0 mf- containers. The four protected containers and the platform's own are running, and 7100
+    is unchanged (PID 69387). The f5b-measure-1 repository on GitHub is untouched and still his to delete.
