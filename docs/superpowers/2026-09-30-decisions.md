@@ -757,3 +757,10 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
       - `make reset` — "Yes, once": manifest-80 runs it once after its controls (the databases including LiteLLM's, the
         registry, the build cache, the fake's repositories and the mf- resources; NOT .manifest/repos, the seed cache, the CA,
         Ollama's models or the four protected containers — Makefile:83-88, checked), then fresh runs on both drivers.
+
+    And at 18:19 PDT, faculty-ready sitting 7's CLICKED HALF, staged by manifest-80 (headless Chrome first, 20 of 20) and
+    relayed by manifest-94 — Rich, in his words: "all done, all looked good". The five steps: the __Host- session cookie on
+    console. and app. (HttpOnly, Secure, Path /, no Domain, no plain name); the operator (an administrator, not a member) on
+    the instructor's project reading "You are not a member … Say why first"; a rename refused without a reason with its
+    support reference shown, then saved with one; the instructor's events reading "Test Operator acted as a platform
+    administrator — reason: '…'".
