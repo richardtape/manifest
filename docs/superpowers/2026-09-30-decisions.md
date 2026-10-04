@@ -840,12 +840,12 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
       - Its budget: 0.01 USD (Rich's words). GET /key/info on the probe key answers 403, so it cannot read its own budget.
       - In his words, a fact for [M9]: "that model won't actually cost UBC anything as it's hosted on prem, it's fine."
         qwen3.6-35b-a3b runs on UBC's own hardware.
-      - The regenerated probe key expires in 1 day (Rich, 20:2x: "the key's expiry is 1d"; confirmed through the question tool
+      - The regenerated probe key expires in 1 day (Rich; the clock read 20:27 at its entry: "the key's expiry is 1d"; confirmed through the question tool
         to be the PROBE key, not UBC_AI_GATEWAY_API_KEY, which keeps its 90-day expiry of 16:23, about 2027-01-01). He has
         DELETED the first probe key (the all-models one) at the gateway. The regenerated one is deleted by him after Task 1's
         Step 10.
 
-    And at 20:4x PDT, the gateway's models ([M1], manifest-ec, 20:35: ten models, read on the real key; the real key's
+    And at 20:42 PDT (the clock at this entry), the gateway's models ([M1], manifest-ec, 20:35: ten models, read on the real key; the real key's
     /key/info answers 403, "only allowed to call routes: ['llm_api_routes']"), through the question tool. In his words:
       - gpt-6-luna, gpt-5.6-luna, gpt-5.6-terra, gpt-5.4-mini (provider openai; [M2]: OpenAI's public API, organisation
         ubc-ltic-incubator): "there's a difference between high risk and very high risk data at UBC. High Risk data should be
@@ -865,14 +865,14 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
     classifications are DEFERRED to sitting 2's close, when he chooses MANIFEST_GATEWAY_MODELS (What Rich does 5). Task 1
     does not need them, and the three on old hardware are likely left out.
 
-    And at 20:5x PDT, the gateway plan's [M4] STOP (manifest-ec, 20:43, on gw-probe, Manifest's LiteLLM 1.98.0): a second key
+    And at 20:52 PDT (the clock at this entry), the gateway plan's [M4] STOP (manifest-ec, 20:43, on gw-probe, Manifest's LiteLLM 1.98.0): a second key
     read the first key's stored /v1/responses answer (GET /v1/responses/{id} 200, /input_items 200 = the prompt), because
     responses are stored by default (store: true) and every Manifest key reaches the gateway on ONE upstream key. Nothing is
     exposed today: every key Manifest mints carries only the three routes (ai/keys.ts:22, agent-keys.ts:118, keys.ts:155;
     /v1/responses appears nowhere in src/, checked by manifest-af) and is refused /v1/responses with 403. [M4].8 measured
     gpt-6-luna calling tools on chat completions through both hops, so TASK 5 DROPS, Spec action 2 is NOT NEEDED, and the
     contract stays 1.6.0. Explained to Rich twice in plain terms, then asked through the question tool:
-      - "Yes, measure it" (Recommended), ~20:47: whether two DIFFERENT virtual keys read each other's stored responses at
+      - "Yes, measure it" (Recommended), answered before 20:48 (manifest-ec measured it at 20:48:32): whether two DIFFERENT virtual keys read each other's stored responses at
         UBC's gateway itself. Measured by manifest-ec at 20:48:32: YES. The real key's response (gpt-6-luna, store: true by
         default) was read in full by the PROBE key, on another team and restricted to qwen3.6-35b-a3b: GET 200 and
         /input_items 200. The response was then deleted (DELETE 200, GET 404). Only field names were recorded. A fact for Rich
@@ -882,7 +882,7 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
         key cannot read another's answer. It goes in the gateway plan's findings, ORIENTATION §8, TRAPS and the roadmap's
         Phase 3 line. No code tonight. Rejected: a note in the findings only.
 
-    And at 20:5x PDT, Rich ran operator's admin grant himself, in his terminal: the command manifest-be's classifier had
+    And at 20:56 PDT (the clock at this entry), Rich ran operator's admin grant himself, in his terminal: the command manifest-be's classifier had
     refused ([Permission Grant], pre-authorised 13:45 for F5b sitting 1). Its output: "NOTICE: PUID opr000001 is now admin /
     Done. A session issued before this still carries the old role — sign in again."
     And the real gateway key's facts, read by him from the gateway's admin UI (the key's own /key/info answers 403): "The
@@ -891,7 +891,7 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
     [M2]); CLAUDE.md's Outstanding is to be corrected at the day's sweep. UBC_AI_GATEWAY_KEY_EXPIRES=2027-01-01, appended by
     manifest-ec under his 19:58 yes. No gateway-side fallback exists, which settles [M9]'s second fact.
 
-    And at 21:0x PDT, F5b sitting 1's CLICKED HALF (the front-end's F5b, staged headless by manifest-app-79: the rehearsal
+    And at 21:12 PDT (the clock at this entry), F5b sitting 1's CLICKED HALF (the front-end's F5b, staged headless by manifest-app-79: the rehearsal
     6/6, `MODE=edge check-slice.sh` 4/4), relayed by manifest-af. Rich, in his words: "I did the walk, all looked great." The
     six steps: a CWL sign-in on app. as instructor; the __Host-manifest_session cookie (Secure, HttpOnly, Path=/, no Domain);
     a planted plain manifest_session changing nothing; Going live's step-up, which sets __Host-manifest_stepup at Path=/; a real
