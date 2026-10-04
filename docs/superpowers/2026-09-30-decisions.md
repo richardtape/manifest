@@ -928,3 +928,27 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
     llm_provider-x-litellm-key-* and llm_provider-x-litellm-model-api-base from what callers receive, after LiteLLM has read the
     cost, tested against the stub. If no 1.98.0 hook can remove outgoing headers, it is recorded on the before-production list
     instead, and the sitting's record says so. Rejected: recording it until production; stripping at the edge only.
+
+    And at 21:48 PDT (the clock read just before this entry), MANIFEST'S DATA CLASSES AGAINST UBC'S U1 (the question drafted by a read-only
+    background agent of manifest-af: plans/2026-10-03-u1-classification-question.md; manifest-af checked it against U1 itself,
+    fetched 2026-10-03, "Standard Last Revised: 2026-03"). The fact that decides it: U1 lists "student name", "Student ID or
+    Employee ID" and "student grades" under HIGH Risk. Very High is SIN, government ID, bank account, PHI, passwords and keys,
+    biometric and genetic data, and date of birth. U1 says nothing about where information may be processed. Through the question
+    tool, in his words:
+      - THE SHAPE: "Can we not just use the same names from the ISS U1? Very high risk forces on prem models only." So the
+        classes become U1's own names, low | medium | high | very-high, and very-high means on-premise models only.
+      - THE SOURCE of "High may reach OpenAI": "I can't send you a document but it's been deemed okay as long as ZDR is enabled
+        (which it is for our org on open ai)". The OpenAI organisation behind UBC's gateway (ubc-ltic-incubator, [M2]) has zero
+        data retention, per Rich.
+      - TODAY'S THREE NAMES — "Keep them as aliases" (Recommended): accepted with fixed meanings, public=low, internal=medium,
+        confidential=very-high. That mapping never widens: a confidential app stays on-prem. Additive, so contract 1.7.0, with no
+        LiteLLM database or config migration. New manifests, the front-end and the docs use U1's names. Rejected: a clean rename
+        (breaking: D23.8's new prefix).
+      - llama3 ON AWS BEDROCK — "high, like OpenAI" (over the recommended "medium until checked"): his call that Bedrock's
+        retention meets the same bar. Recorded as unverified here.
+      - PLACEMENT — "Right after the gateway plan" (Recommended): a spec action, then a small plan of its own, before
+        FE-46/47/5.
+      - THE DRAFTER — "The background agent, tonight" (Recommended): documents only. Its words come to him to decide before the
+        spec changes.
+    Not Rich's alone, recorded for the external track (deferred 2026-09-30): under U1 §3.2.4 Manifest itself is likely a Very
+    High Risk Electronic Service, which needs a Security Threat Risk Assessment and a Shared Responsibility Model (§4.2.3).
