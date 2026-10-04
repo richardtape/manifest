@@ -1070,3 +1070,19 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
         change in behaviour; Task 2 is the switch. So the 23:22 approval STANDS. Recorded for the plan's Task 0: manifest-17 read
         E3's "its project's level" for S11's sweep as each running instance's frozen level (its Decision 8, the review's M12).
         If Rich wants the spec words to say so, the change is to E3's text when Task 0 applies it.
+
+    And at 00:01 PDT on 2026-10-04 (the clock read just before this entry), the LiteLLM 1.102.0 Docker tier, half done (manifest-be): the GUARD
+    is green on 1.102.0 (fallback-guard.docker.test.ts 29/29, the fallback refusals, F5's strip, F8's 422 and F32 included;
+    capable 8/8; agent-sessions 4/4). ONE red outside the guard: ai-path.docker.test.ts, §16's pinned AI error mapping, the
+    UNKNOWN-MODEL row (ai/errors.ts:131). 1.98.0 answered 400 with type "None" (AI_MODEL_UNKNOWN); 1.102.0 answers 400
+    invalid_request_error, which falls to AI_UNMAPPED. No app key reaches the row: an app key's model list makes an unknown model
+    403 key_model_access_denied, still mapped. Through the question tool — "Fix forward on 1.102.0" (Recommended): errors.ts
+    recognises 1.102.0's shape (400, invalid_request_error, LiteLLM's own "Invalid model name passed in model=", matched as the
+    budget row already is), with errors.test.ts red first on the recorded body. The 23:40 stop rule (the GUARD broken) did not
+    fire. Rejected: pinning back to 1.98.0.
+    Also, no decision needed: the gateway plan's one whole-branch review (manifest-be's, Task 6 Step 5) reads "with fixes", 0
+    Critical and 4 Important. I1: a model the gateway prices at $0 may be charged $0 on 1.102.0 (ubc-qwen-27b streamed). I2:
+    OPENAI_API_KEY can still reach UBC's gateway when the key is removed and the capable setting is refused, so ai/capable.ts
+    removes every gateway deployment whenever .env has no key, and make verify fails while one is listed. I3: a spent budget
+    (429) or a revoked key (401) falls back silently, so the guard writes one line per allowed fallback. I4: the acceptance
+    goes green on 1.102.0. manifest-be fixes all four in sitting 3, each red first.
