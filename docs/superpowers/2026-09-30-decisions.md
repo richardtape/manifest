@@ -991,3 +991,14 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
         `medium`, set by him to `high`. (S4) A `high` project's building agent gets the capable model. (S5) An undeclared app is
         `medium`. (S6) The platform answers in U1's names. (S7) The spec's example app is `high`. (S8) Story 04 keeps its
         refusal, with a new reason. (S11) A lowered level takes effect at boot, and a key left with none is revoked.
+
+    And at 22:55 PDT (the clock read just before this entry), two of the front-end's minors (its seventh round, manifest-app-cf;
+    premises checked by manifest-af against manifest-app at 6bbbede plus the round's working tree). Through the question tool,
+    each as recommended:
+      - m99, a launched app's "Waiting to reach your students" naming the trying-out version twice (new-version.tsx:255's facts,
+        live.tsx:532's press line) — "Drop the press's line after launch": after a launch the press keeps its button, stations
+        and endings but not its "goes to" line. The facts stay whole and, by m136, a live region. The first-launch press keeps its
+        line. Rejected: trimming the facts; accepting it.
+      - m45, the Overview not learning of a launch made elsewhere while its draft serves nothing (overview.tsx:90, :124) —
+        "Accept it". It needs a launch in another tab and a draft serving nothing, and a reload fixes it. Rejected: reading the
+        checklist for every unlaunched app.
