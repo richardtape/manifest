@@ -6,7 +6,12 @@
 > `bae220f`**, after the UBC AI Gateway plan's Tasks 2–4 landed (`3c05c7f` … `75ed30b`), so `ai/registration.ts`, `ai/gateway-models.ts`
 > and `ai/providers.ts` are as that plan's sitting 2 left them. Line numbers WILL move: every task re-reads its own lines before it
 > edits them.
-> **NOT YET APPROVED.** The coordinator runs a fresh read-only review first; then Rich approves it and chooses how it is executed.
+> **APPROVED — Rich, 23:22 PDT, with its fresh review's fixes, applied by `manifest-17` 23:24–23:46 PDT** (`../2026-09-30-decisions.md`,
+> its 23:22 entry, through `manifest-af`). The review is [`2026-10-03-review-of-u1-plan.md`](./2026-10-03-review-of-u1-plan.md) (`8acd55d`):
+> *"approve with fixes"* — C1, I1–I7, M1–M14. Every fix is built into the tasks below and marked there with the review's id; *The fresh
+> review's fixes, and where each landed* (at the end) lists each. **C1 re-cut Tasks 1–3**: Task 1 now makes every reader that compares
+> against an old name LEVEL-SAFE, behaviour unchanged, and stores nothing canonical; Task 2 then switches what is stored and answered
+> (Decision 13). No code changed between `bae220f` and the review's HEAD; `manifest-af` checks that C1's reorder landed.
 
 > **For agentic workers:** REQUIRED SUB-SKILL: **superpowers:executing-plans (inline, a fresh session per sitting)** — this project's
 > pattern since the gateway plan, unless Rich chooses otherwise at approval. Steps use checkbox (`- [ ]`) syntax for tracking.
@@ -40,7 +45,7 @@ app's privacy assessment draft in the console**.
   nothing it may use is left — each an `ai.models_withdrawn` event and an operator line.
 
 **Tech Stack:** TypeScript 5.9.3 on Node 24.12.0 (host), Fastify 5.12.3, Vitest 2.1, zod 3 (`^3.24.1`) with `zod-to-json-schema`
-3.25.2, drizzle-kit (a migration for the new event type's CHECK). LiteLLM **1.98.0**, pinned by digest (`infra/images.lock`). Docker
+3.25.2, drizzle-kit (a migration for the new event type's CHECK). LiteLLM **1.102.0** since `32e9b7a` (the gateway plan's F32 re-pin, 2026-10-03 ~23:40), pinned by digest (`infra/images.lock`) — the earlier measurements this plan cites (an empty `models` list is every model; `/key/update` by alias) were made on 1.98.0, and Task 6 Step 1 measures on whatever runs. Docker
 Desktop 29.7.2. **No new package.**
 
 **Spec:** [`../specs/2026-08-29-manifest-platform-design.md`](../specs/2026-08-29-manifest-platform-design.md), **as the U1 spec action
@@ -68,8 +73,8 @@ That edit is the coordinator's at this plan's approval sweep, not a task here (D
 
 | Sitting | Tasks | What it delivers | `pnpm test:docker` owed? | Spec action needed first | Status |
 |---|---|---|---|---|---|
-| 1 | 0, 1, 2, 3 | **The spec action applied** (Task 0, if it is not already). **The levels and their aliases** — one rank table of seven, the enum, **contract `1.7.0`**, the front-end's NOTICE (Task 1). **Every stored level read as its level, and answered in U1's names** (Task 2, S6). **D17's words**: the refusal hint (E14), the deploy-time refusal, the privacy assessment, intake, the blueprint and the guides (Task 3) | **Yes** — `ai/` (Task 2's catalogue and floors) and `releases/` (Task 3's deploy-time message): once, at the close, in the background | **The U1 spec action** — DECIDED 22:21; Task 0 applies it | ← **next** |
-| 2 | 4, 5 — **stop point** — 6 | **The capable model's level** as a setting, the builder exception by S4, registration by level and never kept above it, the gateway's `very-high` pin (Task 4). **The token rule** (Task 5, S9). **The app-key sweep** (Task 6, S11) — its Docker case first, because it measures what it rests on | **Yes** — `ai/`, and Task 6's new Docker file: once, at the close | — | |
+| 1 | 0, 1, 2, 3 | **The spec action applied** (Task 0, if it is not already). **The vocabulary, and every reader made level-safe** — one rank table of seven, the enum ACCEPTING seven and storing what is written, the four `=== 'confidential'` readers compared by level, **contract `1.7.0`**, the front-end's NOTICE; no existing input's answer changes (Task 1, *C1*). **Stored and answered as the level** — the transform, the default `medium`, the canonical floors and catalogue, the diff by level, S6's answers, the level in a person's words (Task 2). **D17's words**: the refusal hint (E14), the deploy-time refusal, a `high` model's zero-retention sentence, intake, the blueprint and the guides (Task 3) | **Yes** — `ai/` (Tasks 1–2) and `releases/` (Task 3): once, at the close, in the background; and Task 2's two Docker files alone before its commit (*C1*) | **The U1 spec action** — DECIDED 22:21; Task 0 applies it | ← **next** |
+| 2 | 4, 5 — **stop point** — 6 | **The capable model's level** as a setting, the builder exception by S4, registration by level and never kept above it, the gateway's `very-high` pin (Task 4). **The token rule** (Task 5, S9). **The app-key sweep** (Task 6, S11) — its Docker case first, because it measures what it rests on | **Yes** — `ai/`, and Task 6's new Docker file: once, at the close; and `boot.docker.test.ts` ALONE before it (Task 6's real-entry-point case, *I1*, *M4*) | — | |
 | 2b | 6 — **only if sitting 2 runs out of room at its stop point** | As sitting 2's last task | Yes — `ai/` | — | |
 | 3 | 7 | **The acceptance**: `make demo-levels` three times, its controls seen red, every other demo still green, `make ci-acceptance`, the plan's one whole-branch review, and Rich reading a `high` app's privacy assessment in the console | Yes, if any code changes | — | |
 
@@ -85,8 +90,12 @@ That edit is the coordinator's at this plan's approval sweep, not a task here (D
    statement): Task 5 adds authorization-contract rows and Tasks 1–6 add unit tests, so `EXPECT_TESTS` and `EXPECT_FILES` move —
    **count them, never subtract**.
 
-**THIS TABLE IS A SCHEDULE, NOT A CONTRACT.** Four rules survive any re-cut:
+**THIS TABLE IS A SCHEDULE, NOT A CONTRACT.** Five rules survive any re-cut:
 - Task 0 is first. No task's code is written before the spec says what it builds.
+- **No task stores or answers a U1 name while any reader still compares a level against an OLD name's string** (*C1*). Task 1 makes
+  every such reader level-safe in the same commit that first lets a U1 name be written; Task 2 is the first to store one for an old
+  input. **The builder exception (S4/Spec action 10) and the token rule (S9's predecessor) hold at EVERY commit, so nothing is off across
+  a sitting boundary**, and each task passes its own four gates, `pnpm typecheck` included, on its own tree.
 - Task 1 is the contract's one bump; every later task that changes `packages/contract` rides on it.
 - Task 6's Docker case runs ALONE before its code is written (its Step 1): if it measures that LiteLLM will not narrow an app key by
   its value, Task 6 STOPS there (Decision 8).
@@ -130,6 +139,10 @@ before the U1 plan's first sitting"*. Through the question tool, each as recomme
   - **S8** — Story 04 keeps its refusal, with a new reason.
   - **S11** — a lowered level takes effect at boot, and a key left with none is revoked.
 
+**At 23:22 PDT** (its 23:22 entry), THIS PLAN — *"Approve with the fixes" (Recommended)*: approved once `manifest-17` applies every fix
+of its fresh review, documents only, each marked with the review's id, and `manifest-af` checks that C1's reorder landed. It runs right
+after the UBC AI Gateway plan, before FE-46/47/5. *Rejected:* a second review after the fixes; reading the review first.
+
 **The spec action's banner (`bae220f`)**: *"E14, `policy.ts:213-215`'s public hint, is CODE: it is the U1 plan's to change, in a task
 with its test, never by whoever applies the spec words."* It is Task 3's.
 
@@ -152,10 +165,14 @@ with its test, never by whoever applies the spec words."* It is Task 3's.
 2. **Before sitting 1 — the go to apply the spec action** (Task 0), if it is not applied by then: the coordinator asks him and applies
    it, or this sitting applies it at his word. **Nothing to decide**: the words were decided at 22:21.
 3. **At sitting 2's close — `MANIFEST_CAPABLE_MODEL_CLASSIFICATION=high` in `.env`** (S3: *"set by him to `high`"*). Not a secret, so
-   the agent may append it at his word, by `printf` reading no other value. **Then a control-plane restart with the network ON** — the
-   one boot that re-registers `default-chat-large` at `high` needs LiteLLM to price `gpt-6-luna` (`registration.ts:91-93`); offline it
-   is refused, and with Task 4's fix the working `medium` registration is then KEPT (it is below `high`), so `high` apps simply cannot
-   use it until a networked boot. The boot line's `capableModel` reads `registered`, then `unchanged` at every boot after.
+   the agent may append it at his word, by `printf` reading no other value. **Then a control-plane restart** — the one boot that
+   re-registers `default-chat-large` at `high`. **What matters is that LiteLLM's LAST START had the network on** (*M9*): LiteLLM prices
+   `gpt-6-*` only from the list it fetches at its own start (`registration.ts:91-93`; `unpricedReason`: *"restart LiteLLM with the network
+   on … then this control plane"*). If it did not, the re-registration is refused and, with Task 4's fix, the working `medium` one KEPT
+   (it is below `high`), so `high` apps cannot use it until LiteLLM is restarted online and then the control plane. The boot line's
+   `capableModel` reads `registered`, then `unchanged` at every boot after, and its `capableClassification` reads `high`.
+   **From then on the shared LiteLLM's `default-chat-large` row is `high`** (*I5*): Task 2 makes `ai-path.docker.test.ts` accept any
+   level there, and Task 4 makes `make demo-gateway` compare by level, so neither goes red for it.
 4. **At sitting 3 — the person's half of the acceptance**: he signs in to the console (or lets the agent stage a headless sign-in, as
    his standing yes allows on `manifest.internal`), opens `make demo-levels`' project's *Records*, drafts the privacy assessment, and
    reads its *Classification* line and its models' lines (Task 7, Step 4).
@@ -239,7 +256,7 @@ with its test, never by whoever applies the spec words."* It is Task 3's.
     `app:llmApiKey:<instanceId>` (`:182-195`), revoked by VALUE and deleted at retirement (`revokeInstanceKey`, `:215-229`); an
     environment-level `app:llmApiKey` is P4b's legacy (`:237-258`). `narrowAgentKey` (`ai/agent-keys.ts:215-234`) narrows by ALIAS with
     `/key/update`; **nothing narrows an app key**, and the fake (`ai/testing.ts:489-505`) finds a key for `/key/update` by alias only.
-    **Unmeasured** (the spec action's *Read but not verified*): that LiteLLM 1.98.0's `/key/update` narrows an app key named by its
+    **Unmeasured** (the spec action's *Read but not verified*): that the pinned LiteLLM's `/key/update` narrows an app key named by its
     VALUE — Task 6's Step 1 measures it.
 16. **A new event type is five edits**: `observability/events.ts`'s list (`:40-56`, `:185-200`), `event-schemas.ts`, `examples.ts`,
     `db/schema.ts:1196`'s `events_type_known` CHECK, and a drizzle migration that drops and re-adds that CHECK (`drizzle/0048_*.sql`'s
@@ -270,6 +287,38 @@ with its test, never by whoever applies the spec words."* It is Task 3's.
 23. **FE-46/47/5's plan** bumps the contract to `1.7.0` at its Task 2 (ten lines name it, Successor, above); its assessment gap ids
     (`flows.classification`, `hosting.offshore-ai`, …, its Decision 8) are ids, not words, so Task 3's words do not move them.
 
+*Added with the fresh review's fixes (23:24–, read at `a0b8cdc`; no code changed since `bae220f`):*
+
+24. **THE TESTS THAT ASSERT AN ANSWERED VALUE — the class the spec action's list missed** (*C1*; the review's fail-open sweep):
+    - `api/agents.test.ts:1158-1170` COMMITS `classification: confidential` through validation, then expects the session to hold
+      `default-chat-large`. **So the schema's transform alone flips the floor to `'very-high'`** (`asClassification`'s `in` accepts it)
+      and turns `models.ts:37`'s `=== 'confidential'` off — which is why Task 1 must make that reader level-safe before ANY value is
+      stored canonical, not Task 2 as the review first placed it.
+    - `api/agents.test.ts:1063` (*"because the project is now confidential"*, printed from the floor by `sessions.ts:650`); `:1299`
+      (*"the platform now keeps a confidential project's building agent on-premise"*, `sessions.ts:654`);
+    - `api/agents.test.ts:303` and `:853` (`internalOnlyCatalogue()`) filter `m.maxClassification === 'internal'` — against a canonical
+      catalogue they match NOTHING, and `:303` then stays GREEN for the wrong reason (an empty catalogue);
+    - `ai/capable.test.ts:211` (`maxClassification: 'internal'` from the catalogue), `:517` (*"classified 'public'"*), `:551` (*"below
+      'internal'"*), `:48` (the create body's `max_classification: 'internal'`);
+    - `ai/ai-path.docker.test.ts:263-267` (the SHARED LiteLLM's `default-chat-large` is `'internal'`) and `:274-276` (each shipped entry's
+      catalogue level `toBe` `config.yaml`'s raw string); `ai/capable.docker.test.ts:181-185`;
+    - `launch/assessment.test.ts:202, 213, 219, 235, 354, 357` (its `SPEC` passes through `manifestSchema.parse`; its `CATALOGUE`,
+      `:38-40`, is handed in directly with the aliases); its `input` is a FUNCTION (`:43`), `input({ … })`;
+    - `packages/mock/src/scripted.test.ts:359-…` (the confidential mock's Incident refusal); `spec/diff.test.ts`'s `DEFAULTS` is declared
+      inside two blocks (`:163`, `:374`), not at module level.
+25. **`make demo-gateway` asserts levels by string** (*I5*): `scripts/demo-gateway.sh:258` expects `default-chat-large`'s row at
+    `"internal"`; `:247` compares `max_classification === cls` raw; `:260-261`'s entry regex ends `@(\w+)$`, which does not match
+    `very-high`; `packages/journey/src/gateway.ts:495` filters `m.classification === 'confidential'`. The gateway plan's sitting 3 is
+    committing this now — Task 4 re-reads both files at its HEAD.
+26. **`createRelease` freezes the BUILD's stored `parsed`** (`api/routes/releases.ts:344-357`, *M2*): a release of a build validated
+    before Task 2 freezes the alias, after Task 2 too. The seven-name rank table and `levelName` make that safe.
+27. **Published words still in the old names** (*M1*): `api/error-codes.ts:852, 854` (`INTAKE_MODEL_UNAVAILABLE`) and
+    `api/routes/intake.ts:48` (*"approved for internal data"*); `launch/assessment.ts:267` prints the stored ceiling raw (*"Manifest treats
+    it as internal"*); `docs/superpowers/RUNBOOK.md:299` (*"any word but public, internal or confidential refuses the boot"*) and
+    `:316-329` (the builder setting's words).
+28. **The fake has no `/key/info`** (`ai/testing.ts:528-…`, its `get`); the admin's `GET /key/info?key=<value>` is how the gateway plan
+    read a key's spend (F13). Task 6 reads a key's CURRENT models that way (*I2*), and its Step 1 measures the answer.
+
 ---
 
 ## Decisions this plan makes, and why
@@ -283,8 +332,10 @@ with its test, never by whoever applies the spec words."* It is Task 3's.
      runtime change, and an alias then unrepresentable exactly where the defence in depth expects one.
    - *To change course:* a later type-only pass; nothing at runtime moves.
 2. **CANONICAL WHERE A NAME ENTERS; RANKED EVERYWHERE; `levelName` WHERE A PERSON READS.** The entry points: the schema's transform (so
-   every NEW `appSpecs.parsed` and frozen release holds the level — `spec/resolve.ts:129` freezes the parsed value, so it needs no
-   edit), `loadModelCatalogue`, `loadConfig` (gateway entries, the capable
+   every `appSpecs.parsed` validated from Task 2 on holds the level — **but not every new release** (*M2*): `createRelease` freezes the
+   BUILD's stored `parsed` (`api/routes/releases.ts:344-357`, `spec/resolve.ts:129`), so a new release of a build validated before Task 2
+   freezes the alias. That is safe, not canonical: every reader ranks it through the seven-name table and names it through `levelName`),
+   `loadModelCatalogue`, `loadConfig` (gateway entries, the capable
    level), `asLevel` in the floors, and S6's two answers (`getSpec`, `toRelease`) for OLD rows. Every sentence a person reads names the
    level. *Rejected:* canonicalizing only at output — every string comparison (Read this first 3) would still need it.
 3. **THE CONTRACT GOES `1.6.0 → 1.7.0` ONCE, AT TASK 1**, the enum's change; Tasks 2–6 ride on it (the examples, the descriptions, the
@@ -298,7 +349,8 @@ with its test, never by whoever applies the spec words."* It is Task 3's.
    models whenever the catalogue lists it classified and the setting is `capable` — exactly what `floor === 'confidential' && …` gave
    while the capable model was `internal`. *Rejected:* `rank(floor) > rank(capableLevel) && …`, which needs the capable model's level
    threaded into a function that already has the catalogue and answers the same set. *Cost to change course:* one line. Its test proves
-   the equivalence at every level.
+   the equivalence at every level. **Until Task 4 the line is Task 1's level-safe `toLevel(floor) === 'very-high' && builder ===
+   'capable'`** (Decision 13), so the exception is never off between the two.
 5. **`MANIFEST_CAPABLE_MODEL_CLASSIFICATION`** (S3): any of the seven names, canonicalized; empty or absent is `medium`; anything else
    a `ConfigError` `CONFIG_INVALID` naming the setting — the published code, as the gateway plan's F19 did for its own settings. **No
    cap** (S3 (b)): `very-high` is accepted, for a capable model on UBC's GPUs. It reaches `ensureRegistered` as the registration's
@@ -316,14 +368,26 @@ with its test, never by whoever applies the spec words."* It is Task 3's.
    - **Which keys:** every instance whose state is not `gone` with an `app:llmApiKey:<instanceId>` secret — a failed instance's key is
      still live until its retirement. **P4b's environment-level keys are COUNTED, named in one operator line and not checked** (none can
      exist on a machine `pnpm test` has truncated since P4c; at UBC none ever existed).
-   - **What it withdraws:** the agent sweep's own rule — each model the catalogue SERVES (classified or not) that is not classified at or
-     above the release's frozen level for that environment. A model the catalogue no longer serves stays on the key (LiteLLM refuses it).
+   - **Which level: the release's FROZEN level for that environment** (S11's row: *"its frozen level"*) — what the key was minted for. E3's
+     applied words say *"its project's level"*; the plan reads them as the level of what that instance RUNS, because a raise of the
+     project's manifest reaches a running app only at its next deploy (D9, as today), and that deploy mints a new key. **Recorded so Task
+     0's applier and a reviewer do not flag it** (*M12*); no spec change is asked.
+   - **What it withdraws:** the agent sweep's own rule, over what the key HOLDS NOW (*I2*) — read by `GET /key/info?key=<value>` with the
+     master key, never recomputed from the release's frozen `ai.models` — each held model the catalogue SERVES (classified or not) that is
+     not classified at or above that level. A model the catalogue no longer serves stays on the key (LiteLLM refuses it). **So a second
+     boot finds nothing to withdraw, and records nothing**: the agent sweep is idempotent by the session row's `models`; an app key has no
+     row, so LiteLLM's own record is the one read. A key LiteLLM no longer holds (`404`) has nothing to withdraw.
+   - **Against a FRESH catalogue** (*M8*): `loadModelCatalogue(llm)`, never the 60-second cache a request may have filled between `listen`
+     and the sweep (`index.ts:482`).
    - **How:** `/key/update { key: <value>, models: kept }` — or, when nothing kept is allowed, `revokeInstanceKey`, never `models: []`.
    - **Each change:** an `ai.models_withdrawn` event to the project's people, and an operator line. **A release whose frozen level is
      unreadable is NAMED and skipped** — never assumed, in either direction.
-   - **THE STOP:** Step 1 measures, on the running LiteLLM, that `/key/update` by VALUE narrows an app key. If it does not, Task 6 stops
-     and the coordinator puts Rich two options at code level — update by the key's hash (`token`), if Step 1 measures that it works; or
-     REVOKE any key holding a lowered model (stricter: the app's AI stops until its owner redeploys).
+   - **THE STOP:** Step 1 measures, on the running LiteLLM, that `/key/update` by VALUE narrows an app key **and leaves its other bounds
+     alone** — `allowed_routes` (its confinement), `metadata` (the spend join), `user_id`, `max_budget` — read by `/key/info` before and
+     after (*I4*). It also records LiteLLM's answer to an unknown value, and whether `{ key: <the token hash /key/info answers> }` is
+     accepted. If the narrowing fails, or a bound moves, Task 6 stops and the coordinator puts Rich two options at code level — update by
+     the hash, IF Step 1 measured that it works and keeps the bounds; or REVOKE any key holding a lowered model (stricter: the app's AI
+     stops until its owner redeploys).
 9. **THE MOCK GAINS A `level` OPTION BESIDE `confidential`** (`MANIFEST_MOCK_LEVEL`), and `agentModels(confidential: boolean)` keeps its
    signature: the front-end imports and runs the mock from this tree, so its exports only grow. `confidential: true` means `very-high`.
 10. **FIXTURES AND THE DEMOS' MANIFESTS KEEP THEIR ALIASES** (`config.yaml`, `fixtures/*/manifest.yaml`, every test literal): they are the
@@ -335,7 +399,24 @@ with its test, never by whoever applies the spec words."* It is Task 3's.
     there would read as a launch defect.
 12. **WORDS.** A value is written `very-high`; a person reads *very high* (U1's *"Very High Risk"*), so the privacy assessment's
     sentence-start word is *Very high*, never `capitalised('very-high')`'s *Very-high*. Published text names *UBC's Information Security
-    Standard U1*, which passes `docs.test.ts` (its patterns are `§n`, `Dnn`, `Cn`, `R1-9`, `Fn`, `FE-n`, plan words — not `U1`).
+    Standard U1*, which passes `docs.test.ts` (its patterns are `§n`, `Dnn`, `Cn`, `R1-9`, `Fn`, `FE-n`, plan words — not `U1`). **One helper
+    holds both forms** (`spec/schema.ts`, Task 1): `levelName` answers the VALUE (`very-high` — for a diff's `from`/`to`, a refusal's hint
+    the author copies into `manifest.yaml`), `levelWords` the PROSE (`very high` — for an event, the privacy assessment).
+13. **THE ORDER: LEVEL-SAFE READERS FIRST, THEN THE SWITCH** (*C1*). The review found that Task 2, as first cut, switched the floors and
+    the catalogue to U1's names while `releases.ts:1253`, `models.ts:37` and `assessment.ts:97, :207` still compared against
+    `'confidential'` until Tasks 3–5: `pnpm typecheck` red at Task 2 (TS2367), the token rule and the builder exception off across sitting
+    1's close, and that boot's sweep narrowing every very-high session with a false sentence. **It is earlier than that**: Task 1's
+    schema transform alone stores a newly committed `confidential` as `'very-high'`, which `asClassification`'s `in` accepts — so
+    `api/agents.test.ts:1166-1170` goes red at Task 1 (Read this first 24). So:
+    - **Task 1** stores what is written (no transform; the default stays `internal`), widens the enum and the rank table, and makes EVERY
+      reader that compares against an old name level-safe — `toLevel(x) === 'very-high'` at `models.ts:37`, `releases.ts:1253`,
+      `assessment.ts:97, :207` and `gateway-models.ts:135` — behaviour unchanged for every existing input, and right for a U1 name written
+      now. Its tests are the new name's: a project declaring `very-high` keeps the builder exception and refuses tokens its tails.
+    - **Task 2** is the switch: the transform, the default `medium`, the canonical floors and catalogue, the diff by level, S6's answers,
+      and every sentence that prints a level in U1's words — with every moving expectation named and its red predicted.
+    - **Tasks 3, 4 and 5** change behaviour FROM Task 1's level-safe lines, never from `'confidential'`.
+    - *Rejected:* the review's own fix (the renames at Task 2) — it leaves Task 1's transform switching values first. *Rejected:* one task
+      for Tasks 1 and 2 — a commit too large for one reviewer to reject a part of.
 
 ---
 
@@ -399,16 +480,21 @@ Every task's requirements implicitly include this section.
    level*).
 3. **A level lowered, and the higher one kept** — the gateway's zero retention lapses, the administrator writes `@medium`, and LiteLLM
    (restarted offline) refuses the re-registration as unpriced: today the old `high` row stays and `high` apps keep sending to it.
-   Expected: **the entry leaves the catalogue; a `high` app is refused it; a `high` project's agent loses it at boot.** Owned by Task 4.
+   Expected: **the entry leaves the catalogue; a `high` app is refused it (`SPEC_MODEL_UNKNOWN`); a NEW session is never given it; a LIVE
+   session's key keeps the name, which LiteLLM no longer serves and refuses** — the agent sweep withdraws only names the catalogue still
+   serves (*M6*: fail-closed, and not *"loses it at boot"*, as this line first said). Owned by Task 4, which asserts the new-session half;
+   the live-key half rests on LiteLLM refusing a name with no deployment, the agent sweep's rule since the launch path plan's Task 7.
 4. **A token reading real people's input** — a `high` project's staging tail answered to a delegated token because the builder setting
    is `on-premise` or the capable model is `high`. Expected: **`403 INCIDENT_LOG_CONFIDENTIAL` at `high` and above, whatever either
    setting; `200` to the person; `200` on the sandbox; `200` to a token on a `medium` project.** Owned by Task 5.
 5. **A running app keeping a model now approved below its data** — and the naive fix, a key narrowed to `models: []`, which LiteLLM reads
    as EVERY model. Expected: **the model is taken off the key at the next boot; a key left with nothing allowed is revoked; nothing
-   is ever set to `[]`.** Owned by Task 6.
+   is ever set to `[]`; a second boot finds nothing more to do.** Owned by Task 6 — its unit cases, and its `boot.docker.test.ts` case
+   through the booted entry point (*I1*, *I2*).
 6. **The privacy assessment telling the Privacy Office the wrong thing** — a `high` model described as staying on premises, a `very-high`
    one as *"may leave UBC"*, or *Very-high* printed. Expected: **a `very-high` model stays on premises; a `high` one may leave UBC to a
-   provider that keeps nothing it is sent; the level is printed as a person reads it.** Owned by Task 3.
+   provider that keeps nothing it is sent; the level is printed as a person reads it.** Owned by Task 1 (the level-safe on-premise
+   test), Task 2 (the words) and Task 3 (the `high` sentence); seen by Rich at Task 7 (*I6*).
 
 ---
 
@@ -417,20 +503,24 @@ Every task's requirements implicitly include this section.
 ```
 packages/control-plane/src/spec/
   schema.ts               MOD (T1) LEVELS, Level, LEVEL_ALIASES, CLASSIFICATIONS (7), CLASSIFICATION_RANK (7), DEFAULT_LEVEL, toLevel,
-                          canonicalLevel, levelName; the enum, its transform and description. (T2) specInLevels
+                          canonicalLevel, levelName, levelWords; the enum accepting seven, as written. (T2) the transform, the
+                          default medium, specInLevels
   index.ts                MOD (T1, T2) the new exports
   levels.test.ts          NEW (T1) the invariant, the seven names, the transform, the default. (T2) specInLevels
-  schema.test.ts          MOD (T1) :19's default reads 'medium'
+  schema.test.ts          MOD (T2) :19's default reads 'medium'
   diff.ts, diff.test.ts   MOD (T2) both views and describeDiff by level
   policy.ts, policy.test.ts   MOD (T3) E14's hint and message in levels; the aliases-never-widen cases
 packages/control-plane/src/ai/
-  models.ts, models.test.ts   MOD (T2) asLevel, DEFAULT_LEVEL. (T4) builder === 'capable'; words
+  models.ts, models.test.ts   MOD (T1) :37 level-safe; asClassification by Object.hasOwn. (T2) asLevel, DEFAULT_LEVEL.
+                          (T4) builder === 'capable'; words
+  ai-path.docker.test.ts  MOD (T2) :267 any level; :274-276 by canonicalLevel (C1, I5)
+  api/agents.test.ts      MOD (T2) :303, :853 filters 'medium', non-empty; :1063's words. (T4) :1299's words
   catalogue.ts, catalogue.test.ts   MOD (T2) an entry's level, canonical at read
-  intake.ts               MOD (T3) CLASSIFICATION_RANK.medium; its message
+  intake.ts               MOD (T3) CLASSIFICATION_RANK.medium; its message (and error-codes.ts:852-854, routes/intake.ts:48 — M1)
   capable.ts, capable.test.ts   MOD (T4) the level as a parameter; capableFloor; CAPABLE_CLASSIFICATION removed
   registration.ts, registration.test.ts (or capable.test.ts)   MOD (T4) :237 by level; refuseKeeping(…, level, …)
-  gateway-models.ts, gateway-models.test.ts   MOD (T4) the very-high pin; refuseKeeping's level; platformModelsAtBoot's setting
-  sessions.ts             MOD (T4) the withdrawal words
+  gateway-models.ts, gateway-models.test.ts   MOD (T1) the very-high pin, level-safe. (T4) refuseKeeping's level; platformModelsAtBoot's setting
+  sessions.ts             MOD (T2) :650's floor in words. (T4) the builder clause's words
   capable.docker.test.ts  MOD (T4) registered at 'high'; an 'internal' row unchanged at 'medium'
   app-key-sweep.ts        NEW (T6) withdrawLoweredAppModels, appKeysAtBoot
   app-key-sweep.test.ts   NEW (T6)
@@ -441,15 +531,15 @@ packages/control-plane/src/
   config.ts, config.test.ts   MOD (T4) GATEWAY_MODEL_ENTRY's seven names; MANIFEST_CAPABLE_MODEL_CLASSIFICATION; the builder's words
   index.ts                MOD (T4) the capable level to the boot; the boot line. (T6) appKeysAtBoot; the boot line
   releases/release.ts     MOD (T3) RELEASE_MODEL_CLASSIFICATION_TOO_LOW's message in levels
-  launch/assessment.ts, assessment.test.ts   MOD (T3) the levels in a person's words; very-high on premises; high's zero retention
+  launch/assessment.ts, assessment.test.ts   MOD (T1) :97, :207 level-safe. (T2) the levels in a person's words, :267. (T3) high's zero retention
   api/representations/releases.ts   MOD (T2) classification as its level
   api/routes/project-reads.ts       MOD (T2) getSpec in levels; its example
-  api/routes/releases.ts            MOD (T2) the examples. (T5) S9's condition, description and message
-  api/routes/launch-examples.ts     MOD (T3) the PIA example's words
+  api/routes/releases.ts            MOD (T1) :1253 level-safe. (T2) the examples. (T5) S9's condition, description and message
+  api/routes/launch-examples.ts     MOD (T2) the PIA example's words
   api/levels.test.ts                NEW (T2) S6's two answers for an old row
   api/error-codes.ts                MOD (T5) INCIDENT_LOG_CONFIDENTIAL's summary
   api/representations/incidents.ts, agents.ts   MOD (T5) incidents' prompt description. (T4) agents' endReason description
-  api/incidents.test.ts             MOD (T5) the level helpers; :150's case inverted; high, medium and alias cases
+  api/incidents.test.ts             MOD (T1) the level helpers; a very-high case. (T5) :150's case inverted; high, medium and alias cases
   api/authz-contract.ts             MOD (T5) declareLevel; a high row and the alias row, last
   api/testing.ts                    MOD (T5) :313's union → Classification
   api/contract/document.ts          MOD (T1) CONTRACT_VERSION 1.7.0 and its paragraph
@@ -458,7 +548,9 @@ packages/control-plane/src/
   db/schema.ts            MOD (T6) events_type_known gains ai.models_withdrawn
 packages/control-plane/drizzle/   NEW (T6) the CHECK's migration, generated
 packages/contract/ (generated), packages/contract/package.json   MOD (T1) 1.7.0; regenerated at T2–T6
-packages/mock/src/fixtures.ts, server.ts   MOD (T3) the PIA fixture's words. (T5) the `level` option and the refusal at high
+packages/mock/src/fixtures.ts, server.ts   MOD (T2) the PIA fixture's words. (T5) the `level` option and the refusal at high
+packages/mock/src/scripted.test.ts         MOD (T5) MANIFEST_MOCK_LEVEL's refusal and its positive control (M5)
+scripts/demo-gateway.sh, packages/journey/src/gateway.ts   MOD (T4) levels compared as levels (I5)
 packages/journey/src/frontend.ts   MOD (T2) :1104's 'confidential' → 'very-high'
 packages/journey/src/levels.ts     NEW (T7)
 scripts/demo-levels.sh, scripts/levels-controls.sh   NEW (T7); Makefile, scripts/ci-acceptance.sh, scripts/offline-acceptance.sh MOD (T7)
@@ -468,7 +560,7 @@ docs/api/agents.md, docs/api/frontend.md   MOD (T3) declaring a level. (T4) the 
 docs/superpowers/RUNBOOK.md        MOD (T4) the capable model's level. (T6) the sweep's line. (T7) make demo-levels
 docs/superpowers/specs/2026-08-29-manifest-platform-design.md, specs/manifest-*.html   MOD (T0 only — the decided words)
 ```
-**Not touched:** `infra/litellm/config.yaml` (S2 (i)); `fixtures/*/manifest.yaml` (Decision 10); the 74 test literals (Decision 1);
+**Not touched:** `infra/litellm/config.yaml` (S2 (i)) — `scripts/demo-gateway.sh` IS touched now, by Task 4 (*I5*); `fixtures/*/manifest.yaml` (Decision 10); the 74 test literals (Decision 1);
 `packages/console/` (it renders what it is answered); `~/Developer/manifest-app`.
 
 ---
@@ -497,27 +589,36 @@ alternatives' words printed beside them.
   routing (D17)*); E3 (the block, then its two paragraphs — the second's last sentence S11 (a)'s); E4; E5; E6 (the S4/S9 (b)/S10 (a)
   words, whole); E7; **E8 on ONE line** (a table cell); E9; E10 (its bold markers kept); E11; E12; E13. Shared pages:
   `manifest-decisions.html:136`, `:137` and its *"by default it may use…"* sentence; `manifest-stories.html:197` (`class="stop"` stays)
-  and `:205-210` (S2 (i)'s words); `manifest-schematic.html:1073`. `manifest-phases.html`: `grep -n 'confidential\|classification'` —
+  and `:205-210` (S2 (i)'s words); `manifest-schematic.html:1073`. **E3's second paragraph says *"its project's level"***; Task 6's
+  sweep uses each instance's FROZEN level (Decision 8, *M12*). Apply the decided words as they are; the reading is recorded there. `manifest-phases.html`: `grep -n 'confidential\|classification'` —
   expect no mention, and record it.
 - [ ] **Step 6: Check, do not re-read.** `grep -c` each old phrase (expect `0`) and each new one (expect `1`); `git diff --stat` lists the
-  five files and nothing else. **If the classifier refuses an edit to the spec or a shared page, stop and ask; never work around it**
+  FOUR files — the spec, `manifest-decisions.html`, `manifest-stories.html`, `manifest-schematic.html` — and nothing else (*M10*). **If the classifier refuses an edit to the spec or a shared page, stop and ask; never work around it**
   (memory: a refused spec edit cleared on retry after Rich allowed it in chat).
 - [ ] **Step 7: The action's banner**: *"APPLIED <date, time from `date`> by `<session>`, at Rich's word (<where it was given>)"*. Commit
-  the six paths by name:
+  the FIVE paths by name — the four, and the action's own file (*M10*):
   ```bash
   git commit -m "docs(spec): UBC's U1 levels — §7, §10, §16, §20, §26 and D17 as the U1 spec action decided (22:21), and the shared pages (U1 plan Task 0)"
   ```
 
 ---
 
-## Task 1: The four levels and their aliases — one rank table of seven, one enum (contract `1.7.0`)
+## Task 1: The vocabulary, and every reader made level-safe — one rank table of seven, the enum accepting seven (contract `1.7.0`)
 
-**Its caller is every read of a level**: `manifestSchema` (every validation), and `CLASSIFICATION_RANK`'s eleven readers (Read this
-first 2). Nothing else changes behaviour here except what a manifest may say and what it stores.
+**Re-cut by the fresh review's *C1*** (Decision 13). **This task changes no answer any EXISTING input produces**: the enum and the rank
+table grow, a manifest may now be written in U1's names and is stored AS WRITTEN, the default stays `internal`, and every reader that
+compares a level against an old name's string compares by level instead — so a project written `very-high` today is treated exactly as
+one written `confidential`. Task 2 is the switch.
+
+**Its callers**: `manifestSchema` (every validation); `CLASSIFICATION_RANK`'s readers (Read this first 2); and the four literal readers
+(Read this first 4) — `agentModelsFor` (every agent session), `listIncidents`' safeguard, the privacy assessment, `ensureGatewayModels`.
 
 **Files:**
-- Modify: `src/spec/schema.ts:8-16, :258-264`, `src/spec/index.ts:7-9`, `src/spec/schema.test.ts:19`
-- Create: `src/spec/levels.test.ts`
+- Modify: `src/spec/schema.ts:8-16, :258-264`, `src/spec/index.ts:7-9`
+- Modify (level-safe, behaviour unchanged): `src/ai/models.ts:37, :57-60`, `src/api/routes/releases.ts:1253`,
+  `src/launch/assessment.ts:97, :207`, `src/ai/gateway-models.ts:134-135`
+- Create: `src/spec/levels.test.ts`; Modify: `src/ai/models.test.ts`, `src/api/incidents.test.ts`, `src/launch/assessment.test.ts`,
+  `src/ai/gateway-models.test.ts`
 - Modify: `src/api/contract/document.ts` (`CONTRACT_VERSION`, its paragraph), `src/api/contract/manifest-yaml.test.ts`,
   `packages/contract/package.json:3`; regenerated: `packages/contract/openapi.json`, `src/schema.d.ts`, `docs/api/reference/`, `llms.txt`
 
@@ -527,10 +628,11 @@ first 2). Nothing else changes behaviour here except what a manifest may say and
   - `LEVEL_ALIASES: { public: 'low'; internal: 'medium'; confidential: 'very-high' }`;
   - `CLASSIFICATIONS` — the seven names, levels first; `type Classification` — the seven;
   - `CLASSIFICATION_RANK: Record<Classification, number>` — the seven;
-  - `DEFAULT_LEVEL: Level` (`'medium'`);
+  - `DEFAULT_LEVEL: Level` (`'medium'`; the schema's default only from Task 2);
   - `toLevel(name: Classification): Level`;
   - `canonicalLevel(value: unknown): Level | undefined`;
-  - `levelName(value: unknown): string` — the level, or the value as written when it is none.
+  - `levelName(value: unknown): string` — the level's VALUE (`very-high`), or the value as written when it is none;
+  - `levelWords(value: unknown): string` — the level as a person reads it (`very high`), or the value as written (Decision 12).
 
 - [ ] **Step 1: The failing tests.** `src/spec/levels.test.ts`:
   ```ts
@@ -542,6 +644,7 @@ first 2). Nothing else changes behaviour here except what a manifest may say and
     LEVELS,
     canonicalLevel,
     levelName,
+    levelWords,
     manifestSchema,
   } from './index.js'
 
@@ -563,15 +666,9 @@ first 2). Nothing else changes behaviour here except what a manifest may say and
     })
 
     it('ranks EVERY alias exactly at its level — the aliases never widen (Review Focus 1)', () => {
-      expect(LEVEL_ALIASES).toEqual({
-        public: 'low',
-        internal: 'medium',
-        confidential: 'very-high',
-      })
+      expect(LEVEL_ALIASES).toEqual({ public: 'low', internal: 'medium', confidential: 'very-high' })
       for (const [alias, level] of Object.entries(LEVEL_ALIASES)) {
-        expect(CLASSIFICATION_RANK[alias as keyof typeof LEVEL_ALIASES], alias).toBe(
-          CLASSIFICATION_RANK[level],
-        )
+        expect(CLASSIFICATION_RANK[alias as keyof typeof LEVEL_ALIASES], alias).toBe(CLASSIFICATION_RANK[level])
       }
       // The partial edit this guards: `confidential: 2` left in place reads it as `high`, which reaches OpenAI.
       expect(CLASSIFICATION_RANK.confidential).toBeGreaterThan(CLASSIFICATION_RANK.high)
@@ -589,57 +686,118 @@ first 2). Nothing else changes behaviour here except what a manifest may say and
       }
     })
 
-    it('answers each name’s level, and levelName keeps an unknown value as written', () => {
-      expect(
-        ['low', 'medium', 'high', 'very-high', 'public', 'internal', 'confidential'].map(canonicalLevel),
-      ).toEqual(['low', 'medium', 'high', 'very-high', 'low', 'medium', 'very-high'])
+    it('answers each name’s level as a value and in words, and keeps an unknown value as written', () => {
+      const seven = ['low', 'medium', 'high', 'very-high', 'public', 'internal', 'confidential']
+      expect(seven.map((v) => canonicalLevel(v))).toEqual(
+        ['low', 'medium', 'high', 'very-high', 'low', 'medium', 'very-high'],
+      )
       expect(levelName('confidential')).toBe('very-high')
+      expect(levelWords('confidential')).toBe('very high')
+      expect(levelWords('internal')).toBe('medium')
       expect(levelName('secret')).toBe('secret')
+      expect(levelWords('secret')).toBe('secret')
     })
 
-    it('accepts all seven in manifest.yaml and STORES THE LEVEL — an alias as what it means (S6)', () => {
-      const cases: [string, string][] = [
-        ['low', 'low'], ['medium', 'medium'], ['high', 'high'], ['very-high', 'very-high'],
-        ['public', 'low'], ['internal', 'medium'], ['confidential', 'very-high'],
-      ]
-      for (const [written, stored] of cases) {
-        const r = declaring(written)
-        expect(r.success, written).toBe(true)
-        if (r.success) expect(r.data.data.classification, written).toBe(stored)
+    it('accepts all seven names in manifest.yaml, and refuses any other — high accepted in the same test', () => {
+      for (const v of ['low', 'medium', 'high', 'very-high', 'public', 'internal', 'confidential']) {
+        expect(declaring(v).success, v).toBe(true)
       }
-    })
-
-    it('defaults an undeclared app to medium — today’s internal, so nothing changes (S5)', () => {
-      const r = declaring(undefined)
-      expect(r.success && r.data.data.classification).toBe('medium')
-    })
-
-    it('refuses any other name — and accepts high in the same test', () => {
       for (const v of ['restricted', 'High', 'very_high', 'personal', 'secret']) {
         expect(declaring(v).success, v).toBe(false)
       }
-      expect(declaring('high').success).toBe(true)
+    })
+
+    it('stores what is WRITTEN until Task 2 — internal stays internal, and the default is still internal', () => {
+      const written = declaring('internal')
+      expect(written.success && written.data.data.classification).toBe('internal')
+      const absent = declaring(undefined)
+      expect(absent.success && absent.data.data.classification).toBe('internal')
     })
   })
   ```
+  *(The last case is Task 1's own boundary: Task 2 replaces it with the stored-level cases, and its red there is predicted.)*
+
+  **The level-safe readers, each tested with the NEW name** — the old name's tests stay as they are and must stay green:
+  - `src/ai/models.test.ts`, in *agentModelsFor — the building agent's setting*:
+    ```ts
+    it('a project written very-high — the U1 name — keeps the builder exception, as confidential does (U1 plan Task 1, C1)', async () => {
+      const catalogue = await withCapable()
+      for (const floor of ['very-high', 'confidential'] as const) {
+        expect(agentModelsFor(catalogue, floor, 'capable'), floor).toContain(CAPABLE_MODEL_NAME)
+        expect(agentModelsFor(catalogue, floor, 'on-premise'), floor).not.toContain(CAPABLE_MODEL_NAME)
+      }
+    })
+    ```
+  - `src/api/incidents.test.ts` (its `declared` and `incidentIn` typed `Classification`):
+    ```ts
+    it('refuses a token the tails of a project written very-high — the U1 name — as of one written confidential (U1 plan Task 1, C1)', async () => {
+      await withSetting('capable', async (ctx) => {
+        await incidentIn(ctx, ctx.stagingEnvironmentId)
+        await declared(ctx, 'very-high')
+        expect(refusal(await read(ctx, ctx.stagingEnvironmentId, { bearer: await reader(ctx) }))).toEqual({
+          status: 403,
+          code: 'INCIDENT_LOG_CONFIDENTIAL',
+        })
+        expect(tailOf(await read(ctx, ctx.stagingEnvironmentId, {}))).toEqual([LOG_TAIL])
+      })
+    })
+    ```
+  - `src/launch/assessment.test.ts`:
+    ```ts
+    it('a very-high app’s rule is on-premise hardware, written in the U1 name (U1 plan Task 1, C1)', () => {
+      const spec = manifestSchema.parse({ ...BARE_INPUT, data: { classification: 'very-high' } })
+      const flows = section(assembleAssessment(input({ spec })), 'flows')
+      expect(valueOf(flows, 'Classification')?.value).toMatch(/must run on on-premise hardware\.$/)
+    })
+    it('a catalogue entry at very-high stays on premises in the words (U1 plan Task 1, C1)', () => {
+      const catalogue: ModelEntry[] = [{ name: 'default-chat-onprem', maxClassification: 'very-high', kind: 'chat' }]
+      const flows = section(assembleAssessment(input({ catalogue })), 'flows')
+      expect(valueOf(flows, 'default-chat-onprem')?.value).toMatch(/runs on on-premise hardware/)
+    })
+    ```
+    *(`BARE_INPUT` is `BARE`'s input object (`assessment.test.ts:65-70`) — lift it to a constant; `input` is a FUNCTION, `input({ … })`
+    (*M14*); `valueOf` and `section` are the file's own.)*
+  - `src/ai/gateway-models.test.ts` (the gateway plan's `GW`):
+    ```ts
+    it('pins an unpriced very-high entry — the U1 name — at the stand-in’s price, as confidential (U1 plan Task 1, C1)', async () => {
+      for (const level of ['very-high', 'confidential'] as const) {
+        const lite = fakeLiteLlm()
+        lite.price('openai/qwen-x', 0)
+        const r = await ensureGatewayModels(
+          lite,
+          [{ name: 'ubc-onprem', setting: 'ubc-ai-gateway/qwen-x', classification: level }],
+          GW,
+        )
+        expect(r.models[0]?.state, level).toBe('registered')
+        const d = [...lite.deployments.values()].find((x) => x.modelName === 'ubc-onprem')!
+        expect([d.inputCostPerToken, d.outputCostPerToken], level).toEqual([1e-6, 3e-6])
+      }
+    })
+    ```
   `src/api/contract/manifest-yaml.test.ts` gains:
   ```ts
-  it('publishes data.classification as the seven names, default medium, its description naming U1 and the aliases (U1 plan Task 1)', () => {
+  it('publishes data.classification as the seven names, its description naming U1 and the aliases (U1 plan Task 1)', () => {
     const doc = manifestYamlSchema() as {
       properties: { data: { properties: { classification: Record<string, unknown> } } }
     }
     const node = doc.properties.data.properties.classification
     expect(node.enum).toEqual(['low', 'medium', 'high', 'very-high', 'public', 'internal', 'confidential'])
-    expect(node.default).toBe('medium')
+    expect(node.default).toBe('internal')
     expect(String(node.description)).toContain('U1')
     expect(String(node.description)).toMatch(/`confidential` is `very-high`/)
   })
   ```
-  `src/spec/schema.test.ts:19` becomes `expect(result.data.data.classification).toBe('medium')`.
-- [ ] **Step 2: Run — predict red.** `pnpm exec vitest run --project unit src/spec/levels.test.ts`: every case red — `LEVELS` and
-  `LEVEL_ALIASES` are `undefined` (Vitest strips types; the import is no error), so the first `.map` throws. `manifest-yaml.test.ts`: red
-  at `node.enum` (three values). `schema.test.ts:19`: red (`'internal'`).
-- [ ] **Step 3: Implement.** `src/spec/schema.ts`, replacing `:8-16`:
+- [ ] **Step 2: Run — predict red**, one file at a time:
+  - `levels.test.ts`: every case red — `LEVELS` and `LEVEL_ALIASES` are `undefined` (Vitest strips types; the import is no error), so the
+    first `.map` throws — except *stores what is WRITTEN*, which is GREEN today and must STAY green through this task (that is its job);
+  - `models.test.ts`: red at `'very-high'` (`floor === 'confidential'` is false for it) and green at `'confidential'`;
+  - `incidents.test.ts`: red — `declared(ctx, 'very-high')` is stored, but `environmentFloor` reads it through `in`, answers
+    `'very-high'`, and `=== 'confidential'` answers the token `200`;
+  - `assessment.test.ts`: the spec case red at `manifestSchema.parse` (`very-high` refused by the three-name enum); the catalogue case red
+    at the words (*"may leave UBC"*);
+  - `gateway-models.test.ts`: red at `'very-high'` (refused as unpriced), green at `'confidential'`;
+  - `manifest-yaml.test.ts`: red at `node.enum` (three values).
+- [ ] **Step 3: Implement — the vocabulary.** `src/spec/schema.ts`, replacing `:8-16`:
   ```ts
   /** UBC's U1 levels (Information Security Standard U1, §2.1), least sensitive first (§7). */
   export const LEVELS = ['low', 'medium', 'high', 'very-high'] as const
@@ -676,7 +834,7 @@ first 2). Nothing else changes behaviour here except what a manifest may say and
     confidential: 3,
   }
 
-  /** §7's level for an app that declares none (S5): `medium`, today's `internal`. */
+  /** §7's level for an app that declares none (S5): `medium`, today's `internal` — the schema's default from Task 2. */
   export const DEFAULT_LEVEL: Level = 'medium'
 
   /** The level a known name means. */
@@ -694,89 +852,145 @@ first 2). Nothing else changes behaviour here except what a manifest may say and
       ? toLevel(value as Classification)
       : undefined
 
-  /** A level in a sentence a person reads: the level a name means, or the value as written when it is none. */
+  /** A level as a VALUE a person may copy into manifest.yaml (`very-high`), or the value as written when it is none. */
   export const levelName = (value: unknown): string => canonicalLevel(value) ?? String(value)
+
+  /** A level as a person READS it — U1's own "Very High Risk", so `very high`, never the hyphen — or the value as written. */
+  const LEVEL_WORDS: Record<Level, string> = { low: 'low', medium: 'medium', high: 'high', 'very-high': 'very high' }
+  export const levelWords = (value: unknown): string => {
+    const level = canonicalLevel(value)
+    return level === undefined ? String(value) : LEVEL_WORDS[level]
+  }
   ```
-  The field (`:258-264`):
+  The field (`:258-264`) — **no transform, and the default unchanged**, in this task:
   ```ts
   classification: z
     .enum(CLASSIFICATIONS)
-    .default(DEFAULT_LEVEL)
-    // THE LEVEL, NEVER THE ALIAS (S6): what is stored says what it means. The OUTPUT type stays the seven names on
-    // purpose (the U1 plan's Decision 1): every reader ranks through CLASSIFICATION_RANK, which holds all seven.
-    .transform((name): Classification => toLevel(name))
+    .default('internal')
     .describe(
-      'How sensitive the app’s data is, in UBC’s four levels (Information Security Standard U1): `low`, `medium`, `high` or `very-high` — what every model in `ai.models` must be approved for. Any personal information, such as students’ names, ID numbers or grades, is `high` at least, and `very-high` data reaches only models on UBC’s own hardware. `medium` when absent. The earlier names are still accepted, each meaning one level: `public` is `low`, `internal` is `medium`, `confidential` is `very-high`.',
+      'How sensitive the app’s data is, in UBC’s four levels (Information Security Standard U1): `low`, `medium`, `high` or `very-high` — what every model in `ai.models` must be approved for. Any personal information, such as students’ names, ID numbers or grades, is `high` at least, and `very-high` data reaches only models on UBC’s own hardware. The earlier names are still accepted, each meaning one level: `public` is `low`, `internal` is `medium`, `confidential` is `very-high`. `internal` when absent.',
     ),
   ```
-  `src/spec/index.ts`: export `LEVELS`, `LEVEL_ALIASES`, `CLASSIFICATIONS`, `DEFAULT_LEVEL`, `toLevel`, `canonicalLevel`, `levelName` beside
-  `CLASSIFICATION_RANK`, and `type Level` beside `Classification`.
-- [ ] **Step 4: Run the three files — green.** Then **read the emitted node** (`manifestYamlSchema().properties.data`): `zod-to-json-schema`
-  3.25.2 emits a transform's INPUT by default. **If the description is not on the `classification` node** (an effect's description may
-  land elsewhere), move `.describe()` onto the inner `z.enum(…)` and re-run; the test decides, not this step's expectation.
-- [ ] **Step 5: The contract.** `src/api/contract/document.ts`: `CONTRACT_VERSION = '1.7.0'`, and a paragraph after `1.6.0`'s:
+  `src/spec/index.ts`: export `LEVELS`, `LEVEL_ALIASES`, `CLASSIFICATIONS`, `DEFAULT_LEVEL`, `toLevel`, `canonicalLevel`, `levelName`,
+  `levelWords` beside `CLASSIFICATION_RANK`, and `type Level` beside `Classification`.
+- [ ] **Step 4: Implement — every reader level-safe, behaviour unchanged** (*C1*):
+  - `ai/models.ts:37`: `const building = toLevel(floor) === 'very-high' && builder === 'capable'` (Task 4 makes it S4's);
+  - `ai/models.ts:57-60`: `asClassification` by `Object.hasOwn(CLASSIFICATION_RANK, value)`, still answering the value as stored (Task 2
+    makes it the level) — `in` found `toString`;
+  - `api/routes/releases.ts:1253`: `toLevel(await environmentFloor(deps.db, environment)) === 'very-high'` (Task 5 makes it S9's);
+  - `launch/assessment.ts:97`: `const staysOnPremise = (ceiling: Classification) => toLevel(ceiling) === 'very-high'`; `:207`:
+    `staysOnPremise(ceiling)`;
+  - `ai/gateway-models.ts:134-135`: `toLevel(e.classification) === 'very-high'`.
+
+  Then `grep -rn "=== 'confidential'\|=== 'internal'\|=== 'public'" packages/control-plane/src --include='*.ts' | grep -v '\.test\.ts'`
+  answers NOTHING. Any line it finds is a reader this list missed: make it level-safe here, and record it.
+- [ ] **Step 5: Run each file — green.** Then **read the emitted node** (`manifestYamlSchema().properties.data`): if the path differs from
+  the test's, the test follows the emitted document.
+- [ ] **Step 6: The contract.** `src/api/contract/document.ts`: `CONTRACT_VERSION = '1.7.0'`, and a paragraph after `1.6.0`'s:
   ```ts
-   * **`1.7.0` SINCE THE U1 PLAN'S TASK 1 (<Task 1's commit date, from `date`>)**: `data.classification` takes UBC's four U1 levels — `low`, `medium`,
-   * `high`, `very-high` — beside the three earlier names, which stay valid for ever as aliases (`public` is `low`, `internal` is
-   * `medium`, `confidential` is `very-high`); the default is `medium`, which is `internal`'s level. **The behaviour change,
-   * stated:** the platform ANSWERS in U1's names — `getSpec`'s `data.classification` and every release's frozen
-   * `classification` read `medium` where they read `internal`, for old rows too — and a delegated token is refused staging's
-   * and production's Incidents on every project at `high` or above (`INCIDENT_LOG_CONFIDENTIAL`), whatever the building
-   * agent's setting. A client that compares a classification must compare the level, never the string. Tasks 2–6 ride on this
-   * one bump — the answers in U1's names, the words, the token rule, `ai.models_withdrawn` — because nothing is published
-   * between its tasks.
+   * **`1.7.0` SINCE THE U1 PLAN'S TASK 1 (<Task 1's commit date, from `date`>)**: `data.classification` takes UBC's four U1
+   * levels — `low`, `medium`, `high`, `very-high` — beside the three earlier names, which stay valid for ever as aliases (`public`
+   * is `low`, `internal` is `medium`, `confidential` is `very-high`). **The behaviour change, stated, as Tasks 2–6 land on this one
+   * bump:** the default becomes `medium` (`internal`'s level); the platform ANSWERS in U1's names — `getSpec`'s
+   * `data.classification` and every release's frozen `classification` read `medium` where they read `internal`, old rows too; a
+   * delegated token is refused staging's and production's Incidents on every project at `high` or above
+   * (`INCIDENT_LOG_CONFIDENTIAL`), whatever the building agent's setting; and `ai.models_withdrawn` is a new event. A client that
+   * compares a classification must compare the level, never the string. Nothing is published between this plan's tasks.
   ```
   `packages/contract/package.json:3`: `"version": "1.7.0"`. Then `pnpm contract:write` (TRUNCATES), `pnpm contract:generate`,
   `pnpm docs:write`. `git diff --stat packages/contract docs/api` names `openapi.json`, `src/schema.d.ts`,
   `docs/api/reference/manifest-yaml.md` and `llms.txt`, and nothing it should not.
-- [ ] **Step 6: The mock and the four gates.** `pnpm typecheck` covers `packages/mock`: if any fixture types against `ManifestYaml`'s
-  enum (`grep -n "ManifestYaml" packages/mock/src`), it gains nothing — the enum only grew. Then all four gates.
-- [ ] **Step 7: THE NOTICE to the front-end, before the commit.** `ListAgents`; message its live `manifest-app-…` session:
-  > *"Contract 1.7.0 lands in the next commit (the U1 plan, Task 1). `ManifestYaml`'s `data.classification` now takes UBC's U1 levels —
+- [ ] **Step 7: The mock and the four gates.** `pnpm typecheck` covers `packages/mock`: the enum only grew, so nothing there moves
+  (`grep -n "ManifestYaml" packages/mock/src` to be sure). Then all four gates — **every pre-existing test green, unedited** (this task
+  changes no existing answer): a red one is a reader Step 4 missed.
+- [ ] **Step 8: THE NOTICE to the front-end, before the commit.** `ListAgents`; message its live `manifest-app-…` session:
+  > *"Contract 1.7.0 lands in the next commit (the U1 plan, Task 1). `ManifestYaml`'s `data.classification` now accepts UBC's U1 levels —
   > low | medium | high | very-high — and still the old three, each an alias with one meaning (public=low, internal=medium,
-  > confidential=very-high); default medium. Coming in the next commits, all on 1.7.0: the platform ANSWERS in U1's names (getSpec and a
-  > release's classification read `medium` where they read `internal`, old rows too); a token is refused staging's and production's
-  > Incidents on any project at `high` or above, whatever the builder setting (still 403 INCIDENT_LOG_CONFIDENTIAL); the mock gains
-  > MANIFEST_MOCK_LEVEL beside MANIFEST_MOCK_CONFIDENTIAL. Nothing you compare changes: you key off the code and model names. THE ASK
-  > (yours to schedule, by your own plan): your agents and words in U1's names — lead.ts:42, 54, 125, 243-245 (very-high means on
-  > premises only; declare a level every time; any personal information is high), build/round.ts:590-591, 666, 705-709, 1471, 1602,
-  > api/progress.ts:181, 289-291, api/round-state.ts:27, platform/instances.ts:40-48, 108-112 (the 403 now arrives for high projects
-  > too), web/src/words.ts:396-453, screens/building/needs.tsx:185. Hold Vitest and Docker on your side until I say FREE?"*
+  > confidential=very-high). Coming in the next commits, all on 1.7.0: the default becomes medium; the platform ANSWERS in U1's names
+  > (getSpec and a release's classification read `medium` where they read `internal`, old rows too); a token is refused staging's and
+  > production's Incidents on any project at `high` or above, whatever the builder setting (still 403 INCIDENT_LOG_CONFIDENTIAL); a new
+  > event, ai.models_withdrawn; the mock gains MANIFEST_MOCK_LEVEL beside MANIFEST_MOCK_CONFIDENTIAL. Nothing you compare changes: you key
+  > off the code and model names. **Your docs/api-findings.md:72 and :1696 name 1.7.0 for FE-46/47/5's breaks, and the FE-46/47/5 plan's
+  > :1052 ties your F5b Task 5 to 'the break of 1.7.0': those breaks now arrive as 1.8.0** (the coordinator moves that plan's number;
+  > your code keys nothing off the version). THE ASK (yours to schedule, by your own plan): your agents and words in U1's names —
+  > lead.ts:42, 54, 125, 243-245 (very-high means on premises only; declare a level every time; any personal information is high),
+  > build/round.ts:590-591, 666, 705-709, 1471, 1602, api/progress.ts:181, 289-291, api/round-state.ts:27, platform/instances.ts:40-48,
+  > 108-112 (the 403 now arrives for high projects too), web/src/words.ts:396-453, screens/building/needs.tsx:185. Hold Vitest and Docker
+  > on your side until I say FREE?"*
 
-  Commit after its reply or a fair wait (and FREE it after).
-- [ ] **Step 8: Commit by name**, then **the negative controls**, each committed first, broken, seen red where predicted, restored:
+  Commit after its reply or a fair wait (and FREE it after). *M7: the 1.8.0 sentence.*
+- [ ] **Step 9: Commit by name**, then **the negative controls**, each committed first, broken, seen red where predicted, restored:
   - **(a)** `CLASSIFICATION_RANK.confidential` set to `2`: predict red at *ranks EVERY alias exactly at its level* only;
-  - **(b)** the transform removed: predict red at *STORES THE LEVEL* (`public` stored as `public`), and nowhere else in this file;
-  - **(c)** `canonicalLevel` written with `in`: predict red at *no prototype name is a level* (`toString`).
+  - **(b)** `canonicalLevel` written with `in`: predict red at *no prototype name is a level* (`toString`);
+  - **(c)** `releases.ts:1253` back to `=== 'confidential'`: predict red at the incidents *written very-high* case ONLY — every
+    `confidential` case stays green, which is why that case exists;
+  - **(d)** `assessment.ts:97` back to `=== 'confidential'`: predict red at the two *very-high* assessment cases only; **`:219` stays
+    GREEN** — its `CATALOGUE` keeps the alias `confidential` (Decision 10), so the string still matches (*M3*). Recorded as the alias path
+    doing its job, not as a control that cannot fail: the *very-high* cases are what see it.
   ```bash
-  git commit -m "feat(spec): UBC's U1 levels — low|medium|high|very-high, the old three as aliases ranked at their level, stored as the level; contract 1.7.0 (U1 plan Task 1)"
+  git commit -m "feat(spec): UBC's U1 levels accepted beside the old three, ranked at their level, and every reader compared by level — no answer changes yet; contract 1.7.0 (U1 plan Task 1, C1)"
   ```
 
 ---
 
-## Task 2: Every stored level read as its level, and answered in U1's names (S6)
+## Task 2: The switch — stored and answered as the level, in U1's words (S5, S6)
 
-**Its callers**: the floors (`classificationFloor`, `environmentFloor` — every agent session, the Incident safeguard), the catalogue
-(every validation, deploy, session and assessment), the sensitive diff (every validation and production deploy), `getSpec` and
-`toRelease` (every read of a spec or release). After this task, a stored alias is ranked, compared and answered as its level.
+**Re-cut by *C1*** (Decision 13): this is the FIRST task to store or answer a U1 name for an old input, and it lands only after Task 1
+made every reader level-safe — so the builder exception and the token rule hold through it. **It changes answers, not rules**: no
+refusal moves; every moving expectation below is a value or a sentence, named with its predicted red.
+
+**Its callers**: `manifestSchema` (every validation now stores the level); the floors (`classificationFloor`, `environmentFloor` — every
+agent session, the Incident safeguard); the catalogue (every validation, deploy, session, assessment); the sensitive diff (every
+validation and production deploy); `getSpec` and `toRelease` (every read of a spec or release); the narrowing sentence
+(`sessions.ts:650`); the privacy assessment.
 
 **Files:**
-- Modify: `src/ai/models.ts:47-60, 76-105, 117-140`; `src/ai/catalogue.ts:98-115`; `src/spec/diff.ts:220-260, 553-556`;
-  `src/spec/schema.ts` (`specInLevels`), `src/spec/index.ts`; `src/api/representations/releases.ts:138`;
-  `src/api/routes/project-reads.ts:717, 745-750`; `src/api/routes/releases.ts` (the twelve examples, Read this first 11);
-  `packages/journey/src/frontend.ts:1104-1105`
-- Test: `src/ai/models.test.ts`, `src/ai/catalogue.test.ts`, `src/spec/diff.test.ts`, `src/spec/levels.test.ts`; Create:
-  `src/api/levels.test.ts`
+- Modify: `src/spec/schema.ts:258-264` (the transform, the default, the description's last sentence; `specInLevels`), `src/spec/index.ts`;
+  `src/ai/models.ts:47-60, 76-105, 117-140`; `src/ai/catalogue.ts:98-115`; `src/ai/capable.ts:159-169` (`capableFloor` from the level);
+  `src/ai/sessions.ts:640-654` (the floor in words); `src/spec/diff.ts:220-260, 553-556`; `src/launch/assessment.ts:93-94, 190-220,
+  :267, 355-395` (the level in words); `src/api/representations/releases.ts:138`; `src/api/routes/project-reads.ts:717, 745-750`;
+  `src/api/routes/releases.ts` (the twelve examples); `src/api/routes/launch-examples.ts:388-401, 477`;
+  `packages/mock/src/fixtures.ts:1310-1315, 1400`; `packages/journey/src/frontend.ts:1104-1105`
+- Test: `src/spec/levels.test.ts`, `src/spec/schema.test.ts:19`, `src/api/contract/manifest-yaml.test.ts`, `src/spec/diff.test.ts`,
+  `src/ai/models.test.ts`, `src/ai/catalogue.test.ts`, `src/ai/capable.test.ts:211, :517, :551`, `src/api/agents.test.ts:303, :853,
+  :1063`, `src/launch/assessment.test.ts:202, 213, 219, 235, 354, 357`; Create: `src/api/levels.test.ts`
+- Docker expectations (*C1*, *I5*): `src/ai/ai-path.docker.test.ts:263-267, :274-276`, `src/ai/capable.docker.test.ts:181-185`
 
 **Interfaces:**
-- Consumes: Task 1's `canonicalLevel`, `levelName`, `DEFAULT_LEVEL`, `Level`.
+- Consumes: Task 1's `toLevel`, `canonicalLevel`, `levelName`, `levelWords`, `DEFAULT_LEVEL`, `Level`.
 - Produces:
   - `classificationFloor(db, projectId): Promise<Level>` and `environmentFloor(db, environment): Promise<Level>` — canonical;
   - `ModelEntry.maxClassification` holds a canonical value (its type stays `Classification`, Decision 1);
-  - `specInLevels(parsed: unknown): Record<string, unknown>` (`spec/schema.ts`) — a stored `parsed` with `data.classification` as its
-    level, everything else as stored.
+  - `specInLevels(parsed: unknown): Record<string, unknown>` (`spec/schema.ts`).
 
-- [ ] **Step 1: The failing tests.** `src/ai/models.test.ts` (its `spec` and `servingProduction` helpers):
+- [ ] **Step 1: The failing tests.**
+  `src/spec/levels.test.ts` — Task 1's *stores what is WRITTEN* case is REPLACED by:
+  ```ts
+  it('stores the LEVEL — an alias as what it means (S6; U1 plan Task 2)', () => {
+    const cases: [string, string][] = [
+      ['low', 'low'], ['medium', 'medium'], ['high', 'high'], ['very-high', 'very-high'],
+      ['public', 'low'], ['internal', 'medium'], ['confidential', 'very-high'],
+    ]
+    for (const [written, stored] of cases) {
+      const r = declaring(written)
+      expect(r.success, written).toBe(true)
+      if (r.success) expect(r.data.data.classification, written).toBe(stored)
+    }
+  })
+  it('defaults an undeclared app to medium — internal’s level, so nothing changes (S5)', () => {
+    const r = declaring(undefined)
+    expect(r.success && r.data.data.classification).toBe('medium')
+  })
+  it('specInLevels answers a stored spec with its level, and leaves everything else as stored', () => {
+    expect(specInLevels({ name: 'x', data: { classification: 'internal', retention_days: 30 } })).toEqual({
+      name: 'x',
+      data: { classification: 'medium', retention_days: 30 },
+    })
+    expect(specInLevels({ data: { classification: 'secret' } })).toEqual({ data: { classification: 'secret' } })
+    expect(specInLevels({ name: 'y' })).toEqual({ name: 'y' })
+  })
+  ```
+  `src/ai/models.test.ts` (its `spec` and `servingProduction` helpers):
   ```ts
   describe('the floors answer a stored name as its LEVEL (U1 plan Task 2)', () => {
     it('reads an old manifest’s alias as its level, and a U1 name as itself — medium when none', async () => {
@@ -805,9 +1019,6 @@ first 2). Nothing else changes behaviour here except what a manifest may say and
     })
   })
   ```
-  **Expectations that move, named:** `models.test.ts:163-185` (*"…internal when there is none"*: `'internal'` → `'medium'`, `'public'` →
-  `'low'`, `'confidential'` → `'very-high'`; the title says *medium*), `:186-198` and `:199-…` the same way — the floor is now the level.
-
   `src/ai/catalogue.test.ts`:
   ```ts
   it('lists each entry at its LEVEL — config.yaml’s alias as what it means (U1 plan Task 2)', async () => {
@@ -833,13 +1044,12 @@ first 2). Nothing else changes behaviour here except what a manifest may say and
     expect(snapshot.unclassified).toEqual(['rogue', 'typo'])
   })
   ```
-  Any existing case asserting `maxClassification: 'internal'` or `'confidential'` from `RESPONSE` moves to `'medium'` / `'very-high'`
-  (name each in the record).
-
-  `src/spec/diff.test.ts`:
+  `src/spec/diff.test.ts` — **its `DEFAULTS` is declared inside two blocks (`:163`, `:374`), so this describe declares its own, with the
+  same value** (*M14*):
   ```ts
   describe('a level compared as a level (U1 plan Task 2; Review Focus 2)', () => {
-    /** A spec as an OLD row holds it — parsed before Task 1, its alias kept — as `api/spec-validation.ts:78` reads it back. */
+    const DEFAULTS = { cpu: 0.5, memory: '512Mi', pids: 256, disk: '2Gi' } // `:163`'s
+    /** A spec as an OLD row holds it — its alias kept — as `api/spec-validation.ts:78` reads it back. */
     const stored = (classification: string): ManifestSpec =>
       ({ ...base(), data: { ...base().data, classification } }) as ManifestSpec
 
@@ -866,37 +1076,19 @@ first 2). Nothing else changes behaviour here except what a manifest may say and
       expect(sensitiveFieldsBetween(release, sensitiveViewOfSpec(base()))).toEqual([])
     })
     it('describes a change of level in U1’s names', () => {
-      const before = {
-        ...resolveConfig(base(), 'production', DEFAULTS),
-        classification: 'internal',
-      } as ResolvedConfig
+      const before = { ...resolveConfig(base(), 'production', DEFAULTS), classification: 'internal' } as ResolvedConfig
       const after = resolveConfig(base({ data: { classification: 'high' } }), 'production', DEFAULTS)
-      const changes = describeDiff(before, after).filter((c) => c.path === 'data.classification')
-      expect(changes).toEqual([
+      expect(describeDiff(before, after).filter((c) => c.path === 'data.classification')).toEqual([
         { path: 'data.classification', from: 'medium', to: 'high', summary: 'now declares high data instead of medium' },
       ])
       expect(
-        describeDiff({ ...before, classification: 'internal' }, { ...before, classification: 'medium' }).filter(
-          (c) => c.path === 'data.classification',
-        ),
+        describeDiff(before, { ...before, classification: 'medium' }).filter((c) => c.path === 'data.classification'),
       ).toEqual([])
     })
   })
   ```
-  *(`DEFAULTS` is `diff.test.ts`'s own resource defaults, as its `:165` and `:410` pass them: `resolveConfig(spec, kind, defaults)`
-  (`resolve.ts:106-109`); `describeDiff(before, after)` (`diff.ts:496-499`).)*
+  *(`resolveConfig(spec, kind, defaults)`, `resolve.ts:106-109`; `describeDiff(before, after)`, `diff.ts:496-499`.)*
 
-  `src/spec/levels.test.ts` gains:
-  ```ts
-  it('specInLevels answers a stored spec with its level, and leaves everything else as stored', () => {
-    expect(specInLevels({ name: 'x', data: { classification: 'internal', retention_days: 30 } })).toEqual({
-      name: 'x',
-      data: { classification: 'medium', retention_days: 30 },
-    })
-    expect(specInLevels({ data: { classification: 'secret' } })).toEqual({ data: { classification: 'secret' } })
-    expect(specInLevels({ name: 'y' })).toEqual({ name: 'y' })
-  })
-  ```
   `src/api/levels.test.ts` (new; `withProjectServer` from `api/testing.ts`, as `api/incidents.test.ts` uses it):
   ```ts
   describe('the platform answers in U1’s names — old rows too (S6; U1 plan Task 2)', () => {
@@ -921,13 +1113,8 @@ first 2). Nothing else changes behaviour here except what a manifest may say and
     })
     it('a release frozen confidential is answered very-high in every environment', async () => {
       await withProjectServer(async (ctx) => {
-        // A release whose resolvedConfig was frozen before Task 1 — written directly, as `incidents.test.ts:24-74` does.
         const releaseId = await frozenRelease(ctx, 'confidential')
-        const res = await ctx.app.inject({
-          method: 'GET',
-          url: `/v1/releases/${releaseId}`,
-          cookies: ctx.ownerCookies,
-        })
+        const res = await ctx.app.inject({ method: 'GET', url: `/v1/releases/${releaseId}`, cookies: ctx.ownerCookies })
         expect(res.statusCode, res.body).toBe(200)
         const config = (res.json() as { config: Record<string, { classification: string }> }).config
         expect(Object.values(config).map((c) => c.classification)).toEqual(['very-high', 'very-high', 'very-high'])
@@ -935,24 +1122,49 @@ first 2). Nothing else changes behaviour here except what a manifest may say and
     })
   })
   ```
-  `frozenRelease(ctx, classification)` writes a build and a release whose `resolvedConfig` is each environment's full frozen config
-  with that `classification` — **copy the shape from a real release** (`resolveConfig(manifestSchema.parse(minimal), kind, defaults)`
-  for each kind, with the resource defaults `diff.test.ts` uses, then override `classification`), because `toRelease` reads every field
-  of it.
-- [ ] **Step 2: Run — predict red.** `models.test.ts`: the new cases red at `'internal'` / `'confidential'` / `'toString'` answered as
-  stored. `catalogue.test.ts`: red at `['default-chat', 'internal']`. `diff.test.ts`: red at *NOT sensitive* (`['data.classification']`)
-  and at the description (`from: 'internal'`). `levels.test.ts`: red at `specInLevels` (`undefined` is not a function). `api/levels.test.ts`:
-  red at `'internal'` and `'confidential'`.
+  `frozenRelease(ctx, classification)` writes a build and a release whose `resolvedConfig` is each environment's full frozen config —
+  `resolveConfig(manifestSchema.parse(minimal), kind, { cpu: 0.5, memory: '512Mi', pids: 256, disk: '2Gi' })` for each kind, then `classification`
+  overridden — because `toRelease` reads every field of it (the insert shape: `incidents.test.ts:24-74`).
+
+  **EXPECTATIONS THAT MOVE, each with its predicted red** (*C1*, Read this first 24) — edit each, and watch each go red BEFORE Step 3 by
+  running its file:
+  - `spec/schema.test.ts:19` → `'medium'` (red: `'internal'`); `manifest-yaml.test.ts`'s `node.default` → `'medium'` (red: `'internal'`);
+  - `ai/models.test.ts:163-198`: *"…internal when there is none"* → *medium*, and its floors `'internal'` → `'medium'`, `'public'` →
+    `'low'`, `'confidential'` → `'very-high'` (red at each: the floor answered as stored);
+  - `ai/catalogue.test.ts`: any case asserting `RESPONSE`'s `'internal'` / `'confidential'` → `'medium'` / `'very-high'`;
+  - `ai/capable.test.ts:211` → `maxClassification: 'medium'`; `:517` → *"classified 'low'"*; `:551` → *"below 'medium'"* (red: the
+    catalogue's value, and `capableFloor`'s start, answered as stored). `:48` (the create body's `'internal'`) does NOT move here: the
+    registration still writes `CAPABLE_CLASSIFICATION` until Task 4;
+  - `api/agents.test.ts:303` and `:853` (`internalOnlyCatalogue()`): the filter → `m.maxClassification === 'medium'`, **and each gains
+    `expect(models.length).toBeGreaterThan(0)` on the filtered list** — without the filter's edit the catalogue is EMPTY and `:303`
+    stays GREEN for the wrong reason (*C1*): the new assertion is what goes red;
+  - `api/agents.test.ts:1063` → *"…because the project is now very high; …"* (red: `sessions.ts:650` prints the canonical floor through
+    `levelWords`);
+  - `api/agents.test.ts:1166-1170` — **must STAY GREEN** (the committed `confidential` now floors `'very-high'`; Task 1's level-safe
+    exception keeps `default-chat-large`). Red here means Task 1's rename is missing;
+  - `launch/assessment.test.ts:202` → *"Medium — every AI model the app uses must be approved for medium data."*; `:213` → *"Approved for
+    medium data at most: …"*; `:219` → *"Approved for very high data: it runs on on-premise hardware, so what the app sends it stays
+    there."*; `:235` → *"Medium — Manifest’s default, …approved for medium data."*; `:354` → *"Approved for medium data at most."*; `:357` →
+    *"Approved for very high data at most."* (red at each: the words print the stored name);
+  - **Docker** (run in Step 5): `ai/ai-path.docker.test.ts:267` → `expect(LEVELS).toContain(entry.maxClassification)` — ANY canonical
+    level, because the shared LiteLLM's row is whatever the running control plane registered, `high` once Rich sets it (*I5*; the tier's
+    shell has the setting unset by rule, so it cannot name it); `:274-276` → `toBe(canonicalLevel(from.model_info?.max_classification))`;
+    `ai/capable.docker.test.ts:183` → `'medium'`.
+- [ ] **Step 2: Run — predict red**, file by file: the new cases at the values answered as stored (`'internal'`, `'confidential'`,
+  `'toString'`), the diff at *NOT sensitive* and at `from: 'internal'`, `specInLevels` (`undefined` is not a function), `api/levels.test.ts`
+  at `'internal'` and `'confidential'`; and each moved expectation as listed.
 - [ ] **Step 3: Implement.**
-  - **`ai/models.ts`**: `DEFAULT_CLASSIFICATION` becomes `DEFAULT_LEVEL` (imported); `asClassification` becomes
-    `const asLevel = (value: unknown): Level | undefined => canonicalLevel(value)`; `classificationFloor` and `environmentFloor` answer
-    `Promise<Level>`; the comparisons stay by rank.
-  - **`ai/catalogue.ts:98-115`**: `const level = canonicalLevel(row.model_info?.max_classification)`; unclassified when `undefined`;
-    `maxClassification: level`. Keep the comment's `Object.hasOwn` reasoning, now `canonicalLevel`'s.
-  - **`spec/diff.ts`**: `sensitiveViewOfSpec` (`:227`) and `sensitiveViewOfRelease` (`:250`) set `classification:
-    levelName(…)` — so `:183`'s comparison is of levels; `describeDiff`'s `valueChange('data.classification', …)` (`:552-557`) passes
-    `levelName(before.classification)` and `levelName(after.classification)`, and its summary names them.
-  - **`spec/schema.ts`**: 
+  - **`spec/schema.ts`** — the field becomes:
+    ```ts
+    classification: z
+      .enum(CLASSIFICATIONS)
+      .default(DEFAULT_LEVEL)
+      // THE LEVEL, NEVER THE ALIAS (S6): what is stored says what it means. The OUTPUT type stays the seven names on
+      // purpose (the U1 plan's Decision 1): every reader ranks through CLASSIFICATION_RANK, which holds all seven.
+      .transform((name): Classification => toLevel(name))
+      .describe(/* Task 1's words, its last sentence now: "`medium` when absent." */),
+    ```
+    and `specInLevels`:
     ```ts
     /** A stored `parsed` manifest as the platform answers it (S6): `data.classification` as its level; everything else as stored. */
     export function specInLevels(parsed: unknown): Record<string, unknown> {
@@ -962,42 +1174,67 @@ first 2). Nothing else changes behaviour here except what a manifest may say and
       return data === undefined || level === undefined ? spec : { ...spec, data: { ...data, classification: level } }
     }
     ```
+    If the description is not on the emitted `classification` node (an effect's description may land elsewhere), move `.describe()`
+    onto the inner `z.enum(…)`; `manifest-yaml.test.ts` decides.
+  - **`ai/models.ts`**: `DEFAULT_CLASSIFICATION` becomes `DEFAULT_LEVEL` (imported); `asClassification` becomes `const asLevel = (value:
+    unknown): Level | undefined => canonicalLevel(value)`; the floors answer `Promise<Level>`; `:37` keeps Task 1's level-safe line.
+  - **`ai/catalogue.ts:98-115`**: `const level = canonicalLevel(row.model_info?.max_classification)`; unclassified when `undefined`;
+    `maxClassification: level`.
+  - **`ai/capable.ts:165-169`**: `capableFloor` reduces from `toLevel(CAPABLE_CLASSIFICATION)` (Task 4 replaces the constant), so its
+    refusal names `'medium'`, never `'internal'`.
+  - **`ai/sessions.ts:640-654`**: `the project is now ${levelWords(floor)}` — its second clause (the builder) is Task 4's words.
+  - **`spec/diff.ts`**: `sensitiveViewOfSpec` (`:227`) and `sensitiveViewOfRelease` (`:250`) set `classification: levelName(…)`;
+    `describeDiff`'s `valueChange('data.classification', …)` (`:552-557`) passes `levelName(before.classification)` and
+    `levelName(after.classification)`, and its summary names them.
+  - **`launch/assessment.ts`**: `capitalised` (`:93-94`) is replaced by `Words(value)` — `levelWords` with its first letter upper-cased —
+    and every printed level goes through `levelWords`: `modelFlow`'s two sentences (*"Approved for very high data: it runs on…"*,
+    *"Approved for ${levelWords(max)} data at most: it may be answered…"*), `flows`' fact and rule, `hosting` (`:381`) and its gap
+    (`:390`), and **`:267`** (*"Manifest treats it as ${levelWords(…)}"*, *M1*). Task 3 adds the `high` sentence.
   - **`api/routes/project-reads.ts:749`**: `spec: specInLevels(latest.parsed)`; its example (`:717`) `classification: 'medium'`.
   - **`api/representations/releases.ts:138`**: `classification: levelName(c.classification)`.
   - **`api/routes/releases.ts`**: the twelve examples' `classification: 'internal'` → `'medium'`.
+  - **`api/routes/launch-examples.ts:388-401, 477`** and **`packages/mock/src/fixtures.ts:1310-1315, 1400`**: the PIA's words as the
+    assessment now prints them — the mock's *Low* line is already right; its *"default-chat: Approved for internal data at most…"*
+    (twice) reads *medium*. Contract and mock in the SAME commit.
   - **`packages/journey/src/frontend.ts:1104-1105`**: `=== 'very-high'` (its check's words: *"the release is frozen very-high (the
     manifest says confidential, its alias)"*).
-- [ ] **Step 4: Run each file — green**, one at a time. Then `pnpm contract:write`, `pnpm contract:generate`, `pnpm docs:write` (the
-  examples moved), and the four gates. Message the front-end's session one line (*"1.7.0's examples now say medium; getSpec and releases
-  answer levels"*) before committing.
-- [ ] **Step 5: Commit by name**, then **the negative controls**:
-  - **(a)** `asLevel` back to `value in CLASSIFICATION_RANK ? value : undefined`: predict red at *toString … the default stands* and at
-    the alias cases (`'confidential'` answered as stored);
+- [ ] **Step 4: Run each unit file — green**, one at a time; then `pnpm contract:write`, `pnpm contract:generate`, `pnpm docs:write`, and
+  the four gates.
+- [ ] **Step 5: The two Docker files whose expectations this task moves, ALONE, before the commit** (*C1*; never beside Vitest):
+  `MANIFEST_TEST_DOCKER=1 pnpm exec vitest run --project docker src/ai/ai-path.docker.test.ts`, then the same for
+  `src/ai/capable.docker.test.ts`. Green, or the edit is wrong. The whole tier runs once at the sitting's close.
+- [ ] **Step 6: Commit by name** — one line to the front-end's session first (*"the switch: getSpec and releases answer levels; the
+  default is medium; the mock's PIA says medium"*) — then **the negative controls**:
+  - **(a)** `asLevel` back to Task 1's `Object.hasOwn(…) ? value : undefined` (answering the stored name): predict red at the three new
+    floor cases and at `agents.test.ts:1063` — and **`agents.test.ts:1166-1170` stays GREEN** (Task 1's level-safe exception reads either
+    name): recorded as the order working;
   - **(b)** `sensitiveViewOfSpec`'s `levelName` removed: predict red at *a rename … is NOT sensitive* only — the positive control stays
     green;
-  - **(c)** `getSpec`'s `specInLevels` removed: predict red at *getSpec answers an old row's alias as its level* only.
+  - **(c)** `getSpec`'s `specInLevels` removed: predict red at *getSpec answers an old row's alias as its level* only;
+  - **(d)** `agents.test.ts:303`'s filter left at `'internal'`: predict red at its new non-empty assertion only.
   ```bash
-  git commit -m "feat(spec,ai): every stored level read and compared as its level, and answered in U1's names — old rows too (U1 plan Task 2, S6)"
+  git commit -m "feat(spec,ai): the switch — stored and answered as the level, in U1's words; old rows too; default medium (U1 plan Task 2, S5, S6, C1)"
   ```
 
 ---
 
-## Task 3: D17 in U1's words — the refusal hint (E14), the deploy-time refusal, the privacy assessment, intake, the blueprint and the guides
+## Task 3: D17 in U1's words — the refusal hint (E14), the deploy-time refusal, a `high` model's zero-retention sentence, intake, the blueprint and the guides
 
 **Its callers**: `checkPolicy` (every validation), `deployRelease`'s D17 re-check (every deploy), `draftPrivacyAssessment` (the owner's
 launch errand), `startIntakeSession` (every intake). And every agent that writes a `manifest.yaml`: the blueprint's starter and
 AGENTS.md, and the two guides.
 
 **Files:**
-- Modify: `src/spec/policy.ts:207-217`, `src/releases/release.ts:1093-1105`, `src/launch/assessment.ts:93-97, 190-220, 355-395`,
-  `src/ai/intake.ts:60-70`, `src/api/routes/launch-examples.ts:388-401, 477`, `packages/mock/src/fixtures.ts:1310-1315, 1400`
+- Modify: `src/spec/policy.ts:207-217`, `src/releases/release.ts:1093-1105`, `src/launch/assessment.ts:190-200` (the `high` sentence;
+  the level words are Task 2's, *C1*), `src/ai/intake.ts:60-70`, `src/api/error-codes.ts:852, 854` and `src/api/routes/intake.ts:48`
+  (*M1*: *"approved for internal data"* → *medium*)
 - Modify: `blueprints/node-ts-mongo/starters/proof-app/manifest.yaml:55-64` and its `README.md:62, 83-84`,
   `blueprints/node-ts-mongo/agents/AGENTS.md:209-211`, `docs/api/agents.md`, `docs/api/frontend.md`
 - Test: `src/spec/policy.test.ts`, `src/launch/assessment.test.ts`, `src/releases/releases.test.ts` (the deploy-time case beside
   `:2970`'s), `src/ai/intake.test.ts`
 
 **Interfaces:**
-- Consumes: Task 1's `levelName`, `canonicalLevel`; Task 2's canonical catalogue.
+- Consumes: Task 1's `levelName`, `toLevel`; Task 2's canonical catalogue and `levelWords` in the assessment.
 - Produces: nothing new; the words of four refusals and one document.
 
 - [ ] **Step 1: The failing tests.** `src/spec/policy.test.ts` (its `ctx` holds `default-chat-onprem` at `confidential` and
@@ -1046,42 +1283,55 @@ AGENTS.md, and the two guides.
   release deployed while the model is `very-high`. *(Copy the existing case's setup: it lowers a catalogue entry between validation and
   deploy.)*
 
-  `src/launch/assessment.test.ts` — the expectations that move, and two new cases. With `CATALOGUE` (`:38-40`, aliases kept):
-  - `:202` → `'Medium — every AI model the app uses must be approved for medium data.'`;
-  - `:213` → `'Approved for medium data at most: it may be answered by a provider off-premise, so what the app sends it may leave UBC.'`;
-  - `:219` → `'Approved for very high data: it runs on on-premise hardware, so what the app sends it stays there.'`;
-  - `:235` → `'Medium — Manifest’s default, because the manifest does not say: every AI model the app uses must be approved for medium data.'`;
-  - `:354` → `'Approved for medium data at most.'`; `:357` → `'Approved for very high data at most.'`.
+  `src/launch/assessment.test.ts` — the level words moved at Task 2; this task adds the `high` model's sentence (Review Focus 6). Its
+  `input` is a FUNCTION (`:43`) taking overrides, and `section` and `valueOf` are its own (*M14*):
   ```ts
+  const highSpec = (models: string[]) =>
+    manifestSchema.parse({
+      manifest: 1,
+      name: 'lp-sample',
+      blueprint: 'node-ts-mongo@1',
+      runtime: { port: 3000 },
+      ai: { models },
+      data: { classification: 'high', retention_days: 180 },
+    })
   it('a very-high app’s rule is on-premise hardware, printed as a person reads it (Review Focus 6)', () => {
-    const draft = assess({ ...input, spec: specDeclaring('confidential') })
-    expect(fact(draft, 'flows', 'Classification')?.value).toBe(
+    const spec = manifestSchema.parse({ ...BARE_INPUT, data: { classification: 'confidential' } })
+    const flows = section(assembleAssessment(input({ spec })), 'flows')
+    expect(valueOf(flows, 'Classification')?.value).toBe(
       'Very high — every AI model the app uses must run on on-premise hardware.',
     )
   })
-  it('a high model may leave UBC to a provider that keeps nothing — the zero-retention sentence', () => {
-    const draft = assess({
-      ...input,
-      spec: specDeclaring('high', ['gw-high']),
-      catalogue: [...CATALOGUE, { name: 'gw-high', maxClassification: 'high', kind: 'chat' }],
-    })
-    expect(fact(draft, 'flows', 'gw-high')?.value).toBe(
+  it('a high model may leave UBC to a provider that keeps nothing — the zero-retention sentence (Review Focus 6)', () => {
+    const flows = section(
+      assembleAssessment(
+        input({
+          spec: highSpec(['gw-high']),
+          catalogue: [...CATALOGUE, { name: 'gw-high', maxClassification: 'high', kind: 'chat' }],
+        }),
+      ),
+      'flows',
+    )
+    expect(valueOf(flows, 'gw-high')?.value).toBe(
       'Approved for high data at most: it may be answered by a provider off-premise that keeps none of what it is sent ' +
         '(zero data retention), as the platform’s administrator attests, so what the app sends it may leave UBC but is not kept there.',
     )
-    expect(fact(draft, 'flows', 'Classification')?.value).toBe(
+    expect(valueOf(flows, 'Classification')?.value).toBe(
       'High — every AI model the app uses must be approved for high data.',
     )
   })
   ```
-  *(`assess`, `input`, `specDeclaring` and `fact` are this file's own helpers, or the shapes it already builds by hand — read
-  `assessment.test.ts:1-60` and use what it has; add a one-line `fact` finder if it has none.)*
+  *(`BARE_INPUT` is Task 1's constant, `BARE`'s input object.)*
 
   `src/ai/intake.test.ts`: the refusal's message names *medium* — `INTAKE_MODEL_UNAVAILABLE`, its message containing *"approved for
-  medium data"* — with an entry lowered to `public` (the alias, so `low`); and its positive control at `internal`.
-- [ ] **Step 2: Run — predict red**: `policy.test.ts` red at the message/hint (and green at the four rank cases, which Tasks 1–2 already
-  made right — **if the two "never widen" cases were red here, a rank is wrong: stop and read it**); `assessment.test.ts` red at every
-  moved string; `releases.test.ts` red at the message; `intake.test.ts` red at *medium*.
+  medium data"* — with an entry lowered to `public` (the alias, so `low`); and its positive control at `internal`. The code's published
+  summary and remedy (`error-codes.ts:852, 854`) and the intake route's description (`routes/intake.ts:48`) say *medium* too; the
+  contract's regeneration carries them (*M1*).
+- [ ] **Step 2: Run — predict red**: `policy.test.ts` red at the hint (its message is already canonical since Task 2, so *"may not process
+  very-high data"* is GREEN) — and green at the four rank cases, which Tasks 1–2 already made right: **if the two "never widen" cases
+  are red here, a rank is wrong; stop and read it**; `assessment.test.ts` red at the `high` model's sentence only (the very-high case is
+  green since Task 2 — it is here as Review Focus 6's statement); `releases.test.ts` red at the message only if Task 2 left it raw;
+  `intake.test.ts` red at *medium*.
 - [ ] **Step 3: Implement.**
   - **`spec/policy.ts:207-217`** (E14), each value through `levelName`:
     ```ts
@@ -1101,38 +1351,24 @@ AGENTS.md, and the two guides.
     ```
   - **`releases/release.ts:1102-1103`**: `` `the model '${name}' is now approved only up to ${levelName(entry.maxClassification)} data, ` +
     `and this app declares ${levelName(resolved.classification)} (D17)` ``.
-  - **`launch/assessment.ts`**: replace `capitalised` and `staysOnPremise` (`:93-97`):
+  - **`launch/assessment.ts`** — beside Task 1's `staysOnPremise`:
     ```ts
-    /** A level as a person reads it — U1's own words ("Very High Risk"), never the value's hyphen. */
-    const LEVEL_WORDS: Record<Level, string> = { low: 'low', medium: 'medium', high: 'high', 'very-high': 'very high' }
-    const words = (value: Classification): string => LEVEL_WORDS[toLevel(value)]
-    const Words = (value: Classification): string => {
-      const w = words(value)
-      return `${w.charAt(0).toUpperCase()}${w.slice(1)}`
-    }
-    /** Approved for `very-high` data means on-premise only (§7: such an app resolves to nothing else). */
-    const staysOnPremise = (ceiling: Classification) => toLevel(ceiling) === 'very-high'
-    /** Approved for `high`: on premises, or a provider that keeps none of what it is sent (§7's rule, attested). */
+    /** Approved for `high`: on premises, or at a provider that keeps none of what it is sent (§7's rule, attested). */
     const keepsNothing = (ceiling: Classification) => toLevel(ceiling) === 'high'
     ```
-    `modelFlow`'s value: `staysOnPremise` → *"Approved for very high data: it runs on on-premise hardware, so what the app sends it
-    stays there."*; `keepsNothing` → the zero-retention sentence the test names; otherwise *"Approved for ${words(max)} data at most: it
-    may be answered by a provider off-premise, so what the app sends it may leave UBC."* `flows`' rule (`:207`): `staysOnPremise(ceiling)`
-    → *on-premise hardware*; otherwise *approved for ${words(ceiling)} data*; its fact `` `${Words(ceiling)} — ${rule}` ``. `hosting`
-    (`:381`): `` `Approved for ${words(e.maxClassification)} data at most.` ``; its gap (`:390`): `` `Whether the app’s ${words(…)} data
-    may reach…` ``.
-  - **`ai/intake.ts:64-68`**: `CLASSIFICATION_RANK.medium`, and *"…not a catalogue model approved for medium data…"*.
-  - **`api/routes/launch-examples.ts:388-401, 477`** and **`packages/mock/src/fixtures.ts:1310-1315, 1400`**: the same words — the mock's
-    *Low* line is already right; its *"default-chat: Approved for internal data at most…"* (twice) reads *medium*. Contract and mock in
-    the SAME commit.
+    `modelFlow`'s value gains a branch after `staysOnPremise`'s: `keepsNothing` → the zero-retention sentence the test names.
+  - **`ai/intake.ts:64-68`**: `CLASSIFICATION_RANK.medium`, and *"…not a catalogue model approved for medium data…"*;
+    **`api/error-codes.ts:852, 854`** and **`api/routes/intake.ts:48`** the same (*M1*).
   - **The blueprint.** `proof-app/manifest.yaml:55-64`:
     ```yaml
     data:
-      # UBC's U1 level (Information Security Standard U1): the most sensitive information the app keeps or sends to a
-      # model. The notes are course work, not personal records, and the app stores no UBC identifier at all — a note is
-      # keyed on sha256(puid ‖ project ‖ environment) — so `medium`. Any personal information (a student's name, ID or
-      # grades) would make it `high`, and `high` refuses `default-chat` at validation (SPEC_MODEL_CLASSIFICATION_TOO_LOW):
-      # the gate working, as `make demo-ai`'s negative control (b) shows with `confidential`.
+      # UBC's U1 level (Information Security Standard U1): the most sensitive information the app KEEPS or SENDS TO A
+      # MODEL. The notes are course work, not personal records, and the app stores no UBC identifier at all — a note is
+      # keyed on sha256(puid ‖ project ‖ environment). It asks CWL for givenName and sn to greet people by name, and
+      # neither is kept nor sent to a model: it shows them and forgets them. So `medium`. An app that KEEPS a student's
+      # name, ID or grades, or sends one to a model, is `high`, and `high` refuses `default-chat` at validation
+      # (SPEC_MODEL_CLASSIFICATION_TOO_LOW): the gate working, as `make demo-ai`'s negative control (b) shows with
+      # `confidential`.
       classification: medium
     ```
     The starter's `README.md:62` says `data.classification: medium`, and `:83-84` *"D17 approves both to `medium` — so a `high` or
@@ -1143,11 +1379,15 @@ AGENTS.md, and the two guides.
   - **The guides** — `docs/api/agents.md` and `docs/api/frontend.md`: wherever they teach writing `data.classification`, U1's four levels
     and the aliases in one sentence; *"a `confidential` app's `ai.models` must name on-premise models"* → *"a `very-high` app's (or
     `confidential`, its earlier name)"*. **The building agent's and the Incidents' sentences are Tasks 4's and 5's** — leave them.
-- [ ] **Step 4: Run each file — green**; then `pnpm contract:write`, `pnpm contract:generate`, `pnpm docs:write` (the PIA example), the
-  four gates. One line to the front-end's session before committing (*"the mock's PIA fixture now says medium"*).
+  **The comment's claim, checked at writing** (*M13*): `proof-app/server.js:137-150` uses `givenName` and `sn` only to answer
+  `/api/me`'s `displayName`; a note (`:155-160`) keeps the owner's HASH, the text and a time; a question sends the note's text and the
+  hash (`:257-284`). Re-read those lines before committing: if the starter has come to keep or send a name, the comment is wrong and the
+  starter is `high`; then tell the coordinator, because `high` refuses its `default-chat` and `default-embed`.
+- [ ] **Step 4: Run each file — green**; then `pnpm contract:write`, `pnpm contract:generate`, `pnpm docs:write` (the intake texts), the
+  four gates. One line to the front-end's session before committing (*"intake's texts say medium"*).
 - [ ] **Step 5: Commit by name**, then **the negative controls**:
-  - **(a)** `staysOnPremise` back to `=== 'confidential'`: predict red at *a very-high app's rule is on-premise hardware* and at `:219`'s
-    moved string (a canonical `very-high` from the catalogue no longer matches);
+  - **(a)** `keepsNothing` answering `false`: predict red at *a high model may leave UBC to a provider that keeps nothing* only. (The
+    `staysOnPremise` control is Task 1's (d), with *M3*'s corrected prediction.)
   - **(b)** E14's old hint restored: predict red at *the refusal speaks in levels* only;
   - **(c)** the deploy-time message's `levelName` removed: predict red at its `releases.test.ts` case only.
   ```bash
@@ -1167,8 +1407,11 @@ AGENTS.md, and the two guides.
   202-219`, `src/ai/models.ts:9-45`, `src/ai/sessions.ts:439, 636-657`, `src/index.ts:489-500, 565-572`
 - Modify: `src/observability/event-schemas.ts:853, 868`, `src/api/representations/agents.ts:105`, `src/releases/summary.ts:85-88` and
   `src/api/spec-validation.ts:163-170` (comments), `.env.example:166, 172, 173, 178`,
-  `docs/api/agents.md:21, 23, 28, 129`, `docs/api/frontend.md:34, 37, 96`, `docs/superpowers/RUNBOOK.md` (*The capable model*)
-- Test: `src/ai/capable.test.ts`, `src/ai/gateway-models.test.ts`, `src/ai/models.test.ts`, `src/config.test.ts`,
+  `docs/api/agents.md:21, 23, 28, 129`, `docs/api/frontend.md:34, 37, 96`, `docs/superpowers/RUNBOOK.md` (*The capable model*; `:299`
+  and `:316-329`, *M1*)
+- Modify (*I5*): `scripts/demo-gateway.sh:244-270` and `packages/journey/src/gateway.ts:495` — levels compared as levels
+- Test: `src/ai/capable.test.ts` (with `:48` and every `ensureCapableFallback` / `ensureCapableModel` call given its now-required level),
+  `src/ai/gateway-models.test.ts`, `src/ai/models.test.ts`, `src/config.test.ts`, `src/api/agents.test.ts:1299`,
   `src/ai/capable.docker.test.ts`
 
 **Interfaces:**
@@ -1176,9 +1419,10 @@ AGENTS.md, and the two guides.
 - Produces:
   - `config.litellm.capableClassification: Level` (from `MANIFEST_CAPABLE_MODEL_CLASSIFICATION`, default `'medium'`);
   - `config.litellm.gatewayModels[].classification` canonical (`Level`);
-  - `ensureCapableModel(client, setting, gateway?, classification: Classification = DEFAULT_LEVEL)`;
-  - `ensureCapableFallback(client, setting, classification: Classification = DEFAULT_LEVEL)`;
-  - `capableModelAtBoot(client, setting, fallback, gateway, classification: Classification)` — REQUIRED here, so the boot cannot miss it;
+  - `ensureCapableModel(client, setting, gateway: Gateway | undefined, classification: Classification)` — the level REQUIRED (*I3*): a
+    default would let `capable.ts:305` drop it and still compile;
+  - `ensureCapableFallback(client, setting, classification: Classification)` — REQUIRED, for `capable.ts:319`'s same reason;
+  - `capableModelAtBoot(client, setting, fallback, gateway, classification: Classification)` — REQUIRED;
   - `platformModelsAtBoot(client, { gatewayModels, capableModel, capableFallback, capableClassification }, gateway)`;
   - `refuseKeeping(client, ours, model, classification: Classification, reason)` — the level REQUIRED;
   - `agentModelsFor(catalogue, floor, builder)` — unchanged signature; the exception is `builder === 'capable'`.
@@ -1250,26 +1494,45 @@ AGENTS.md, and the two guides.
     })
   })
   ```
-  `src/ai/capable.test.ts` (with its `fakeLiteLlm`):
+  `src/ai/capable.test.ts` (its `SETTING`, `capable(lite)`, `entry(lite, name, modelInfo)` and `withCapable()`; a fake deployment's
+  level is `modelInfo.max_classification`, as `gateway-models.test.ts:55` reads it):
   ```ts
-  it('registers the capable model at the level it is given (S3)', async () => {
-    /* ensureCapableModel(lite, 'openai/gpt-6-luna', undefined, 'high') → 'registered'; /model/info's model_info.max_classification 'high' */
-  })
-  it('an alias row is UNCHANGED at its level — no row is re-created for its name (I7; Review Focus 2)', async () => {
-    /* register at 'internal' (as tonight's rows were), then ensureCapableModel(…, 'medium') → state 'unchanged', and the fake
-       saw no /model/new; then (…, 'high') → 'registered' — the positive control */
-  })
-  it('a fallback below the capable model’s level is refused — the floor moves with the setting', async () => {
-    /* a 'medium' entry named as the fallback: ensureCapableFallback(lite, 'probe-medium-chat', 'high') → refused,
-       its reason containing "below 'high'"; the same with 'medium' → set */
+  describe('the capable model’s level is the setting’s (S3; U1 plan Task 4)', () => {
+    it('registers the capable model at the level it is given', async () => {
+      const lite = fakeLiteLlm()
+      expect(await ensureCapableModel(lite, SETTING, undefined, 'high')).toEqual({ state: 'registered', model: SETTING })
+      expect(capable(lite).map((d) => d.modelInfo.max_classification)).toEqual(['high'])
+    })
+    it('an alias row is UNCHANGED at its level — nothing re-created for its name (Review Focus 2)', async () => {
+      const lite = fakeLiteLlm()
+      await ensureCapableModel(lite, SETTING, undefined, 'internal') // as tonight's row was registered
+      const before = lite.calls.length
+      expect(await ensureCapableModel(lite, SETTING, undefined, 'medium')).toEqual({ state: 'unchanged', model: SETTING })
+      expect(lite.calls.slice(before).filter((c) => c.path === '/model/new')).toEqual([])
+      // The positive control: a real change of level registers.
+      expect((await ensureCapableModel(lite, SETTING, undefined, 'high')).state).toBe('registered')
+    })
+    it('a fallback below the capable model’s level is refused — the floor moves with the setting', async () => {
+      const lite = await withCapable()
+      await entry(lite, 'probe-medium-chat', { max_classification: 'medium' })
+      const refused = await ensureCapableFallback(lite, 'probe-medium-chat', 'high')
+      expect(refused.state).toBe('refused')
+      expect(refused.reason).toContain("below 'high'")
+      expect((await ensureCapableFallback(lite, 'probe-medium-chat', 'medium')).state).toBe('set')
+    })
   })
   ```
-  `:48`'s expected create body moves to `max_classification: 'medium'` (the default); `:551`'s `"below 'internal'"` → `"below 'medium'"`.
+  **Expectations that move here** (each red before Step 3): `capable.test.ts:48`'s create body → `max_classification: 'medium'` (red:
+  `'internal'`, the constant); every `ensureCapableModel(lite, x)` and `ensureCapableFallback(lite, x)` call in the file and in
+  `capable.docker.test.ts` gains its level — `pnpm typecheck` lists them once the parameters are required (*I3*); **`api/agents.test.ts:1299`**
+  → *"…because the platform no longer lets the agent that builds a project at this level use the capable model — its setting, or the
+  capable model's level, changed; …"* (red: the old clause). *(`:551` moved at Task 2.)*
 
   `src/ai/gateway-models.test.ts` (with Task 3 of the gateway plan's `GW`):
   ```ts
   it('a level LOWERED while its re-registration is refused leaves the catalogue — never kept higher (I1; Review Focus 3)', async () => {
     const lite = fakeLiteLlm()
+    lite.price('openai/gpt-x', 1e-6)
     await ensureGatewayModels(lite, [{ name: 'gw-zdr', setting: 'ubc-ai-gateway/gpt-x', classification: 'high' }], GW)
     expect((await loadModelCatalogue(lite)).models.find((m) => m.name === 'gw-zdr')?.maxClassification).toBe('high')
     lite.price('openai/gpt-x', 0) // LiteLLM restarted offline: it prices gpt-* at 0 (registration.ts:91-93)
@@ -1278,22 +1541,68 @@ AGENTS.md, and the two guides.
     const after = await loadModelCatalogue(lite)
     expect(after.models.map((m) => m.name)).not.toContain('gw-zdr')
     // A high app is refused it — unknown now, which fails closed (Decision 6).
-    const ctx = { ...validationContextFor(after) }
-    expect(errorCodes(highAppUsing('gw-zdr'), ctx)).toEqual(['SPEC_MODEL_UNKNOWN'])
+    expect(errorCodes(highAppUsing('gw-zdr'), validationContextFor(after))).toEqual(['SPEC_MODEL_UNKNOWN'])
   })
   it('a refusal KEEPS a working registration at or below the level asked for — the positive control', async () => {
-    /* registered at 'medium'; re-asked at 'high' while unpriced → refused, and gw-x still listed at 'medium' */
+    const lite = fakeLiteLlm()
+    lite.price('openai/gpt-y', 1e-6)
+    await ensureGatewayModels(lite, [{ name: 'gw-y', setting: 'ubc-ai-gateway/gpt-y', classification: 'medium' }], GW)
+    lite.price('openai/gpt-y', 0)
+    const r = await ensureGatewayModels(lite, [{ name: 'gw-y', setting: 'ubc-ai-gateway/gpt-y', classification: 'high' }], GW)
+    expect(r.models[0]?.state).toBe('refused')
+    expect((await loadModelCatalogue(lite)).models.find((m) => m.name === 'gw-y')?.maxClassification).toBe('medium')
   })
-  it('an unpriced very-high entry — confidential, its alias, included — is pinned at the stand-in’s price', async () => {
-    /* the gateway plan's case, once with 'very-high' and once with 'confidential': both registered at 1e-6/3e-6 */
+  it('a new high session is never given the removed entry; a live one is not narrowed for it — LiteLLM no longer serves it (M6)', async () => {
+    const lite = fakeLiteLlm()
+    lite.price('openai/gpt-x', 1e-6)
+    await ensureGatewayModels(lite, [{ name: 'gw-zdr', setting: 'ubc-ai-gateway/gpt-x', classification: 'high' }], GW)
+    expect(agentModelsFor(await loadModelCatalogue(lite), 'high', 'capable')).toContain('gw-zdr')
+    lite.price('openai/gpt-x', 0)
+    await ensureGatewayModels(lite, [{ name: 'gw-zdr', setting: 'ubc-ai-gateway/gpt-x', classification: 'medium' }], GW)
+    const after = await loadModelCatalogue(lite)
+    expect(agentModelsFor(after, 'high', 'capable')).not.toContain('gw-zdr')
+    // The agent sweep's rule: only a name the catalogue still SERVES is withdrawn from a live key.
+    expect([...after.models.map((m) => m.name), ...after.unclassified]).not.toContain('gw-zdr')
+  })
+  it('platformModelsAtBoot registers the capable model at MANIFEST_CAPABLE_MODEL_CLASSIFICATION’s level — the boot’s thread (I3)', async () => {
+    const lite = fakeLiteLlm()
+    await platformModelsAtBoot(
+      lite,
+      { gatewayModels: [], capableModel: SETTING, capableFallback: 'default-chat-onprem', capableClassification: 'high' },
+      GW,
+    )
+    const listed = (await loadModelCatalogue(lite)).models.find((m) => m.name === CAPABLE_MODEL_NAME)
+    expect(listed?.maxClassification).toBe('high')
   })
   ```
-  *(`validationContextFor` and `highAppUsing` are two-line helpers in the test: the `ValidationContext` from a snapshot, and
-  `yaml(...)`'s text with `data.classification: high` and that model — copy `policy.test.ts:4-31`'s shapes.)*
+  *(The first case's `lite.price('openai/gpt-x', 1e-6)` goes before its first `ensureGatewayModels`. `SETTING` is a setting the fake
+  prices — `capable.test.ts`'s own. The helpers, written out:*
+  ```ts
+  const highAppUsing = (model: string) =>
+    `manifest: 1\nname: chem-lab-scheduler\nblueprint: node-ts-mongo@2\nruntime:\n  port: 3000\nai:\n  models: [${model}]\n` +
+    `  budget:\n    project_monthly_usd: 10\ndata:\n  classification: high\n`
+  const validationContextFor = (s: CatalogueSnapshot): ValidationContext => ({
+    projectSlug: 'chem-lab-scheduler',
+    attributeWhitelist: ['ubcEduCwlPuid'],
+    serviceCatalogue: [],
+    modelCatalogue: s.models,
+    unclassifiedModels: s.unclassified,
+    aiEnabled: true,
+    quota: { maxCpu: 2, maxMemoryMi: 2048, maxServices: 3, aiMonthlyUsd: 100 },
+    projectBlueprint: 'node-ts-mongo@2',
+  })
+  const errorCodes = (text: string, c: ValidationContext) => {
+    const r = validateSpec(text, c)
+    return r.valid ? [] : r.errors.map((e) => e.code)
+  }
+  ```
+  *The `very-high` stand-in pin is Task 1's case.)*
 - [ ] **Step 2: Run — predict red**: `config.test.ts` at `capableClassification` (`undefined`) and at `@high` (refused by the old
-  regex); `models.test.ts` at *high project … while the setting is capable* (the old exception fires only at `confidential`);
-  `capable.test.ts` at the level (`'internal'` registered) and *UNCHANGED* (`'registered'`: string compare); `gateway-models.test.ts` at
-  *leaves the catalogue* (kept at `high`) and at the `very-high` pin (refused unpriced).
+  regex); `models.test.ts` at *high project … while the setting is capable* (Task 1's exception fires only at `very-high`);
+  `capable.test.ts` at the level (`'internal'` registered — the constant) and *UNCHANGED* (`'registered'`: string compare);
+  `gateway-models.test.ts` at *leaves the catalogue* (kept at `high`) and at *platformModelsAtBoot* (`'internal'`: the constant; and a
+  type error until its settings take `capableClassification`); *a new high session … (M6)* red at its last line until the I1 removal
+  lands. `pnpm typecheck` red at every caller of the two now-required parameters until each passes a level.
 - [ ] **Step 3: Implement.**
   - **`config.ts`**: `GATEWAY_MODEL_ENTRY`'s tail becomes `@(low|medium|high|very-high|public|internal|confidential)$` and its form text
     `<name>=ubc-ai-gateway/<model>@<level>, comma-separated — a level is low, medium, high or very-high (UBC's U1), or an earlier name`;
@@ -1315,9 +1624,10 @@ AGENTS.md, and the two guides.
     enum failure into a `ConfigError`** (the existing `MANIFEST_AGENT_BUILDER_MODELS` test, `config.test.ts:191`, is the pattern) — the
     message must name the setting. The builder setting's comment (`:404-412`) in U1's words: *"the agent that BUILDS an app whose level
     is above the capable model's"*.
-  - **`ai/capable.ts`**: `CAPABLE_CLASSIFICATION` removed; `ensureCapableModel(client, setting, gateway?, classification = DEFAULT_LEVEL)`
-    passes `classification` to `ensureRegistered` and to `refuseKeeping` (`:102-107`); `capableFloor(snapshot, classification)` reduces
-    from `toLevel(classification)`; `ensureCapableFallback(client, setting, classification = DEFAULT_LEVEL)` and `unfit` take it;
+  - **`ai/capable.ts`**: `CAPABLE_CLASSIFICATION` removed; `ensureCapableModel(client, setting, gateway, classification)` — the level
+    REQUIRED (*I3*) — passes it to `ensureRegistered` and to `refuseKeeping` (`:102-107`); `capableFloor(snapshot, classification)` reduces
+    from `toLevel(classification)` (Task 2 made it start from the constant's level); `ensureCapableFallback(client, setting,
+    classification)` — REQUIRED — and `unfit` take it;
     `capableModelAtBoot(client, setting, fallback, gateway, classification)` passes it to both. Its comment (`:36-40`) goes, with a line
     where `capableModelAtBoot` reads the level: *"the level is MANIFEST_CAPABLE_MODEL_CLASSIFICATION's (S3), never this file's"*.
   - **`ai/registration.ts`**: `:237` becomes `canonicalLevel(only!.model_info?.max_classification) === toLevel(r.classification)`;
@@ -1346,7 +1656,8 @@ AGENTS.md, and the two guides.
   - **`ai/gateway-models.ts`**: `:134-135` → `toLevel(e.classification) === 'very-high'`; `:123-128` passes `e.classification` to
     `refuseKeeping`; `platformModelsAtBoot`'s settings gain `capableClassification: Classification`, passed to `capableModelAtBoot`. Its
     comments (`:24-25, 36, 81`) say `very-high` (and *"`confidential`, its alias"* once).
-  - **`ai/models.ts:37`**: `const building = builder === 'capable'`, with its comment rewritten for S4: *"…the capable model to a project
+  - **`ai/models.ts:37`**: Task 1's `toLevel(floor) === 'very-high' && builder === 'capable'` becomes `const building = builder ===
+    'capable'`, with its comment rewritten for S4: *"…the capable model to a project
     ABOVE its level while the builder setting is `capable` — at or below its level D17 already allows it — so whenever the setting is
     `capable`, the capable model is in every session's models while the catalogue lists it classified."* `:9-31` in U1's words.
   - **`index.ts`**: `platformModelsAtBoot(…, { …, capableClassification: config.litellm.capableClassification }, gateway)`; the boot line
@@ -1362,8 +1673,18 @@ AGENTS.md, and the two guides.
     Two comments in U1's words: `releases/summary.ts:85-88` (its model carries `max_classification: confidential` — *"`very-high`, by its
     earlier name"*) and `api/spec-validation.ts:163-170` (*"a launch of a `very-high` release while `main` says `medium`"*); and
     `config.ts:590`'s `agent` comment. `docs/api/agents.md:21, 23, 28, 129` and `docs/api/frontend.md:34, 37, 96`: *"on a `confidential`
-    project"* → *"on a project above the capable model's level"*; *"internal or public"* → *"at or below its level"*. RUNBOOK's *The capable model*: the setting, its default,
-    Rich's `high`, and that the one boot that re-registers it needs the network.
+    project"* → *"on a project above the capable model's level"*; *"internal or public"* → *"at or below its level"*. RUNBOOK's *The
+    capable model*: the setting, its default, Rich's `high`, and that the one boot that re-registers it needs LiteLLM's last start to have
+    had the network (*M9*); **RUNBOOK `:299`** (*"any word but public, internal or confidential refuses the boot"* → the seven names) and
+    **`:316-329`** (the builder setting, in S4's words) (*M1*).
+  - **`make demo-gateway` compares levels as levels** (*I5*) — re-read both files at HEAD first (the gateway plan's sitting 3 is
+    committing them): `scripts/demo-gateway.sh`'s `atGateway` compares `canon(d.model_info?.max_classification) === canon(cls)` with a
+    seven-name map of its own (`const LEVEL = { public: 'low', internal: 'medium', confidential: 'very-high' }; const canon = (v) =>
+    LEVEL[v] ?? v`); the capable model's expected level is `canon(process.env.MANIFEST_CAPABLE_MODEL_CLASSIFICATION || 'medium')`, never
+    the literal `"internal"` (`:258`); the entry regex ends `@([a-z-]+)$` (`:261`), so `very-high` parses; and
+    `packages/journey/src/gateway.ts:495`'s filter keeps an entry whose level is `very-high` by the same map (the journey imports no
+    control-plane code). `grep -n "max_classification\|'internal'\|'confidential'\|\"internal\"" scripts/demo-gateway.sh
+    packages/journey/src/gateway.ts` answers nothing else that compares a level by its string.
 - [ ] **Step 4: Run each unit file — green.** Then the **Docker case**, `capable.docker.test.ts` (after `startingClear`, on the real
   LiteLLM): register the capable model at `'high'` (the file's existing setting) and read `/model/info`'s `max_classification: 'high'`;
   then a row registered at `'internal'` is `unchanged` at `'medium'` — **the real LiteLLM round-trips `max_classification` as given**,
@@ -1373,10 +1694,14 @@ AGENTS.md, and the two guides.
 - [ ] **Step 5: Commit by name**, then **the negative controls**:
   - **(a)** `refuseKeeping`'s `atOrBelow` removed: predict red at *leaves the catalogue* only — the positive control stays green;
   - **(b)** `:237` back to string equality: predict red at *an alias row is UNCHANGED* only;
-  - **(c)** `building` back to `floor === 'very-high' && builder === 'capable'`: predict red at *a high project's agent gets it while the
-    setting is capable* only;
-  - **(d)** `capableModelAtBoot` given the literal `'medium'` instead of the setting: predict red at *the floor moves with the setting*
-    through the boot path, and the boot-line case.
+  - **(c)** `building` back to Task 1's `toLevel(floor) === 'very-high' && builder === 'capable'`: predict red at *with the capable model at
+    medium, a high project's agent gets it while the setting is capable* only — the `very-high` cases are green under both lines;
+  - **(d)** `platformModelsAtBoot` passing the literal `'medium'` to `capableModelAtBoot` instead of `settings.capableClassification`:
+    predict red at *platformModelsAtBoot registers the capable model at … level* only (*I3*: the first draft's control predicted red at a
+    case that never went through the boot path, so it could not fail);
+  - **(e)** the level argument removed from `capableModelAtBoot`'s call to `ensureCapableFallback` (`capable.ts:319`): predict `pnpm
+    typecheck` RED (TS2554, an argument missing) — the required parameter is the control a default could not be (*I3*). Task 7's
+    `demo-levels.sh` reads the live row's level against the setting, end to end.
   ```bash
   git commit -m "feat(ai): the capable model's U1 level is a setting (default medium); the builder exception at every level above it; registration by level, never kept above the level asked for (U1 plan Task 4)"
   ```
@@ -1394,7 +1719,8 @@ sitting 2 continues to Task 6 only with room for its Docker measurement, its mig
 - Modify: `src/api/routes/releases.ts:1208, 1241-1258`, `src/api/error-codes.ts:745-757`, `src/api/representations/incidents.ts:30`,
   `src/observability/output.ts:10-11` (comment)
 - Modify: `src/api/incidents.test.ts`, `src/api/authz-contract.ts:119-124, 288-292, 2244-2262, 2571-2582`, `src/api/testing.ts:313`
-- Modify: `packages/mock/src/server.ts:98-102, 456-463, 709, 730, 1197`, `packages/mock/src/fixtures.ts:856-867` (a doc line only)
+- Modify: `packages/mock/src/server.ts:98-102, 456-463, 709, 730, 1197`, `packages/mock/src/fixtures.ts:856-867` (a doc line only),
+  `packages/mock/src/scripted.test.ts` (beside `:359`, *M5*)
 - Modify: `docs/api/agents.md:127, 133`, `docs/api/frontend.md:317`
 
 **Interfaces:**
@@ -1462,9 +1788,32 @@ sitting 2 continues to Task 6 only with room for its Docker measurement, its mig
   **`'a very-high project, by its earlier name confidential'`** (`await f.declareLevel('confidential')`); each expects the old row's
   answers (`token-capable` and `token-privileged` → `CONFIDENTIAL_INCIDENTS`). The doc comments (`:119-124`, `:288-292`, `:2244-2249`)
   say *high or above*. `src/api/testing.ts:313`'s union → `Classification`.
-- [ ] **Step 2: Run — predict red**: the inverted case and the `on-premise` half of the `high` case answer `200` (the builder term); the
-  `capable` half of the `high` case answers `200` too (`=== 'confidential'`); the alias positive control is green already (a real
-  green: medium was never refused). The two authz rows red at `token-capable`.
+  `packages/mock/src/scripted.test.ts`, beside `:359`'s confidential case (*M5* — the front-end runs this mock):
+  ```ts
+  it('MANIFEST_MOCK_LEVEL=high refuses a token staging’s and production’s Incidents by code; medium answers them (U1 plan Task 5)', async () => {
+    const incidents = (at: string, env: string) => fetch(`${at}/v1/environments/${env}/incidents`, { headers: BEARER })
+    const medium = await serve({ level: 'medium' })
+    expect((await incidents(medium, f.STAGING_ID)).status).toBe(200) // the positive control
+    const high = await serve({ level: 'high' })
+    for (const env of [f.STAGING_ID, f.PRODUCTION_ID]) {
+      const refused = await incidents(high, env)
+      expect(refused.status, env).toBe(403)
+      expect(await codeOf(refused), env).toBe('INCIDENT_LOG_CONFIDENTIAL')
+    }
+    expect((await incidents(high, f.SANDBOX_ID)).status).toBe(200)
+  })
+  ```
+  *(`serve`, `BEARER`, `codeOf` and `f` are the file's own, as `:359-…` uses them; `f.SANDBOX_ID` is the fixture's sandbox environment
+  (`fixtures.ts:27`).)*
+- [ ] **Step 2: Run — predict red, FROM THE CODE AS TASK 1 LEFT IT** (*I7*): the condition is `token && !sandbox && builderModels ===
+  'capable' && toLevel(floor) === 'very-high'`. So:
+  - the inverted case (*whatever the builder setting*, a `confidential` project under `on-premise`) answers `200` — the builder term;
+  - both halves of the `high` case answer `200` — `capable`'s because `high` is not `very-high`, `on-premise`'s for both reasons;
+  - *frozen high, lowered to medium* answers `200` (`high` is not `very-high`);
+  - the authz row *a high project* is red at `token-capable` and `token-privileged`; the row *a very-high project, by its earlier name* is
+    GREEN already — Task 1's line refuses `very-high` under the harness's default `capable` — a true green, kept as the alias's row;
+  - the *medium* positive control is green already (a real green: medium was never refused);
+  - the mock's case red at `serve({ level: 'high' })` (the option is ignored, so `200`).
 - [ ] **Step 3: Implement.** `api/routes/releases.ts:1241-1258`:
   ```ts
   // THE SAFEGUARD (§7 as the U1 spec action amended it; S9 — Rich, 2026-10-03, 22:21: "Refuse at high and above"), decided BEFORE
@@ -1498,11 +1847,15 @@ sitting 2 continues to Task 6 only with room for its Docker measurement, its mig
   before the commit: *"S9 lands: INCIDENT_LOG_CONFIDENTIAL now for every high project's staging and production, whatever the builder
   setting; MANIFEST_MOCK_LEVEL=high in the mock gives it. Your instances.ts:108-112 reads it as before."*
 - [ ] **Step 5: Commit by name**, then **the negative controls**:
-  - **(a)** the condition back to `=== 'very-high'`: predict red at both halves of the `high` case and at the authz row *a high project*;
-    green at the alias row (confidential IS very-high) — that is why both rows exist;
+  - **(a)** the condition back to Task 1's `toLevel(…) === 'very-high'` (with no builder term): predict red at both halves of the `high`
+    case, at *frozen high, lowered to medium*, and at the authz row *a high project*; GREEN at the alias row (confidential IS very-high)
+    and at the inverted case — that is why each exists;
   - **(b)** the builder term restored (`&& deps.config.agent.builderModels === 'capable'`): predict red at the inverted case and the
-    `on-premise` half only;
-  - **(c)** `>=` written `>`: predict red at the `high` case only.
+    `on-premise` half of the `high` case only;
+  - **(c)** `>=` written `>`: predict red at both halves of the `high` case, at *frozen high, lowered to medium*, and at the authz row *a
+    high project* (*I7*: the first draft said *"the high case only"*) — `very-high` still ranks above `high`, so the alias row and the
+    inverted case stay green;
+  - **(d)** the mock's `atHigh` reading `options.confidential` alone: predict red at the mock's `high` case only.
   ```bash
   git commit -m "feat(api): a delegated token is refused the staging and production Incidents of every project at high or above, whatever the builder setting (U1 plan Task 5, S9)"
   ```
@@ -1512,47 +1865,96 @@ sitting 2 continues to Task 6 only with room for its Docker measurement, its mig
 ## Task 6: A lowered level takes effect on running apps — their keys narrowed at boot, or revoked (S11)
 
 **Its caller**: `index.ts`'s boot, **straight after `narrowSessionsHoldingMore`** (`:511-532`), through `appKeysAtBoot`. **Not before the
-catalogue**: the sweep reads the catalogue the boot's own registrations just made.
+catalogue**: the sweep reads, FRESH, the catalogue the boot's own registrations just made (*M8*). **Proved through the real entry point**
+by `boot.docker.test.ts`'s booted `dist/index.js` (*I1*), not only by a harness.
 
 **Files:**
 - Create: `src/ai/app-key-sweep.ts`, `src/ai/app-key-sweep.test.ts`, `src/ai/app-key-sweep.docker.test.ts`
-- Modify: `src/ai/testing.ts:489-505` (the fake's `/key/update` by value), `src/ai/index.ts` (exports), `src/index.ts` (the call, the
-  boot line)
+- Modify: `src/ai/testing.ts` (the fake's `/key/update` by value, and `GET /key/info?key=`), `src/ai/sessions.ts:632` (export
+  `inWords`), `src/ai/index.ts` (exports), `src/index.ts` (the call, the boot line)
+- Modify: `src/boot.docker.test.ts` (the pre-boot fixture gains a real key to narrow; the boot line's `appKeysWithdrawn`, *I1*)
 - Modify: `src/observability/events.ts`, `event-schemas.ts`, `examples.ts`, `src/db/schema.ts:1196`; Create: the migration (generated)
 - Modify: `docs/superpowers/RUNBOOK.md` (one paragraph: what the boot line's `appKeysWithdrawn` means, and what an owner does)
 
 **Interfaces:**
-- Consumes: Task 2's `canonicalLevel`, the canonical catalogue; `getSecret`, `revokeInstanceKey`, `instanceKeySecretName`,
-  `LLM_API_KEY_SECRET` (`ai/keys.ts`); `publishEvent`, `makeRedactor`.
+- Consumes: Task 2's `canonicalLevel`; `loadModelCatalogue` (`ai/catalogue.ts`); `getSecret` (`secrets/store.ts`); `revokeInstanceKey`,
+  `instanceKeySecretName`, `LLM_API_KEY_SECRET` (`ai/keys.ts`); `publishEvent` (`observability/bus.ts`), `makeRedactor`
+  (`observability/redact.ts`); `inWords` (`ai/sessions.ts`, exported).
 - Produces:
+  - `interface AppKeySweepDeps { db: Db; bus: EventBus; llm: LiteLlmClient; keys: MasterKeypair }` — no catalogue cache (*M8*);
   - `interface AppKeySweep { narrowed: string[]; revoked: string[]; failed: string[]; legacy: number }` — instance ids, and the count
     of P4b's environment-level keys;
   - `withdrawLoweredAppModels(deps: AppKeySweepDeps): Promise<AppKeySweep>`;
-  - `countLegacyKeys(db: Pick<Db, 'select'>): Promise<number>` — the secrets named exactly `LLM_API_KEY_SECRET` (`app:llmApiKey`), by
-    `count()` over `secrets` where `name = LLM_API_KEY_SECRET`;
-  - `interface AppKeySweepDeps { db: Db; bus: EventBus; llm: LiteLlmClient; keys: MasterKeypair; catalogue: { get(): Promise<CatalogueSnapshot> } }`;
+  - `heldModels(llm: LiteLlmClient, key: string): Promise<string[] | undefined>` — `GET /key/info?key=<value>`'s `info.models`;
+    `undefined` when LiteLLM answers `404` (it holds no such key) (*I2*);
+  - `countLegacyKeys(db: Pick<Db, 'select'>): Promise<number>` — `count()` over `secrets` where `name = LLM_API_KEY_SECRET`;
   - `appKeysAtBoot(deps): Promise<{ narrowed: number; revoked: number; failed: number } | 'failed'>` — never throws;
   - the event `ai.models_withdrawn`: `{ instanceId, environment, withdrawn: string[] (min 1), models: string[], revoked: boolean }`.
 
-- [ ] **Step 1: MEASURE FIRST — the Docker case, run ALONE before any code** (Decision 8's stop). `app-key-sweep.docker.test.ts`, its
-  first case, against the running LiteLLM (the file's own users, cleaned up after; nothing else touched):
+- [ ] **Step 1: MEASURE FIRST — the Docker case, run ALONE before any code** (Decision 8's stop, extended by *I4*).
+  `app-key-sweep.docker.test.ts`, against the running LiteLLM (the file's own LiteLLM user, removed after; nothing else touched):
   ```ts
+  import { randomUUID } from 'node:crypto'
+  import { expect, it } from 'vitest'
+  import { describeDocker } from '../runtime/testing.js'
+  import { createLiteLlmClient } from './client.js'
+  import { AiError } from './errors.js'
+  import { deleteAppUsers, discardAppKey, mintAppKey } from './keys.js'
+  import { litellmMasterKey, litellmUrl } from './testing.js'
+
+  /** One model call, answered RAW — `ai/agent-keys.docker.test.ts:20-39`'s, with the route a parameter. */
+  async function call(key: string, route: '/v1/chat/completions' | '/v1/embeddings', model: string) {
+    const body =
+      route === '/v1/embeddings'
+        ? { model, input: 'ok' }
+        : { model, max_tokens: 8, messages: [{ role: 'user', content: 'Answer with the single word ok.' }] }
+    const res = await fetch(`${litellmUrl()}${route}`, {
+      method: 'POST',
+      headers: { authorization: `Bearer ${key}`, 'content-type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+    const json = (await res.json().catch(() => ({}))) as { error?: { type?: unknown } }
+    return { status: res.status, ...(typeof json.error?.type === 'string' ? { type: json.error.type } : {}) }
+  }
+
+  type KeyInfo = { key?: string; info?: Record<string, unknown> }
+  const BOUNDS = ['allowed_routes', 'metadata', 'user_id', 'max_budget'] as const
+
   describeDocker('app keys narrowed at boot, against the running gateway (U1 plan Task 6)', () => {
-    it('LiteLLM 1.98.0 narrows an APP key named by its VALUE — the premise of S11’s sweep', { timeout: 120_000 }, async () => {
+    it('the pinned LiteLLM narrows an APP key named by its VALUE, and keeps its other bounds — the premise of S11’s sweep (I4)', { timeout: 120_000 }, async () => {
       const client = createLiteLlmClient({ baseUrl: litellmUrl(), masterKey: litellmMasterKey() })
       const projectId = randomUUID()
       const key = await mintAppKey(client, {
         projectId,
         projectSlug: `sweep-${projectId.slice(0, 8)}`,
         kind: 'staging',
-        models: ['default-chat', 'default-chat-onprem'],
+        models: ['default-chat', 'default-embed'],
         monthlyUsd: 1,
       })
       try {
-        expect((await chat(key, 'default-chat-onprem')).status).not.toBe(403) // held before the narrowing
+        const before = await client.get<KeyInfo>('/key/info', { key })
+        expect(before.info?.models).toEqual(['default-chat', 'default-embed'])
+        expect((await call(key, '/v1/embeddings', 'default-embed')).status).toBe(200) // held before the narrowing
+
         await client.post('/key/update', { key, models: ['default-chat'] })
-        expect(await chat(key, 'default-chat-onprem')).toEqual({ status: 403, type: 'key_model_access_denied' })
-        expect((await chat(key, 'default-chat')).status).toBe(200) // the positive control: the kept model answers
+
+        expect(await call(key, '/v1/embeddings', 'default-embed')).toEqual({ status: 403, type: 'key_model_access_denied' })
+        expect((await call(key, '/v1/chat/completions', 'default-chat')).status).toBe(200) // the kept model answers
+        const after = await client.get<KeyInfo>('/key/info', { key })
+        expect(after.info?.models).toEqual(['default-chat'])
+        for (const bound of BOUNDS) expect(after.info?.[bound], bound).toEqual(before.info?.[bound]) // I4: nothing else moved
+
+        // I4's two records — neither asserted, both written into the plan's record:
+        const unknown = await client
+          .post('/key/update', { key: `sk-not-a-key-${projectId.slice(0, 8)}`, models: ['default-chat'] })
+          .then(() => ({ status: 200 }))
+          .catch((e: unknown) => (e instanceof AiError ? { status: e.status, code: e.code } : { status: -1 }))
+        const hash = before.key // the token hash /key/info answers
+        const byHash = await client
+          .post('/key/update', { key: hash, models: ['default-chat'] })
+          .then(() => 'accepted')
+          .catch((e: unknown) => (e instanceof AiError ? `refused ${e.status}` : 'threw'))
+        console.log(JSON.stringify({ measured: 'U1 Task 6 Step 1', unknownKey: unknown, updateByHash: byHash }))
       } finally {
         await discardAppKey(client, key)
         await deleteAppUsers(client, projectId)
@@ -1560,64 +1962,209 @@ catalogue**: the sweep reads the catalogue the boot's own registrations just mad
     })
   })
   ```
-  *(`describeDocker` from `runtime/testing.js`; `createLiteLlmClient`; `litellmUrl` and `litellmMasterKey` from `ai/testing.js`; and
-  `chat(key, model)` copied from `ai/agent-keys.docker.test.ts:20-39`, which answers `{ status, type? }` raw — the way that file measured
-  `narrowAgentKey`. `deleteAppUsers` (`ai/keys.ts:89`) removes the LiteLLM user `mintAppKey` created. The refused call is decided before
-  any model is loaded; the kept one needs `default-chat` warm, as the tier does.)* Run:
-  `MANIFEST_TEST_DOCKER=1 pnpm exec vitest run --project docker src/ai/app-key-sweep.docker.test.ts`. **Red at the `403` (the update
-  answered `2xx` and narrowed nothing) or at `/key/update` itself: STOP.** Record the status and `error.type` (never a key) and tell the
-  coordinator: Decision 8's two options go to Rich. **Green: continue.** Record the measurement either way.
-- [ ] **Step 2: The failing unit tests.** `app-key-sweep.test.ts`, with `withProject`, a `fakeLiteLlm` whose `/key/update` now finds a key
-  by `key` as well as by alias (Step 4), and a catalogue stub:
+  *(`deleteAppUsers` is `ai/keys.ts:89`'s. The refused call is decided before any model loads; the two answered ones need `default-chat`
+  and `default-embed` warm, as the tier does. `client.get(path, query)` and the `AiError` fields are `ai/client.ts`'s and
+  `ai/errors.ts`'s — read them first; the logged line carries no key.)* Run:
+  `MANIFEST_TEST_DOCKER=1 pnpm exec vitest run --project docker src/ai/app-key-sweep.docker.test.ts`.
+  **Red at the `403`, at `/key/update` itself, or at any BOUND: STOP.** Record the status and `error.type` and which bound moved (never a
+  key), and tell the coordinator: Decision 8's two options go to Rich. **Green: continue.** Record the measurement either way — and the
+  logged `unknownKey` and `updateByHash`: the fake's unknown-key answer (Step 4) is built from the first, and Decision 8's hash option
+  stands only if the second reads `accepted`.
+
+- [ ] **Step 2: The failing unit tests** (*M14*: code, not comments). `app-key-sweep.test.ts`:
   ```ts
+  import { eq } from 'drizzle-orm'
+  import { describe, expect, it, vi } from 'vitest'
+  import { appSpecs, builds, environments, events, instances, releases, secrets, type Db } from '../db/index.js'
+  import { withProject } from '../db/testing.js'
+  import { createEventBus } from '../observability/bus.js'
+  import { generateMasterKeypair } from '../secrets/envelope.js'
+  import { putSecret } from '../secrets/store.js'
+  import { appKeysAtBoot, withdrawLoweredAppModels } from './app-key-sweep.js'
+  import { instanceKeySecretName, LLM_API_KEY_SECRET } from './keys.js'
+  import { fakeLiteLlm, type FakeLiteLlm } from './testing.js'
+
+  /**
+   * An instance in `kind` whose release is frozen at `level` with `models`, holding a REAL fake key minted with them, recorded as
+   * its secret — what `deployRelease` leaves behind. One per kind per project (an environment is unique by both). The fake's
+   * catalogue is seeded by the caller.
+   */
+  async function running(
+    tx: Db,
+    ctx: { projectId: string; ownerId: string },
+    lite: FakeLiteLlm,
+    keys: Awaited<ReturnType<typeof generateMasterKeypair>>,
+    frozen: { level: string; models: string[] },
+    kind: 'staging' | 'production' = 'staging',
+  ): Promise<{ instanceId: string; key: string }> {
+    const [spec] = await tx.insert(appSpecs)
+      .values({ projectId: ctx.projectId, commitSha: 'a'.repeat(40), parsed: {}, schemaVersion: 1, valid: true }).returning()
+    const [build] = await tx.insert(builds)
+      .values({ projectId: ctx.projectId, commitSha: 'a'.repeat(40), appSpecId: spec!.id, status: 'succeeded' }).returning()
+    const [release] = await tx.insert(releases).values({
+      projectId: ctx.projectId,
+      buildId: build!.id,
+      appSpecId: spec!.id,
+      resolvedConfig: { [kind]: { classification: frozen.level, ai: { models: frozen.models } } },
+      createdBy: ctx.ownerId,
+    }).returning()
+    const [env] = await tx.insert(environments)
+      .values({ projectId: ctx.projectId, kind, hostname: `${ctx.projectId.slice(0, 8)}.${kind}.example` })
+      .returning()
+    const [instance] = await tx.insert(instances)
+      .values({ environmentId: env!.id, releaseId: release!.id, driver: 'fake', state: 'healthy' }).returning()
+    await lite.post('/user/new', { user_id: `app-${ctx.projectId}` })
+    const { key } = await lite.post<{ key: string }>('/key/generate', {
+      user_id: `app-${ctx.projectId}`, key_alias: `app-${instance!.id}`, models: frozen.models,
+    })
+    await putSecret(tx, {
+      projectId: ctx.projectId, environmentKind: kind, name: instanceKeySecretName(instance!.id), value: key,
+    }, keys)
+    return { instanceId: instance!.id, key }
+  }
+
+  /** The catalogue the sweep reads FRESH (M8): `name → level`, seeded as config entries. */
+  const catalogue = (lite: FakeLiteLlm, levels: Record<string, string>) => {
+    for (const [name, level] of Object.entries(levels)) lite.seedEntry(name, { max_classification: level })
+  }
+  const heldBy = (lite: FakeLiteLlm, key: string) => lite.keys.get(key)?.models
+  const sweptEvents = (tx: Db) => tx.select().from(events).where(eq(events.type, 'ai.models_withdrawn'))
+
   describe('withdrawLoweredAppModels — a lowered level takes effect on running apps (S11; U1 plan Task 6)', () => {
     it('narrows a key holding a model now ranked below its release’s level, by value, and records why', async () => {
-      /* an instance in staging, its release frozen 'high' with ai.models [gw-zdr, default-chat-onprem], its key recorded;
-         the catalogue: gw-zdr at 'medium' (lowered), default-chat-onprem at 'very-high'.
-         → narrowed: [instanceId]; the fake's key holds ['default-chat-onprem']; one ai.models_withdrawn event
-           { withdrawn: ['gw-zdr'], models: ['default-chat-onprem'], revoked: false }; its humanMessage names gw-zdr and 'high'. */
+      await withProject(async (tx, ctx) => {
+        const lite = fakeLiteLlm(); const keys = await generateMasterKeypair()
+        catalogue(lite, { 'gw-zdr': 'medium', 'default-chat-onprem': 'very-high' }) // gw-zdr lowered from high
+        const { instanceId, key } = await running(tx, ctx, lite, keys, { level: 'high', models: ['gw-zdr', 'default-chat-onprem'] })
+        const r = await withdrawLoweredAppModels({ db: tx, bus: createEventBus(), llm: lite, keys })
+        expect(r).toEqual({ narrowed: [instanceId], revoked: [], failed: [], legacy: 0 })
+        expect(heldBy(lite, key)).toEqual(['default-chat-onprem'])
+        const [event] = await sweptEvents(tx)
+        expect(event?.machineDetail).toEqual({
+          instanceId, environment: 'staging', withdrawn: ['gw-zdr'], models: ['default-chat-onprem'], revoked: false,
+        })
+        expect(event?.humanMessage).toContain('gw-zdr')
+        expect(JSON.stringify(event)).not.toContain(key)
+      })
+    })
+    it('a SECOND sweep changes nothing and records nothing — idempotent by what the key holds now (I2)', async () => {
+      await withProject(async (tx, ctx) => {
+        const lite = fakeLiteLlm(); const keys = await generateMasterKeypair()
+        catalogue(lite, { 'gw-zdr': 'medium', 'default-chat-onprem': 'very-high' })
+        await running(tx, ctx, lite, keys, { level: 'high', models: ['gw-zdr', 'default-chat-onprem'] })
+        const deps = { db: tx, bus: createEventBus(), llm: lite, keys }
+        await withdrawLoweredAppModels(deps)
+        const updates = () => lite.calls.filter((c) => c.path === '/key/update').length
+        const before = updates()
+        expect(await withdrawLoweredAppModels(deps)).toEqual({ narrowed: [], revoked: [], failed: [], legacy: 0 })
+        expect(updates()).toBe(before)
+        expect(await sweptEvents(tx)).toHaveLength(1)
+      })
     })
     it('REVOKES a key left with nothing it may use — never models: [] (Review Focus 5)', async () => {
-      /* frozen 'high', ai.models ['gw-zdr'], gw-zdr lowered to 'medium' → revoked: [instanceId]; the fake holds no such key;
-         the instance's secret is gone; the event says revoked: true, models: []; and NO /key/update was sent with models: [] */
+      await withProject(async (tx, ctx) => {
+        const lite = fakeLiteLlm(); const keys = await generateMasterKeypair()
+        catalogue(lite, { 'gw-zdr': 'medium' })
+        const { instanceId, key } = await running(tx, ctx, lite, keys, { level: 'high', models: ['gw-zdr'] })
+        const r = await withdrawLoweredAppModels({ db: tx, bus: createEventBus(), llm: lite, keys })
+        expect(r.revoked).toEqual([instanceId])
+        expect(lite.keys.has(key)).toBe(false)
+        expect(await tx.select().from(secrets).where(eq(secrets.name, instanceKeySecretName(instanceId)))).toEqual([])
+        expect(lite.calls.some((c) => c.path === '/key/update' && JSON.stringify(c.body).includes('"models":[]'))).toBe(false)
+        expect((await sweptEvents(tx))[0]?.machineDetail).toMatchObject({ revoked: true, models: [] })
+      })
     })
     it('reads a frozen alias as its level: confidential keeps an on-premise model and loses a high one', async () => {
-      /* frozen 'confidential', ai.models [gw-high, default-chat-onprem], gw-high at 'high' → narrowed to ['default-chat-onprem'] */
+      await withProject(async (tx, ctx) => {
+        const lite = fakeLiteLlm(); const keys = await generateMasterKeypair()
+        catalogue(lite, { 'gw-high': 'high', 'default-chat-onprem': 'confidential' })
+        const { key } = await running(tx, ctx, lite, keys, { level: 'confidential', models: ['gw-high', 'default-chat-onprem'] })
+        await withdrawLoweredAppModels({ db: tx, bus: createEventBus(), llm: lite, keys })
+        expect(heldBy(lite, key)).toEqual(['default-chat-onprem'])
+      })
     })
     it('changes nothing when every model is still allowed — and a model the catalogue no longer serves stays on the key', async () => {
-      /* frozen 'medium', ai.models ['default-chat', 'gone-model']; default-chat at 'medium'; gone-model not served
-         → nothing narrowed, revoked or recorded — the positive control */
+      await withProject(async (tx, ctx) => {
+        const lite = fakeLiteLlm(); const keys = await generateMasterKeypair()
+        catalogue(lite, { 'default-chat': 'internal' })
+        const { key } = await running(tx, ctx, lite, keys, { level: 'medium', models: ['default-chat', 'gone-model'] })
+        expect(await withdrawLoweredAppModels({ db: tx, bus: createEventBus(), llm: lite, keys }))
+          .toEqual({ narrowed: [], revoked: [], failed: [], legacy: 0 })
+        expect(heldBy(lite, key)).toEqual(['default-chat', 'gone-model'])
+        expect(await sweptEvents(tx)).toEqual([])
+      })
     })
     it('names and skips an instance whose release has no readable level — never assumed', async () => {
-      /* resolvedConfig.staging.classification 'secret' → failed: [instanceId]; one operator line naming the instance; key untouched */
+      await withProject(async (tx, ctx) => {
+        const lite = fakeLiteLlm(); const keys = await generateMasterKeypair()
+        catalogue(lite, { 'default-chat': 'internal' })
+        const line = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+        const { instanceId, key } = await running(tx, ctx, lite, keys, { level: 'secret', models: ['default-chat'] })
+        const r = await withdrawLoweredAppModels({ db: tx, bus: createEventBus(), llm: lite, keys })
+        expect(r.failed).toEqual([instanceId])
+        expect(heldBy(lite, key)).toEqual(['default-chat'])
+        expect(line.mock.calls.flat().join('\n')).toContain(instanceId)
+        line.mockRestore()
+      })
     })
     it('counts P4b’s environment-level keys, names them in one line, and checks none', async () => {
-      /* a secret named exactly 'app:llmApiKey' → legacy: 1, one line, nothing else */
+      await withProject(async (tx, ctx) => {
+        const lite = fakeLiteLlm(); const keys = await generateMasterKeypair()
+        await putSecret(tx, { projectId: ctx.projectId, environmentKind: 'staging', name: LLM_API_KEY_SECRET, value: 'sk-legacy' }, keys)
+        const line = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+        expect((await withdrawLoweredAppModels({ db: tx, bus: createEventBus(), llm: lite, keys })).legacy).toBe(1)
+        expect(line).toHaveBeenCalledTimes(1)
+        line.mockRestore()
+      })
     })
     it('a gateway that refuses one key is that key’s line, and the sweep goes on to the next', async () => {
-      /* two instances; the fake fails /key/update once → failed: [first], narrowed: [second] */
+      await withProject(async (tx, ctx) => {
+        const lite = fakeLiteLlm(); const keys = await generateMasterKeypair()
+        catalogue(lite, { 'gw-zdr': 'medium', 'default-chat-onprem': 'very-high' })
+        const first = await running(tx, ctx, lite, keys, { level: 'high', models: ['gw-zdr', 'default-chat-onprem'] })
+        const second = await running(tx, ctx, lite, keys, { level: 'high', models: ['gw-zdr', 'default-chat-onprem'] }, 'production')
+        lite.failNext('/key/update', 500)
+        const line = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+        const r = await withdrawLoweredAppModels({ db: tx, bus: createEventBus(), llm: lite, keys })
+        expect(new Set([...r.failed, ...r.narrowed])).toEqual(new Set([first.instanceId, second.instanceId]))
+        expect(r.failed).toHaveLength(1)
+        line.mockRestore()
+      })
     })
   })
-  it('appKeysAtBoot is never fatal: a gateway that does not answer is one line and "failed"', async () => {})
+  it('appKeysAtBoot is never fatal: a gateway that does not answer is one line and "failed"', async () => {
+    const lite = fakeLiteLlm()
+    lite.failNext('/model/info', 0)
+    const line = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    expect(await appKeysAtBoot({ db: {} as Db, bus: createEventBus(), llm: lite, keys: await generateMasterKeypair() })).toBe('failed')
+    expect(line).toHaveBeenCalledTimes(1)
+    line.mockRestore()
+  })
   ```
+  **The fake's names, checked before this file is written** — `lite.post('/user/new')`, `lite.keys`, `lite.calls`, and a way to seed a
+  CONFIG entry at a level and to fail one call: `ai/testing.ts` has `failures` (`:319`) and seeds config entries (`:282-292`); use the
+  names it exports (`seedEntry` and `failNext` above stand for them — rename to the real ones, or add the two smallest helpers there), and
+  the `events` table's columns as `db/schema.ts` names them.
 - [ ] **Step 3: Run — predict red** at the import (`withdrawLoweredAppModels` is `undefined`).
 - [ ] **Step 4: Implement.**
-  - **`ai/testing.ts`** (`/key/update`): `const k = typeof body.key === 'string' ? keys.get(body.key) : [...keys.values()].find((x) =>
-    x.alias === String(body.key_alias))` — as 1.98.0 answers (Step 1's measurement), an unknown key `404 not_found_error`.
+  - **`ai/testing.ts`**: `/key/update` finds a key by `key` (its value) as well as by alias, answering an unknown value as Step 1
+    recorded; `GET /key/info` with `query.key` answers `{ key: 'hash-of-<alias>', info: { models, user_id, max_budget, metadata } }`, or
+    `404 not_found_error` for an unknown value (Step 1's answer, if it differs, wins).
   - **`ai/app-key-sweep.ts`**:
     ```ts
     /**
      * A LOWERED LEVEL TAKES EFFECT ON RUNNING APPS (§7 as the U1 spec action amended it; S11 — Rich, 2026-10-03, 22:21). A model's
      * level is lowered when everything that may answer it no longer meets the rule its old level needed — a provider's zero
      * retention lapsing — and the catalogue then refuses it to new validations and deploys (D17, twice). A key a RUNNING instance
-     * already holds would still reach it. So at every boot, after the catalogue is the one this process serves and after the agent
-     * sessions' sweep, each instance's key loses every model its release's frozen level no longer allows — or, when nothing it may
-     * use is left, is REVOKED: LiteLLM reads `models: []` as every model (`ai/keys.ts:137-141`). Each change is an
+     * already holds would still reach it. So at every boot, after the boot's own registrations and the agent sessions' sweep, each
+     * instance's key loses every model it HOLDS that its release's frozen level no longer allows — or, when nothing it may use is
+     * left, is REVOKED: LiteLLM reads `models: []` as every model (`ai/keys.ts:137-141`). What a key holds is LiteLLM's own record
+     * (`/key/info`), so a second boot finds nothing to do (the review's I2). The catalogue is read FRESH (M8). Each change is an
      * `ai.models_withdrawn` event to the project's people and an operator line. The rule is the agent sweep's (`ai/sessions.ts`): a
      * model the catalogue SERVES and does not allow is withdrawn; one it no longer serves stays, and LiteLLM refuses it.
      */
     export async function withdrawLoweredAppModels(deps: AppKeySweepDeps): Promise<AppKeySweep> {
-      const snapshot = await deps.catalogue.get()
+      const snapshot = await loadModelCatalogue(deps.llm)
       const served = new Set([...snapshot.models.map((m) => m.name), ...snapshot.unclassified])
       const rows = await deps.db
         .select({ instance: instances, environment: environments, release: releases, slug: projects.slug })
@@ -1630,25 +2177,27 @@ catalogue**: the sweep reads the catalogue the boot's own registrations just mad
       for (const { instance, environment, release, slug } of rows) {
         const scope = { projectId: environment.projectId, kind: environment.kind, instanceId: instance.id }
         try {
-          const key = await getSecret(deps.db, { projectId: scope.projectId, environmentKind: scope.kind,
-            name: instanceKeySecretName(instance.id) }, deps.keys)
+          const key = await getSecret(
+            deps.db,
+            { projectId: scope.projectId, environmentKind: scope.kind, name: instanceKeySecretName(instance.id) },
+            deps.keys,
+          )
           if (key === undefined) continue
-          const frozen = (release.resolvedConfig as Record<string, { classification?: unknown; ai?: { models?: string[] } }>)[
-            environment.kind
-          ]
+          const frozen = (release.resolvedConfig as Record<string, { classification?: unknown } | undefined>)[environment.kind]
           const level = canonicalLevel(frozen?.classification)
           if (level === undefined) {
             console.error(`app key sweep: instance ${instance.id} (${slug}, ${environment.kind}): its release names no level the platform reads, so its AI key was not checked; redeploy it`)
             result.failed.push(instance.id)
             continue
           }
-          const models = frozen?.ai?.models ?? []
+          const held = await heldModels(deps.llm, key)
+          if (held === undefined) continue // LiteLLM holds no such key: nothing to withdraw
           const allowed = (m: string) => snapshot.models.some(
             (e) => e.name === m && CLASSIFICATION_RANK[e.maxClassification] >= CLASSIFICATION_RANK[level],
           )
-          const withdrawn = models.filter((m) => served.has(m) && !allowed(m))
+          const withdrawn = held.filter((m) => served.has(m) && !allowed(m))
           if (withdrawn.length === 0) continue
-          const kept = models.filter((m) => !withdrawn.includes(m))
+          const kept = held.filter((m) => !withdrawn.includes(m))
           const revoked = !kept.some(allowed)
           if (revoked) await revokeInstanceKey(deps.db, deps.llm, deps.keys, scope)
           else await deps.llm.post('/key/update', { key, models: kept })
@@ -1656,11 +2205,10 @@ catalogue**: the sweep reads the catalogue the boot's own registrations just mad
             projectId: environment.projectId,
             subject: `instance:${instance.id}`,
             type: 'ai.models_withdrawn',
-            machineDetail: { instanceId: instance.id, environment: environment.kind, withdrawn,
-              models: revoked ? [] : kept, revoked },
+            machineDetail: { instanceId: instance.id, environment: environment.kind, withdrawn, models: revoked ? [] : kept, revoked },
             humanMessage: revoked
-              ? `${slug} in ${environment.kind} may no longer call ${inWords(withdrawn)}: each is now approved only below its ${level} data, and nothing it declared is still allowed, so its AI key was revoked. Change ai.models or data.classification, then deploy again.`
-              : `${slug} in ${environment.kind} may no longer call ${inWords(withdrawn)}: each is now approved only below its ${level} data. Its AI key keeps ${inWords(kept)}.`,
+              ? `${slug} in ${environment.kind} may no longer call ${inWords(withdrawn)}: each is now approved only below its ${levelWords(level)} data, and nothing it declared is still allowed, so its AI key was revoked. Change ai.models or data.classification, then deploy again.`
+              : `${slug} in ${environment.kind} may no longer call ${inWords(withdrawn)}: each is now approved only below its ${levelWords(level)} data. Its AI key keeps ${inWords(kept)}.`,
           }, makeRedactor([key]))
           ;(revoked ? result.revoked : result.narrowed).push(instance.id)
         } catch (error) {
@@ -1668,35 +2216,52 @@ catalogue**: the sweep reads the catalogue the boot's own registrations just mad
           result.failed.push(instance.id)
         }
       }
-      result.legacy = await countLegacyKeys(deps.db) // secrets named exactly LLM_API_KEY_SECRET
+      result.legacy = await countLegacyKeys(deps.db)
       if (result.legacy > 0) console.error(`app key sweep: ${result.legacy} environment-level AI key(s) from before per-instance keys were not checked; redeploy those apps`)
       return result
     }
     ```
-    `inWords` is `ai/sessions.ts:632`'s — export it from there rather than copying it. `appKeysAtBoot` is `gatewayModelsAtBoot`'s
-    shape: one `[boot]` summary line when anything was narrowed or revoked, one line and `'failed'` for a throw, never fatal.
+    `heldModels` reads `GET /key/info` with `{ key }` and answers `info.models` (an array of strings), `undefined` on an `AiError` `404`,
+    and THROWS anything else. `appKeysAtBoot` is `gatewayModelsAtBoot`'s shape: one `[boot]` summary line when anything was narrowed or
+    revoked, one line and `'failed'` for a throw, never fatal.
   - **The event**: `observability/events.ts` (`'ai.models_withdrawn'` after `'ai.key_rotated'`, with its comment), `event-schemas.ts`
     (its strict object, each field described, *"A running app's AI key lost models now approved only below its data's level — or was
     revoked, when nothing it declared is still allowed. The key itself is never in an event."*), `examples.ts`, `db/schema.ts:1196`'s
     CHECK list; then `pnpm --filter @manifest/control-plane db:generate` and **read the generated SQL**: it drops and re-adds
-    `events_type_known` (0048's pattern), nothing else. `db:migrate` needs RUNBOOK's whole export block (trap 13).
+    `events_type_known` (0048's pattern), nothing else. `db:migrate` needs RUNBOOK's whole export block (trap 13). `docs/api/events.md`'s
+    table is regenerated by `pnpm docs:write`.
   - **`index.ts`**: after `agentSessionsWithdrawn`, `const appKeysWithdrawn = !catalogue.enabled || litellm === undefined ? 'disabled' :
-    await appKeysAtBoot({ db, bus, llm: litellm, keys: masterKeypair, catalogue })`, and the boot line gains `appKeysWithdrawn`.
-- [ ] **Step 5: Run the unit file — green.** Then the Docker file's second case: a real instance key minted with two models, its secret
-  recorded under a throwaway instance row whose release is frozen `high`, one of its models given a `medium` LiteLLM entry of the
-  file's own (`/model/new`, cleaned up), `withdrawLoweredAppModels` run — the key is refused that model (`403
-  key_model_access_denied`) and answered the other. Then `pnpm contract:write`, `contract:generate`, `docs:write` (the event); the four
-  gates; one line to the front-end (*"a new event, ai.models_withdrawn, on 1.7.0"*).
-- [ ] **Step 6: Commit by name** (the migration and `meta/` included, by name), then **the negative controls**:
-  - **(a)** the revoke branch replaced by `/key/update` with `kept` (which is `[]`): predict red at *REVOKES … never models: []* — the fake
-    holds the key with `models: []`;
-  - **(b)** `level` read RAW (`frozen?.classification as Classification`, no `canonicalLevel`): predict GREEN at the alias case — the rank
+    await appKeysAtBoot({ db, bus, llm: litellm, keys: masterKeypair })`, and the boot line gains `appKeysWithdrawn`.
+- [ ] **Step 5: Run the unit file — green.** Then `pnpm contract:write`, `contract:generate`, `docs:write` (the event); the four gates;
+  one line to the front-end (*"a new event, ai.models_withdrawn, on 1.7.0"*).
+- [ ] **Step 6: THROUGH THE REAL ENTRY POINT** (*I1*). `boot.docker.test.ts`'s pre-boot fixture (`:470-520`, beside the three agent
+  sessions) gains one more running instance: an environment of the fixture's project, a release whose `resolvedConfig.staging` is `{
+  classification: 'high', ai: { models: ['default-chat-onprem', 'default-chat'] } }` — `default-chat` is `internal` in `config.yaml`, so
+  it is the model a `high` level no longer allows, and no LiteLLM row of the test's own is needed — an instance in state `healthy`, and
+  a REAL key: `mintAppKey` against the running LiteLLM with those two models, recorded by `storeInstanceKey` with the master keypair the
+  spawned control plane loads (`loadMasterKeypair(<its secretsMasterKeyPath>)`, as the file's other secrets are written). After the boot:
+  ```ts
+  expect(boot.appKeysWithdrawn).toMatchObject({ narrowed: 1, failed: 0 })
+  const held = await adminClient.get<{ info?: { models?: string[] } }>('/key/info', { key: sweptKey })
+  expect(held.info?.models).toEqual(['default-chat-onprem'])
+  expect(await call(sweptKey, '/v1/chat/completions', 'default-chat')).toEqual({ status: 403, type: 'key_model_access_denied' })
+  ```
+  (`call` as Step 1's; the type `boot` gains `appKeysWithdrawn: unknown`; the key and its LiteLLM user removed in the file's `afterAll`.)
+  **If the fixture's other instances hold keys, they must count nothing** — their releases' levels allow every model they hold; read
+  the fixture first, and if one would be narrowed, `narrowed: 1` is wrong and the record says why. **Run this ONE Docker file ALONE,
+  before the tier, with nothing else running** (*M4*): `MANIFEST_TEST_DOCKER=1 pnpm exec vitest run --project docker
+  src/boot.docker.test.ts` — it builds and spawns `dist/index.js`, so `pnpm --filter @manifest/control-plane build` first if the tier's
+  global setup is what builds it (read `vitest` config's docker project).
+- [ ] **Step 7: Commit by name** (the migration and `meta/` included, by name), then **the negative controls**:
+  - **(a)** the revoke branch replaced by `/key/update` with `kept` (which is `[]`): predict red at *REVOKES … never models: []* only;
+  - **(b)** `withdrawn` computed from the release's frozen `ai.models` instead of `heldModels` (the first draft): predict red at *a SECOND
+    sweep changes nothing* only (*I2*);
+  - **(c)** `level` read RAW (`frozen?.classification as Classification`, no `canonicalLevel`): predict GREEN at the alias case — the rank
     table holds `confidential` at `very-high`'s rank (I6's defence in depth, seen working) — and red at *no readable level*: `'secret'`
     passes the `undefined` check, ranks `undefined`, every served model reads as not allowed, and the key is REVOKED unnamed instead of
-    named and skipped. **Record the green as the table doing its job, not as a control that cannot fail**;
-  - **(c)** the `appKeysAtBoot` call removed from `index.ts`: predict red at `boot.docker.test.ts`'s boot-line case — **add the assertion
-    first**, one line beside `:637`'s `agentSessionsWithdrawn` (`expect(boot.appKeysWithdrawn).toMatchObject({ failed: 0 })` — the
-    sweep RAN and failed nothing; its other counts depend on what that test's boot finds), or the call has no test. That file is a Docker file: it runs in the sitting's tier, not alone.
+    named and skipped. **Recorded as the table doing its job, not as a control that cannot fail**;
+  - **(d)** the `appKeysAtBoot` call removed from `index.ts`: predict red at Step 6's `boot.docker.test.ts` case (`appKeysWithdrawn`
+    `undefined`, and the key still holding `default-chat`) — run that file ALONE (*M4*).
   ```bash
   git commit -m "feat(ai): a lowered level takes effect on running apps — each instance key narrowed at boot to what its data's level allows, or revoked; ai.models_withdrawn (U1 plan Task 6, S11)"
   ```
@@ -1705,7 +2270,8 @@ catalogue**: the sweep reads the catalogue the boot's own registrations just mad
 
 ## Task 7: The acceptance — `make demo-levels`, and a person reading a `high` app's privacy assessment
 
-**Alone, and last.** Offline, on whichever driver the control plane runs (it touches no source but its own project's). Its caller is the
+**Alone, and last.** Offline, on EACH driver — the control plane restarted on `local`, then on `github` — as the faculty-ready acceptance
+ran (*M11*); it touches no source but its own projects'. Its caller is the
 `Makefile`, and `make ci-acceptance`'s new step.
 
 **Files:**
@@ -1722,29 +2288,44 @@ catalogue**: the sweep reads the catalogue the boot's own registrations just mad
      of a manifest declaring `classification: high` and `ai.models: [default-chat]`: `422 SPEC_INVALID`; a detail at `ai.models.0` with
      code `SPEC_MODEL_CLASSIFICATION_TOO_LOW`; its hint contains *"approved for medium data at most"* and *"(Information Security Standard
      U1)"*, and NOT *"BC public body"*.
+     **The capable model, read once for the phases below:** `demo-levels.sh` reads LiteLLM's `/model/info` with the master key (as
+     `demo-gateway.sh` does) and passes `CAPABLE=listed|absent` and `CAPABLE_LEVEL` — the row's `max_classification` through a
+     seven-name map — and `CAPABLE_SETTING_LEVEL`, `.env`'s `MANIFEST_CAPABLE_MODEL_CLASSIFICATION` through the same map (`medium` when
+     absent). **Listed, the two must be equal** — the thread `.env` → `index.ts` → registration, end to end (*I3*).
   2. **The alias never widens** — a dry run declaring `confidential` and `ai.models: [default-chat-onprem]` is valid; one declaring
-     `confidential` and `[default-chat]` is refused with a message naming *very-high*.
+     `confidential` and `[default-chat]` is refused with a message naming *very-high*. **When the capable model is listed at `high`**: a
+     dry run declaring `confidential` and `[default-chat-large]` is refused too — and `high` with `[default-chat-large]` is valid, its
+     positive control (*I3*). Otherwise the phase prints that half NOT RUN.
   3. **Stored as the level, answered in U1's names** — commit (not a dry run) the manifest at `internal` with `[default-chat]`: valid;
      `getSpec` answers `data.classification: 'medium'`. Then commit `medium` with the same models: its `sensitiveDiff.fields` does NOT
-     contain `data.classification` (a rename is not a change). Then commit `high` with `[default-chat-onprem]`: valid; `getSpec` answers
-     `'high'`, and its `sensitiveDiff.fields` DOES contain `data.classification` — the positive control.
-  4. **A `high` project's agent session** (`startAgentSession`): its `models` contain `default-chat-onprem` and NOT `default-chat`. The
-     capable model's half: `demo-levels.sh` reads LiteLLM's `/model/info` with the master key (as `demo-gateway.sh` does) and passes
-     `CAPABLE=listed` or `CAPABLE=absent`. Listed: the session holds `default-chat-large` (the builder setting `capable`). Absent: the
-     phase prints `the capable model is not configured — its half NOT RUN`, and the run still passes. The session is ended at the
-     phase's end.
+     contain `data.classification` (a rename is not a change). Then commit `high` — with `[default-chat-large, default-chat-onprem]`
+     when the capable model is listed at `high` (the spec's own S7 example, E1 l.392; *I6*), else `[default-chat-onprem]`: valid;
+     `getSpec` answers `'high'`, and its `sensitiveDiff.fields` DOES contain `data.classification` — the positive control.
+  4. **The agents' models** (`startAgentSession`):
+     - **the `high` project's** session holds `default-chat-onprem` and NOT `default-chat`; when listed at `high` it holds
+       `default-chat-large` — **by RANK**, which is D17, not the builder exception;
+     - **a second project of the run, `levels-vh-<run>`, committed `very-high` with `[default-chat-onprem]`** — above the capable model
+       at either of its levels — holds `default-chat-onprem`, NOT `default-chat`, and, when the capable model is listed,
+       `default-chat-large` **only by the builder exception** (S4/S10, the setting `capable`) (*I3*: the first draft's `high` project
+       got it by rank, so the builder control could not fail there). Absent: that half prints NOT RUN.
+
+     Each session is ended at the phase's end.
   5. **A token is refused the tails** — a delegated token with `project:read`: `listIncidents` on staging → `403
      INCIDENT_LOG_CONFIDENTIAL` (the refusal is decided before anything is read, so no Incident need exist); on the sandbox → `200`; the
      person's session on staging → `200`.
-  6. **The privacy assessment** — `draftPrivacyAssessment`: the *flows* section's *Classification* fact reads *"High — every AI model the
-     app uses must be approved for high data."*; `default-chat-onprem`'s fact reads *"Approved for very high data: it runs on on-premise
-     hardware, so what the app sends it stays there."*
+  6. **The privacy assessment** — `draftPrivacyAssessment` on the `high` project: the *flows* section's *Classification* fact reads
+     *"High — every AI model the app uses must be approved for high data."*; `default-chat-onprem`'s fact reads *"Approved for very high
+     data: it runs on on-premise hardware, so what the app sends it stays there."*; and, when listed at `high`, `default-chat-large`'s
+     fact is the zero-retention sentence (Task 3) — the one new sentence the Privacy Office will read (*I6*).
 - [ ] **Step 2: Green three times** (a fresh project each run, then re-use), and from a `make reset` machine once. **Every other demo stays
-  green** where it was last green — above all **`make demo-frontend`** (Task 2 changed its assertion), `make demo-launch`, `make demo-ai`,
-  `make demo-token` and `make demo-faculty-ready` — then `make ci-acceptance` with its new step, its `EXPECT_` lines re-counted.
+  green** where it was last green — above all **`make demo-frontend`** (Task 2 changed its assertion), **`make demo-gateway`** (Task 4
+  made it compare levels; network on, the key set — *I5*), `make demo-launch`, `make demo-ai`, `make demo-token` and `make
+  demo-faculty-ready` — then `make ci-acceptance` with its new step, its `EXPECT_` lines re-counted. **Three times on EACH driver**
+  (*M11*).
 - [ ] **Step 3: The negative controls**, in `scripts/levels-controls.sh` (for Rich if the classifier refuses a restart). Each is seen red
   where predicted, and restored:
-  - **(a)** S9's condition back to `=== 'very-high'` (the control plane restarted on the edited tree): phase 5 answers `200`;
+  - **(a)** S9's condition back to Task 1's `toLevel(…) === 'very-high'` (the control plane restarted on the edited tree): phase 5
+    answers `200` (the project is `high`);
   - **(b)** BOTH of S6's paths removed — the schema's transform and `getSpec`'s `specInLevels`: phase 3's `getSpec` answers
     `'internal'`. **Either one alone stays green** — for a new row the transform stores the level and `specInLevels` reads one, so each
     covers the other: that is the design, and the record says so rather than calling it a control that cannot fail. Task 2's unit
@@ -1753,10 +2334,18 @@ catalogue**: the sweep reads the catalogue the boot's own registrations just mad
     transform is ALSO removed (the stored previous row is then `internal`); alone it stays green, for the same reason. Record which;
   - **(c)** E14's old hint: phase 1's hint checks;
   - **(d)** `staysOnPremise` back to `=== 'confidential'`: phase 6's on-premise fact;
-  - **(e)** `MANIFEST_AGENT_BUILDER_MODELS=on-premise` (only when `CAPABLE=listed`): phase 4's capable-model half goes red — and phase 5
-    stays GREEN, which is S9's point (the builder setting no longer decides the tails).
+  - **(e)** `MANIFEST_AGENT_BUILDER_MODELS=on-premise`: **when `CAPABLE=listed`**, phase 4's `very-high` project's capable half goes red
+    — the capable model ranks below `very-high` at either of its levels, so only the builder exception gave it (*I3*); its `high`
+    project's half stays GREEN when the capable model is `high` (by rank), recorded as D17, not a control that cannot fail. **Whether
+    or not it is listed**, phase 5 stays GREEN under (e) — S9's point: the builder setting no longer decides the tails;
+  - **(f)** `CLASSIFICATION_RANK.confidential = 2` — the partial-edit trap — **with the schema's transform also removed** (only when the
+    capable model is listed at `high`): phase 2's `confidential` + `[default-chat-large]` dry run is answered VALID. **The rank edit alone
+    stays GREEN through every entry point**: the transform stores `confidential` as `very-high` before anything ranks it, and the
+    catalogue and the floors canonicalize too — the table is the defence in depth behind them, and Task 1's unit control (a) is what sees
+    it alone. Recorded as such (*I3*).
 - [ ] **Step 4: The person.** Rich signs in to the console (or a staged headless sign-in, his standing yes on `manifest.internal`), opens
-  the run's project's *Records*, drafts the privacy assessment, and reads its *Where it flows* section: *High*, and the model's line.
+  the run's `high` project's *Records*, drafts the privacy assessment, and reads its *Where it flows* section: *High*, the on-premise
+  model's line and — the capable model at `high` — **its zero-retention sentence** (*I6*).
   **He types every password**, or the agent stages it as that yes allows.
 - [ ] **Step 5: The plan's one whole-branch review**, beside the Docker tier if code changed, then one fix wave.
 - [ ] **Step 6: Close out**:
@@ -1788,6 +2377,10 @@ catalogue**: the sweep reads the catalogue the boot's own registrations just mad
   Levels change only at boot (registration) or by an administrator's LiteLLM restart, which is followed by a control-plane restart
   (RUNBOOK).
 - **P4b's environment-level app keys** — counted and named by the sweep, not checked (Decision 8).
+- **S11 as a phase of `make demo-levels`** (*I1*). It is proved through the real entry point by `boot.docker.test.ts` (Task 6, Step 6): a
+  booted `dist/index.js` narrows a real key in LiteLLM and the key is refused. A demo phase would have to lower a model's level and restart
+  the control plane mid-run — a control's shape, not a journey's. **The cost:** the acceptance a person watches never shows a running
+  app losing a model; the Docker tier shows it at every run, and RUNBOOK says what the boot line's `appKeysWithdrawn` means.
 - **The front-end's words.** Its session's, from the ask (Task 1's NOTICE); this plan never edits `~/Developer/manifest-app`.
 - **Who classifies.** U1 §4.1 puts it on the information's steward; Manifest asks the app's owner to declare (E2), and whether the
   steward is the faculty member, the department or UBC is UBC's to say. The PIA is where UBC reviews it.
@@ -1812,6 +2405,45 @@ catalogue**: the sweep reads the catalogue the boot's own registrations just mad
   executor does not read its red as a regression.
 - **Task 6's premise is unmeasured** — that `/key/update` narrows a key named by its value. It is measured first, alone, with a declared
   stop.
+
+---
+
+## The fresh review's fixes, and where each landed
+
+*Applied 2026-10-03 by `manifest-17`, documents only, from [`2026-10-03-review-of-u1-plan.md`](./2026-10-03-review-of-u1-plan.md) (`8acd55d`),
+at Rich's 23:22 approval. No code changed between the plan's read point `bae220f` and the review's HEAD; every `file:line` the review
+cites was opened before it was built in. Each is marked in place with its id.*
+
+| Id | The fix | Where |
+|---|---|---|
+| **C1** | No task switches a value while a reader compares against `'confidential'`. **Re-cut, one step further than the review's fix**: Task 1's transform already stored a committed `confidential` as `very-high` (`agents.test.ts:1166-1170`), so the level-safe readers land IN Task 1 and the transform moves to Task 2; every moving expectation is named with its red | Decision 13; the sittings table and its fifth rule; Tasks 1 and 2 (whole); Read this first 24; Decision 4's last sentence; Tasks 3–5's predictions from Task 1's lines |
+| **I1** | S11 through the real entry point | Task 6 Step 6 (`boot.docker.test.ts`, a real key narrowed by the booted `dist/index.js`); Review Focus 5; *What this plan does not build* (no demo phase, its cost) |
+| **I2** | The sweep idempotent: what the key HOLDS, from `/key/info` by value | Decision 8; Task 6 (`heldModels`, the fake's `/key/info`, *a SECOND sweep changes nothing*, control (b)); Read this first 28 |
+| **I3** | Controls that could not fail: the builder control on a `very-high` project; phase 2's capable-model dry run; control (f); the level REQUIRED; `platformModelsAtBoot`'s case; the live row's level against the setting | Task 4 (Interfaces, tests, controls (d), (e)); Task 7 (phases 1, 2, 4; controls (e), (f)) |
+| **I4** | Step 1 also measures the other bounds, an unknown key, and the hash path | Decision 8 (THE STOP); Task 6 Step 1 |
+| **I5** | Rich's `high` row: `ai-path.docker.test.ts` accepts any level; `make demo-gateway` compares levels; it joins Task 7's list | *What Rich does* 3; Read this first 25; Task 2 (Docker expectations); Task 4 (`demo-gateway.sh`, `gateway.ts`); Task 7 Step 2 |
+| **I6** | Rich reads the `high` model's zero-retention sentence | Task 7 phases 3 and 6, Step 4; Review Focus 6 |
+| **I7** | Task 5's predictions restated from Task 1's line | Task 5 Step 2 and controls (a)–(c) |
+| **M1** | Published words still in the old names | Read this first 27; Task 2 (`assessment.ts:267`); Task 3 (intake's three texts); Task 4 (RUNBOOK `:299`, `:316-329`) |
+| **M2** | Decision 2's overclaim about new releases | Decision 2; Read this first 26 |
+| **M3** | The `staysOnPremise` control's prediction | Task 1 control (d) (`:219` stays green, by the alias); Task 3 control (a) replaced |
+| **M4** | `boot.docker.test.ts` run alone, before the tier | Task 6 Steps 6 and 7 (d); the sittings table |
+| **M5** | The mock's `level` option tested | Task 5 (`scripted.test.ts`, control (d)) |
+| **M6** | Review Focus 3 said what does not happen | Review Focus 3; Task 4 (*a new high session is never given the removed entry*) |
+| **M7** | The NOTICE says FE-46/47/5's breaks move to `1.8.0` | Task 1 Step 8 |
+| **M8** | The sweep reads a fresh catalogue | Decision 8; Task 6 (no catalogue dep; `loadModelCatalogue(llm)`) |
+| **M9** | The network at LiteLLM's last start | *What Rich does* 3; Task 4's RUNBOOK line |
+| **M10** | Task 0's file count | Task 0 Steps 6 and 7 |
+| **M11** | Both drivers | Task 7's preamble and Step 2 |
+| **M12** | Frozen level, not the project's, recorded | Decision 8; Task 0 Step 5 |
+| **M13** | Why `medium` holds for the starter | Task 3 (the comment, and `server.js:137-160` checked) |
+| **M14** | Snippets a cold agent could not run | Task 2 (`DEFAULTS` literal), Task 3 (`input({ … })`), Task 4 and Task 6 (tests as code) |
+
+**Not taken as written, and why** — sent to `manifest-af` with the hash:
+- **C1's own fix** (the renames at Task 2) would still have let Task 1's transform switch stored values first. The re-cut above is the
+  review's rule applied one task earlier.
+- **I3's control (f)** cannot go red through any entry point with the rank edit alone: the transform canonicalizes before anything ranks
+  the alias. It is kept as *rank edit + transform removed*, and Task 1's unit control (a) is what holds the rank by itself.
 
 ---
 
