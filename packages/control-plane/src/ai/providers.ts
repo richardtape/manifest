@@ -19,8 +19,14 @@ export const GATEWAY_KEY_ENV = 'UBC_AI_GATEWAY_API_KEY'
  * How long LiteLLM waits for the gateway, per ATTEMPT, before the fallback answers (Decision 12). Without it a
  * black-holed route holds a caller up to LiteLLM's 600 s a try. The longest legitimate answer measured is
  * 35.2 s — `gpt-6-luna`, ~1,500 words not streamed, 2,963 tokens (`[M2]`, 2026-10-03) — and a stream's first
- * frame came at 13.0 s; 60 s is that with ~70% headroom. A non-streamed answer longer than this is cut off
- * and answered by the fallback instead.
+ * frame came at 13.0 s; 60 s is that with ~70% headroom.
+ *
+ * THE TRADE-OFF (accepted by the coordinator, the plan's sitting 2): at `[M2]`'s ~85 tokens a second, a
+ * NON-streamed answer longer than about 5,000 tokens is cut off and answered by the on-premise fallback instead.
+ * The faculty front-end's agents STREAM, where the wait is for the stream's start (13.0 s measured) rather than
+ * its whole — that a healthy stream longer than 60 s in all is never cut is NOT measured. An app's own
+ * non-streamed calls are the ones it can cut. And with no retries (below), one transient gateway 5xx goes
+ * straight to the fallback.
  */
 export const GATEWAY_TIMEOUT_S = 60
 
