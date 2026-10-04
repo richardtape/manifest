@@ -144,6 +144,15 @@ PRIMARIES['gwleak-429'] = {
   apiBase: `${STUB}/gwleak/s429/v1`,
   path: '/gwleak/s429/v1/chat/completions',
 }
+// F32 (the UBC AI Gateway plan's sitting 3): a STREAM in UBC's gateway's shape, and in OpenAI's — the positive control.
+PRIMARIES['gwshape-ok'] = {
+  apiBase: `${STUB}/gwshape/ok/v1`,
+  path: '/gwshape/ok/v1/chat/completions',
+}
+PRIMARIES['oaistream-ok'] = {
+  apiBase: `${STUB}/oaistream/ok/v1`,
+  path: '/oaistream/ok/v1/chat/completions',
+}
 /** Primaries registered with no fallback, so their failure is what the caller receives. */
 const NO_FALLBACK = new Set(['gwleak-429'])
 PRIMARIES['s400-after-gw'] = {
@@ -536,6 +545,57 @@ describeDocker(
       for (const h of LEAKED) expect([null, ''], h).toContain(res.headers.get(h))
       expect(res.headers.get('llm_provider-x-litellm-version')).toBe('stub')
     })
+
+    /**
+     * F32 (the UBC AI Gateway plan's sitting 3; Rich, 2026-10-03 23:40: the re-pin to LiteLLM 1.102.0): a STREAM is
+     * charged what its PROVIDER reported — never LiteLLM's own count of the text it saw. UBC's gateway sends a
+     * stream's usage, and its cost, in a frame after the finish frame that still carries ONE empty choice (measured
+     * direct); LiteLLM 1.98.0 dropped a usage that came on a chunk with a choice and charged its local count — 14 + 1
+     * tokens where the gateway charged 13 + 4 — so a model's hidden and reasoning tokens went uncharged. Each stream
+     * on a key of its own, so the key's spend is that stream's alone.
+     */
+    async function streamedSpend(
+      c: string,
+    ): Promise<{ status: number; text: string; spend: number }> {
+      const alias = probe(`key-${c}`)
+      const own = await client.post<{ key: string }>('/key/generate', {
+        user_id: USER,
+        key_alias: alias,
+        models: [probe(c)],
+        allowed_routes: ['/v1/chat/completions'],
+        duration: '600s',
+        max_budget: 0.5,
+      })
+      try {
+        const res = await send(probe(c), true, own.key)
+        const text = await res.text()
+        let spend = 0
+        for (let i = 0; i < 30 && spend === 0; i += 1) {
+          const info = await client.get<{ info?: { spend?: number } }>('/key/info', {
+            key: own.key,
+          })
+          spend = info.info?.spend ?? 0
+          if (spend === 0) await new Promise((resolve) => setTimeout(resolve, 2000))
+        }
+        return { status: res.status, text, spend }
+      } finally {
+        await client.post('/key/delete', { key_aliases: [alias] })
+      }
+    }
+
+    it('F32: a STREAM in UBC’s gateway’s shape is charged the cost the provider reported, not LiteLLM’s count of its text (the UBC AI Gateway plan’s sitting 3)', async () => {
+      const { status, text, spend } = await streamedSpend('gwshape-ok')
+      expect(status, text.slice(0, 200)).toBe(200)
+      expect(text).toContain('"content":"ok"')
+      expect(spend).toBeCloseTo(STUB_RESPONSE_COST, 12)
+    }, 120_000)
+
+    it('F32’s POSITIVE CONTROL: a stream in OpenAI’s shape (`choices: []`) is charged its provider’s usage × the pin — 5 + 1 tokens at 1e-6', async () => {
+      const { status, text, spend } = await streamedSpend('oaistream-ok')
+      expect(status, text.slice(0, 200)).toBe(200)
+      expect(text).toContain('"content":"ok"')
+      expect(spend).toBeCloseTo(5 * 1e-6 + 1 * 1e-6, 12)
+    }, 120_000)
 
     it('F5’s WITNESS: a refusal — a malformed 400, and a 429 with no fallback — carries none of the upstream’s headers at all (the UBC AI Gateway plan’s Task 4)', async () => {
       // LiteLLM 1.98.0 forwards an upstream's headers on a SUCCESS only (measured at sitting 2: both refusals below

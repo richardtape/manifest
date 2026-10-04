@@ -714,7 +714,11 @@ export interface StubProvider {
  *   `x-litellm-response-cost`, which Manifest's LiteLLM prices the call from. Plus `x-litellm-version: stub`, which
  *   must still reach the caller as `llm_provider-x-litellm-version` (the positive control that headers are forwarded).
  * - An `ok` request whose body says `"stream": true` is answered as an SSE stream: a role frame, `ok`, the finish
- *   frame, a usage frame and `[DONE]`.
+ *   frame, a usage frame and `[DONE]` — the usage frame `choices: []`, OpenAI's shape.
+ * - A first segment `gwshape/` (e.g. `/gwshape/ok/v1`) streams in UBC's AI Gateway's shape instead (LiteLLM 1.102.0,
+ *   measured direct at the UBC AI Gateway plan's sitting 3, 2026-10-03): after the finish frame, a frame carrying ONE
+ *   empty choice beside the usage and its `cost` (`STUB_RESPONSE_COST`). LiteLLM 1.98.0 dropped a usage that came on
+ *   a chunk with a choice and charged its own count of the visible text (F32).
  *
  * Bound to 127.0.0.1 (Docker Desktop's `host.docker.internal` reaches the host's loopback — measured at
  * Task 1), on a port the caller names inside the platform's 7100–7199 block. It logs nothing: a test reads
@@ -774,10 +778,22 @@ export async function startStubProvider(
       frame({ choices: [{ index: 0, delta: { role: 'assistant', content: '' } }] })
       frame({ choices: [{ index: 0, delta: { content: 'ok' } }] })
       frame({ choices: [{ index: 0, delta: {}, finish_reason: 'stop' }] })
-      frame({
-        choices: [],
-        usage: { prompt_tokens: 5, completion_tokens: 1, total_tokens: 6 },
-      })
+      if (path.startsWith('/gwshape/')) {
+        frame({
+          choices: [{ index: 0, delta: {}, finish_reason: null }],
+          usage: {
+            prompt_tokens: 5,
+            completion_tokens: 1,
+            total_tokens: 6,
+            cost: STUB_RESPONSE_COST,
+          },
+        })
+      } else {
+        frame({
+          choices: [],
+          usage: { prompt_tokens: 5, completion_tokens: 1, total_tokens: 6 },
+        })
+      }
       res.end('data: [DONE]\n\n')
     }
     // Read before answering: a provider that answers before reading the body is not what LiteLLM meets.

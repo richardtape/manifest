@@ -29,4 +29,12 @@ anchore/grype:v0.118.0
 # It is NOT mirrored into the local registry (mirror-images.sh skips it):
 # nothing does `FROM` this image, so pushing ~2 GB there buys nothing. It is in
 # this list for one thing — a digest in infra/images.lock.
-ghcr.io/berriai/litellm@sha256:20b5044b619055374061a6d5b7b08754cad75aeabbf82ddf4f69cc0cf80ddaf4
+#
+# RE-PINNED 2026-10-03 to litellm 1.102.0 (`v1.102.0`, built 2026-09-20 — the version
+# UBC's AI Gateway runs), by the UBC AI Gateway plan's sitting 3 at Rich's word
+# (23:40): 1.98.0 charged a STREAMED call by its own count of the visible text
+# whenever the provider sent its usage on a chunk that also carried a choice —
+# the gateway's shape — so a model's hidden and reasoning tokens went uncharged
+# (the plan's F32; `fallback-guard.docker.test.ts`'s F32 case). The Docker tier
+# re-proved every mapping and guard behaviour on it.
+ghcr.io/berriai/litellm@sha256:32cfd7a427f6470033b4dcc9e75dfbea2aa32dbc298b0b511a40e962ce818362
