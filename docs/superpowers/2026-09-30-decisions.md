@@ -744,7 +744,7 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
     (6280fe1): Rich's minors built word for word; new words of its own under "change on sight" — m117 "We couldn't copy it.
     Select it and copy it yourself." and m114 "We can't tell right now whether you can answer this."
 
-    And at 17:24 PDT, the front-end's m133 (manifest-app-f6's close: a second copy of its server that fails to take 7105 still
+    And at 17:23 PDT, the front-end's m133 (manifest-app-f6's close: a second copy of its server that fails to take 7105 still
     marks the live server's in-progress builds interrupted), through the question tool — "Fix it (Recommended)": a starting
     server makes sure it is the only one (it takes the port, or a lock) before marking anything interrupted; this overrides
     the F6b plan's Review Focus 3 wording ("marked before this server can listen"). For the next front-end session.
