@@ -22,7 +22,22 @@ litellm_gateway_key_matches() {
         2>/dev/null); then
       echo "could not read manifest-litellm's environment — is it running? (make up)"; exit 1
     fi
-    if [ -z "$ours" ] && [ -z "$theirs" ]; then echo "not configured (neither $env_file nor LiteLLM holds a gateway key)"; exit 0; fi
+    if [ -z "$ours" ] && [ -z "$theirs" ]; then
+      # NOT CONFIGURED IS TRUE ONLY WHEN THE CATALOGUE AGREES (the whole-branch review's I2): with no key on either
+      # side, a deployment still at the gateway's address — the key removed and `make up` run, the control plane not
+      # restarted — resolves its reference to nothing, and LiteLLM sends OPENAI_API_KEY to UBC for it ([M7]).
+      gw="${MANIFEST_UBC_AI_GATEWAY_URL:-https://ai-gateway.apps.ltic.ubc.ca/v1}"
+      left=$(printf 'header = "Authorization: Bearer %s"\n' "${LITELLM_MASTER_KEY:-}" |
+        curl -sS -K - -m 10 "http://127.0.0.1:${PORT_LITELLM:-7106}/model/info" 2>/dev/null |
+        node -e 'let s="";process.stdin.on("data",(d)=>(s+=d)).on("end",()=>{try{const g=process.argv[1].replace(/\/+$/,"")
+          console.log((JSON.parse(s).data??[]).filter((d)=>(d.litellm_params?.api_base??"").replace(/\/+$/,"")===g||
+            String(d.model_info?.id??"").startsWith("manifest-gateway-")).length)}catch{console.log("unread")}})' "$gw")
+      case "$left" in
+        0) echo "not configured (neither $env_file nor LiteLLM holds a gateway key, and no deployment is at the gateway)"; exit 0 ;;
+        unread | '') echo "neither holds a gateway key, and LiteLLM's catalogue could not be read to confirm none is at the gateway"; exit 1 ;;
+        *) echo "neither holds a gateway key, but LiteLLM still has $left deployment(s) at the gateway, which would send OPENAI_API_KEY there — restart the control plane (its boot removes them)"; exit 1 ;;
+      esac
+    fi
     if [ "$ours" = "$theirs" ]; then echo "matches"; exit 0; fi
     if [ -z "$theirs" ]; then echo "absent from LiteLLM — run make up, then restart the control plane"; exit 1; fi
     if [ -z "$ours" ]; then echo "LiteLLM holds a key $env_file does not — run make up"; exit 1; fi

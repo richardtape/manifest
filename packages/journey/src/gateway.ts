@@ -562,15 +562,35 @@ async function confidentialPhase(): Promise<void> {
       `${answer.status} ${answer.body.slice(0, 200)}`,
     )
     answeredByGateway(target.name, answer)
-    const expected = costOf(answer.usage, price)
+    const plainExpected = costOf(answer.usage, price)
     checks.ok(
-      `its usage is reported (${JSON.stringify(answer.usage)}) — at the stand-in’s price, $${expected}`,
-      expected !== undefined && expected > 0,
+      `its usage is reported (${JSON.stringify(answer.usage)}) — at the stand-in’s price, $${plainExpected}`,
+      plainExpected !== undefined && plainExpected > 0,
     )
-    const spent = await sessionSpend(client, projectId, started.session.id, expected ?? 0)
+    // STREAMED too (the whole-branch review's I1): the gateway prices this model at nothing, so a stream must be
+    // charged the pin — never `$0` — and the front-end's agents stream.
+    const streamed = await call(started.baseUrl, started.key, target.name, {
+      stream: true,
+    })
     checks.ok(
-      `the session’s spend is EXACTLY usage × the stand-in’s price: $${spent} = $${expected} (12 places)`,
-      spent !== null && expected !== undefined && Math.abs(spent - expected) < EXACT,
+      `${target.name}, streamed: 200, ending [DONE]`,
+      streamed.status === 200 && streamed.done,
+      `${streamed.status} done=${streamed.done} ${streamed.body.slice(0, 200)}`,
+    )
+    answeredByGateway(`${target.name}, streamed`, streamed)
+    const streamExpected = costOf(streamed.usage, price)
+    checks.ok(
+      `the stream’s usage is reported (${JSON.stringify(streamed.usage)}) — at the stand-in’s price, $${streamExpected}, never $0`,
+      streamExpected !== undefined && streamExpected > 0,
+    )
+    const expected = (plainExpected ?? 0) + (streamExpected ?? 0)
+    const spent = await sessionSpend(client, projectId, started.session.id, expected)
+    checks.ok(
+      `the session’s spend is EXACTLY both answers’ usage × the stand-in’s price: $${spent} = $${expected} (12 places)`,
+      spent !== null &&
+        plainExpected !== undefined &&
+        streamExpected !== undefined &&
+        Math.abs(spent - expected) < EXACT,
       `within ${SPEND_WITHIN_MS / 1000} s`,
     )
     if (spent !== null) state.chargedPinnedUsd = spent

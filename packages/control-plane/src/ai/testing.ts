@@ -715,6 +715,11 @@ export interface StubProvider {
  *   must still reach the caller as `llm_provider-x-litellm-version` (the positive control that headers are forwarded).
  * - An `ok` request whose body says `"stream": true` is answered as an SSE stream: a role frame, `ok`, the finish
  *   frame, a usage frame and `[DONE]` — the usage frame `choices: []`, OpenAI's shape.
+ * - A first segment `gwunpriced/` (e.g. `/gwunpriced/ok/v1`) answers as the gateway does for a model it does NOT
+ *   price (`qwen3.8-27b`, measured through LiteLLM 1.102.0 at the UBC AI Gateway plan's sitting 3): no cost at all —
+ *   no `x-litellm-response-cost` on a plain answer, and the gateway's stream shape (below) with no `cost` — so the
+ *   pin binds (the whole-branch review's I1). An EXPLICIT `0.0` would be charged `$0` on 1.98.0 and 1.102.0 alike
+ *   (`cost_calculator.py`'s `get_response_cost_from_hidden_params`); the gateway does not send one today.
  * - A first segment `gwshape/` (e.g. `/gwshape/ok/v1`) streams in UBC's AI Gateway's shape instead (LiteLLM 1.102.0,
  *   measured direct at the UBC AI Gateway plan's sitting 3, 2026-10-03): after the finish frame, a frame carrying ONE
  *   empty choice beside the usage and its `cost` (`STUB_RESPONSE_COST`). LiteLLM 1.98.0 dropped a usage that came on
@@ -749,6 +754,7 @@ export async function startStubProvider(
       authorized.set(path, (authorized.get(path) ?? 0) + 1)
     }
     const leaks = path.startsWith('/gwleak/')
+    const unpriced = path.startsWith('/gwunpriced/')
     const gatewayHeaders = (success: boolean): Record<string, string> =>
       leaks
         ? {
@@ -778,14 +784,14 @@ export async function startStubProvider(
       frame({ choices: [{ index: 0, delta: { role: 'assistant', content: '' } }] })
       frame({ choices: [{ index: 0, delta: { content: 'ok' } }] })
       frame({ choices: [{ index: 0, delta: {}, finish_reason: 'stop' }] })
-      if (path.startsWith('/gwshape/')) {
+      if (path.startsWith('/gwshape/') || unpriced) {
         frame({
           choices: [{ index: 0, delta: {}, finish_reason: null }],
           usage: {
             prompt_tokens: 5,
             completion_tokens: 1,
             total_tokens: 6,
-            cost: STUB_RESPONSE_COST,
+            ...(unpriced ? {} : { cost: STUB_RESPONSE_COST }),
           },
         })
       } else {

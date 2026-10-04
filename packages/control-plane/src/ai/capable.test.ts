@@ -314,6 +314,31 @@ describe('the capable model through UBC’s AI Gateway (the UBC AI Gateway plan�
     expect(capable(lite)).toHaveLength(0)
   })
 
+  it('FAILS CLOSED WHATEVER THE SETTING: a DIRECT setting refused with no gateway key in .env leaves no gateway registration (the whole-branch review’s I2)', async () => {
+    // Rich drops the gateway: the key leaves .env, the setting names a direct model LiteLLM cannot price. Kept, the
+    // gateway registration's reference would resolve to nothing, and LiteLLM sends OPENAI_API_KEY to UBC for one ([M7]).
+    const lite = fakeLiteLlm()
+    await ensureCapableModel(lite, 'ubc-ai-gateway/gpt-6-luna', GW)
+    lite.price('openai/gpt-direct-unpriced', 0)
+    const r = await ensureCapableModel(lite, 'openai/gpt-direct-unpriced', {
+      ...GW,
+      keyInEnv: false,
+    })
+    expect(r.state).toBe('refused')
+    expect(capable(lite).filter((d) => d.apiBase !== undefined)).toHaveLength(0)
+    expect(r.reason).toContain('is unavailable meanwhile')
+  })
+
+  it('POSITIVE CONTROL for I2: WITH the key in .env, a refused direct setting keeps the working gateway registration — and names it as the gateway’s', async () => {
+    const lite = fakeLiteLlm()
+    await ensureCapableModel(lite, 'ubc-ai-gateway/gpt-6-luna', GW)
+    lite.price('openai/gpt-direct-unpriced', 0)
+    const r = await ensureCapableModel(lite, 'openai/gpt-direct-unpriced', GW)
+    expect(r.state).toBe('refused')
+    expect(capable(lite).map((d) => d.apiBase)).toEqual([GW.url])
+    expect(r.reason).toContain("'ubc-ai-gateway/gpt-6-luna' is kept")
+  })
+
   it('refuses a gateway model LiteLLM cannot price — an alias — and never registers it at $0 (Review Focus 4)', async () => {
     const lite = fakeLiteLlm()
     lite.price('openai/ubc-luna-alias', 0)

@@ -22,7 +22,7 @@
 #   1  the catalogue: the capable model and each gateway model at the gateway; the stand-ins local bash
 #   2  an internal project's session: the capable model answered BY THE GATEWAY, charged exactly  gateway.ts internal
 #   3  (the Responses API — not run: the plan's Task 5 was dropped at its sitting 1)
-#   4  a confidential project's session: the gateway's own model, at the stand-in's price         gateway.ts confidential
+#   4  a confidential project's session: the gateway's own model, plain and streamed, at the pin  gateway.ts confidential
 #      …then step 2's last check: the GATEWAY's own spend rose by what Manifest charged             bash
 #   5  the key: 0 times in every log and in LiteLLM's database; every gateway row decrypts to
 #      the reference                                                                               bash

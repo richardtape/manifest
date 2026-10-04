@@ -3,7 +3,7 @@ import type { Classification } from '../spec/index.js'
 import { CatalogueError } from './catalogue.js'
 import type { LiteLlmClient } from './client.js'
 import { AiError } from './errors.js'
-import { viaGateway, type ProviderParams } from './providers.js'
+import { GATEWAY_PREFIX, viaGateway, type ProviderParams } from './providers.js'
 
 /**
  * ONE WAY A MODEL THE PLATFORM CHOOSES ENTERS LiteLLM'S CATALOGUE (the UBC AI Gateway plan's Task 3, moved out of
@@ -172,9 +172,20 @@ async function create(
   return { entry, id }
 }
 
+/**
+ * A kept registration as a SETTING names it: one at the gateway's address as `ubc-ai-gateway/<model>` — LiteLLM lists it
+ * `openai/<model>`, the same string a DIRECT one has, and an operator line that read `'openai/…' is kept` sent its
+ * reader looking for the wrong one (the whole-branch review's I2).
+ */
+const asSetting = (d: Deployment): string | undefined => {
+  const model = modelOf(d)
+  if (model === undefined || apiBaseOf(d) === undefined) return model
+  return `${GATEWAY_PREFIX}${model.replace(/^openai\//, '')}`
+}
+
 /** What a refusal's last sentence says about the registration it kept, or that there is none. */
 export const unavailable = (name: string, kept: Deployment[]): string => {
-  const model = kept.map(modelOf).find((m) => m !== undefined)
+  const model = kept.map(asSetting).find((m) => m !== undefined)
   return model === undefined
     ? ` ${name} is unavailable meanwhile, and default-chat still serves.`
     : ` '${model}' is kept as ${name} until the setting names a model LiteLLM serves and prices.`

@@ -1,4 +1,6 @@
+import { execFile } from 'node:child_process'
 import { randomUUID } from 'node:crypto'
+import { promisify } from 'node:util'
 import { afterAll, beforeAll, expect, it } from 'vitest'
 import { describeDocker } from '../runtime/testing.js'
 import { CAPABLE_MODEL_NAME } from './capable.js'
@@ -44,6 +46,8 @@ import {
  * LiteLLM's cooldown, and a second call is then answered `RouterRateLimitError` without reaching the provider
  * (measured at Task 6).
  */
+
+const run = promisify(execFile)
 
 /** Inside the 7100–7199 block, and not one of `infra/lib/common.sh`'s assigned ports — `[M5]`'s own. */
 const STUB_PORT = 7199
@@ -152,6 +156,20 @@ PRIMARIES['gwshape-ok'] = {
 PRIMARIES['oaistream-ok'] = {
   apiBase: `${STUB}/oaistream/ok/v1`,
   path: '/oaistream/ok/v1/chat/completions',
+}
+// The whole-branch review's I1: answers for a model the gateway does not price — no cost reported, as measured — plain
+// and streamed. And its I3: a budget refusal on a primary of its own, for the operator line.
+PRIMARIES['gwunpriced-ok'] = {
+  apiBase: `${STUB}/gwunpriced/ok/v1`,
+  path: '/gwunpriced/ok/v1/chat/completions',
+}
+PRIMARIES['gwunpriced-stream'] = {
+  apiBase: `${STUB}/gwunpriced/ok/v1`,
+  path: '/gwunpriced/ok/v1/chat/completions',
+}
+PRIMARIES['i3-budget'] = {
+  apiBase: `${STUB}/i3/gwfail/budget/v1`,
+  path: '/i3/gwfail/budget/v1/chat/completions',
 }
 /** Primaries registered with no fallback, so their failure is what the caller receives. */
 const NO_FALLBACK = new Set(['gwleak-429'])
@@ -595,6 +613,65 @@ describeDocker(
       expect(status, text.slice(0, 200)).toBe(200)
       expect(text).toContain('"content":"ok"')
       expect(spend).toBeCloseTo(5 * 1e-6 + 1 * 1e-6, 12)
+    }, 120_000)
+
+    async function plainSpend(c: string): Promise<{ status: number; spend: number }> {
+      const alias = probe(`key-${c}`)
+      const own = await client.post<{ key: string }>('/key/generate', {
+        user_id: USER,
+        key_alias: alias,
+        models: [probe(c)],
+        allowed_routes: ['/v1/chat/completions'],
+        duration: '600s',
+        max_budget: 0.5,
+      })
+      try {
+        const res = await send(probe(c), false, own.key)
+        await res.text()
+        let spend = 0
+        for (let i = 0; i < 30 && spend === 0; i += 1) {
+          const info = await client.get<{ info?: { spend?: number } }>('/key/info', {
+            key: own.key,
+          })
+          spend = info.info?.spend ?? 0
+          if (spend === 0) await new Promise((resolve) => setTimeout(resolve, 2000))
+        }
+        return { status: res.status, spend }
+      } finally {
+        await client.post('/key/delete', { key_aliases: [alias] })
+      }
+    }
+
+    it('I1: an answer for a model the gateway does not price — no cost reported — is charged its usage × the pin, never $0 (the whole-branch review)', async () => {
+      const { status, spend } = await plainSpend('gwunpriced-ok')
+      expect(status).toBe(200)
+      expect(spend).toBeCloseTo(5 * 1e-6 + 1 * 1e-6, 12)
+    }, 120_000)
+
+    it('I1: a STREAM in the gateway’s shape for a model it does not price is charged its usage × the pin, never $0 (the whole-branch review)', async () => {
+      const { status, text, spend } = await streamedSpend('gwunpriced-stream')
+      expect(status, text.slice(0, 200)).toBe(200)
+      expect(spend).toBeCloseTo(5 * 1e-6 + 1 * 1e-6, 12)
+    }, 120_000)
+
+    it('I3: a fallback the guard ALLOWS writes ONE operator line naming the provider’s status — never its message (the whole-branch review)', async () => {
+      const trace = `i3-${RUN}-${randomUUID().slice(0, 8)}`
+      const r = await chat(probe('i3-budget'), { 'x-litellm-trace-id': trace })
+      expectTheFallbacksAnswer(r)
+      const { stdout, stderr } = await run(
+        'docker',
+        ['logs', '--since', '5m', 'manifest-litellm'],
+        {
+          maxBuffer: 64 * 1024 * 1024,
+        },
+      )
+      const lines = `${stdout}${stderr}`.split('\n').filter((l) => l.includes(trace))
+      expect(
+        lines.filter((l) => l.includes('manifest_guard: allowed a fallback')),
+        lines.join('\n'),
+      ).toHaveLength(1)
+      expect(lines.join('\n')).toContain('429')
+      expect(lines.join('\n')).not.toContain('Budget has been exceeded')
     }, 120_000)
 
     it('F5’s WITNESS: a refusal — a malformed 400, and a 429 with no fallback — carries none of the upstream’s headers at all (the UBC AI Gateway plan’s Task 4)', async () => {

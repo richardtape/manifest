@@ -91,14 +91,19 @@ export async function ensureCapableModel(
     return { state: 'removed', ...(previous === undefined ? {} : { model: previous }) }
   }
 
+  // FAILS CLOSED WHATEVER THE SETTING (the whole-branch review's I2): with no gateway key in .env, a gateway
+  // registration kept by ANY path — a DIRECT setting refused, whose refusal keeps "the working model" — reaches UBC
+  // with a reference that resolves to nothing, and LiteLLM then sends OPENAI_API_KEY ([M7]). So every one goes
+  // first, before the setting is read.
+  if (gateway !== undefined && !gateway.keyInEnv) {
+    for (const d of ours.filter((x) => apiBaseOf(x) !== undefined)) {
+      await remove(client, idOf(d))
+    }
+    ours = ours.filter((x) => apiBaseOf(x) === undefined)
+  }
+
   const resolved = resolveSetting(CAPABLE_MODEL_SETTING, setting, gateway)
   if ('refused' in resolved) {
-    if (resolved.failClosed === true) {
-      for (const d of ours.filter((x) => apiBaseOf(x) !== undefined)) {
-        await remove(client, idOf(d))
-      }
-      ours = ours.filter((x) => apiBaseOf(x) === undefined)
-    }
     return refuseKeeping(
       client,
       ours,

@@ -136,6 +136,14 @@ class ManifestFallbackGuard(CustomLogger):
             print(f"manifest_guard: could not read a fallback ({type(error).__name__}); allowed", flush=True)
             return None
         if not refused:
+            # ONE operator line per fallback ALLOWED (the UBC AI Gateway plan's whole-branch review, I3): the gateway's
+            # budget spent (429), a key revoked or expired (401), the gateway down — each answered by the on-premise
+            # model, silently but for this. The status and the class only; never the provider's message.
+            print(
+                f"manifest_guard: allowed a fallback — its provider answered "
+                f"{status if isinstance(status, int) else 'no status'} ({type(failure).__name__}); trace {trace}",
+                flush=True,
+            )
             return None
         print(
             f"manifest_guard: refused a fallback — its provider answered "
