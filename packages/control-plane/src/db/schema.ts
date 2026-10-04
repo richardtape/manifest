@@ -1158,9 +1158,10 @@ export const events = audit.table(
       onDelete: 'restrict',
     }),
     /**
-     * §26: a platform administrator who is NOT a member of the project acted with an owner's
-     * capability — and so gave `reason`. False for everyone else, an administrator doing their own
-     * duty or acting as a member included.
+     * §26: a platform administrator acted with an owner's capability their place on the project does
+     * not give them — as no member of it, or as a collaborator beyond that role (Task 15) — and so
+     * gave `reason`. False for everyone else, an administrator doing their own duty or acting within
+     * their role on the project included.
      */
     actedAsAdmin: boolean('acted_as_admin').notNull().default(false),
     /**

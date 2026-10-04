@@ -361,8 +361,9 @@ export async function addMember(
    * plain, a removal committing between this read and the upsert left the call believing it was a
    * role change, and the upsert — finding the row gone — INSERTED it. Held, a removal's DELETE waits
    * for this commit (and then removes the person); or it went first, and this read, re-checked after
-   * it committed, finds nobody — a newcomer. `removeMember` takes no project lock, so this lock is
-   * the membership row's alone. Defaults to `true`: the fixtures and the creator's own membership
+   * it committed, finds nobody — a newcomer. `removeMember` takes the project row `FOR KEY SHARE`
+   * first (Task 16b) — which this route's `FOR UPDATE` on the project serialises with, before either
+   * reaches the membership row — so the two never meet in the other order. Defaults to `true`: the fixtures and the creator's own membership
    * add people the caller has already decided about.
    */
   options: { newcomerMayBuild?: boolean } = {},

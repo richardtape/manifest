@@ -91,3 +91,44 @@ describe('the OpenAPI document (§16 Contract, D23.8)', () => {
     expect(() => openApiDocument([unregistered])).toThrow(/not registered/)
   })
 })
+
+/**
+ * §26 AS SPEC ACTION 5 WORDED IT (the faculty-ready plan's Task 15): an administrator who is a COLLABORATOR
+ * gives a reason for what a collaborator may not do. The contract's own words — the header on the 24
+ * operations that can ask, and `EventActor.asAdministrator` — are what a client is written from, so they
+ * must say who is asked; and a header sent when none is asked is part of the request, never "ignored"
+ * (sitting 6's F10). The plan's whole-branch review found both still stating Task 10's rule.
+ */
+describe('the published words of §26’s reason say who is asked (Task 15)', () => {
+  const document = openApiDocument(ROUTE_DEFINITIONS) as {
+    paths: Record<
+      string,
+      Record<string, { parameters?: { name: string; description?: string }[] }>
+    >
+    components: {
+      schemas: Record<
+        string,
+        { description?: string; properties?: Record<string, { description?: string }> }
+      >
+    }
+  }
+  const headers = Object.values(document.paths)
+    .flatMap((operations) => Object.values(operations))
+    .flatMap((operation) => operation.parameters ?? [])
+    .filter((p) => p.name === 'Manifest-Admin-Reason')
+
+  it('the Manifest-Admin-Reason header names the collaborator beyond their role, and is never "ignored"', () => {
+    expect(headers.length).toBeGreaterThan(0)
+    for (const header of headers) {
+      expect(header.description).toMatch(/collaborator/)
+      expect(header.description).not.toMatch(/ignored/)
+      expect(header.description).toMatch(/Idempotency-Key/)
+    }
+  })
+
+  it('EventActor.asAdministrator — and EventActor itself — are true for a collaborator acting beyond their role', () => {
+    const actor = document.components.schemas.EventActor
+    expect(actor?.properties?.asAdministrator?.description).toMatch(/collaborator/)
+    expect(actor?.description).toMatch(/collaborator/)
+  })
+})

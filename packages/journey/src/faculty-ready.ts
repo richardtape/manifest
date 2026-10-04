@@ -936,7 +936,7 @@ async function step7Question(): Promise<void> {
     (f) => detailOf(f, 'memberId') === colleague,
   )
   checks.ok(
-    'and the record holds exactly ONE member.removed — the removal’s own, in its transaction',
+    'and the record holds exactly ONE member.removed — the removal’s own (that it is written in the removal’s transaction is questions-end-atomic.test.ts’s to prove)',
     recorded.length === 1 && recorded[0]!.actor?.name === 'Test Instructor',
     `${recorded.length} ${JSON.stringify(recorded[0]?.actor ?? null)}`,
   )

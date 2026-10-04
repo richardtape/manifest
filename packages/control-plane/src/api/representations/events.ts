@@ -23,7 +23,7 @@ export const EventActor = representation(
       asAdministrator: z
         .boolean()
         .describe(
-          'True when a platform administrator who is not a member of the project acted with an owner’s capability, and so gave `reason`. False for everyone else — an administrator approving a release, recording UBC’s answers or acting as a member of the project included.',
+          'True when a platform administrator acted with an owner’s capability their place on the project does not give them — as no member of it, or as a collaborator doing what a collaborator may not (adding or removing a person, archiving, restoring or deleting the project, promoting a release) — and so gave `reason`. False for everyone else — an administrator approving a release, recording UBC’s answers, or acting within their own role on the project included.',
         ),
       reason: z
         .string()
@@ -42,7 +42,7 @@ export const EventActor = representation(
         ),
     })
     .describe(
-      'Who acted on a project: the person, and — when a platform administrator who is not a member used an owner’s capability — that they did, and why.',
+      'Who acted on a project: the person, and — when a platform administrator used an owner’s capability their place on the project does not give them (as no member, or as a collaborator beyond that role) — that they did, and why.',
     ),
 )
 

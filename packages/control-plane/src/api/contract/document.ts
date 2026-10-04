@@ -338,7 +338,7 @@ function parameters(route: AnyRoute): JsonSchema[] {
       in: 'header',
       required: false,
       description:
-        'Why you are doing this, when you are a platform administrator who is not a member of the project: 1 to 500 characters once trimmed, percent-encoded as UTF-8 (`encodeURIComponent`) when it is not plain ASCII, since a header carries no other text. Refused `400 ADMIN_REASON_REQUIRED` without it. Stored with the audit event beside your name and shown to the project’s people on their event stream. Part of the request: a retry with the same Idempotency-Key sends the same reason. Anyone else may leave it out; it is ignored.',
+        'Why you are doing this, when you are a platform administrator who is not a member of the project — or a collaborator on it doing what a collaborator may not (adding or removing a person, archiving, restoring or deleting the project, promoting a release): 1 to 500 characters once trimmed, percent-encoded as UTF-8 (`encodeURIComponent`) when it is not plain ASCII, since a header carries no other text. Refused `400 ADMIN_REASON_REQUIRED` without it. Stored with the audit event beside your name and shown to the project’s people on their event stream. Nobody else is asked, and nothing is recorded from a reason sent when none is asked — but it is always part of the request: a retry with the same Idempotency-Key sends exactly what the first did, and another reason (or none) under that key is `409 IDEMPOTENCY_KEY_REUSED`.',
       schema: { type: 'string', minLength: 1 },
     })
   }

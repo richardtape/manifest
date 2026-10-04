@@ -57,8 +57,8 @@ export const REPLAY_LIMIT = 50
 /**
  * WHO ACTED, as the project's people read it (§26 and §6's Event as Spec action 1 amended them; the
  * faculty-ready plan's Task 10): the person — for a delegated token, the person who minted it — and,
- * when a platform administrator who is not a member acted with an owner's capability, that they did
- * and why.
+ * when a platform administrator acted with an owner's capability their place on the project does not
+ * give them (as no member, or as a collaborator beyond that role — Task 15), that they did and why.
  */
 export interface EventActor {
   name: string

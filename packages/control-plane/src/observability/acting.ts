@@ -33,7 +33,8 @@ export interface Acting {
    * not yet recorded: only `assertCapability` decides it is needed.
    */
   offeredReason: string | null
-  /** Set by `assertCapability`: an administrator, not a member, using an owner's capability. */
+  /** Set by `assertCapability`: an administrator using an owner's capability their place on the project does not
+   *  give them — as no member of it, or as a collaborator beyond that role (Task 15). */
   asAdmin: boolean
   /** The reason recorded, set with `asAdmin` — `null` otherwise, whatever was offered. */
   reason: string | null

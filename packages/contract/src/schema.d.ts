@@ -2101,11 +2101,11 @@ export interface components {
                 session?: components["schemas"]["StartedSession"];
             };
         };
-        /** @description Who acted on a project: the person, and — when a platform administrator who is not a member used an owner’s capability — that they did, and why. */
+        /** @description Who acted on a project: the person, and — when a platform administrator used an owner’s capability their place on the project does not give them (as no member, or as a collaborator beyond that role) — that they did, and why. */
         EventActor: {
             /** @description The person whose request caused this — for a delegated token, the person who minted it. Never a PUID. */
             name: string;
-            /** @description True when a platform administrator who is not a member of the project acted with an owner’s capability, and so gave `reason`. False for everyone else — an administrator approving a release, recording UBC’s answers or acting as a member of the project included. */
+            /** @description True when a platform administrator acted with an owner’s capability their place on the project does not give them — as no member of it, or as a collaborator doing what a collaborator may not (adding or removing a person, archiving, restoring or deleting the project, promoting a release) — and so gave `reason`. False for everyone else — an administrator approving a release, recording UBC’s answers, or acting within their own role on the project included. */
             asAdministrator: boolean;
             /** @description Why the administrator acted, in their own words, redacted like every event: present exactly when `asAdministrator` is true, otherwise null. */
             reason: string | null;
@@ -6450,7 +6450,7 @@ export interface operations {
             header: {
                 /** @description One per user action, and the same key when retrying that action. */
                 "Idempotency-Key": string;
-                /** @description Why you are doing this, when you are a platform administrator who is not a member of the project: 1 to 500 characters once trimmed, percent-encoded as UTF-8 (`encodeURIComponent`) when it is not plain ASCII, since a header carries no other text. Refused `400 ADMIN_REASON_REQUIRED` without it. Stored with the audit event beside your name and shown to the project’s people on their event stream. Part of the request: a retry with the same Idempotency-Key sends the same reason. Anyone else may leave it out; it is ignored. */
+                /** @description Why you are doing this, when you are a platform administrator who is not a member of the project — or a collaborator on it doing what a collaborator may not (adding or removing a person, archiving, restoring or deleting the project, promoting a release): 1 to 500 characters once trimmed, percent-encoded as UTF-8 (`encodeURIComponent`) when it is not plain ASCII, since a header carries no other text. Refused `400 ADMIN_REASON_REQUIRED` without it. Stored with the audit event beside your name and shown to the project’s people on their event stream. Nobody else is asked, and nothing is recorded from a reason sent when none is asked — but it is always part of the request: a retry with the same Idempotency-Key sends exactly what the first did, and another reason (or none) under that key is `409 IDEMPOTENCY_KEY_REUSED`. */
                 "Manifest-Admin-Reason"?: string;
             };
             path: {
@@ -6906,7 +6906,7 @@ export interface operations {
             header: {
                 /** @description One per user action, and the same key when retrying that action. */
                 "Idempotency-Key": string;
-                /** @description Why you are doing this, when you are a platform administrator who is not a member of the project: 1 to 500 characters once trimmed, percent-encoded as UTF-8 (`encodeURIComponent`) when it is not plain ASCII, since a header carries no other text. Refused `400 ADMIN_REASON_REQUIRED` without it. Stored with the audit event beside your name and shown to the project’s people on their event stream. Part of the request: a retry with the same Idempotency-Key sends the same reason. Anyone else may leave it out; it is ignored. */
+                /** @description Why you are doing this, when you are a platform administrator who is not a member of the project — or a collaborator on it doing what a collaborator may not (adding or removing a person, archiving, restoring or deleting the project, promoting a release): 1 to 500 characters once trimmed, percent-encoded as UTF-8 (`encodeURIComponent`) when it is not plain ASCII, since a header carries no other text. Refused `400 ADMIN_REASON_REQUIRED` without it. Stored with the audit event beside your name and shown to the project’s people on their event stream. Nobody else is asked, and nothing is recorded from a reason sent when none is asked — but it is always part of the request: a retry with the same Idempotency-Key sends exactly what the first did, and another reason (or none) under that key is `409 IDEMPOTENCY_KEY_REUSED`. */
                 "Manifest-Admin-Reason"?: string;
             };
             path: {
@@ -7125,7 +7125,7 @@ export interface operations {
             header: {
                 /** @description One per user action, and the same key when retrying that action. */
                 "Idempotency-Key": string;
-                /** @description Why you are doing this, when you are a platform administrator who is not a member of the project: 1 to 500 characters once trimmed, percent-encoded as UTF-8 (`encodeURIComponent`) when it is not plain ASCII, since a header carries no other text. Refused `400 ADMIN_REASON_REQUIRED` without it. Stored with the audit event beside your name and shown to the project’s people on their event stream. Part of the request: a retry with the same Idempotency-Key sends the same reason. Anyone else may leave it out; it is ignored. */
+                /** @description Why you are doing this, when you are a platform administrator who is not a member of the project — or a collaborator on it doing what a collaborator may not (adding or removing a person, archiving, restoring or deleting the project, promoting a release): 1 to 500 characters once trimmed, percent-encoded as UTF-8 (`encodeURIComponent`) when it is not plain ASCII, since a header carries no other text. Refused `400 ADMIN_REASON_REQUIRED` without it. Stored with the audit event beside your name and shown to the project’s people on their event stream. Nobody else is asked, and nothing is recorded from a reason sent when none is asked — but it is always part of the request: a retry with the same Idempotency-Key sends exactly what the first did, and another reason (or none) under that key is `409 IDEMPOTENCY_KEY_REUSED`. */
                 "Manifest-Admin-Reason"?: string;
             };
             path: {
@@ -7181,7 +7181,7 @@ export interface operations {
             header: {
                 /** @description One per user action, and the same key when retrying that action. */
                 "Idempotency-Key": string;
-                /** @description Why you are doing this, when you are a platform administrator who is not a member of the project: 1 to 500 characters once trimmed, percent-encoded as UTF-8 (`encodeURIComponent`) when it is not plain ASCII, since a header carries no other text. Refused `400 ADMIN_REASON_REQUIRED` without it. Stored with the audit event beside your name and shown to the project’s people on their event stream. Part of the request: a retry with the same Idempotency-Key sends the same reason. Anyone else may leave it out; it is ignored. */
+                /** @description Why you are doing this, when you are a platform administrator who is not a member of the project — or a collaborator on it doing what a collaborator may not (adding or removing a person, archiving, restoring or deleting the project, promoting a release): 1 to 500 characters once trimmed, percent-encoded as UTF-8 (`encodeURIComponent`) when it is not plain ASCII, since a header carries no other text. Refused `400 ADMIN_REASON_REQUIRED` without it. Stored with the audit event beside your name and shown to the project’s people on their event stream. Nobody else is asked, and nothing is recorded from a reason sent when none is asked — but it is always part of the request: a retry with the same Idempotency-Key sends exactly what the first did, and another reason (or none) under that key is `409 IDEMPOTENCY_KEY_REUSED`. */
                 "Manifest-Admin-Reason"?: string;
             };
             path: {
@@ -7637,7 +7637,7 @@ export interface operations {
             header: {
                 /** @description One per user action, and the same key when retrying that action. */
                 "Idempotency-Key": string;
-                /** @description Why you are doing this, when you are a platform administrator who is not a member of the project: 1 to 500 characters once trimmed, percent-encoded as UTF-8 (`encodeURIComponent`) when it is not plain ASCII, since a header carries no other text. Refused `400 ADMIN_REASON_REQUIRED` without it. Stored with the audit event beside your name and shown to the project’s people on their event stream. Part of the request: a retry with the same Idempotency-Key sends the same reason. Anyone else may leave it out; it is ignored. */
+                /** @description Why you are doing this, when you are a platform administrator who is not a member of the project — or a collaborator on it doing what a collaborator may not (adding or removing a person, archiving, restoring or deleting the project, promoting a release): 1 to 500 characters once trimmed, percent-encoded as UTF-8 (`encodeURIComponent`) when it is not plain ASCII, since a header carries no other text. Refused `400 ADMIN_REASON_REQUIRED` without it. Stored with the audit event beside your name and shown to the project’s people on their event stream. Nobody else is asked, and nothing is recorded from a reason sent when none is asked — but it is always part of the request: a retry with the same Idempotency-Key sends exactly what the first did, and another reason (or none) under that key is `409 IDEMPOTENCY_KEY_REUSED`. */
                 "Manifest-Admin-Reason"?: string;
             };
             path: {
@@ -7698,7 +7698,7 @@ export interface operations {
             header: {
                 /** @description One per user action, and the same key when retrying that action. */
                 "Idempotency-Key": string;
-                /** @description Why you are doing this, when you are a platform administrator who is not a member of the project: 1 to 500 characters once trimmed, percent-encoded as UTF-8 (`encodeURIComponent`) when it is not plain ASCII, since a header carries no other text. Refused `400 ADMIN_REASON_REQUIRED` without it. Stored with the audit event beside your name and shown to the project’s people on their event stream. Part of the request: a retry with the same Idempotency-Key sends the same reason. Anyone else may leave it out; it is ignored. */
+                /** @description Why you are doing this, when you are a platform administrator who is not a member of the project — or a collaborator on it doing what a collaborator may not (adding or removing a person, archiving, restoring or deleting the project, promoting a release): 1 to 500 characters once trimmed, percent-encoded as UTF-8 (`encodeURIComponent`) when it is not plain ASCII, since a header carries no other text. Refused `400 ADMIN_REASON_REQUIRED` without it. Stored with the audit event beside your name and shown to the project’s people on their event stream. Nobody else is asked, and nothing is recorded from a reason sent when none is asked — but it is always part of the request: a retry with the same Idempotency-Key sends exactly what the first did, and another reason (or none) under that key is `409 IDEMPOTENCY_KEY_REUSED`. */
                 "Manifest-Admin-Reason"?: string;
             };
             path: {
@@ -8048,7 +8048,7 @@ export interface operations {
             header: {
                 /** @description One per user action, and the same key when retrying that action. */
                 "Idempotency-Key": string;
-                /** @description Why you are doing this, when you are a platform administrator who is not a member of the project: 1 to 500 characters once trimmed, percent-encoded as UTF-8 (`encodeURIComponent`) when it is not plain ASCII, since a header carries no other text. Refused `400 ADMIN_REASON_REQUIRED` without it. Stored with the audit event beside your name and shown to the project’s people on their event stream. Part of the request: a retry with the same Idempotency-Key sends the same reason. Anyone else may leave it out; it is ignored. */
+                /** @description Why you are doing this, when you are a platform administrator who is not a member of the project — or a collaborator on it doing what a collaborator may not (adding or removing a person, archiving, restoring or deleting the project, promoting a release): 1 to 500 characters once trimmed, percent-encoded as UTF-8 (`encodeURIComponent`) when it is not plain ASCII, since a header carries no other text. Refused `400 ADMIN_REASON_REQUIRED` without it. Stored with the audit event beside your name and shown to the project’s people on their event stream. Nobody else is asked, and nothing is recorded from a reason sent when none is asked — but it is always part of the request: a retry with the same Idempotency-Key sends exactly what the first did, and another reason (or none) under that key is `409 IDEMPOTENCY_KEY_REUSED`. */
                 "Manifest-Admin-Reason"?: string;
             };
             path: {
@@ -8093,7 +8093,7 @@ export interface operations {
             header: {
                 /** @description One per user action, and the same key when retrying that action. */
                 "Idempotency-Key": string;
-                /** @description Why you are doing this, when you are a platform administrator who is not a member of the project: 1 to 500 characters once trimmed, percent-encoded as UTF-8 (`encodeURIComponent`) when it is not plain ASCII, since a header carries no other text. Refused `400 ADMIN_REASON_REQUIRED` without it. Stored with the audit event beside your name and shown to the project’s people on their event stream. Part of the request: a retry with the same Idempotency-Key sends the same reason. Anyone else may leave it out; it is ignored. */
+                /** @description Why you are doing this, when you are a platform administrator who is not a member of the project — or a collaborator on it doing what a collaborator may not (adding or removing a person, archiving, restoring or deleting the project, promoting a release): 1 to 500 characters once trimmed, percent-encoded as UTF-8 (`encodeURIComponent`) when it is not plain ASCII, since a header carries no other text. Refused `400 ADMIN_REASON_REQUIRED` without it. Stored with the audit event beside your name and shown to the project’s people on their event stream. Nobody else is asked, and nothing is recorded from a reason sent when none is asked — but it is always part of the request: a retry with the same Idempotency-Key sends exactly what the first did, and another reason (or none) under that key is `409 IDEMPOTENCY_KEY_REUSED`. */
                 "Manifest-Admin-Reason"?: string;
             };
             path: {
@@ -8263,7 +8263,7 @@ export interface operations {
             header: {
                 /** @description One per user action, and the same key when retrying that action. */
                 "Idempotency-Key": string;
-                /** @description Why you are doing this, when you are a platform administrator who is not a member of the project: 1 to 500 characters once trimmed, percent-encoded as UTF-8 (`encodeURIComponent`) when it is not plain ASCII, since a header carries no other text. Refused `400 ADMIN_REASON_REQUIRED` without it. Stored with the audit event beside your name and shown to the project’s people on their event stream. Part of the request: a retry with the same Idempotency-Key sends the same reason. Anyone else may leave it out; it is ignored. */
+                /** @description Why you are doing this, when you are a platform administrator who is not a member of the project — or a collaborator on it doing what a collaborator may not (adding or removing a person, archiving, restoring or deleting the project, promoting a release): 1 to 500 characters once trimmed, percent-encoded as UTF-8 (`encodeURIComponent`) when it is not plain ASCII, since a header carries no other text. Refused `400 ADMIN_REASON_REQUIRED` without it. Stored with the audit event beside your name and shown to the project’s people on their event stream. Nobody else is asked, and nothing is recorded from a reason sent when none is asked — but it is always part of the request: a retry with the same Idempotency-Key sends exactly what the first did, and another reason (or none) under that key is `409 IDEMPOTENCY_KEY_REUSED`. */
                 "Manifest-Admin-Reason"?: string;
             };
             path: {
@@ -8345,7 +8345,7 @@ export interface operations {
             header: {
                 /** @description One per user action, and the same key when retrying that action. */
                 "Idempotency-Key": string;
-                /** @description Why you are doing this, when you are a platform administrator who is not a member of the project: 1 to 500 characters once trimmed, percent-encoded as UTF-8 (`encodeURIComponent`) when it is not plain ASCII, since a header carries no other text. Refused `400 ADMIN_REASON_REQUIRED` without it. Stored with the audit event beside your name and shown to the project’s people on their event stream. Part of the request: a retry with the same Idempotency-Key sends the same reason. Anyone else may leave it out; it is ignored. */
+                /** @description Why you are doing this, when you are a platform administrator who is not a member of the project — or a collaborator on it doing what a collaborator may not (adding or removing a person, archiving, restoring or deleting the project, promoting a release): 1 to 500 characters once trimmed, percent-encoded as UTF-8 (`encodeURIComponent`) when it is not plain ASCII, since a header carries no other text. Refused `400 ADMIN_REASON_REQUIRED` without it. Stored with the audit event beside your name and shown to the project’s people on their event stream. Nobody else is asked, and nothing is recorded from a reason sent when none is asked — but it is always part of the request: a retry with the same Idempotency-Key sends exactly what the first did, and another reason (or none) under that key is `409 IDEMPOTENCY_KEY_REUSED`. */
                 "Manifest-Admin-Reason"?: string;
             };
             path: {
@@ -8513,7 +8513,7 @@ export interface operations {
             header: {
                 /** @description One per user action, and the same key when retrying that action. */
                 "Idempotency-Key": string;
-                /** @description Why you are doing this, when you are a platform administrator who is not a member of the project: 1 to 500 characters once trimmed, percent-encoded as UTF-8 (`encodeURIComponent`) when it is not plain ASCII, since a header carries no other text. Refused `400 ADMIN_REASON_REQUIRED` without it. Stored with the audit event beside your name and shown to the project’s people on their event stream. Part of the request: a retry with the same Idempotency-Key sends the same reason. Anyone else may leave it out; it is ignored. */
+                /** @description Why you are doing this, when you are a platform administrator who is not a member of the project — or a collaborator on it doing what a collaborator may not (adding or removing a person, archiving, restoring or deleting the project, promoting a release): 1 to 500 characters once trimmed, percent-encoded as UTF-8 (`encodeURIComponent`) when it is not plain ASCII, since a header carries no other text. Refused `400 ADMIN_REASON_REQUIRED` without it. Stored with the audit event beside your name and shown to the project’s people on their event stream. Nobody else is asked, and nothing is recorded from a reason sent when none is asked — but it is always part of the request: a retry with the same Idempotency-Key sends exactly what the first did, and another reason (or none) under that key is `409 IDEMPOTENCY_KEY_REUSED`. */
                 "Manifest-Admin-Reason"?: string;
             };
             path: {
@@ -8650,7 +8650,7 @@ export interface operations {
             header: {
                 /** @description One per user action, and the same key when retrying that action. */
                 "Idempotency-Key": string;
-                /** @description Why you are doing this, when you are a platform administrator who is not a member of the project: 1 to 500 characters once trimmed, percent-encoded as UTF-8 (`encodeURIComponent`) when it is not plain ASCII, since a header carries no other text. Refused `400 ADMIN_REASON_REQUIRED` without it. Stored with the audit event beside your name and shown to the project’s people on their event stream. Part of the request: a retry with the same Idempotency-Key sends the same reason. Anyone else may leave it out; it is ignored. */
+                /** @description Why you are doing this, when you are a platform administrator who is not a member of the project — or a collaborator on it doing what a collaborator may not (adding or removing a person, archiving, restoring or deleting the project, promoting a release): 1 to 500 characters once trimmed, percent-encoded as UTF-8 (`encodeURIComponent`) when it is not plain ASCII, since a header carries no other text. Refused `400 ADMIN_REASON_REQUIRED` without it. Stored with the audit event beside your name and shown to the project’s people on their event stream. Nobody else is asked, and nothing is recorded from a reason sent when none is asked — but it is always part of the request: a retry with the same Idempotency-Key sends exactly what the first did, and another reason (or none) under that key is `409 IDEMPOTENCY_KEY_REUSED`. */
                 "Manifest-Admin-Reason"?: string;
             };
             path: {
@@ -9218,7 +9218,7 @@ export interface operations {
             header: {
                 /** @description One per user action, and the same key when retrying that action. */
                 "Idempotency-Key": string;
-                /** @description Why you are doing this, when you are a platform administrator who is not a member of the project: 1 to 500 characters once trimmed, percent-encoded as UTF-8 (`encodeURIComponent`) when it is not plain ASCII, since a header carries no other text. Refused `400 ADMIN_REASON_REQUIRED` without it. Stored with the audit event beside your name and shown to the project’s people on their event stream. Part of the request: a retry with the same Idempotency-Key sends the same reason. Anyone else may leave it out; it is ignored. */
+                /** @description Why you are doing this, when you are a platform administrator who is not a member of the project — or a collaborator on it doing what a collaborator may not (adding or removing a person, archiving, restoring or deleting the project, promoting a release): 1 to 500 characters once trimmed, percent-encoded as UTF-8 (`encodeURIComponent`) when it is not plain ASCII, since a header carries no other text. Refused `400 ADMIN_REASON_REQUIRED` without it. Stored with the audit event beside your name and shown to the project’s people on their event stream. Nobody else is asked, and nothing is recorded from a reason sent when none is asked — but it is always part of the request: a retry with the same Idempotency-Key sends exactly what the first did, and another reason (or none) under that key is `409 IDEMPOTENCY_KEY_REUSED`. */
                 "Manifest-Admin-Reason"?: string;
             };
             path: {
@@ -9338,7 +9338,7 @@ export interface operations {
             header: {
                 /** @description One per user action, and the same key when retrying that action. */
                 "Idempotency-Key": string;
-                /** @description Why you are doing this, when you are a platform administrator who is not a member of the project: 1 to 500 characters once trimmed, percent-encoded as UTF-8 (`encodeURIComponent`) when it is not plain ASCII, since a header carries no other text. Refused `400 ADMIN_REASON_REQUIRED` without it. Stored with the audit event beside your name and shown to the project’s people on their event stream. Part of the request: a retry with the same Idempotency-Key sends the same reason. Anyone else may leave it out; it is ignored. */
+                /** @description Why you are doing this, when you are a platform administrator who is not a member of the project — or a collaborator on it doing what a collaborator may not (adding or removing a person, archiving, restoring or deleting the project, promoting a release): 1 to 500 characters once trimmed, percent-encoded as UTF-8 (`encodeURIComponent`) when it is not plain ASCII, since a header carries no other text. Refused `400 ADMIN_REASON_REQUIRED` without it. Stored with the audit event beside your name and shown to the project’s people on their event stream. Nobody else is asked, and nothing is recorded from a reason sent when none is asked — but it is always part of the request: a retry with the same Idempotency-Key sends exactly what the first did, and another reason (or none) under that key is `409 IDEMPOTENCY_KEY_REUSED`. */
                 "Manifest-Admin-Reason"?: string;
             };
             path: {
@@ -9686,7 +9686,7 @@ export interface operations {
             header: {
                 /** @description One per user action, and the same key when retrying that action. */
                 "Idempotency-Key": string;
-                /** @description Why you are doing this, when you are a platform administrator who is not a member of the project: 1 to 500 characters once trimmed, percent-encoded as UTF-8 (`encodeURIComponent`) when it is not plain ASCII, since a header carries no other text. Refused `400 ADMIN_REASON_REQUIRED` without it. Stored with the audit event beside your name and shown to the project’s people on their event stream. Part of the request: a retry with the same Idempotency-Key sends the same reason. Anyone else may leave it out; it is ignored. */
+                /** @description Why you are doing this, when you are a platform administrator who is not a member of the project — or a collaborator on it doing what a collaborator may not (adding or removing a person, archiving, restoring or deleting the project, promoting a release): 1 to 500 characters once trimmed, percent-encoded as UTF-8 (`encodeURIComponent`) when it is not plain ASCII, since a header carries no other text. Refused `400 ADMIN_REASON_REQUIRED` without it. Stored with the audit event beside your name and shown to the project’s people on their event stream. Nobody else is asked, and nothing is recorded from a reason sent when none is asked — but it is always part of the request: a retry with the same Idempotency-Key sends exactly what the first did, and another reason (or none) under that key is `409 IDEMPOTENCY_KEY_REUSED`. */
                 "Manifest-Admin-Reason"?: string;
             };
             path: {
@@ -9890,7 +9890,7 @@ export interface operations {
             header: {
                 /** @description One per user action, and the same key when retrying that action. */
                 "Idempotency-Key": string;
-                /** @description Why you are doing this, when you are a platform administrator who is not a member of the project: 1 to 500 characters once trimmed, percent-encoded as UTF-8 (`encodeURIComponent`) when it is not plain ASCII, since a header carries no other text. Refused `400 ADMIN_REASON_REQUIRED` without it. Stored with the audit event beside your name and shown to the project’s people on their event stream. Part of the request: a retry with the same Idempotency-Key sends the same reason. Anyone else may leave it out; it is ignored. */
+                /** @description Why you are doing this, when you are a platform administrator who is not a member of the project — or a collaborator on it doing what a collaborator may not (adding or removing a person, archiving, restoring or deleting the project, promoting a release): 1 to 500 characters once trimmed, percent-encoded as UTF-8 (`encodeURIComponent`) when it is not plain ASCII, since a header carries no other text. Refused `400 ADMIN_REASON_REQUIRED` without it. Stored with the audit event beside your name and shown to the project’s people on their event stream. Nobody else is asked, and nothing is recorded from a reason sent when none is asked — but it is always part of the request: a retry with the same Idempotency-Key sends exactly what the first did, and another reason (or none) under that key is `409 IDEMPOTENCY_KEY_REUSED`. */
                 "Manifest-Admin-Reason"?: string;
             };
             path: {
@@ -10159,7 +10159,7 @@ export interface operations {
             header: {
                 /** @description One per user action, and the same key when retrying that action. */
                 "Idempotency-Key": string;
-                /** @description Why you are doing this, when you are a platform administrator who is not a member of the project: 1 to 500 characters once trimmed, percent-encoded as UTF-8 (`encodeURIComponent`) when it is not plain ASCII, since a header carries no other text. Refused `400 ADMIN_REASON_REQUIRED` without it. Stored with the audit event beside your name and shown to the project’s people on their event stream. Part of the request: a retry with the same Idempotency-Key sends the same reason. Anyone else may leave it out; it is ignored. */
+                /** @description Why you are doing this, when you are a platform administrator who is not a member of the project — or a collaborator on it doing what a collaborator may not (adding or removing a person, archiving, restoring or deleting the project, promoting a release): 1 to 500 characters once trimmed, percent-encoded as UTF-8 (`encodeURIComponent`) when it is not plain ASCII, since a header carries no other text. Refused `400 ADMIN_REASON_REQUIRED` without it. Stored with the audit event beside your name and shown to the project’s people on their event stream. Nobody else is asked, and nothing is recorded from a reason sent when none is asked — but it is always part of the request: a retry with the same Idempotency-Key sends exactly what the first did, and another reason (or none) under that key is `409 IDEMPOTENCY_KEY_REUSED`. */
                 "Manifest-Admin-Reason"?: string;
             };
             path: {
@@ -10216,7 +10216,7 @@ export interface operations {
             header: {
                 /** @description One per user action, and the same key when retrying that action. */
                 "Idempotency-Key": string;
-                /** @description Why you are doing this, when you are a platform administrator who is not a member of the project: 1 to 500 characters once trimmed, percent-encoded as UTF-8 (`encodeURIComponent`) when it is not plain ASCII, since a header carries no other text. Refused `400 ADMIN_REASON_REQUIRED` without it. Stored with the audit event beside your name and shown to the project’s people on their event stream. Part of the request: a retry with the same Idempotency-Key sends the same reason. Anyone else may leave it out; it is ignored. */
+                /** @description Why you are doing this, when you are a platform administrator who is not a member of the project — or a collaborator on it doing what a collaborator may not (adding or removing a person, archiving, restoring or deleting the project, promoting a release): 1 to 500 characters once trimmed, percent-encoded as UTF-8 (`encodeURIComponent`) when it is not plain ASCII, since a header carries no other text. Refused `400 ADMIN_REASON_REQUIRED` without it. Stored with the audit event beside your name and shown to the project’s people on their event stream. Nobody else is asked, and nothing is recorded from a reason sent when none is asked — but it is always part of the request: a retry with the same Idempotency-Key sends exactly what the first did, and another reason (or none) under that key is `409 IDEMPOTENCY_KEY_REUSED`. */
                 "Manifest-Admin-Reason"?: string;
             };
             path: {
@@ -10337,7 +10337,7 @@ export interface operations {
             header: {
                 /** @description One per user action, and the same key when retrying that action. */
                 "Idempotency-Key": string;
-                /** @description Why you are doing this, when you are a platform administrator who is not a member of the project: 1 to 500 characters once trimmed, percent-encoded as UTF-8 (`encodeURIComponent`) when it is not plain ASCII, since a header carries no other text. Refused `400 ADMIN_REASON_REQUIRED` without it. Stored with the audit event beside your name and shown to the project’s people on their event stream. Part of the request: a retry with the same Idempotency-Key sends the same reason. Anyone else may leave it out; it is ignored. */
+                /** @description Why you are doing this, when you are a platform administrator who is not a member of the project — or a collaborator on it doing what a collaborator may not (adding or removing a person, archiving, restoring or deleting the project, promoting a release): 1 to 500 characters once trimmed, percent-encoded as UTF-8 (`encodeURIComponent`) when it is not plain ASCII, since a header carries no other text. Refused `400 ADMIN_REASON_REQUIRED` without it. Stored with the audit event beside your name and shown to the project’s people on their event stream. Nobody else is asked, and nothing is recorded from a reason sent when none is asked — but it is always part of the request: a retry with the same Idempotency-Key sends exactly what the first did, and another reason (or none) under that key is `409 IDEMPOTENCY_KEY_REUSED`. */
                 "Manifest-Admin-Reason"?: string;
             };
             path: {
@@ -10626,7 +10626,7 @@ export interface operations {
             header: {
                 /** @description One per user action, and the same key when retrying that action. */
                 "Idempotency-Key": string;
-                /** @description Why you are doing this, when you are a platform administrator who is not a member of the project: 1 to 500 characters once trimmed, percent-encoded as UTF-8 (`encodeURIComponent`) when it is not plain ASCII, since a header carries no other text. Refused `400 ADMIN_REASON_REQUIRED` without it. Stored with the audit event beside your name and shown to the project’s people on their event stream. Part of the request: a retry with the same Idempotency-Key sends the same reason. Anyone else may leave it out; it is ignored. */
+                /** @description Why you are doing this, when you are a platform administrator who is not a member of the project — or a collaborator on it doing what a collaborator may not (adding or removing a person, archiving, restoring or deleting the project, promoting a release): 1 to 500 characters once trimmed, percent-encoded as UTF-8 (`encodeURIComponent`) when it is not plain ASCII, since a header carries no other text. Refused `400 ADMIN_REASON_REQUIRED` without it. Stored with the audit event beside your name and shown to the project’s people on their event stream. Nobody else is asked, and nothing is recorded from a reason sent when none is asked — but it is always part of the request: a retry with the same Idempotency-Key sends exactly what the first did, and another reason (or none) under that key is `409 IDEMPOTENCY_KEY_REUSED`. */
                 "Manifest-Admin-Reason"?: string;
             };
             path: {
@@ -10775,7 +10775,7 @@ export interface operations {
             header: {
                 /** @description One per user action, and the same key when retrying that action. */
                 "Idempotency-Key": string;
-                /** @description Why you are doing this, when you are a platform administrator who is not a member of the project: 1 to 500 characters once trimmed, percent-encoded as UTF-8 (`encodeURIComponent`) when it is not plain ASCII, since a header carries no other text. Refused `400 ADMIN_REASON_REQUIRED` without it. Stored with the audit event beside your name and shown to the project’s people on their event stream. Part of the request: a retry with the same Idempotency-Key sends the same reason. Anyone else may leave it out; it is ignored. */
+                /** @description Why you are doing this, when you are a platform administrator who is not a member of the project — or a collaborator on it doing what a collaborator may not (adding or removing a person, archiving, restoring or deleting the project, promoting a release): 1 to 500 characters once trimmed, percent-encoded as UTF-8 (`encodeURIComponent`) when it is not plain ASCII, since a header carries no other text. Refused `400 ADMIN_REASON_REQUIRED` without it. Stored with the audit event beside your name and shown to the project’s people on their event stream. Nobody else is asked, and nothing is recorded from a reason sent when none is asked — but it is always part of the request: a retry with the same Idempotency-Key sends exactly what the first did, and another reason (or none) under that key is `409 IDEMPOTENCY_KEY_REUSED`. */
                 "Manifest-Admin-Reason"?: string;
             };
             path: {
@@ -10929,7 +10929,7 @@ export interface operations {
             header: {
                 /** @description One per user action, and the same key when retrying that action. */
                 "Idempotency-Key": string;
-                /** @description Why you are doing this, when you are a platform administrator who is not a member of the project: 1 to 500 characters once trimmed, percent-encoded as UTF-8 (`encodeURIComponent`) when it is not plain ASCII, since a header carries no other text. Refused `400 ADMIN_REASON_REQUIRED` without it. Stored with the audit event beside your name and shown to the project’s people on their event stream. Part of the request: a retry with the same Idempotency-Key sends the same reason. Anyone else may leave it out; it is ignored. */
+                /** @description Why you are doing this, when you are a platform administrator who is not a member of the project — or a collaborator on it doing what a collaborator may not (adding or removing a person, archiving, restoring or deleting the project, promoting a release): 1 to 500 characters once trimmed, percent-encoded as UTF-8 (`encodeURIComponent`) when it is not plain ASCII, since a header carries no other text. Refused `400 ADMIN_REASON_REQUIRED` without it. Stored with the audit event beside your name and shown to the project’s people on their event stream. Nobody else is asked, and nothing is recorded from a reason sent when none is asked — but it is always part of the request: a retry with the same Idempotency-Key sends exactly what the first did, and another reason (or none) under that key is `409 IDEMPOTENCY_KEY_REUSED`. */
                 "Manifest-Admin-Reason"?: string;
             };
             path: {
@@ -11061,7 +11061,7 @@ export interface operations {
             header: {
                 /** @description One per user action, and the same key when retrying that action. */
                 "Idempotency-Key": string;
-                /** @description Why you are doing this, when you are a platform administrator who is not a member of the project: 1 to 500 characters once trimmed, percent-encoded as UTF-8 (`encodeURIComponent`) when it is not plain ASCII, since a header carries no other text. Refused `400 ADMIN_REASON_REQUIRED` without it. Stored with the audit event beside your name and shown to the project’s people on their event stream. Part of the request: a retry with the same Idempotency-Key sends the same reason. Anyone else may leave it out; it is ignored. */
+                /** @description Why you are doing this, when you are a platform administrator who is not a member of the project — or a collaborator on it doing what a collaborator may not (adding or removing a person, archiving, restoring or deleting the project, promoting a release): 1 to 500 characters once trimmed, percent-encoded as UTF-8 (`encodeURIComponent`) when it is not plain ASCII, since a header carries no other text. Refused `400 ADMIN_REASON_REQUIRED` without it. Stored with the audit event beside your name and shown to the project’s people on their event stream. Nobody else is asked, and nothing is recorded from a reason sent when none is asked — but it is always part of the request: a retry with the same Idempotency-Key sends exactly what the first did, and another reason (or none) under that key is `409 IDEMPOTENCY_KEY_REUSED`. */
                 "Manifest-Admin-Reason"?: string;
             };
             path: {
@@ -11641,7 +11641,7 @@ export interface operations {
             header: {
                 /** @description One per user action, and the same key when retrying that action. */
                 "Idempotency-Key": string;
-                /** @description Why you are doing this, when you are a platform administrator who is not a member of the project: 1 to 500 characters once trimmed, percent-encoded as UTF-8 (`encodeURIComponent`) when it is not plain ASCII, since a header carries no other text. Refused `400 ADMIN_REASON_REQUIRED` without it. Stored with the audit event beside your name and shown to the project’s people on their event stream. Part of the request: a retry with the same Idempotency-Key sends the same reason. Anyone else may leave it out; it is ignored. */
+                /** @description Why you are doing this, when you are a platform administrator who is not a member of the project — or a collaborator on it doing what a collaborator may not (adding or removing a person, archiving, restoring or deleting the project, promoting a release): 1 to 500 characters once trimmed, percent-encoded as UTF-8 (`encodeURIComponent`) when it is not plain ASCII, since a header carries no other text. Refused `400 ADMIN_REASON_REQUIRED` without it. Stored with the audit event beside your name and shown to the project’s people on their event stream. Nobody else is asked, and nothing is recorded from a reason sent when none is asked — but it is always part of the request: a retry with the same Idempotency-Key sends exactly what the first did, and another reason (or none) under that key is `409 IDEMPOTENCY_KEY_REUSED`. */
                 "Manifest-Admin-Reason"?: string;
             };
             path: {
