@@ -1941,11 +1941,23 @@ gates `EXPECT_*` per `scripts/ci-acceptance.sh`, `pnpm test:docker` per §2's ro
 the U1 plan was written at `bae220f`: re-read before Task 1 edits them. **`make demo-gateway` needs the network and the key and refuses real
 GitHub** — its demo does not belong to the U1 plan, but its classification checks will move with Task 2.
 
+**THREE THINGS FOR SITTING 1, ADDED BY THE COORDINATOR'S END-OF-DAY SWEEP (`manifest-af`, 2026-10-04 01:19, measured):**
+- **Task 0 applies the decided spec action at Rich's word — ask him one wording point first.** The spec action's E3 says a lowered level
+  narrows each running app's key by *"its project's level"*; the plan reads that as each running instance's FROZEN level (its Decision 8,
+  the review's M12, the decisions file's 23:47 entry). Put both readings to him with the plan's as the recommendation, and apply his words.
+- **The Docker network budget** (TRAPS, *"DOCKER DESKTOP RUNS OUT OF NETWORKS AT ~31"*): **22 networks and 30 `mf-` containers at 01:19, every
+  one project-less** (`make ci-acceptance`'s demo apps; the control database reads 0 projects). Count before each tier. Removing them is
+  Rich's: on 2026-10-03 23:13 he ran a script that refuses unless the control database holds ZERO projects, then `docker rm -f -v` on each
+  `mf-` container and `dead-app-resources.sh --apply` (the decisions file's 23:13 entry describes it); offer him the same.
+- **The contract:** this plan takes `1.6.0 → 1.7.0`; the FE-46/47/5 plan after it now reads `1.8.0` (its header note). Message the faculty
+  front-end's live session before each contract commit, with the FE ask the plan names.
+
 **RICH'S, NONE BLOCKING:** the gateway key's rotation before 2027-01-01 (`make doctor` warns 14 days ahead); the PROBE key to delete at the
 gateway; the gateway-side fallback `qwen3.6-35b-a3b → gpt-6-luna` and the two unregistrable models (F28) — both at the gateway; *before
 production*: a failure's body verbatim (F27), the `llm_provider-*` leak's remainder (the review's M6), and an EXPLICIT reported cost of `0.0`
 being charged `$0` (F36 — the gateway sends none today); real repositories in `Manifest-local-dev` no project owns (CLAUDE.md); `make
-refresh-vulndb` after 2026-10-10.
+refresh-vulndb` after 2026-10-10; **FE-55** (the front-end's F5b sitting 1: a CWL app asking no attribute validates, builds and releases,
+then its deploy answers `500 INTERNAL` — `~/Developer/manifest-app/docs/api-findings.md:1728`), raised 2026-10-03, NOT YET PLACED by Rich.
 
 **THE PEER SESSIONS** (`ListAgents` immediately before every promised message):
 - **A coordinator may be live** (`manifest-af` co-ordinated the gateway plan). If one is, report each commit and any classifier refusal (the
@@ -1991,7 +2003,10 @@ reasoning is recorded.**
   stays inside UBC's GitHub — but it is a flow of a person's name to a third party, and the privacy assessment's *where it flows*
   names it (the plan's Task 11). *Options, not yet weighed:* keep the person as author (attribution, as today); author every commit
   as Manifest, and keep the person in the platform's own record only (`madeThrough` already holds it); or a pseudonymous author.
-- **MAY `internal` DATA REACH A MODEL PROVIDER OUTSIDE CANADA? — FOR THE PRIVACY OFFICE, RAISED 2026-09-27** by Rich's
+- **MAY `internal` DATA REACH A MODEL PROVIDER OUTSIDE CANADA? — FOR THE PRIVACY OFFICE, RAISED 2026-09-27** *(Since 2026-10-03 21:48 the
+  classes are becoming U1's levels, and Rich's position is on the record: U1 High Risk — student names, IDs, grades — may reach OpenAI
+  through UBC's gateway because UBC's organisation has zero data retention, *"it's been deemed okay as long as ZDR is enabled"*; Very
+  High may not. The Privacy Office keeps the last word; the question below now reads "may `high`…".)* Raised by Rich's
   capable-model decision (*Decided*, below): the capable model is OpenAI's for now, at `internal`, as §7's catalogue already
   allows `default-chat` to *"route off-prem"*. The platform enforces the name's `max_classification`, and `confidential` never
   leaves on-premise hardware; whether a US-hosted provider suits `internal` course data is FIPPA's question, and the Privacy
@@ -2024,6 +2039,12 @@ reasoning is recorded.**
 
 ### Decided
 
+- **MANIFEST'S DATA CLASSES BECOME UBC'S U1 LEVELS — RICH, 2026-10-03 21:48, 22:21 AND 23:22** (through the question tool): `low | medium |
+  high | very-high`, `very-high` on-premise only; `public`/`internal`/`confidential` kept forever as aliases (`low`/`medium`/`very-high`), so
+  contract `1.7.0` is additive; OpenAI through the gateway (zero data retention, per Rich) and Bedrock up to `high`; the spec action's S1–S11
+  as recommended (S9 tokens refused `high` tails; S10 the builder keeps the capable model) — DECIDED, applied by the U1 plan's Task 0; the
+  plan APPROVED with its review's fixes. [`2026-09-30-decisions.md`](2026-09-30-decisions.md), its 21:48, 22:21, 23:22 and 23:47 entries;
+  [`plans/2026-10-03-u1-spec-action.md`](plans/2026-10-03-u1-spec-action.md), [`plans/2026-10-03-u1-classification.md`](plans/2026-10-03-u1-classification.md).
 - **LiteLLM RE-PINNED TO 1.102.0 SO A STREAM IS CHARGED ITS PROVIDER'S USAGE — RICH, 2026-10-03 23:31, 23:40, 23:47 AND 2026-10-04 00:01** (through
   the question tool): F32 — *"Fix it in this plan tonight"*; *"Re-pin to 1.102.0, with a stop rule"* (the tier on 1.102.0; the guard broken
   would have put the pin back); the spec's words — §21's row *"Two sentences"*, §10's dated sentence *"As proposed"* (applied `b0bd6a7`); and
