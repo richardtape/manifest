@@ -1037,3 +1037,19 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
         points), with a failing Docker case against the stub first and the Docker tier again. The acceptance's gateway-side
         check then compares the streamed call too. He also answered the placement question, "Right after the U1 plan"; it is
         moot unless tonight's fix cannot land, in which case F32 becomes its own item there.
+
+    And at 23:40 PDT (the clock read just before this entry), F32's FIX (manifest-be's measurements, 23:3x–23:4x, in throwaways
+    from the pinned digest and from v1.102.0, each torn down). LiteLLM 1.98.0 throws away a provider's streamed usage when it
+    arrives on the final frame beside the choice, the shape UBC's gateway (a LiteLLM 1.102.0) sends: it was charged 14 + 1 by its
+    own count where the provider reported 5 + 1. Usage in a frame of its own is charged right. The drop is in
+    streaming_handler.py's assembly, and no CustomLogger hook of 1.98.0 sees the provider's figure. LiteLLM v1.102.0 charges the
+    final-frame shape correctly (5 + 1) through openai/ and litellm_proxy/, and manifest_guard.py loads in it. Through the
+    question tool — "Re-pin to 1.102.0, with a stop rule" (Recommended):
+      1. a failing Docker case first, the stub's final-frame shape, red on 1.98.0;
+      2. the digest moves in infra/images.txt:32, infra/lib/common.sh and doctor.sh's check, images.lock is regenerated, and
+         `make up` recreates LiteLLM;
+      3. that case goes green, then the whole Docker tier re-proves the guard on 1.102.0, then make verify and the demos.
+    STOP RULE: if the tier shows the guard broken on 1.102.0, the pin goes back to 1.98.0 (one line, `make up`), and F32 is
+    recorded for a plan of its own. It carries a one-line SPEC CHANGE he approved in substance: §21's LiteLLM row, "litellm 1.98.0,
+    sha256:20b5044b…", becomes 1.102.0 and its digest, noting why (F32). Its exact words come back to him before the spec changes.
+    Rejected: a version-locked patch of LiteLLM's internals; recording it for a plan of its own.
