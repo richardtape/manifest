@@ -22,6 +22,10 @@
 > sitting 4's M1) and **Task 16b** (~13:34 — `member.removed`, sitting 5's own finding), all in sitting 5; and **Task 17** (~14:24 —
 > `passport-ubcshib` 0.1.7-rc.1) as a new **sitting 5b**, run by a fresh session (~14:33). **The plan now has 18 tasks (1–17 and 16b) in
 > eight sittings.** Task 11 is still the acceptance, alone and last.
+>
+> **EXECUTED 2026-10-03.** Sitting 7 (Task 11, the acceptance) closed at ~19:35 PDT: `make demo-faculty-ready` green three times on each
+> driver, its eight controls red, the one whole-branch review's fix (`6b5d471`), and **Rich clicked it, ~18:19 PDT: *"all done, all looked good"***.
+> Its *Sitting 7* is the record.
 
 > **For agentic workers:** REQUIRED SUB-SKILL: superpowers:executing-plans (native) or superpowers:subagent-driven-development, **whichever Rich chooses at sitting 1's open** (2026-09-30: *"Probably not subagent driven though"*). Implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking. **Commit on `main`; no branch, no worktree, no push** — ORIENTATION §6 rule 9, which both of those skills will push you against.
 
@@ -82,7 +86,7 @@ It is proved by `make demo-faculty-ready`, on either driver, through `@manifest/
 | 5 — **after 6** | 7, 9, **15, 16, 16b** | **`node:24-alpine`** for the blueprints (`make seed`, the network, at Rich's yes). **The IdP store's own role** (a key Rich adds to `.env`). **Task 15** (added 2026-10-03 by Rich's (a) on I2): an administrator who is a collaborator gives a reason beyond their role. **Task 16** (added the same morning, sitting 4's M1): a question's end recorded in the transaction that ends it. **Task 16b** (added ~13:34 by Rich): `member.removed` recorded the same way | Yes — `build/`, `blueprints/`, `infra/`, `projects/` | **5** (§26) for Task 15 — **APPLIED 2026-10-03** | **DONE 2026-10-03** (`56c614a`, `9b216d3`, `7d789b3`, `af99b80`, `16ac01c`; **its driver-1 demos Rich ran as `s5-edge-proof.sh` the same afternoon, 13:58–14:00 PDT: `make demo`, `demo-identity` and `demo-ai` green, both apps on Node v24.21.0, the IdP's sessions in `ssp_store`** — *Sitting 5* below) |
 | 5b (added ~14:24 by Rich) | **17** | **`passport-ubcshib` 0.1.7-rc.1** in `node-ts-mongo@1` (and `fixtures/saml-sp`): off the deprecated `passport-saml` 3.2.4 and GHSA-4mxg-3p6v-xgq3, onto `@node-saml/passport-saml` 5.1.1 — the single-logout path measured, a real CWL sign-in through a Manifest-built app. **A FRESH session** (Rich, ~14:33) | Yes — `blueprints/` | — | **DONE 2026-10-03** (`1dcb905`; no `make seed` — ruled, and proved by `make verify`'s mirror check; **Rich ran `s5b-edge-proof.sh` 15:31–15:35 PDT: `make demo-identity` and `make demo-redeploy` green on the rc, the app's LogoutResponse through the edge `Success`**; Spec action 6 PROPOSED and held for Rich — *Sitting 5b* below) |
 | 6 (pulled ahead of 5 by Rich, 2026-10-03) | 10 | **§26's administrator reason**: enforced centrally, stored with the actor, shown to the project's people | Yes — `projects/`, `observability/`, `api/` | **1** (§26, §6) | **DONE 2026-10-03** (`beb4827`, `1312504`; the review's fixes `8481440`; the whole suite's `efcaaeb`; **its through-the-edge half Rich ran as `s6-edge-proof.sh` on 2026-10-03, ~12:15 PDT: the refusal, the reason and the three demos green; its two stream/audit FAILs were the SCRIPT's, and both assertions hold** (the addendum after *Sitting 6*); **I2 DECIDED (a) by Rich the same morning — Task 15, in sitting 5**; *Sitting 6* below) |
-| 7 ← **next** | 11 | **The acceptance**: `make demo-faculty-ready` on either driver, three times on each; every other demo; the offline acceptance's new step; **a clicked half**; the plan's one whole-branch review. **Alone, and last** | Yes, if any code changes | — | |
+| 7 | 11 | **The acceptance**: `make demo-faculty-ready` on either driver, three times on each; every other demo; the offline acceptance's new step; **a clicked half**; the plan's one whole-branch review. **Alone, and last** — **widened by Rich (17:21) with Tasks 15, 16b and 17's phases** | Yes, if any code changes | — | **DONE 2026-10-03 — THE PLAN IS EXECUTED** (`536523f`, `68fb971`; the review's fix `6b5d471`; green three times on each driver, the eight controls red, **Rich clicked it ~18:19 PDT: *"all done, all looked good"*** — *Sitting 7* below) |
 
 **EVERY SITTING ENDS THE SAME WAY, and none of these four steps is optional:**
 
@@ -1004,7 +1008,7 @@ docs/superpowers/spikes/faculty-ready-baseline/      NEW (T1)
 - Create: `packages/journey/src/faculty-ready.ts`, `scripts/demo-faculty-ready.sh`
 - Modify: `Makefile`, `scripts/ci-acceptance.sh` (a step; the `EXPECT_` lines), `scripts/offline-acceptance.sh` (a new step)
 
-- [ ] **Step 1: The phases**, each ending `every check passed`, on either driver.
+- [x] **Step 1: The phases**, each ending `every check passed`, on either driver.
   1. **Sign-in through the edge.** The jar holds `__Host-manifest_session` (Secure, `Path=/`, no Domain) on `console.` and on `app.`. A tossed `manifest_session` with `Domain=manifest.internal` changes nothing.
   2. **A refusal carries `x-request-id` equal to `error.requestId`**, and the control plane's output holds one line with that id and code. The demo reads the log file `cp-start.sh` writes; where it cannot, it says so, and the Docker case is the witness.
   3. **`listBlueprints`** has no `fixture-node@1`; `getBlueprint('fixture-node@1')` answers.
@@ -1019,11 +1023,11 @@ docs/superpowers/spikes/faculty-ready-baseline/      NEW (T1)
      - `getPendingAction` reads `expired`;
      - `instructor`'s confirm is `409 PENDING_ACTION_RESOLVED`;
      - the stream carried one `pending_action.expired`, `cause: 'token_revoked'`, naming `instructor`.
-- [ ] **Step 2: Green three times on each driver** (fresh, re-use, from `make reset`), and every other demo, and `make ci-acceptance`.
-- [ ] **Step 3: The negative controls**, each seen red and restored: one per phase.
-- [ ] **Step 4: The clicked half.** Stage everything; ask Rich once; he types the passwords. **In headless Chrome FIRST** (Task 5's control (c)): the browser refuses a `__Host-` cookie at `Path=/auth`.
-- [ ] **Step 5: The plan's one whole-branch review**, beside the Docker tier; one fix wave.
-- [ ] **Step 6: Close out**: the ledger, ORIENTATION §7e's next job (FE-32's plan to write — **superseded by Rich's order of 2026-10-03, 15:28: the UBC AI Gateway plan is next, then FE-46/47/5's; ORIENTATION §8 *Decided*** — sitting 5b), and the front-end told.
+- [x] **Step 2: Green three times on each driver** (fresh, re-use, from `make reset`), and every other demo, and `make ci-acceptance`.
+- [x] **Step 3: The negative controls**, each seen red and restored: one per phase.
+- [x] **Step 4: The clicked half.** Stage everything; ask Rich once; he types the passwords. **In headless Chrome FIRST** (Task 5's control (c)): the browser refuses a `__Host-` cookie at `Path=/auth`.
+- [x] **Step 5: The plan's one whole-branch review**, beside the Docker tier; one fix wave.
+- [x] **Step 6: Close out**: the ledger, ORIENTATION §7e's next job (FE-32's plan to write — **superseded by Rich's order of 2026-10-03, 15:28: the UBC AI Gateway plan is next, then FE-46/47/5's; ORIENTATION §8 *Decided*** — sitting 5b), and the front-end told.
 
 ---
 
@@ -2345,3 +2349,134 @@ and the logs they left in `$TMPDIR` (`s3-edge-proof.FhmBvNM9br`, `s4-edge-proof.
   dead. **22 Docker networks** (25 at the open).
 - **`docker-simple-saml` is clean** but for its long-standing untracked `cert.zip`; **`~/Developer/passport-ubcshib` was only read** (`git show`).
   **7102 and 7105 are the faculty front-end's** (mock mode). **Free disk 63 GiB.** **The vulnerability database is fresh until 2026-10-10.**
+
+### Sitting 7 — 2026-10-03, evening: Task 11 — the acceptance, `make demo-faculty-ready` (`manifest-80`, a fresh session)
+
+**What happened.**
+- **Opened ~17:23 PDT on `984b09b`**, at `manifest-94`'s *GO* after sitting 5b's close; executed inline. 7100 was PID 16927 (real GitHub).
+  No front-end session was live, so the platform-window flag alone was the protocol (HOLD around every whole-suite run, the Docker tier,
+  `make verify` and the contract edit).
+- **Rich's word on its scope (17:21, through `manifest-94`; `../2026-09-30-decisions.md`, `984b09b`):** ADD the three phases §7e recommended —
+  Task 15 (a collaborator-administrator beyond the role), Task 16b (a removal recorded once), Task 17 (the app's single-logout answer decoded
+  `Success`); **no `passport-ubcshib` pin move** (the move happens once, at 0.1.7 final); Spec action 6 applied by him.
+- **The commits:**
+  - `536523f` — **the acceptance**: `packages/journey/src/faculty-ready.ts` and `scripts/demo-faculty-ready.sh`, steps 0–8 (Task 11's seven
+    phases, phase 6 widened by Task 15 and phase 7 by Task 16b, and Rich's phase 8 for Task 17); `make demo-faculty-ready`;
+    `make ci-acceptance`'s step 10 and the offline acceptance's step 17;
+  - `68fb971` — the demo's step 7 records a missing `pending_action.expired` as a FAIL rather than throwing past the removal's checks (F3);
+  - `6b5d471` — the whole-branch review's fix wave (F7–F9).
+- **THE RESTART OF 7100 ONTO DRIVER 1 WAS ALLOWED THIS SITTING** (17:34, `.superpowers/sdd/2026-09-30-faculty-ready/s7-cp.sh local`), which
+  the classifier refused at sitting 3 — so the controls and the driver-1 runs were this session's own, not scripts for Rich.
+- **Rich's two answers at 17:44** (through `manifest-94`, both as recommended): **the `.env` swap for the fake** — `cp -p .env` to a 0600 copy
+  in the workspace, ONLY the seven `MANIFEST_SOURCE_DRIVER=` / `MANIFEST_GITHUB_` lines commented (the gateway key's line, commented on
+  purpose, untouched), restored after the driver-2 legs and **proved byte-identical with `cmp` (18:00:32)**; and **`make reset` ONCE, by this
+  session** (17:58). **Everyone signs in again after it.**
+
+**Findings.**
+
+1. **F1 — Node 24 names its main thread `MainThread`.** Step 5's first probe matched `/proc/<pid>/comm` against `node` and found nothing; it
+   reads `cmdline` and `PPid` now. Under `Init: true` PID 1 reads `docker-init` and the app's `node server.js` is its child (PID 7); without
+   the init PID 1 itself reads `MainThread` (control 5). TRAPS says so.
+2. **F2 — the demo expected `addMember` to answer `200`**; it answers `201`. The expectation corrected.
+3. **F3 — step 7's cause check dereferenced `expired[0]` unguarded**, so a revoke that ended no question (exactly control 7's break) would
+   THROW, and the removal's checks after it would never run. Guarded (`68fb971`) before any control ran.
+4. **F4 — a blueprint's skeleton is read ONCE, at boot** (`blueprints/registry.ts:141`). Control 8, run without a restart, stayed GREEN: the
+   app it built still held the logout verify (`docker exec … grep -c 'done(null, null)' /app/auth/ubcshib.js` → 1). The harness's premise
+   ("a project reads the skeleton at create") was wrong, not the platform; with a restart it went red where predicted. TRAPS says so.
+5. **F5 — a slip: control 2's first break did not compile** (`void (` before the original call's trailing comma — TS1109), and 7100 stayed
+   down ~3 minutes until the corrected break's restart. No run counted.
+6. **F6 — ORIENTATION §2's offline-acceptance bullet still said "sixteen headings, 0 to 15"** — stale since the launch path plan's sitting 12
+   added step 16. Now eighteen, 0 to 17.
+7. **F7 — the review's I1, Important: Task 15 left the published contract stating Task 10's rule.** `Manifest-Admin-Reason`'s description on
+   24 operations said it is for an administrator *"who is not a member"* and ended *"Anyone else may leave it out; it is ignored"* — false for
+   a collaborator-administrator, refused `400` without it, and the same sentence sitting 6's F10 had corrected in `conventions.md` only (a sent
+   reason is in every sender's idempotency fingerprint). `EventActor.asAdministrator` and `EventActor` said true only for a non-member — while
+   this sitting's own step 6 asserts `asAdministrator: true` for a collaborator. **Fixed** (`6b5d471`): a `document.test.ts` case, red at both
+   strings first; contract `1.6.0` still (text only); the same stale rule swept from comments in `acting.ts`, `bus.ts` and `db/schema.ts`.
+8. **F8 — the review's minor: `addMember`'s comment said *"`removeMember` takes no project lock"*** — false since Task 16b, contradicting
+   `removeMember`'s own. Corrected with F7 (a ruling: a false lock-order comment is what the next deadlock is reasoned from).
+9. **F9 — the review's minor: step 7's last check name claimed *"in its transaction"***, which a demo cannot see (recording after the commit
+   also yields one event; `questions-end-atomic.test.ts` is the witness). Renamed with F7.
+
+**Not findings, but recorded:**
+- **Rulings** (the ledger has each with its cost): steps 0–8; nothing launches, so the re-use path deletes and remakes the project; the app is
+  `fixtures/launch-path-app/` reused; step 2 reads 7100's stderr file (`lsof -d 2`) or `DEMO_FACULTY_READY_CP_LOG`, and says so when there is
+  none; step 1's tossed cookie carries the OPERATOR's live session; step 8 reads the app's `LogoutResponse` from the walk's own hops AND the
+  IdP's access log; phase 6's beyond-role act is `addMember`, its within-role act `renameProject`; the two review minors fixed, not deferred;
+  no second Docker tier for `6b5d471` (comments and `.describe()` text only — sitting 6's ruling for `efcaaeb`).
+- **A built-in safety check (not the user, not the classifier) refused one command as a possible removal** — it held no `rm`: a python edit
+  and a `docker exec … sh -c` process listing. Not retried in that form.
+- **The headless walk's first run read 19 of 20**: its own check matched the reason panel's title in mixed case, and the console renders it in
+  CSS capitals. Not a defect; the check made case-insensitive.
+
+**Step 2 — green three times on each driver, on the final demo code (`68fb971`), every check passed each time:**
+- **driver 1**: re-used 17:54 (66 checks, 46 s); **from the `make reset` machine** 18:00 (65, 45 s) — and fresh after `make ci-acceptance`'s
+  truncation (*The gates at the close*);
+- **driver 2, on the fake**: fresh 17:55 (65, 45 s); re-used 17:56 (66, 47 s); **from the `make reset` machine** 17:59 (65, 46 s);
+- **every other demo**: on driver 2 `make demo-github` (55 s); on driver 1 after the reset `make demo` (26 s), `demo-identity` (32 s),
+  `demo-ai` (42 s), `demo-redeploy` (180 s); the rest inside `make ci-acceptance`.
+- **`make reset`** (17:58): `mf-` containers 37 → 0, Docker networks 25 → 12, the four protected containers up; then `make doctor` 21/0/0 and
+  `make verify` 66/0/0.
+
+**Step 3 — the negative controls**, one per step, each committed first, its break asserted to match once, the diff shown, 7100 restarted on it,
+restored by `git checkout` to 0 changed lines (`s7-control.sh`; outputs `s7-control-<n>.txt`) — **every one RED exactly where predicted**:
+- **(1)** the credential hook also reading a plain `manifest_session` on https → RED at exactly 1: *the tossed cookie alone* answered `opr000001`;
+- **(2)** `sendRefusal` writing no operator line → RED at exactly 2: *exactly ONE line* (0) and *it is the refusal's*;
+- **(3)** `offered()` keeping every blueprint → RED at exactly 1: the list check (`fixture-node@1, node-ts-mongo@1`);
+- **(4)** the replay refusal without its session facts → RED at exactly 1: *error.session.id*;
+- **(5)** `Init: false` → RED at exactly 2: PID 1 `MainThread`, and no node child;
+- **(6)** `requireAdminReason` exempting every member (`projectRole !== null`) → RED at exactly 3: the beyond-role refusal (`403
+  STEP_UP_REQUIRED` instead), *beyond your role*, and `member.added`'s actor `{asAdministrator: false, reason: null}`;
+- **(7)** the revoke expiring nothing → RED at exactly 4: *expired* (`pending`), the yes (`200`, confirmed), ONE expired (0), the cause; the
+  removal's four checks green;
+- **(8)** the blueprint's logout verify removed → RED at exactly 2: both `status:Success` checks read `Requester` — on its SECOND run (F4).
+
+**Step 4 — the clicked half.**
+- **Headless Chrome first** (Chrome/154.0.8037.93, its own profile; the test passwords typed by the script under Rich's standing yes):
+  **20 of 20** (`s7-chrome.mjs`, 18:11) — each origin's own `__Host-manifest_session` (host-only, `Path=/`, Secure, HttpOnly, no plain name);
+  on the real edge Chrome REFUSES a `__Host-` cookie at `Path=/auth` and keeps one at `Path=/`; the operator's reason panel, the rename
+  refused with *"quote this reference: <uuid>"*, then renamed with a reason; the instructor reading *"Test Operator acted as a platform
+  administrator — reason: '…'"*. **And Task 5's control (c) in Chrome** (18:12): the login cookie at `Path=/auth`, 7100 restarted on it —
+  Chrome kept NO `__Host-manifest_login` and the sign-in ended *"Sign-in could not be completed"*. Restored.
+- **Rich clicked all five rows, done by ~18:19 PDT — *"all done, all looked good"*** (WALKTHROUGH, *What stood before a faculty member's first
+  day, clicked*): the cookie and its flags on `console.` and `app.`; the operator's not-a-member panel; the rename refused showing the
+  reference; the rename with a reason; the instructor's event naming the operator and the reason. `audit.events` afterwards:
+  `project.renamed` at 18:19:17 PDT, `acted_as_admin` true, reason *"now with a reason"*.
+
+**Step 5 — the plan's one whole-branch review** (opus, read-only, over `b32ce14..de866bf` with code-only diffs and the Review Focus verbatim,
+~18:16–18:30, beside the Docker tier): no Critical; **every Review Focus item held across the sittings** — the acting context reaches the
+in-transaction events of Tasks 13/16/16b, the lock order is acyclic with `removeMember`'s `FOR KEY SHARE`, every refusal added later reaches
+`sendRefusal`, every cookie read and clear goes through `cookieNames`, one reason decoder; ONE Important (F7) and two Minor (F8, F9), fixed in
+one wave. **Its declined-to-judge lines**, each ruled as it reasoned: a token minted by an administrator acts `asAdministrator: false` (§26's
+mint rule); reads exempt; Task 17's verify (F2 of 5b, Rich's library); per-origin clears by design; `checkSlug` versus
+`SOURCE_REPOSITORY_EXISTS` not a regression; a raw `%XX` in a reason the client's (the contract says encode); **the streaming hook's
+`aclose()` on a client's disconnect — named, needing a runtime read of LiteLLM 1.98**; the archive's `PROJECT_ARCHIVED` accepted.
+
+**The gates at the close.**
+- **`pnpm test` twice on the final tree (`6b5d471`'s code): 3289 in 201, identical** — once inside `make ci-acceptance` (18:47–19:03, 982 s) and
+  once alone (19:15–19:31, 966 s), load ~3–5. `EXPECT_TESTS` moves 3287 → **3289**, `EXPECT_FILES` 201 unchanged (`scripts/ci-acceptance.sh`
+  says where the 2 came from: F7's two contract-text cases).
+- **`make ci-acceptance` on driver 1, 18:45–19:14, exit 0 — 0 failed, 1 moved, 1 not run**: doctor 21, verify 66, the three fast gates, `pnpm
+  test` (MOVED, by the +2), the three builds, `make demo-journey`, `demo-token`, `demo-production`, `demo-releases`, `demo-authoring`,
+  `demo-frontend`, `demo-launch` and `demo-faculty-ready` (the FRESH path after the run's truncation) PASS; `demo-github` NOT RUN (driver 2's — it
+  was green on driver 2 at 17:57).
+- **`pnpm test:docker`: 273 in 42, green, 18:20–18:40 (1229 s)**, on `de866bf`'s code, beside the review; 16 → 23 networks. Unchanged in count.
+  **No second tier for `6b5d471`** (a ruling: comments and `.describe()` text only in its Docker-owed directories).
+- `pnpm lint`, `pnpm typecheck` (every workspace) and `pnpm format:check` clean.
+- **`make doctor` 21, 0 warnings; `make verify` 66, 0 warnings** — after the reset (18:01) and again at the close (19:32), on real GitHub.
+- **The contract is still `1.6.0`** (F7's change is description text), its `dist/` rebuilt.
+
+**The machine at the close** (queried at ~19:33 PDT, not remembered):
+- **The control plane: PID 5301 on 7100, REAL GitHub** (`api.github.com`, `Manifest-local-dev`), restarted from `.env` (`s7-cp.sh real`, 19:31),
+  as it was found; LiteLLM serves `default-chat-large`. Every restart this sitting was ALLOWED.
+- **The control database: 0 users, 0 projects** (`psql`) — the close's `pnpm test` truncated it, after the 17:58 reset made everything new.
+- **Containers:** 10 `manifest-`, the four protected (up), and **39 `mf-` containers, every one ROWLESS** (the demos' ten apps). **25 Docker
+  networks.**
+- **The three cleanup scripts ran bare and then `--apply`, none refused** (19:32): 7 dead networks and 2 volumes; 4 LiteLLM orphans
+  (`mf-platform-intake` and three `mf-person-` budgets; its re-read said *"5 user(s) remain (was 10)"*, one more than listed, as at sittings
+  5 and 5b: not chased); 43 dead app images (1.8 GB). Re-run, each reads 0 dead. 13 orphan driver-2 mirrors named, never removed.
+- **`.env` byte-identical to the 17:55 copy** (`cmp`, 18:00 and 19:33), the copy deleted; **the GitHub fake stopped** and the console's
+  `vite preview` on 7104 stopped, as found; nothing on 7194. **7102 and 7105 are the faculty front-end's** (mock mode).
+- **`docker-simple-saml` is clean** but for its long-standing untracked `cert.zip`. **Free disk 59 GiB.** **The vulnerability database is fresh
+  until 2026-10-10.**
+- **The shared HTML pages were checked** (none names anything this sitting changed); the spec is unchanged by this sitting.

@@ -962,7 +962,7 @@ what those commands reported *on 2026-09-05*; P3 and then P4a have since added c
 and the current numbers are stated ONCE each (Rich, 2026-09-30): **`scripts/ci-acceptance.sh`'s `EXPECT_` lines** for
 `pnpm test`, `make doctor` and `make verify`, and **ORIENTATION §2's `pnpm test:docker` row** — this file states none of them. **The offline acceptance has not been
 re-run since 2026-09-05**, and P4a Task 15 owes it: it is Rich's to run, because
-disabling Wi-Fi cuts an agent off too. **It now has SIXTEEN steps, 1 to 16, after step 0's offline check** (the launch path plan's Task 15 added step 16, `make demo-launch`; the front-end enablement plan's Task 15 step 15, `make demo-frontend`; and the authoring API plan's Task 13 step 14, `make demo-authoring` — all three run on either driver; this line said FIFTEEN until the launch path plan's sitting 12, and FOURTEEN until its sitting 2's sweep) — P5a sitting 12 added `make demo-journey` as step 8,
+disabling Wi-Fi cuts an agent off too. **It now has SEVENTEEN steps, 1 to 17, after step 0's offline check** (the faculty-ready plan's Task 11 added step 17, `make demo-faculty-ready`; the launch path plan's Task 15 step 16, `make demo-launch`; the front-end enablement plan's Task 15 step 15, `make demo-frontend`; and the authoring API plan's Task 13 step 14, `make demo-authoring` — all four run on either driver; this line said SIXTEEN until the faculty-ready plan's sitting 7, FIFTEEN until the launch path plan's sitting 12, and FOURTEEN until its sitting 2's sweep) — P5a sitting 12 added `make demo-journey` as step 8,
 P5b sitting 9 added `make demo-token` as step 9, P5c sitting 9 added the console's
 preflight as step 10 (2026-09-19), and P6a sitting 11 added `make demo-production` as step 11
 (2026-09-22), and P6b sitting 7 added `make demo-releases` as step 12 (2026-09-23) — whose
@@ -1431,6 +1431,47 @@ manifest `internal`, and a `mf-person-` user at LiteLLM (`scripts/litellm-orphan
 CLICKED half (WALKTHROUGH, *A launch's three records and the administrators' queue, clicked*), `default-chat-large` (it needs
 the network), and anything FE-46, FE-47 or FE-5 would change (their spec actions are drafted, not applied).
 
+## `make demo-faculty-ready` — the faculty-ready plan's acceptance: what stood before a faculty member's first day
+
+*Added by the faculty-ready plan's sitting 7, 2026-10-03 (Task 11).*
+
+What stood between the platform and a real faculty member's first day, each seen through the edge. The bash half
+(`scripts/demo-faculty-ready.sh`) signs people in, steps them up, reads the cookie jars, asks the app's container for its PID 1
+and walks an app's sign-out; the TypeScript half (`packages/journey/src/faculty-ready.ts`) is every client call, through
+`@manifest/contract` alone. **It runs on EITHER driver**: `facultyready-local` on driver 1, `facultyready-github` on driver 2 —
+**the GitHub FAKE**, refused by name while `.env`'s real-App block is in force (`require_fake_github` reads `.env`), as
+`make demo-launch` is. **Nothing in it launches**, so it needs no fresh vulnerability database, and a project an earlier run left
+is deleted and made again: every step runs whole every time.
+
+```bash
+make demo-faculty-ready                                  # whichever driver answers
+DEMO_FACULTY_READY_STOP_AFTER=3 make demo-faculty-ready  # stop after a step, 0 to 8 — a negative control's short run
+DEMO_FACULTY_READY_CP_LOG=<file> make demo-faculty-ready # the control plane's output, when it is not on 7100's stderr
+```
+
+**Measured 2026-10-03** (sitting 7, on `68fb971`): **~45 s** on either driver, fresh, re-used, or from a `make reset` machine
+(the app's image layers come from the build cache).
+
+**The app** is `make demo-launch`'s, `fixtures/launch-path-app/` — a CWL sign-in and §8's single logout at `/auth/logout`.
+**Step 2 reads the control plane's own output**: the file 7100's stderr is written to (found with `lsof`), or
+`DEMO_FACULTY_READY_CP_LOG`; when there is none — a control plane started in a terminal — it says so and checks the rest.
+
+| Step | What happens | What must be true |
+|---|---|---|
+| 0 | the build; `/v1/me`; the driver; the control plane's output found | `401 UNAUTHENTICATED` through the edge; on driver 2 the fake answers |
+| 1 | the instructor signs in on `console.` and on `app.`; the operator (granted) and a colleague sign in; a plain `manifest_session` carrying the OPERATOR's session is tossed with `Domain=manifest.internal` | each jar holds `__Host-manifest_session` **HttpOnly, host-only, `Path=/`, Secure** and no plain name; `/v1/me` answers the instructor on each origin; with the tossed cookie beside it (curl's trace shows it sent) it still answers the instructor; the tossed cookie ALONE is **`401 UNAUTHENTICATED`** |
+| 2 | an unknown blueprint asked for | **`404 NOT_FOUND`**; `x-request-id` a UUID **equal to `error.requestId`**; a success carries an id of its own; the control plane's output holds **exactly one** line with that id — `msg: refused`, the code, the status, no credential |
+| 3 | the blueprints listed; `fixture-node@1` asked for | the list offers `node-ts-mongo@1` and **not** `fixture-node@1`; `getBlueprint(fixture-node@1)` still answers it |
+| 4 | the project from the bare skeleton; a model session started, then started again with the SAME Idempotency-Key; ended | **`409 AGENT_SESSION_ALREADY_STARTED`** with `error.session.id` the first session's, and no key in the refusal |
+| 5 | the app committed, built, released, deployed to staging by its owner | healthy; the stream's `instance.healthy` names the owner, `asAdministrator: false`, no reason; staging answers `/healthz` **as the app**; **the container's PID 1 is `docker-init`**, and `node server.js` runs as its child |
+| 6 | stepped up: the operator (an administrator, NOT a member) deploys staging, without and with a reason; the owner adds the operator as a COLLABORATOR; the operator renames the project, then adds the colleague — without a reason, with one but un-stepped, then with both | **`400 ADMIN_REASON_REQUIRED`**, then healthy — the owner's LIVE stream names *Test Operator*, `asAdministrator: true`, the reason as typed (it is not plain ASCII: sent percent-encoded) and the sentence *"… acted as a platform administrator — reason: '…'"*; the rename asked nothing, recorded `asAdministrator: false`; the addition **`400 ADMIN_REASON_REQUIRED`** saying *beyond your role*, then **`403 STEP_UP_REQUIRED`**, then **`201`** with `member.added`'s actor `asAdministrator: true` and that reason |
+| 7 | stepped up: a token asks to add a person; its minter revokes it; the instructor confirms; the colleague removed, twice | **`403 TOKEN_ACTION_PENDING`**; the question **`expired`**; the confirm **`409 PENDING_ACTION_RESOLVED`**; exactly ONE `pending_action.expired`, `cause: token_revoked`, `by` the instructor; the removal **`200`** both times; exactly ONE `member.removed`, live and in the replay |
+| 8 | a student signs in to the app and out (`/auth/logout`, every redirect walked) | the app greets them; **the app's LogoutResponse to the IdP decodes `status:Success`** — read from the walk's own hops AND from the IdP's access log since the sign-in; the app has forgotten them |
+
+**What it does not cover:** the CLICKED half (a person seeing the cookie, a refusal's reference and the reason panel —
+WALKTHROUGH); production; a model call. **Its eight negative controls**, one per step, each red where predicted, are in the plan's
+*Sitting 7*. **A green run leaves** the project on staging, a `mf-person-` user at LiteLLM and the operator an administrator.
+
 ## `make ci-acceptance` and `make demo-console` — 1c's acceptance, in two halves
 
 *Added by P5c sitting 8, 2026-09-19 (Task 13).*
@@ -1458,7 +1499,7 @@ of everything that is broken rather than a stop at the first thing. It runs, in 
 `make doctor`, `make verify`, `pnpm lint`, `pnpm typecheck`, `pnpm format:check`,
 `pnpm test`, the three package builds, then `make demo-journey`, `make demo-token`, `make demo-production`
 and — last of driver 1's, because it leaves `launch-app` on its leg C release — `make demo-releases`,
-then `make demo-github`, and then, on EITHER driver, `make demo-authoring`, `make demo-frontend` and `make demo-launch`. *(This line named
+then `make demo-github`, and then, on EITHER driver, `make demo-authoring`, `make demo-frontend`, `make demo-launch` and `make demo-faculty-ready`. *(This line named
 three demos until the D5 plan's sitting 8 found it; P6b sitting 7 had added `make demo-releases` to the script and not
 to this sentence — and the authoring API plan's Task 13 added `make demo-authoring` to the script and not to it, which
 the front-end enablement plan's Task 15 found when it added `make demo-frontend` to both.)*

@@ -208,7 +208,11 @@ red() { printf '\033[31m%s\033[0m' "$1"; }
 # Then its sitting 5b (2026-10-03, Task 17, passport-ubcshib 0.1.7-rc.1): +2, no new file — `blueprints/blueprints.test.ts` (2: an
 # exact prerelease pin accepted and every range naming one refused (F3), and fixtures/saml-sp held to the blueprint's versions (F1)).
 # Measured twice on the final tree, 3287 in 201.
-EXPECT_TESTS=3287
+# Then its sitting 7 (2026-10-03, Task 11, the acceptance): +2, no new file — `api/contract/document.test.ts` (2: the published words
+# of §26's reason — the Manifest-Admin-Reason header and EventActor.asAdministrator — name the collaborator beyond their role, and
+# never call a sent reason ignored; the plan's whole-branch review's I1). Measured twice on the final tree, 3289 in 201 (once inside
+# `make ci-acceptance`).
+EXPECT_TESTS=3289
 EXPECT_FILES=201
 EXPECT_DOCTOR=21
 # EXPECT_VERIFY 64 -> 66 (2026-10-03, the faculty-ready plan's sitting 5, Task 9): the IdP's session store is
@@ -453,7 +457,7 @@ cat <<'TAIL'
      services/, build/, releases/, identity/, sso/, secrets/, projects/, blueprints/,
      ai/, observability/, infra/ or a *.docker.test.ts;
    - the OFFLINE acceptance — `scripts/offline-acceptance.sh`, run by hand with the
-     network off, whose steps 0-16 include `make demo-identity` and `make demo-ai`;
+     network off, whose steps 0-17 include `make demo-identity` and `make demo-ai`;
    - BOTH source drivers in one run — one driver per control-plane process, so a run on
      driver 1 reads `make demo-github` NOT RUN, and a run on driver 2 the other four.
 TAIL

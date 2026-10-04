@@ -2583,3 +2583,15 @@ answers `303` to `ReturnTo` either way — so `make demo-identity` and the Docke
 refuses every range. **A lockfile regenerated through Verdaccio writes `http://127.0.0.1:7108/` into `resolved`** for every package it newly
 fetches; the committed convention is `https://registry.npmjs.org/` (which npm's default `replace-registry-host` rewrites to the mirror), so
 rewrite the host before committing — Task 17's 33 and 35 entries were.
+
+**A BLUEPRINT'S SKELETON IS READ ONCE, AT BOOT — AN EDIT TO IT REACHES NO PROJECT UNTIL THE CONTROL PLANE RESTARTS** (2026-10-03, the
+faculty-ready plan's sitting 7, Task 11). `blueprints/registry.ts:141` reads `skeleton/` as text into the registry when the control plane
+starts, and a new project is seeded from that copy. A negative control that removed the logout verify from
+`blueprints/node-ts-mongo/skeleton/auth/ubcshib.js` and ran `make demo-faculty-ready` WITHOUT a restart stayed GREEN: the app it built still
+held the verify (`docker exec <app> grep -c 'done(null, null)' /app/auth/ubcshib.js` → 1). With a restart it went red at exactly the two
+`status:Success` checks. **Restart the control plane after any change under `blueprints/`** — a control, a pin move, a knowledge-pack edit.
+
+**NODE 24 NAMES ITS MAIN THREAD `MainThread`, SO `/proc/<pid>/comm` OF AN APP'S NODE NEVER READS `node`** (2026-10-03, the faculty-ready plan's
+sitting 7). Inside a `node:24-alpine` app container, `cat /proc/7/comm` reads `MainThread`; PID 1 under `Init: true` reads `docker-init`, and
+without the init PID 1 itself reads `MainThread`. A probe matching `comm` against `node` found nothing and failed for its own reason. Read
+`/proc/<pid>/cmdline` (`node server.js`) and `PPid:` in `/proc/<pid>/status` instead.
