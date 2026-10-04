@@ -18,6 +18,7 @@ import { loadModelCatalogue } from './catalogue.js'
 import { createLiteLlmClient, type LiteLlmClient } from './client.js'
 import { AiError } from './errors.js'
 import { agentModelsFor } from './models.js'
+import { ensureGatewayModels } from './gateway-models.js'
 import { gatewayKeyRef, type Gateway } from './providers.js'
 import {
   LITELLM_CONFIG,
@@ -42,6 +43,10 @@ const GW_STUB = `http://host.docker.internal:${GW_STUB_PORT}`
 
 /** LiteLLM's own table, read directly: a not-live row is invisible to `/model/info` (measured). */
 async function rowsNamedCapable(): Promise<number> {
+  return rowsNamed(CAPABLE_MODEL_NAME)
+}
+
+async function rowsNamed(name: string): Promise<number> {
   const url = new URL(process.env.MANIFEST_ADMIN_DATABASE_URL!)
   url.pathname = '/litellm'
   const client = new pg.Client({ connectionString: url.toString() })
@@ -49,7 +54,7 @@ async function rowsNamedCapable(): Promise<number> {
   try {
     const { rows } = await client.query<{ n: string }>(
       'select count(*) as n from "LiteLLM_ProxyModelTable" where model_name = $1',
-      [CAPABLE_MODEL_NAME],
+      [name],
     )
     return Number(rows[0]!.n)
   } finally {
@@ -459,5 +464,91 @@ describeDocker('the capable model against the running LiteLLM (Task 12a)', () =>
       }
     }
     expect(await rowsNamedCapable()).toBe(0)
+  }, 120_000)
+
+  it('a CONFIDENTIAL gateway model LiteLLM cannot price is pinned at the on-premise stand-in’s price, charged at it, and removed with the setting empty (the UBC AI Gateway plan’s Task 3)', async () => {
+    const run = Date.now()
+    const name = `probe-gw-onprem-${run}`
+    const user = `gw-task3-${randomUUID()}`
+    let userMade = false
+    const stub = await startStubProvider(GW_STUB_PORT, { bearer: 'probe-not-a-key' })
+    // NEVER the default key reference here: the stub must be shown MANIFEST_STUB_BEARER's plain value (I3).
+    const gateway: Gateway = {
+      url: `${GW_STUB}/gw/ok/v1`,
+      keyRef: gatewayKeyRef('MANIFEST_STUB_BEARER'),
+      keyInEnv: true,
+    }
+    try {
+      // `openai/probe-onprem-<run>` is in neither of LiteLLM's price maps, so it prices it at 0.
+      const entry = {
+        name,
+        setting: `ubc-ai-gateway/probe-onprem-${run}`,
+        classification: 'confidential' as const,
+      }
+      expect((await ensureGatewayModels(client, [entry], gateway)).models).toEqual([
+        { name, state: 'registered', model: entry.setting },
+      ])
+      const body = await client.get<{
+        data: {
+          model_name: string
+          litellm_params: Record<string, unknown>
+          model_info: Record<string, unknown>
+        }[]
+      }>('/model/info')
+      const listed = body.data.filter((d) => d.model_name === name)
+      expect(listed).toHaveLength(1)
+      // infra/litellm/config.yaml's default-chat-onprem: the synthetic $1 / $3 a million, pinned.
+      expect(listed[0]!.litellm_params.input_cost_per_token).toBe(1e-6)
+      expect(listed[0]!.litellm_params.output_cost_per_token).toBe(3e-6)
+      expect(listed[0]!.model_info.max_classification).toBe('confidential')
+      expect(String(listed[0]!.model_info.id)).toMatch(/^manifest-gateway-/)
+      expect(listed[0]!.litellm_params).not.toHaveProperty('api_key')
+
+      await client.post('/user/new', {
+        user_id: user,
+        max_budget: 1,
+        auto_create_key: false,
+      })
+      userMade = true
+      const { key } = await client.post<{ key: string }>('/key/generate', {
+        user_id: user,
+        key_alias: `${user}-key`,
+        models: [name],
+        allowed_routes: ['/v1/chat/completions'],
+        duration: '600s',
+        max_budget: 0.5,
+      })
+      const res = await fetch(`${litellmUrl()}/v1/chat/completions`, {
+        method: 'POST',
+        headers: { authorization: `Bearer ${key}`, 'content-type': 'application/json' },
+        body: JSON.stringify({
+          model: name,
+          max_tokens: 8,
+          messages: [{ role: 'user', content: 'Answer with the single word ok.' }],
+        }),
+      })
+      const answer = (await res.json()) as {
+        usage?: { prompt_tokens: number; completion_tokens: number }
+      }
+      expect(res.status, JSON.stringify(answer).slice(0, 300)).toBe(200)
+      expect(stub.hits('/gw/ok/v1/chat/completions')).toBe(1)
+      expect(stub.authorized('/gw/ok/v1/chat/completions')).toBe(1)
+      // The stub reports no cost, so the pin is the whole price (the plan's F4).
+      const { prompt_tokens, completion_tokens } = answer.usage!
+      expect(await spendOf(client, key)).toBeCloseTo(
+        prompt_tokens * 1e-6 + completion_tokens * 3e-6,
+        12,
+      )
+
+      expect(await ensureGatewayModels(client, [], gateway)).toEqual({ models: [] })
+      expect(await rowsNamed(name)).toBe(0)
+    } finally {
+      try {
+        await ensureGatewayModels(client, [], gateway)
+      } finally {
+        await stub.close()
+        if (userMade) await client.post('/user/delete', { user_ids: [user] })
+      }
+    }
   }, 120_000)
 })

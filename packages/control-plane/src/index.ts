@@ -31,7 +31,6 @@ import { createSamlSpFor } from './identity/index.js'
 import { createEventBus, createStreamRegistry } from './observability/index.js'
 import { NullReviewer, takeDownLeftRehearsals } from './launch/index.js'
 import {
-  capableModelAtBoot,
   createAiKeyService,
   createCatalogueCache,
   createLiteLlmClient,
@@ -39,6 +38,7 @@ import {
   disabledCatalogue,
   gatewayKeyRef,
   narrowSessionsHoldingMore,
+  platformModelsAtBoot,
   type Gateway,
 } from './ai/index.js'
 import {
@@ -464,6 +464,13 @@ const sourcePrepared = await source.prepare()
 await app.listen({ port: config.port, host: '127.0.0.1' })
 
 /**
+ * UBC's AI Gateway as a registration names it (the UBC AI Gateway plan's Task 2): its address, its key BY
+ * REFERENCE — `os.environ/UBC_AI_GATEWAY_API_KEY`, resolved by LiteLLM from its own environment — and whether
+ * `.env` carried the key at all, read before the scrub removed it. A gateway setting with no key FAILS CLOSED.
+ */
+const gateway: Gateway = { ...config.ubcAiGateway, keyRef: gatewayKeyRef() }
+
+/**
  * THE CAPABLE MODEL (§7, §21, §26; the front-end enablement plan's Task 12a): LiteLLM's catalogue made
  * to hold exactly what `MANIFEST_CAPABLE_MODEL` says — `default-chat-large` registered at `internal` and
  * pinned at LiteLLM's own price, repointed, or removed when the setting is unset — AND ITS FALLBACK
@@ -476,20 +483,19 @@ await app.listen({ port: config.port, host: '127.0.0.1' })
  * a refusal or a gateway that does not answer is one operator line and the boot goes on, because
  * `default-chat` still serves (C1). With AI off there is no client, and nothing is registered or removed.
  */
-/**
- * UBC's AI Gateway as a registration names it (the UBC AI Gateway plan's Task 2): its address, its key BY
- * REFERENCE — `os.environ/UBC_AI_GATEWAY_API_KEY`, resolved by LiteLLM from its own environment — and whether
- * `.env` carried the key at all, read before the scrub removed it. A gateway setting with no key FAILS CLOSED.
- */
-const gateway: Gateway = { ...config.ubcAiGateway, keyRef: gatewayKeyRef() }
-
+// THE GATEWAY'S MODELS FIRST, then the capable model and its fallback (the UBC AI Gateway plan's Task 3, I5):
+// the fallback may name a gateway model, and `capableModelAtBoot` refuses a fallback the catalogue does not hold
+// yet. `platformModelsAtBoot` holds the order, so a unit test can see it.
 const capable =
   litellm === undefined
-    ? { capableModel: 'disabled', capableFallback: 'disabled' }
-    : await capableModelAtBoot(
+    ? { gatewayModels: 'disabled', capableModel: 'disabled', capableFallback: 'disabled' }
+    : await platformModelsAtBoot(
         litellm,
-        config.litellm.capableModel,
-        config.litellm.capableFallback,
+        {
+          gatewayModels: config.litellm.gatewayModels,
+          capableModel: config.litellm.capableModel,
+          capableFallback: config.litellm.capableFallback,
+        },
         gateway,
       )
 
@@ -557,6 +563,9 @@ console.log(
     // Task 12b: what it did to that name's fallback — set, unchanged, removed, absent, refused or failed
     // (refused with its own line; failed with one, or under the capable model's when that step failed).
     capableFallback: capable.capableFallback,
+    // The UBC AI Gateway plan's Task 3: each MANIFEST_GATEWAY_MODELS entry's state — registered, unchanged or
+    // refused (each refusal with its own operator line) — or failed (one line), or disabled with AI off.
+    gatewayModels: capable.gatewayModels,
     // Task 14a (FE-36): which models a confidential project's building agent may call, and how many active
     // agent sessions this boot ended because their project no longer allows what they held.
     agentBuilderModels: config.agent.builderModels,

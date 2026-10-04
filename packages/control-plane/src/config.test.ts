@@ -147,6 +147,8 @@ describe('configuration', () => {
       enabled: true,
       // Task 12b: the capable model's fallback defaults to the on-premise model (Spec action 8).
       capableFallback: 'default-chat-onprem',
+      // The UBC AI Gateway plan's Task 3: no gateway model unless MANIFEST_GATEWAY_MODELS names one.
+      gatewayModels: [],
     })
     expect(config.litellm.masterKey).toBeUndefined()
   })
@@ -738,5 +740,85 @@ describe('UBC’s AI Gateway (the UBC AI Gateway plan’s Task 2)', () => {
     const config = loadConfig({ ...base, UBC_AI_GATEWAY_API_KEY: value })
     expect(JSON.stringify(config)).not.toContain(value)
     expect(config.ubcAiGateway).toEqual({ url: DEFAULT, keyInEnv: true })
+  })
+})
+
+describe('UBC’s AI Gateway’s own models, from one setting (the UBC AI Gateway plan’s Task 3)', () => {
+  /** The refusal's code and message — CONFIG_INVALID, an already-published code (sitting 2's ruling), so the
+   *  MESSAGE says which setting and which entry, and the test reads it. */
+  const refusal = (value: string) => {
+    try {
+      loadConfig({ ...base, MANIFEST_GATEWAY_MODELS: value })
+      return 'accepted'
+    } catch (e) {
+      return e instanceof ConfigError ? `${e.code}: ${e.message}` : String(e)
+    }
+  }
+
+  it('parses each entry to a name, a gateway setting and its classification', () => {
+    expect(
+      loadConfig({
+        ...base,
+        MANIFEST_GATEWAY_MODELS:
+          'ubc-onprem=ubc-ai-gateway/qwen-x@confidential, ubc-mini=ubc-ai-gateway/gpt-6-mini@internal',
+      }).litellm.gatewayModels,
+    ).toEqual([
+      {
+        name: 'ubc-onprem',
+        setting: 'ubc-ai-gateway/qwen-x',
+        classification: 'confidential',
+      },
+      {
+        name: 'ubc-mini',
+        setting: 'ubc-ai-gateway/gpt-6-mini',
+        classification: 'internal',
+      },
+    ])
+  })
+
+  it('reads none when unset or empty — and skips empty entries', () => {
+    expect(loadConfig({ ...base }).litellm.gatewayModels).toEqual([])
+    expect(
+      loadConfig({ ...base, MANIFEST_GATEWAY_MODELS: '' }).litellm.gatewayModels,
+    ).toEqual([])
+    expect(
+      loadConfig({
+        ...base,
+        MANIFEST_GATEWAY_MODELS: ' , ubc-a=ubc-ai-gateway/a@public ,',
+      }).litellm.gatewayModels,
+    ).toEqual([{ name: 'ubc-a', setting: 'ubc-ai-gateway/a', classification: 'public' }])
+  })
+
+  it('splits on the LAST @, so a model id may hold one (M5 — Vertex-style ids carry one)', () => {
+    expect(
+      loadConfig({
+        ...base,
+        MANIFEST_GATEWAY_MODELS: 'ubc-vertex=ubc-ai-gateway/claude-x@20250101@internal',
+      }).litellm.gatewayModels,
+    ).toEqual([
+      {
+        name: 'ubc-vertex',
+        setting: 'ubc-ai-gateway/claude-x@20250101',
+        classification: 'internal',
+      },
+    ])
+  })
+
+  it('refuses every malformed entry, naming it — never a default classification (Review Focus 3)', () => {
+    for (const entry of [
+      'ubc-x=ubc-ai-gateway/m',
+      'ubc-x=ubc-ai-gateway/m@restricted',
+      'ubc-x=openai/x@internal',
+      'default-chat-large=ubc-ai-gateway/m@internal',
+      'Bad_Name=ubc-ai-gateway/m@internal',
+      'x=ubc-ai-gateway/m@',
+      'x=ubc-ai-gateway/@internal',
+    ]) {
+      const said = refusal(entry)
+      expect(said, entry).toMatch(/^CONFIG_INVALID: .*MANIFEST_GATEWAY_MODELS/)
+      expect(said, entry).toContain(`'${entry}'`)
+    }
+    const twice = refusal('a=ubc-ai-gateway/m@internal,a=ubc-ai-gateway/n@public')
+    expect(twice).toMatch(/^CONFIG_INVALID: .*MANIFEST_GATEWAY_MODELS.*'a'.*twice/)
   })
 })

@@ -277,6 +277,37 @@ name). **The gateway's own failures** — the key refused a model (`403`), a wro
 budget_exceeded`), the gateway unreachable (`500`) — fall back to the on-premise model; **a model the gateway does not serve is a `400` the
 fallback does not answer** (Rich, 2026-10-03: *"accept it"*), so a mistyped setting is loud to every caller until it is corrected.
 
+#### UBC's AI Gateway's models
+
+*Added 2026-10-03 (the UBC AI Gateway plan's Task 3; Rich's Q1: *"New names from one setting"*).* **`MANIFEST_GATEWAY_MODELS`** puts the
+gateway's own models into the catalogue under names of their own:
+`MANIFEST_GATEWAY_MODELS=<name>=ubc-ai-gateway/<model>@<classification>,…` — for example
+`ubc-onprem=ubc-ai-gateway/<an on-premise model>@confidential, ubc-mini=ubc-ai-gateway/<another>@internal` (the names and
+classifications on this laptop are Rich's, in `.env`). Every boot registers each entry
+at its own classification, at the gateway's address with the key by reference, under an id beginning `manifest-gateway-`, and REMOVES every
+one the setting no longer lists; empty or unset is none. The boot line's `gatewayModels` is each entry's state (`registered`, `unchanged`,
+`refused` with ONE `[boot] a gateway model (MANIFEST_GATEWAY_MODELS) '<name>' was refused: …` line each), `failed` (one line), or
+`disabled`. It runs BEFORE the capable model's step, so `MANIFEST_CAPABLE_MODEL_FALLBACK` may name an entry. The same key rules apply: the
+order (`.env`, `make up`, restart), the fail-closed boot (every `manifest-gateway-` deployment removed when `.env` carries no key), and
+`make verify`'s fingerprint.
+
+- **The names are yours, and never one the catalogue already holds** — `default-chat-onprem` stays Ollama (the capable model's fallback and
+  the offline floor for `confidential` apps), so naming it is refused and registers nothing; `default-chat-large` is refused at boot (it is
+  `MANIFEST_CAPABLE_MODEL`'s). Lowercase letters, digits and `-`. A model id may hold `@` — the classification follows the LAST one.
+- **The classification is the entry's, never assumed**: an entry without one, or with any word but `public`, `internal` or `confidential`,
+  refuses the boot (`CONFIG_INVALID`, naming the entry). **`confidential` only for a model on UBC's own hardware with no gateway-side
+  fallback off it** — the platform cannot see the gateway's fallbacks (measured on 2026-10-03: the gateway falls back from
+  `qwen3.6-35b-a3b` to off-premise `gpt-6-luna`, so that model cannot be `confidential` while it does). D17 then hands each entry to
+  whoever its classification allows: a `confidential` entry reaches a `confidential` project's agent and app; an `internal` one never does.
+- **The price**: LiteLLM's own for the gateway's model name, pinned, as the capable model's is (and for a model the gateway prices, the
+  person is charged UBC's figure). **A `confidential` entry LiteLLM cannot price is pinned at `default-chat-onprem`'s synthetic price**
+  ($1 / $3 a million, read from its config entry), because on-premise hardware has no per-token price and `$0` binds no budget. **Any other
+  entry LiteLLM cannot price is refused** — the fix is at the gateway, which exposes the model under its vendor name.
+- **An entry has NO fallback**: with the network off — or the gateway down, or its budget for Manifest spent — a call to one fails. An app or
+  agent that needs to work offline names `default-chat` or `default-chat-onprem`. **Naming an entry as `MANIFEST_CAPABLE_MODEL_FALLBACK`
+  loses the capable model's offline fallback** for the same reason: `default-chat-onprem` answers with the network off, a gateway model does
+  not.
+
 ### The building agent's models
 
 *Added 2026-09-28 (the front-end enablement plan's Task 14a; §7, §10 and §26 as Spec action 10 amended them).* **`MANIFEST_AGENT_BUILDER_MODELS`

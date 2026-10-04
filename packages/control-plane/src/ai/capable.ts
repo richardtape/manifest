@@ -1,9 +1,5 @@
 import { CLASSIFICATION_RANK, type Classification } from '../spec/index.js'
-import {
-  CatalogueError,
-  loadModelCatalogue,
-  type CatalogueSnapshot,
-} from './catalogue.js'
+import { loadModelCatalogue, type CatalogueSnapshot } from './catalogue.js'
 import type { LiteLlmClient } from './client.js'
 import { AiError } from './errors.js'
 import { resolveSetting, type Gateway } from './providers.js'
@@ -11,6 +7,7 @@ import {
   answered,
   apiBaseOf,
   ensureRegistered,
+  failureOf,
   idOf,
   listDeployments,
   modelOf,
@@ -286,21 +283,6 @@ export interface CapableAtBoot {
 }
 
 /**
- * The code alone, and who failed to answer: an AiError's fields never carry the gateway's body (§14), and
- * anything else is named by its class rather than a message that might quote one.
- */
-function failure(error: unknown): string {
-  if (error instanceof CatalogueError) {
-    return `${error.code}; LiteLLM listed no models — \`make doctor\` says whether it is up`
-  }
-  const code = error instanceof AiError ? error.code : (error as Error).name
-  const heard = answered(error)
-    ? `LiteLLM answered HTTP ${error.status} — \`docker logs manifest-litellm\` says why`
-    : 'LiteLLM did not answer — `make doctor` says whether it is up'
-  return `${code}; ${heard}`
-}
-
-/**
  * The boot's call (`index.ts`, straight AFTER `listen` — a boot that fails anywhere before it serves
  * changes nothing in the shared gateway; the review's I3): the capable model, then its fallback. Both are
  * OPTIONAL, so nothing here stops the platform — `default-chat` still serves (Decision: *an unpriced
@@ -325,7 +307,7 @@ export async function capableModelAtBoot(
     capableModel = result.state
   } catch (error) {
     console.error(
-      `${said} could not be set to '${setting ?? '(unset)'}': ${failure(error)}. ` +
+      `${said} could not be set to '${setting ?? '(unset)'}': ${failureOf(error)}. ` +
         `${CAPABLE_MODEL_NAME} and its fallback may still be as they were before this boot, and the next ` +
         'boot tries again.',
     )
@@ -339,7 +321,7 @@ export async function capableModelAtBoot(
     return { capableModel, capableFallback: result.state }
   } catch (error) {
     console.error(
-      `${fell} could not be set to '${fallbackSetting ?? '(none)'}': ${failure(error)}. ` +
+      `${fell} could not be set to '${fallbackSetting ?? '(none)'}': ${failureOf(error)}. ` +
         `${CAPABLE_MODEL_NAME}'s fallback may still be as it was before this boot, and the next boot tries again.`,
     )
     return { capableModel, capableFallback: 'failed' }

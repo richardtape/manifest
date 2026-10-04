@@ -71,6 +71,18 @@ export {
 } from './providers.js'
 export type { Gateway, ProviderParams } from './providers.js'
 export {
+  ensureGatewayModels,
+  GATEWAY_MODELS_SETTING,
+  gatewayModelsAtBoot,
+  platformModelsAtBoot,
+} from './gateway-models.js'
+export type {
+  GatewayModel,
+  GatewayModelResult,
+  GatewayModelsAtBoot,
+  PlatformModelsAtBoot,
+} from './gateway-models.js'
+export {
   AgentSessionError,
   agentSessionById,
   agentSessionsOf,

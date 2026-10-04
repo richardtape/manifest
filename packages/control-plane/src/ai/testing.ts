@@ -285,7 +285,11 @@ function configDeployments(): FakeDeployment[] {
   const declared = parse(readFileSync(LITELLM_CONFIG, 'utf8')) as {
     model_list: {
       model_name: string
-      litellm_params: { model: string; input_cost_per_token?: number }
+      litellm_params: {
+        model: string
+        input_cost_per_token?: number
+        output_cost_per_token?: number
+      }
       model_info?: Record<string, unknown>
     }[]
   }
@@ -299,6 +303,11 @@ function configDeployments(): FakeDeployment[] {
     ...(m.litellm_params.input_cost_per_token === undefined
       ? {}
       : { inputCostPerToken: m.litellm_params.input_cost_per_token }),
+    // Its OUTPUT price too, as LiteLLM answers a config entry's (the UBC AI Gateway plan's Task 3, M2): without it
+    // `outputCostOf` read 0 for every `ollama_chat/` entry, and the stand-in's price was half a price.
+    ...(m.litellm_params.output_cost_per_token === undefined
+      ? {}
+      : { outputCostPerToken: m.litellm_params.output_cost_per_token }),
   }))
 }
 

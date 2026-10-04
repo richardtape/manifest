@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import type { Classification } from '../spec/index.js'
+import { CatalogueError } from './catalogue.js'
 import type { LiteLlmClient } from './client.js'
 import { AiError } from './errors.js'
 import { viaGateway, type ProviderParams } from './providers.js'
@@ -245,18 +246,25 @@ export async function ensureRegistered(
     const status = asSet.refusedWith
     return refuse((kept) => unservedReason(r, status, kept))
   }
+  // The price LiteLLM gave the model — or, when it gave `0`, the registration's own `unpriced` (a confidential
+  // gateway model: on-premise hardware has no per-token price, and `$0` would bind no budget). Otherwise refused.
   const cost = asSet.entry.model_info
-  if (!priced(asSet.entry)) {
+  const output = cost?.output_cost_per_token
+  let price: Price
+  if (priced(asSet.entry)) {
+    price = {
+      input_cost_per_token: cost!.input_cost_per_token as number,
+      ...(typeof output === 'number' && Number.isFinite(output) && output >= 0
+        ? { output_cost_per_token: output }
+        : {}),
+    }
+  } else if (r.unpriced !== undefined) {
+    price = r.unpriced
+  } else {
     await removeIfSaved(client, r.name, asSet.id)
     return refuse((kept) => unpricedReason(r, kept))
   }
-  const output = cost?.output_cost_per_token
-  const atPrice = await create(client, r, {
-    input_cost_per_token: cost!.input_cost_per_token as number,
-    ...(typeof output === 'number' && Number.isFinite(output) && output >= 0
-      ? { output_cost_per_token: output }
-      : {}),
-  })
+  const atPrice = await create(client, r, price)
   await removeIfSaved(client, r.name, asSet.id)
   if ('refusedWith' in atPrice) {
     const status = atPrice.refusedWith
@@ -268,4 +276,19 @@ export async function ensureRegistered(
   }
   for (const d of ours) await remove(client, idOf(d))
   return { state: 'registered', model: r.setting }
+}
+
+/**
+ * The code alone, and who failed to answer: an AiError's fields never carry the gateway's body (§14), and
+ * anything else is named by its class rather than a message that might quote one.
+ */
+export function failureOf(error: unknown): string {
+  if (error instanceof CatalogueError) {
+    return `${error.code}; LiteLLM listed no models — \`make doctor\` says whether it is up`
+  }
+  const code = error instanceof AiError ? error.code : (error as Error).name
+  const heard = answered(error)
+    ? `LiteLLM answered HTTP ${error.status} — \`docker logs manifest-litellm\` says why`
+    : 'LiteLLM did not answer — `make doctor` says whether it is up'
+  return `${code}; ${heard}`
 }

@@ -3,6 +3,7 @@ import { isAbsolute, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { z } from 'zod'
 import { resolveSocketPath } from './runtime/index.js'
+import type { Classification } from './spec/index.js'
 
 /**
  * The repository root, derived from THIS FILE rather than from `process.cwd()`.
@@ -34,6 +35,60 @@ export class ConfigError extends Error {
     super(message)
     this.name = 'ConfigError'
   }
+}
+
+/**
+ * ONE ENTRY OF `MANIFEST_GATEWAY_MODELS` (the UBC AI Gateway plan's Task 3; Rich's Q1, 2026-10-03):
+ * `<name>=ubc-ai-gateway/<model>@<classification>`. The name is the catalogue's; the setting is a GATEWAY setting
+ * and nothing else; the classification is the setting's own and never defaulted (§7: an unclassified entry is never
+ * resolvable). The setting group is greedy, so it backtracks to the LAST `@` and a model id may hold one (M5).
+ */
+const GATEWAY_MODEL_ENTRY =
+  /^([a-z0-9][a-z0-9-]{0,62})=(ubc-ai-gateway\/[^\s,]+)@(public|internal|confidential)$/
+
+/** `ai/capable.ts`'s name: the capable model is its own setting's, never an entry of this one. */
+const CAPABLE_NAME = 'default-chat-large'
+
+function parseGatewayModels(
+  value: string,
+): { name: string; setting: string; classification: Classification }[] {
+  const form =
+    '<name>=ubc-ai-gateway/<model>@<public|internal|confidential>, comma-separated'
+  const entries: { name: string; setting: string; classification: Classification }[] = []
+  for (const entry of value
+    .split(',')
+    .map((e) => e.trim())
+    .filter((e) => e !== '')) {
+    const m = GATEWAY_MODEL_ENTRY.exec(entry)
+    if (m === null) {
+      throw new ConfigError(
+        'CONFIG_INVALID',
+        `invalid configuration — MANIFEST_GATEWAY_MODELS has '${entry}', which is not ${form}; ` +
+          'every entry names its own classification, and none is assumed',
+      )
+    }
+    const [, name, setting, classification] = m as unknown as [
+      string,
+      string,
+      string,
+      Classification,
+    ]
+    if (name === CAPABLE_NAME) {
+      throw new ConfigError(
+        'CONFIG_INVALID',
+        `invalid configuration — MANIFEST_GATEWAY_MODELS has '${entry}': ${CAPABLE_NAME} is ` +
+          "MANIFEST_CAPABLE_MODEL's to set (`ubc-ai-gateway/<model>` there), never an entry of this setting",
+      )
+    }
+    if (entries.some((e) => e.name === name)) {
+      throw new ConfigError(
+        'CONFIG_INVALID',
+        `invalid configuration — MANIFEST_GATEWAY_MODELS names '${name}' twice; each name is one entry`,
+      )
+    }
+    entries.push({ name, setting, classification })
+  }
+  return entries
 }
 
 const envSchema = z.object({
@@ -333,6 +388,12 @@ const envSchema = z.object({
    */
   UBC_AI_GATEWAY_API_KEY: z.string().optional(),
   /**
+   * UBC'S AI GATEWAY'S OWN MODELS IN THE CATALOGUE (the UBC AI Gateway plan's Task 3; Rich's Q1, 2026-10-03):
+   * `<name>=ubc-ai-gateway/<model>@<classification>,…`, each registered at boot under its own name and classification
+   * and removed when the setting no longer lists it. EMPTY OR UNSET IS NONE. Parsed by `parseGatewayModels`, above.
+   */
+  MANIFEST_GATEWAY_MODELS: z.string().default(''),
+  /**
    * AN AGENT SESSION'S NUMBERS (the front-end enablement plan's Decision 22; Rich, 2026-09-27, for
    * the laptop — at UBC the numbers are his). The month is a person's, on their own LiteLLM user;
    * the cap is one session's, on its key, and never more than what remains of the month.
@@ -521,6 +582,8 @@ export interface Config {
     capableModel?: string
     /** `MANIFEST_CAPABLE_MODEL_FALLBACK`: the catalogue entry that answers for it; absent, none does. */
     capableFallback?: string
+    /** `MANIFEST_GATEWAY_MODELS`: the gateway's own models, each under its own name and classification. */
+    gatewayModels: { name: string; setting: string; classification: Classification }[]
   }
   /**
    * An agent session's bounds (Decision 22): a person's month, one session's cap, where its key is
@@ -832,6 +895,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
       ...(raw.MANIFEST_CAPABLE_MODEL_FALLBACK === ''
         ? {}
         : { capableFallback: raw.MANIFEST_CAPABLE_MODEL_FALLBACK }),
+      gatewayModels: parseGatewayModels(raw.MANIFEST_GATEWAY_MODELS),
     },
     agent: {
       monthlyUsd: raw.MANIFEST_AGENT_MONTHLY_USD,
