@@ -824,3 +824,19 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
         keep them before answering. If the read fails, the old list and the 404 stay.
     Also recorded, no decision needed: m133's shape is the front-end's own, within his 17:23 ruling ("it takes the port"). The
     marks move into Fastify's onListen, before the keeper starts, with no lock.
+
+    And at 20:21 PDT, m67's second half on its own (manifest-app-c1), its premise checked (keeper.ts:755's setInterval; :405's
+    per-wait key) — "A minute after start" (Recommended): the first "still waiting" scan runs a minute after start(), then
+    hourly. One timer, no new words, no store change. The rest of m67 stays "Accept it".
+
+    And 20:14–20:25 PDT, the gateway plan's PROBE KEY (Task 1, What Rich does 3), made by Rich on UBC's gateway. The coordinator
+    checked it by its shape and by GET /v1/models only, never printing the value:
+      - The file /Users/rich/manifest-gw-probe.env: one line GW_PROBE_KEY=sk-…. Rich made it mode 644; manifest-af ran
+        chmod 600 at his request to verify it.
+      - Its models: Rich first gave it all models (/v1/models listed 10, 20:21). To restrict it he made a TEAM, restricted the
+        team to one model, and regenerated the key; the file was rewritten at 20:25:11. /v1/models then answered 200 with
+        exactly ONE model: qwen3.6-35b-a3b, the cheapest the gateway prices non-zero (0.05 / 0.10 USD a million tokens, by
+        the gateway's own /model/info).
+      - Its budget: 0.01 USD (Rich's words). GET /key/info on the probe key answers 403, so it cannot read its own budget.
+      - In his words, a fact for [M9]: "that model won't actually cost UBC anything as it's hosted on prem, it's fine."
+        qwen3.6-35b-a3b runs on UBC's own hardware.
