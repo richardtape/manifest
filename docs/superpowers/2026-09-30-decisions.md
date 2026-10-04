@@ -764,3 +764,26 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
     the instructor's project reading "You are not a member … Say why first"; a rename refused without a reason with its
     support reference shown, then saved with one; the instructor's events reading "Test Operator acted as a platform
     administrator — reason: '…'".
+
+# Rich's decisions — 2026-10-03, 19:58 PDT (session manifest-af, the evening coordinator)
+
+    Rich started manifest-af as the coordinator for the evening, with five fresh workers: manifest-ec (the UBC AI Gateway plan's
+    sitting 1), manifest-61 (its sitting 2), manifest-be (its sitting 3), manifest-app-c1 (the front-end's sixth minors round,
+    mock mode, m133 included) and manifest-app-79 (the front-end's F5b sitting 1 on 7100). Measured first, 19:53–19:55: HEAD
+    b5e48ed; the flag FREE; 7100 PID 5301 on real GitHub; the gateway's /health/liveliness 200, so the network is on. Asked
+    through the question tool, at 19:58, each answered as recommended:
+      - THE 7100 ORDER — "Gateway Task 0, then F5b": manifest-ec does Task 0 entire (secrets/scrub.ts's name, pnpm test twice,
+        boot.docker.test.ts, the two restarts by s7-cp.sh real, the uncomment, make doctor) and Task 1's Step 8 (make doctor/verify
+        once), then hands 7100 to manifest-app-79's F5b sitting 1. Until F5b closes, the platform does none of these: restart 7100,
+        run Vitest, make verify, make up, or cleanup --apply. manifest-ec carries on with Task 1's other steps on its own
+        throwaway LiteLLM (gw-probe, 7197/7198), which touch neither. Its close runs no new pnpm test (Task 0 Step 4: those two
+        runs are the close runs). Gateway sitting 2 waits for F5b's close and his words on Spec action 1.
+        Rejected: gateway sitting 1 whole first, then F5b; F5b first.
+      - THE .env LINE — "Yes, the plan's sed": after Task 0's commit and first restart, manifest-ec runs
+        `sed -i '' 's/^# UBC_AI_GATEWAY_API_KEY=/UBC_AI_GATEWAY_API_KEY=/' .env`, then checks that
+        `grep -c '^UBC_AI_GATEWAY_API_KEY=' .env` reads 1. Neither prints the value. Rejected: Rich uncommenting it himself.
+      - THE EXPIRY LINE — "Yes, from /key/info": manifest-ec appends UBC_AI_GATEWAY_KEY_EXPIRES=<YYYY-MM-DD> to .env from
+        Task 1 [M1].3's `expires` (Decision 11). If the key cannot read its own /key/info, the date comes from Rich's admin UI,
+        asked through the coordinator. Rejected: showing him the date first.
+    The probe key's file, named by the coordinator: /Users/rich/manifest-gw-probe.env (one line GW_PROBE_KEY=<value>, chmod 600),
+    written by Rich, removed at Task 1's Step 10.
