@@ -1053,3 +1053,20 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
     recorded for a plan of its own. It carries a one-line SPEC CHANGE he approved in substance: §21's LiteLLM row, "litellm 1.98.0,
     sha256:20b5044b…", becomes 1.102.0 and its digest, noting why (F32). Its exact words come back to him before the spec changes.
     Rejected: a version-locked patch of LiteLLM's internals; recording it for a plan of its own.
+
+    And at 23:47 PDT (the clock read just before this entry), two:
+      - THE RE-PIN'S SPEC WORDS (drafted by manifest-be, its quotes checked by manifest-af against spec l.2175 and l.1082), through
+        the question tool, each as recommended, TO BE APPLIED ONLY IF the Docker tier is green on 1.102.0:
+        * §21's LiteLLM row — "Two sentences": "Deployed **by digest**, recorded in `infra/images.lock` — litellm 1.102.0,
+          `sha256:32cfd7a4…` — because `ghcr.io/berriai/litellm:main-stable` is a moving tag (it moved between 2026-09-07 and
+          2026-09-09). It was re-pinned from 1.98.0 on 2026-10-03: 1.98.0 charged a streamed call by its own count of the visible
+          text, not the provider's reported usage, so a model's reasoning tokens went uncharged (the UBC AI Gateway plan's F32)."
+          The row's next sentence (§16's error mapping) stays.
+        * l.1082 — "As proposed": "At LiteLLM 1.98.0, the version §21 pinned when this was measured (2026-09-07), an end user's
+          budget lives on a *customer* row…" (dated history). l.438 is already dated and stays.
+      - THE U1 PLAN: its review's fixes were applied by manifest-17 (eb5b82a, 23:24–23:46: C1, I1–I7, M1–M14, each marked).
+        manifest-af CHECKED that C1's reorder landed: Task 1 makes every reader that compares against an old name level-safe
+        (toLevel(x) === 'very-high' at models.ts:37, releases.ts:1253, assessment.ts:97/207, gateway-models.ts:135), with no
+        change in behaviour; Task 2 is the switch. So the 23:22 approval STANDS. Recorded for the plan's Task 0: manifest-17 read
+        E3's "its project's level" for S11's sweep as each running instance's frozen level (its Decision 8, the review's M12).
+        If Rich wants the spec words to say so, the change is to E3's text when Task 0 applies it.
