@@ -13,7 +13,7 @@ import {
   personName,
   type Actor,
 } from '../projects/index.js'
-import type { Classification } from '../spec/index.js'
+import { levelWords, type Classification } from '../spec/index.js'
 import { tokenById } from '../tokens/index.js'
 import {
   agentKeyAlias,
@@ -647,7 +647,7 @@ function withdrawnBecause(
   const underCapable = new Set(agentModelsFor(snapshot, floor, 'capable'))
   return [
     ...(withdrawn.some((m) => !underCapable.has(m))
-      ? [`the project is now ${floor}`]
+      ? [`the project is now ${levelWords(floor)}`]
       : []),
     ...(withdrawn.some((m) => underCapable.has(m))
       ? ['the platform now keeps a confidential project’s building agent on-premise']

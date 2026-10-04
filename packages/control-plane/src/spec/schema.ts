@@ -74,6 +74,16 @@ export const levelWords = (value: unknown): string => {
   return level === undefined ? String(value) : LEVEL_WORDS[level]
 }
 
+/** A stored `parsed` manifest as the platform answers it (S6): `data.classification` as its level; everything else as stored. */
+export function specInLevels(parsed: unknown): Record<string, unknown> {
+  const spec = (parsed ?? {}) as Record<string, unknown>
+  const data = spec.data as Record<string, unknown> | undefined
+  const level = canonicalLevel(data?.classification)
+  return data === undefined || level === undefined
+    ? spec
+    : { ...spec, data: { ...data, classification: level } }
+}
+
 // EVERY FIELD IS DESCRIBED (the authoring API plan's Task 9): `api/contract/document.ts`
 // publishes this schema as the OpenAPI document's `ManifestYaml` component, through
 // `zod-to-json-schema`, which carries each `.describe()` — so these strings are PUBLIC TEXT, §7
@@ -317,9 +327,12 @@ export const manifestSchema = z
       .object({
         classification: z
           .enum(CLASSIFICATIONS)
-          .default('internal')
+          .default(DEFAULT_LEVEL)
+          // THE LEVEL, NEVER THE ALIAS (S6): what is stored says what it means. The OUTPUT type stays the seven names on
+          // purpose (the U1 plan's Decision 1): every reader ranks through CLASSIFICATION_RANK, which holds all seven.
+          .transform((name): Classification => toLevel(name))
           .describe(
-            'How sensitive the app’s data is, in UBC’s four levels (Information Security Standard U1): `low`, `medium`, `high` or `very-high` — what every model in `ai.models` must be approved for. Any personal information, such as students’ names, ID numbers or grades, is `high` at least, and `very-high` data reaches only models on UBC’s own hardware. The earlier names are still accepted, each meaning one level: `public` is `low`, `internal` is `medium`, `confidential` is `very-high`. `internal` when absent.',
+            'How sensitive the app’s data is, in UBC’s four levels (Information Security Standard U1): `low`, `medium`, `high` or `very-high` — what every model in `ai.models` must be approved for. Any personal information, such as students’ names, ID numbers or grades, is `high` at least, and `very-high` data reaches only models on UBC’s own hardware. The earlier names are still accepted, each meaning one level: `public` is `low`, `internal` is `medium`, `confidential` is `very-high`. `medium` when absent.',
           ),
         retention_days: z
           .number()

@@ -1,4 +1,4 @@
-import { CLASSIFICATION_RANK, type Classification } from '../spec/index.js'
+import { CLASSIFICATION_RANK, toLevel, type Classification } from '../spec/index.js'
 import { loadModelCatalogue, type CatalogueSnapshot } from './catalogue.js'
 import type { LiteLlmClient } from './client.js'
 import { AiError } from './errors.js'
@@ -171,7 +171,10 @@ function capableFloor(snapshot: CatalogueSnapshot): Classification {
   return snapshot.models
     .filter((m) => m.name === CAPABLE_MODEL_NAME)
     .map((m) => m.maxClassification)
-    .reduce((a, b) => (rank(b) > rank(a) ? b : a), CAPABLE_CLASSIFICATION)
+    .reduce<Classification>(
+      (a, b) => (rank(b) > rank(a) ? b : a),
+      toLevel(CAPABLE_CLASSIFICATION),
+    )
 }
 
 /**

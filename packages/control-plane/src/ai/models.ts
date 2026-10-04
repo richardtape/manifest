@@ -2,7 +2,14 @@ import { and, desc, eq } from 'drizzle-orm'
 import type { Db } from '../db/index.js'
 import { appSpecs, environments, instances, releases } from '../db/index.js'
 import { servingInstanceOf } from '../projects/index.js'
-import { CLASSIFICATION_RANK, toLevel, type Classification } from '../spec/index.js'
+import {
+  CLASSIFICATION_RANK,
+  canonicalLevel,
+  DEFAULT_LEVEL,
+  toLevel,
+  type Classification,
+  type Level,
+} from '../spec/index.js'
 import { CAPABLE_MODEL_NAME } from './capable.js'
 import type { CatalogueSnapshot } from './catalogue.js'
 
@@ -44,9 +51,6 @@ export function agentModelsFor(
     .map((entry) => entry.name)
 }
 
-/** §7's default when a project has no valid manifest yet. */
-const DEFAULT_CLASSIFICATION: Classification = 'internal'
-
 interface ParsedSpec {
   data?: { classification?: unknown }
 }
@@ -54,11 +58,11 @@ interface FrozenConfig {
   production?: { classification?: unknown }
 }
 
-/** A stored value as one of the seven names, as stored — an OWN key of the rank table, never `in` (which finds `toString`). */
-const asClassification = (value: unknown): Classification | undefined =>
-  typeof value === 'string' && Object.hasOwn(CLASSIFICATION_RANK, value)
-    ? (value as Classification)
-    : undefined
+/**
+ * A stored value as the LEVEL it means (S6) — an old row's alias included — or `undefined` when it names none. An OWN
+ * key of the rank table, never `in` (which finds `toString`): `canonicalLevel`.
+ */
+const asLevel = (value: unknown): Level | undefined => canonicalLevel(value)
 
 /**
  * The classification an agent session is routed by: the newest VALID manifest's — `internal` when
@@ -73,7 +77,7 @@ const asClassification = (value: unknown): Classification | undefined =>
 export async function classificationFloor(
   db: Pick<Db, 'select'>,
   projectId: string,
-): Promise<Classification> {
+): Promise<Level> {
   const [newest] = await db
     .select({ parsed: appSpecs.parsed })
     .from(appSpecs)
@@ -81,8 +85,8 @@ export async function classificationFloor(
     .orderBy(desc(appSpecs.createdAt), desc(appSpecs.id))
     .limit(1)
   const declared =
-    asClassification((newest?.parsed as ParsedSpec | undefined)?.data?.classification) ??
-    DEFAULT_CLASSIFICATION
+    asLevel((newest?.parsed as ParsedSpec | undefined)?.data?.classification) ??
+    DEFAULT_LEVEL
 
   const [production] = await db
     .select()
@@ -99,7 +103,7 @@ export async function classificationFloor(
     .from(releases)
     .where(eq(releases.id, serving.releaseId))
     .limit(1)
-  const frozen = asClassification(
+  const frozen = asLevel(
     (release?.resolvedConfig as FrozenConfig | undefined)?.production?.classification,
   )
   if (frozen === undefined) return declared
@@ -122,7 +126,7 @@ export async function environmentFloor(
     projectId: string
     kind: 'sandbox' | 'staging' | 'production'
   },
-): Promise<Classification> {
+): Promise<Level> {
   let floor = await classificationFloor(db, environment.projectId)
   const ran = await db
     .selectDistinct({ resolvedConfig: releases.resolvedConfig })
@@ -130,7 +134,7 @@ export async function environmentFloor(
     .innerJoin(releases, eq(instances.releaseId, releases.id))
     .where(eq(instances.environmentId, environment.id))
   for (const { resolvedConfig } of ran) {
-    const frozen = asClassification(
+    const frozen = asLevel(
       (resolvedConfig as Record<string, { classification?: unknown }> | undefined)?.[
         environment.kind
       ]?.classification,

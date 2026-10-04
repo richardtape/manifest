@@ -8,6 +8,7 @@ import {
   levelName,
   levelWords,
   manifestSchema,
+  specInLevels,
 } from './index.js'
 
 /**
@@ -120,10 +121,41 @@ describe('UBC’s U1 levels, and Manifest’s earlier names as aliases (U1 plan 
     }
   })
 
-  it('stores what is WRITTEN until Task 2 — internal stays internal, and the default is still internal', () => {
-    const written = declaring('internal')
-    expect(written.success && written.data.data.classification).toBe('internal')
-    const absent = declaring(undefined)
-    expect(absent.success && absent.data.data.classification).toBe('internal')
+  it('stores the LEVEL — an alias as what it means (S6; U1 plan Task 2)', () => {
+    const cases: [string, string][] = [
+      ['low', 'low'],
+      ['medium', 'medium'],
+      ['high', 'high'],
+      ['very-high', 'very-high'],
+      ['public', 'low'],
+      ['internal', 'medium'],
+      ['confidential', 'very-high'],
+    ]
+    for (const [written, stored] of cases) {
+      const r = declaring(written)
+      expect(r.success, written).toBe(true)
+      if (r.success) expect(r.data.data.classification, written).toBe(stored)
+    }
+  })
+
+  it('defaults an undeclared app to medium — internal’s level, so nothing changes (S5)', () => {
+    const r = declaring(undefined)
+    expect(r.success && r.data.data.classification).toBe('medium')
+  })
+
+  it('specInLevels answers a stored spec with its level, and leaves everything else as stored', () => {
+    expect(
+      specInLevels({
+        name: 'x',
+        data: { classification: 'internal', retention_days: 30 },
+      }),
+    ).toEqual({
+      name: 'x',
+      data: { classification: 'medium', retention_days: 30 },
+    })
+    expect(specInLevels({ data: { classification: 'secret' } })).toEqual({
+      data: { classification: 'secret' },
+    })
+    expect(specInLevels({ name: 'y' })).toEqual({ name: 'y' })
   })
 })

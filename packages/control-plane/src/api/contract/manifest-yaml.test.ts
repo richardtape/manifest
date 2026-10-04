@@ -215,7 +215,7 @@ describe('the published ManifestYaml agrees with §7’s own schema ([M7])', () 
       'internal',
       'confidential',
     ])
-    expect(node.default).toBe('internal')
+    expect(node.default).toBe('medium')
     expect(String(node.description)).toContain('U1')
     expect(String(node.description)).toMatch(/`confidential` is `very-high`/)
   })

@@ -3,10 +3,12 @@ import { LLMModule } from 'ubc-genai-toolkit-llm'
 import { expect, it } from 'vitest'
 import { describeDocker } from '../runtime/testing.js'
 import { parse } from 'yaml'
+import { canonicalLevel, LEVELS } from '../spec/index.js'
 import { CAPABLE_MODEL_NAME } from './capable.js'
 import { loadModelCatalogue } from './catalogue.js'
 import { createLiteLlmClient } from './client.js'
 import { AI_CODES, mapLiteLlmError } from './errors.js'
+import { ID_PREFIX as GATEWAY_ID_PREFIX } from './gateway-models.js'
 import {
   LITELLM_CONFIG,
   deleteProbeKey,
@@ -252,8 +254,21 @@ describeDocker('D17 model catalogue (P4b Task 6)', () => {
         model_info?: { max_classification?: string; mode?: string }
       }[]
     }
-    const { models: live, unclassified } = await loadModelCatalogue(
-      createLiteLlmClient({ baseUrl: litellmUrl(), masterKey: litellmMasterKey() }),
+    const client = createLiteLlmClient({
+      baseUrl: litellmUrl(),
+      masterKey: litellmMasterKey(),
+    })
+    const { models: live, unclassified } = await loadModelCatalogue(client)
+    // THE GATEWAY'S OWN MODELS ARE NOT config.yaml's EITHER (the UBC AI Gateway plan's Task 3): a control plane
+    // whose MANIFEST_GATEWAY_MODELS is set registers them through the admin API, each with a `manifest-gateway-`
+    // id — so 7100 running from Rich's .env leaves one on this shared LiteLLM (the U1 plan's sitting 1, F-finding).
+    const raw = await client.get<{
+      data: { model_name: string; model_info?: { id?: string } }[]
+    }>('/model/info')
+    const gatewayOwn = new Set(
+      raw.data
+        .filter((d) => String(d.model_info?.id ?? '').startsWith(GATEWAY_ID_PREFIX))
+        .map((d) => d.model_name),
     )
     // Every entry P1 ships is classified. One that is not is refused to every app that
     // declares it (§7 as amended 2026-09-14), so it is a regression here.
@@ -264,15 +279,22 @@ describeDocker('D17 model catalogue (P4b Task 6)', () => {
     expect(declared.model_list.map((m) => m.model_name)).not.toContain(CAPABLE_MODEL_NAME)
     const capable = live.filter((m) => m.name === CAPABLE_MODEL_NAME)
     expect(capable.length).toBeLessThanOrEqual(1)
-    for (const entry of capable) expect(entry.maxClassification).toBe('internal')
-    const shipped = live.filter((m) => m.name !== CAPABLE_MODEL_NAME)
+    // ANY level: the shared LiteLLM's row is whatever the running control plane registered — `high` once
+    // MANIFEST_CAPABLE_MODEL_CLASSIFICATION says so (U1 plan Task 2, I5); the tier's shell leaves it unset.
+    for (const entry of capable) expect(LEVELS).toContain(entry.maxClassification)
+    for (const entry of live.filter((m) => gatewayOwn.has(m.name)))
+      expect(LEVELS, entry.name).toContain(entry.maxClassification)
+    const shipped = live.filter(
+      (m) => m.name !== CAPABLE_MODEL_NAME && !gatewayOwn.has(m.name),
+    )
     expect(shipped.map((m) => m.name).sort()).toEqual(
       declared.model_list.map((m) => m.model_name).sort(),
     )
     for (const entry of shipped) {
       const from = declared.model_list.find((m) => m.model_name === entry.name)!
+      // The catalogue answers the LEVEL; config.yaml keeps the alias (U1 plan Task 2).
       expect(entry.maxClassification, entry.name).toBe(
-        from.model_info?.max_classification,
+        canonicalLevel(from.model_info?.max_classification),
       )
       // The file names `mode` on the embedding entry only; the proxy answers `null`
       // for the others (M2). Both mean chat.

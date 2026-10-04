@@ -1100,8 +1100,8 @@ async function deployPhase(): Promise<void> {
     'createRelease',
   )
   checks.ok(
-    'the release froze a confidential manifest',
-    release.config.staging.classification === 'confidential',
+    'the release is frozen very-high (the manifest says confidential, its alias)',
+    release.config.staging.classification === 'very-high',
     release.config.staging.classification,
   )
   const staging = await deployTo(client, stagingId, release.id)

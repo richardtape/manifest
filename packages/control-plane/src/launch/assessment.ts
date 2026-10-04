@@ -1,5 +1,10 @@
 import type { ModelEntry } from '../ai/index.js'
-import { toLevel, type Classification, type ManifestSpec } from '../spec/index.js'
+import {
+  levelWords,
+  toLevel,
+  type Classification,
+  type ManifestSpec,
+} from '../spec/index.js'
 import type { Contact } from '../sso/index.js'
 import { ATTRIBUTE_PURPOSES } from './package.js'
 import { vancouverDayInWords } from './records.js'
@@ -90,8 +95,11 @@ const ENVIRONMENTS = 'Manifest’s environments'
 const MEMBERS = 'the project’s members'
 const REPOSITORY = 'the project’s repository'
 
-/** A word a person reads — `internal` as *Internal*, for the start of a sentence. */
-const capitalised = (word: string) => `${word.charAt(0).toUpperCase()}${word.slice(1)}`
+/** A level as a person reads it at the start of a sentence — `very-high` (or `confidential`) as *Very high*. */
+const Words = (value: string) => {
+  const words = levelWords(value)
+  return `${words.charAt(0).toUpperCase()}${words.slice(1)}`
+}
 
 /** Approved for `very-high` data — or `confidential`, its alias — means on-premise only (§7: such an app resolves to nothing else). */
 const staysOnPremise = (ceiling: Classification) => toLevel(ceiling) === 'very-high'
@@ -195,8 +203,8 @@ function modelFlow(name: string, catalogue: readonly ModelEntry[] | null): Fact 
       : entry === undefined
         ? 'This model is not in the platform’s model catalogue now, so Manifest cannot say where it sends data.'
         : staysOnPremise(entry.maxClassification)
-          ? 'Approved for confidential data: it runs on on-premise hardware, so what the app sends it stays there.'
-          : `Approved for ${entry.maxClassification} data at most: it may be answered by a provider off-premise, so what the app sends it may leave UBC.`
+          ? `Approved for ${levelWords(entry.maxClassification)} data: it runs on on-premise hardware, so what the app sends it stays there.`
+          : `Approved for ${levelWords(entry.maxClassification)} data at most: it may be answered by a provider off-premise, so what the app sends it may leave UBC.`
   return { label: name, value, source: MODELS }
 }
 
@@ -205,17 +213,17 @@ function flows(input: AssessmentInput): Section {
   const ceiling = spec.data.classification
   const rule = staysOnPremise(ceiling)
     ? 'every AI model the app uses must run on on-premise hardware.'
-    : `every AI model the app uses must be approved for ${ceiling} data.`
+    : `every AI model the app uses must be approved for ${levelWords(ceiling)} data.`
   const facts: Fact[] = [
     input.declared.classification
       ? {
           label: 'Classification',
-          value: `${capitalised(ceiling)} — ${rule}`,
+          value: `${Words(ceiling)} — ${rule}`,
           source: 'manifest.yaml: data.classification',
         }
       : {
           label: 'Classification',
-          value: `${capitalised(ceiling)} — Manifest’s default, because the manifest does not say: ${rule}`,
+          value: `${Words(ceiling)} — Manifest’s default, because the manifest does not say: ${rule}`,
           source: 'Manifest’s default',
         },
     ...(spec.egress.allow.length === 0
@@ -263,7 +271,7 @@ function flows(input: AssessmentInput): Section {
       ...(input.declared.classification
         ? []
         : [
-            `No classification declared — add data.classification to manifest.yaml, saying how sensitive the app’s data is. Manifest treats it as ${ceiling}, which allows AI models that may be answered off-premise.`,
+            `No classification declared — add data.classification to manifest.yaml, saying how sensitive the app’s data is. Manifest treats it as ${levelWords(ceiling)}, which allows AI models that may be answered off-premise.`,
           ]),
       ...(unknown.length === 0
         ? []
@@ -377,7 +385,7 @@ function hosting(input: AssessmentInput): Section {
       },
       ...entries.map((e) => ({
         label: e.name,
-        value: `Approved for ${e.maxClassification} data at most.`,
+        value: `Approved for ${levelWords(e.maxClassification)} data at most.`,
         source: 'the model catalogue',
       })),
     ],
@@ -386,7 +394,7 @@ function hosting(input: AssessmentInput): Section {
       ...(offPremise.length === 0
         ? []
         : [
-            `Whether the app’s ${spec.data.classification} data may reach an AI provider outside Canada is the Privacy Office’s to say: ${offPremise.map((e) => e.name).join(', ')} may be answered off-premise.`,
+            `Whether the app’s ${levelWords(spec.data.classification)} data may reach an AI provider outside Canada is the Privacy Office’s to say: ${offPremise.map((e) => e.name).join(', ')} may be answered off-premise.`,
           ]),
       ...(input.repository.provider === 'github'
         ? [

@@ -159,6 +159,89 @@ describe('isSensitiveDiff (§7, D9)', () => {
  * froze, and `deployRelease` reads nothing else (P4b sitting 1, divergence 4). So
  * these build their inputs through `resolveConfig`, which is how a release gets one.
  */
+describe('a level compared as a level (U1 plan Task 2; Review Focus 2)', () => {
+  const DEFAULTS = { cpu: 0.5, memory: '512Mi', pids: 256, disk: '2Gi' } // describeDiff's own
+  /** A spec as an OLD row holds it — its alias kept — as `api/spec-validation.ts` reads it back. */
+  const stored = (classification: string): ManifestSpec =>
+    ({ ...base(), data: { ...base().data, classification } }) as ManifestSpec
+
+  it('a rename from an alias to its level is NOT sensitive — internal → medium re-escalates nothing', () => {
+    expect(
+      isSensitiveDiff(stored('internal'), base({ data: { classification: 'medium' } })),
+    ).toEqual({
+      sensitive: false,
+      fields: [],
+    })
+    expect(
+      isSensitiveDiff(
+        stored('confidential'),
+        base({ data: { classification: 'very-high' } }),
+      ).sensitive,
+    ).toBe(false)
+  })
+
+  it('a real change of level IS sensitive, in either direction — the positive control', () => {
+    expect(
+      isSensitiveDiff(stored('internal'), base({ data: { classification: 'high' } }))
+        .fields,
+    ).toEqual(['data.classification'])
+    expect(
+      isSensitiveDiff(stored('confidential'), base({ data: { classification: 'high' } }))
+        .fields,
+    ).toEqual(['data.classification'])
+  })
+
+  it('a frozen release’s alias equals the same level in a new spec', () => {
+    // Every limit set, so the blueprint's defaults cannot be what the two adapters disagree about
+    // (*the two adapters agree whenever a spec sets every limit itself*, below).
+    const spec = base({ resources: DEFAULTS })
+    const release = sensitiveViewOfRelease(
+      {
+        ...resolveConfig(spec, 'production', DEFAULTS),
+        classification: 'internal',
+      } as ResolvedConfig,
+      'node-ts-mongo@2',
+    )
+    expect(sensitiveFieldsBetween(release, sensitiveViewOfSpec(spec))).toEqual([])
+    // The positive control: the same release against a high spec IS a change.
+    expect(
+      sensitiveFieldsBetween(
+        release,
+        sensitiveViewOfSpec(
+          base({ resources: DEFAULTS, data: { classification: 'high' } }),
+        ),
+      ),
+    ).toEqual(['data.classification'])
+  })
+
+  it('describes a change of level in U1’s names', () => {
+    const before = {
+      ...resolveConfig(base(), 'production', DEFAULTS),
+      classification: 'internal',
+    } as ResolvedConfig
+    const after = resolveConfig(
+      base({ data: { classification: 'high' } }),
+      'production',
+      DEFAULTS,
+    )
+    expect(
+      describeDiff(before, after).filter((c) => c.path === 'data.classification'),
+    ).toEqual([
+      {
+        path: 'data.classification',
+        from: 'medium',
+        to: 'high',
+        summary: 'now declares high data instead of medium',
+      },
+    ])
+    expect(
+      describeDiff(before, { ...before, classification: 'medium' }).filter(
+        (c) => c.path === 'data.classification',
+      ),
+    ).toEqual([])
+  })
+})
+
 describe('describeDiff (§14)', () => {
   const DEFAULTS = { cpu: 0.5, memory: '512Mi', pids: 256, disk: '2Gi' }
   const staged = (extra: Record<string, unknown> = {}): ResolvedConfig =>

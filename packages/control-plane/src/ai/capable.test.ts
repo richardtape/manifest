@@ -208,7 +208,7 @@ describe('the capable model (the front-end enablement plan’s Task 12a)', () =>
     const snapshot = await loadModelCatalogue(lite)
     expect(snapshot.models).toContainEqual({
       name: 'default-chat-large',
-      maxClassification: 'internal',
+      maxClassification: 'medium',
       kind: 'chat',
     })
     expect(agentModelsFor(snapshot, 'internal', 'on-premise')).toContain(
@@ -538,7 +538,7 @@ describe('the capable model’s fallback (the front-end enablement plan’s Task
       [
         'probe-public-chat',
         (lite) => entry(lite, 'probe-public-chat', { max_classification: 'public' }),
-        "classified 'public'",
+        "classified 'low'",
       ],
       [
         'probe-unclassified',
@@ -573,7 +573,7 @@ describe('the capable model’s fallback (the front-end enablement plan’s Task
     const lite = await withCapable()
     await entry(lite, 'probe-public-chat', { max_classification: 'public' })
     const result = await ensureCapableFallback(lite, 'probe-public-chat')
-    expect(result.reason).toContain("below 'internal'")
+    expect(result.reason).toContain("below 'medium'")
     expect(result.reason).toContain('without consulting')
   })
 

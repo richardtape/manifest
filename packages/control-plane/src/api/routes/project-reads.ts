@@ -2,6 +2,7 @@ import { desc, eq } from 'drizzle-orm'
 import { z } from 'zod/v4'
 import { endSessionsOf, liveSessionsCount } from '../../ai/index.js'
 import { appSpecs, environments, type Db } from '../../db/index.js'
+import { specInLevels } from '../../spec/index.js'
 import {
   eventFrame,
   makeRedactor,
@@ -714,7 +715,7 @@ export const projectReadRoutes = [
             provider: 'none',
             attributes: [],
           },
-          data: { classification: 'internal', retention_days: 365 },
+          data: { classification: 'medium', retention_days: 365 },
           jobs: [],
           name: 'chem-labs',
           checks: [],
@@ -746,7 +747,8 @@ export const projectReadRoutes = [
       return {
         appSpecId: latest.id,
         commitSha: latest.commitSha,
-        spec: latest.parsed as Record<string, unknown>,
+        // In U1's names (S6): an old row's alias answered as its level; nothing stored changes.
+        spec: specInLevels(latest.parsed),
       }
     },
   }),

@@ -1,4 +1,4 @@
-import { CLASSIFICATION_RANK, type Classification } from '../spec/index.js'
+import { canonicalLevel, type Classification } from '../spec/index.js'
 import type { LiteLlmClient } from './client.js'
 
 /**
@@ -95,22 +95,20 @@ export async function loadModelCatalogue(
   const models: ModelEntry[] = []
   const unclassified: string[] = []
   for (const row of rows) {
-    const classification = row.model_info?.max_classification
-    // An OWN key of the rank table — not a truthiness test, and not `in`, which finds
+    // THE LEVEL IT MEANS (S6): config.yaml's alias as its level, a U1 name as itself. `canonicalLevel`
+    // reads an OWN key of the rank table — not a truthiness test, and not `in`, which finds
     // `toString` on the prototype. A typo in config.yaml is as unclassified as no
     // value at all. EXCLUDED, never defaulted: a default is failing open, and the fail-
-    // open default is the top rank, which lets a confidential app resolve an
+    // open default is the top rank, which lets a very-high app resolve an
     // off-premise model (finding 47).
-    if (
-      typeof classification !== 'string' ||
-      !Object.hasOwn(CLASSIFICATION_RANK, classification)
-    ) {
+    const level = canonicalLevel(row.model_info?.max_classification)
+    if (level === undefined) {
       unclassified.push(row.model_name)
       continue
     }
     models.push({
       name: row.model_name,
-      maxClassification: classification as Classification,
+      maxClassification: level,
       // NOT `mode === 'chat'`. Measured 2026-09-07: LiteLLM 1.98.0 returns
       // `mode: null` for a chat entry; only `default-embed` names its mode.
       kind: row.model_info?.mode === 'embedding' ? 'embedding' : 'chat',

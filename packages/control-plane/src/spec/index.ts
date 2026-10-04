@@ -18,6 +18,7 @@ export {
   levelName,
   levelWords,
   manifestSchema,
+  specInLevels,
   toLevel,
 } from './schema.js'
 export { toMebibytes, POLICY_CODES } from './policy.js'

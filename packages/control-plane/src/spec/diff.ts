@@ -1,4 +1,4 @@
-import type { ManifestSpec } from './schema.js'
+import { levelName, type ManifestSpec } from './schema.js'
 import { toMebibytes } from './policy.js'
 import type { ResolvedConfig } from './resolve.js'
 
@@ -224,7 +224,8 @@ export function sensitiveViewOfSpec(spec: ManifestSpec): SensitiveView {
       pids: override?.pids ?? top.pids,
       disk: override?.disk ?? top.disk,
     },
-    classification: spec.data.classification,
+    // By LEVEL (Review Focus 2): an old row's `internal` and a new `medium` are the same claim, never a change.
+    classification: levelName(spec.data.classification),
     models: spec.ai.models,
     blueprint: spec.blueprint,
   }
@@ -247,7 +248,7 @@ export function sensitiveViewOfRelease(
     attributes: auth.attributes,
     egress: production.egressAllow,
     resources: production.resources,
-    classification: production.classification,
+    classification: levelName(production.classification),
     models: ai.models,
     blueprint,
   }
@@ -551,9 +552,9 @@ export function describeDiff(
     ),
     valueChange(
       'data.classification',
-      before.classification,
-      after.classification,
-      `now declares ${after.classification} data instead of ${before.classification}`,
+      levelName(before.classification),
+      levelName(after.classification),
+      `now declares ${levelName(after.classification)} data instead of ${levelName(before.classification)}`,
     ),
     valueChange(
       'auth.provider',

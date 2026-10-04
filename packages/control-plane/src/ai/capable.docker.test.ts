@@ -18,7 +18,7 @@ import { loadModelCatalogue } from './catalogue.js'
 import { createLiteLlmClient, type LiteLlmClient } from './client.js'
 import { AiError } from './errors.js'
 import { agentModelsFor } from './models.js'
-import { ensureGatewayModels } from './gateway-models.js'
+import { ensureGatewayModels, ID_PREFIX as GATEWAY_ID_PREFIX } from './gateway-models.js'
 import { gatewayKeyRef, type Gateway } from './providers.js'
 import {
   LITELLM_CONFIG,
@@ -60,6 +60,18 @@ async function rowsNamed(name: string): Promise<number> {
   } finally {
     await client.end()
   }
+}
+
+/** The names a control plane registered as the AI Gateway's own models — each a `manifest-gateway-` id. */
+async function gatewayOwnNames(client: LiteLlmClient): Promise<Set<string>> {
+  const raw = await client.get<{
+    data: { model_name: string; model_info?: { id?: string } }[]
+  }>('/model/info')
+  return new Set(
+    raw.data
+      .filter((d) => String(d.model_info?.id ?? '').startsWith(GATEWAY_ID_PREFIX))
+      .map((d) => d.model_name),
+  )
 }
 
 async function declaredNames(): Promise<string[]> {
@@ -180,7 +192,7 @@ describeDocker('the capable model against the running LiteLLM (Task 12a)', () =>
       const snapshot = await loadModelCatalogue(client)
       expect(snapshot.models).toContainEqual({
         name: CAPABLE_MODEL_NAME,
-        maxClassification: 'internal',
+        maxClassification: 'medium',
         kind: 'chat',
       })
       expect(agentModelsFor(snapshot, 'internal', 'on-premise')).toContain(
@@ -214,7 +226,15 @@ describeDocker('the capable model against the running LiteLLM (Task 12a)', () =>
         model: PRICED,
       })
       const after = await loadModelCatalogue(client)
-      expect(after.models.map((m) => m.name).sort()).toEqual(await declaredNames())
+      // The gateway's own models are a control plane's too, never config.yaml's: 7100 running from Rich's .env
+      // leaves one on this shared LiteLLM (the U1 plan's sitting 1).
+      const gatewayOwn = await gatewayOwnNames(client)
+      expect(
+        after.models
+          .map((m) => m.name)
+          .filter((name) => !gatewayOwn.has(name))
+          .sort(),
+      ).toEqual(await declaredNames())
       expect(await rowsNamedCapable()).toBe(0)
     } finally {
       await leaveNone(client)
@@ -329,7 +349,8 @@ describeDocker('the capable model against the running LiteLLM (Task 12a)', () =>
       })
       const result = await ensureCapableFallback(client, 'probe-public-chat')
       expect(result.state).toBe('refused')
-      expect(result.reason).toContain("classified 'public'")
+      // The catalogue answers the LEVEL: config's `public` is `low` (U1 plan Task 2).
+      expect(result.reason).toContain("classified 'low'")
       await expect(
         client.get(`/fallback/${CAPABLE_MODEL_NAME}`, { fallback_type: 'general' }),
       ).rejects.toMatchObject({ status: 404 })

@@ -9,7 +9,7 @@ import type {
 import { REVIEW_STATES } from '../../launch/index.js'
 import type { ResolvedConfigSet } from '../../releases/index.js'
 import type { ScanSummary as DriverScanSummary } from '../../runtime/index.js'
-import { SENSITIVE_FIELDS, type SensitiveField } from '../../spec/index.js'
+import { levelName, SENSITIVE_FIELDS, type SensitiveField } from '../../spec/index.js'
 import { representation, request, Timestamp, Uuid } from '../contract/schemas.js'
 import { ScanSummary } from './builds.js'
 
@@ -135,7 +135,8 @@ export function toRelease(
         name: s.name,
       })),
       egressAllow: c.egressAllow,
-      classification: c.classification,
+      // In U1's names (S6): a release frozen with an alias is answered the level it means.
+      classification: levelName(c.classification),
       auth: { provider: c.auth.provider, attributes: [...c.auth.attributes] },
       // `?.` — a release frozen before ResolvedConfig.ai existed has none (P4b pre-flight 64).
       ai: { models: [...(c.ai?.models ?? [])] },

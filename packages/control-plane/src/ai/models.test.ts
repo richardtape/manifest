@@ -172,9 +172,9 @@ describe('agentModelsFor — the building agent’s setting (Spec action 10; the
 })
 
 describe('classificationFloor (Decision 23)', () => {
-  it('takes the newest VALID manifest’s classification, internal when there is none', async () => {
+  it('takes the newest VALID manifest’s classification, medium when there is none', async () => {
     await withProject(async (tx, ctx) => {
-      expect(await classificationFloor(tx, ctx.projectId)).toBe('internal')
+      expect(await classificationFloor(tx, ctx.projectId)).toBe('medium')
       await spec(tx, ctx.projectId, {
         classification: 'public',
         valid: true,
@@ -185,13 +185,13 @@ describe('classificationFloor (Decision 23)', () => {
         valid: false,
         at: '2026-01-02T00:00:00Z',
       })
-      expect(await classificationFloor(tx, ctx.projectId)).toBe('public')
+      expect(await classificationFloor(tx, ctx.projectId)).toBe('low')
       await spec(tx, ctx.projectId, {
         classification: 'confidential',
         valid: true,
         at: '2026-01-03T00:00:00Z',
       })
-      expect(await classificationFloor(tx, ctx.projectId)).toBe('confidential')
+      expect(await classificationFloor(tx, ctx.projectId)).toBe('very-high')
     })
   })
 
@@ -204,7 +204,7 @@ describe('classificationFloor (Decision 23)', () => {
         valid: true,
         at: '2026-02-01T00:00:00Z',
       })
-      expect(await classificationFloor(tx, ctx.projectId)).toBe('confidential')
+      expect(await classificationFloor(tx, ctx.projectId)).toBe('very-high')
     })
   })
 
@@ -216,7 +216,50 @@ describe('classificationFloor (Decision 23)', () => {
         valid: true,
         at: '2026-02-01T00:00:00Z',
       })
-      expect(await classificationFloor(tx, ctx.projectId)).toBe('confidential')
+      expect(await classificationFloor(tx, ctx.projectId)).toBe('very-high')
+    })
+  })
+})
+
+describe('the floors answer a stored name as its LEVEL (U1 plan Task 2)', () => {
+  it('reads an old manifest’s alias as its level, and a U1 name as itself — medium when none', async () => {
+    await withProject(async (tx, ctx) => {
+      expect(await classificationFloor(tx, ctx.projectId)).toBe('medium')
+      await spec(tx, ctx.projectId, {
+        classification: 'confidential',
+        valid: true,
+        at: '2026-01-01T00:00:00Z',
+      })
+      expect(await classificationFloor(tx, ctx.projectId)).toBe('very-high')
+      await spec(tx, ctx.projectId, {
+        classification: 'high',
+        valid: true,
+        at: '2026-01-02T00:00:00Z',
+      })
+      expect(await classificationFloor(tx, ctx.projectId)).toBe('high')
+    })
+  })
+
+  it('an old frozen confidential release floors very-high above a high manifest — the alias never widens (Review Focus 1)', async () => {
+    await withProject(async (tx, ctx) => {
+      await servingProduction(tx, ctx, 'confidential')
+      await spec(tx, ctx.projectId, {
+        classification: 'high',
+        valid: true,
+        at: '2026-02-01T00:00:00Z',
+      })
+      expect(await classificationFloor(tx, ctx.projectId)).toBe('very-high')
+    })
+  })
+
+  it('a stored value that names no level — toString included — is none: the default stands', async () => {
+    await withProject(async (tx, ctx) => {
+      await spec(tx, ctx.projectId, {
+        classification: 'toString' as Classification,
+        valid: true,
+        at: '2026-01-01T00:00:00Z',
+      })
+      expect(await classificationFloor(tx, ctx.projectId)).toBe('medium')
     })
   })
 })

@@ -200,7 +200,7 @@ describe('assembleAssessment (Task 11)', () => {
     const flows = section(assembleAssessment(input()), 'flows')
     expect(valueOf(flows, 'Classification')).toEqual({
       label: 'Classification',
-      value: 'Internal — every AI model the app uses must be approved for internal data.',
+      value: 'Medium — every AI model the app uses must be approved for medium data.',
       source: 'manifest.yaml: data.classification',
     })
     expect(valueOf(flows, 'api.ubc.ca')).toEqual({
@@ -211,13 +211,13 @@ describe('assembleAssessment (Task 11)', () => {
     expect(valueOf(flows, 'default-chat')).toEqual({
       label: 'default-chat',
       value:
-        'Approved for internal data at most: it may be answered by a provider off-premise, so what the app sends it may leave UBC.',
+        'Approved for medium data at most: it may be answered by a provider off-premise, so what the app sends it may leave UBC.',
       source: 'manifest.yaml: ai.models; the model catalogue',
     })
     expect(valueOf(flows, 'default-chat-onprem')).toEqual({
       label: 'default-chat-onprem',
       value:
-        'Approved for confidential data: it runs on on-premise hardware, so what the app sends it stays there.',
+        'Approved for very high data: it runs on on-premise hardware, so what the app sends it stays there.',
       source: 'manifest.yaml: ai.models; the model catalogue',
     })
     // On the platform's own repositories, a commit's author goes nowhere else.
@@ -233,11 +233,11 @@ describe('assembleAssessment (Task 11)', () => {
     expect(valueOf(flows, 'Classification')).toEqual({
       label: 'Classification',
       value:
-        'Internal — Manifest’s default, because the manifest does not say: every AI model the app uses must be approved for internal data.',
+        'Medium — Manifest’s default, because the manifest does not say: every AI model the app uses must be approved for medium data.',
       source: 'Manifest’s default',
     })
     expect(flows.gaps).toEqual([
-      'No classification declared — add data.classification to manifest.yaml, saying how sensitive the app’s data is. Manifest treats it as internal, which allows AI models that may be answered off-premise.',
+      'No classification declared — add data.classification to manifest.yaml, saying how sensitive the app’s data is. Manifest treats it as medium, which allows AI models that may be answered off-premise.',
     ])
   })
 
@@ -352,10 +352,10 @@ describe('assembleAssessment (Task 11)', () => {
       'In a repository on the machine Manifest runs on.',
     )
     expect(valueOf(hosting, 'default-chat')?.value).toBe(
-      'Approved for internal data at most.',
+      'Approved for medium data at most.',
     )
     expect(valueOf(hosting, 'default-chat-onprem')?.value).toBe(
-      'Approved for confidential data at most.',
+      'Approved for very high data at most.',
     )
     expect(hosting.gaps).toEqual([
       'Where UBC will host the app in production is not decided yet: UBC has not chosen the infrastructure Manifest runs on there.',

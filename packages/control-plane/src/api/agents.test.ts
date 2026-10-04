@@ -299,10 +299,14 @@ describe('agent sessions (the front-end enablement plan’s Task 10)', () => {
         llm: lite,
         catalogue: {
           enabled: true,
-          get: async () => ({
-            models: internalOnly.models.filter((m) => m.maxClassification === 'internal'),
-            unclassified: [],
-          }),
+          get: async () => {
+            const models = internalOnly.models.filter(
+              (m) => m.maxClassification === 'medium',
+            )
+            // Non-empty, or this refusal is answered for an EMPTY catalogue — green for the wrong reason (U1 plan Task 2, C1).
+            expect(models.length).toBeGreaterThan(0)
+            return { models, unclassified: [] }
+          },
         },
       },
     )
@@ -848,10 +852,10 @@ async function capableCatalogue(): Promise<ModelCatalogue> {
  */
 async function internalOnlyCatalogue(): Promise<ModelCatalogue> {
   const declared = await declaredCatalogue().get()
-  const snapshot = {
-    ...declared,
-    models: declared.models.filter((m) => m.maxClassification === 'internal'),
-  }
+  const models = declared.models.filter((m) => m.maxClassification === 'medium')
+  // Non-empty, or every test using it reads an EMPTY catalogue (U1 plan Task 2, C1).
+  expect(models.length).toBeGreaterThan(0)
+  const snapshot = { ...declared, models }
   return { enabled: true, get: async () => snapshot }
 }
 
@@ -1060,7 +1064,7 @@ describe('FE-36 — a session never holds more than its project now allows (Spec
       })
       expect(narrowed?.humanMessage).toBe(
         `${internal.session.person.name}'s agent session 'Build the bulletin board' can no longer use ` +
-          'default-chat, default-chat-reasoning and default-embed, because the project is now confidential; ' +
+          'default-chat, default-chat-reasoning and default-embed, because the project is now very high; ' +
           'it keeps default-chat-onprem, default-chat-onprem-reasoning and default-chat-large.',
       )
       expect(JSON.stringify(narrowed)).not.toContain(internal.key)

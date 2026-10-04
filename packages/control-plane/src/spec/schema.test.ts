@@ -16,7 +16,7 @@ describe('manifest.yaml schema (§7)', () => {
     expect(result.data.runtime.health).toBe('/healthz')
     expect(result.data.auth.provider).toBe('none')
     expect(result.data.services).toEqual([])
-    expect(result.data.data.classification).toBe('internal')
+    expect(result.data.data.classification).toBe('medium')
   })
 
   it('rejects a name that breaks the slug regex', () => {

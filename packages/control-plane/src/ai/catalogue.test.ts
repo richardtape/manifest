@@ -64,13 +64,38 @@ describe('D17 model catalogue', () => {
     // yields an EMPTY catalogue, every spec then fails SPEC_MODEL_UNKNOWN, and the
     // symptom reads as a LiteLLM outage rather than a filter bug.
     const snapshot = await loadModelCatalogue(clientReturning(RESPONSE))
+    // Each at its LEVEL: config.yaml's alias as what it means (U1 plan Task 2).
     expect(snapshot.models).toEqual([
-      { name: 'default-chat', maxClassification: 'internal', kind: 'chat' },
-      { name: 'default-chat-onprem', maxClassification: 'confidential', kind: 'chat' },
-      { name: 'default-embed', maxClassification: 'internal', kind: 'embedding' },
+      { name: 'default-chat', maxClassification: 'medium', kind: 'chat' },
+      { name: 'default-chat-onprem', maxClassification: 'very-high', kind: 'chat' },
+      { name: 'default-embed', maxClassification: 'medium', kind: 'embedding' },
     ])
     expect(snapshot.unclassified).toEqual([])
     expect(operatorLog).not.toHaveBeenCalled()
+  })
+
+  it('lists a U1 name as itself, and still excludes toString and a typo (U1 plan Task 2)', async () => {
+    const body = {
+      data: [
+        {
+          model_name: 'gw-high',
+          model_info: { max_classification: 'high', mode: null, id: 'a' },
+        },
+        {
+          model_name: 'rogue',
+          model_info: { max_classification: 'toString', mode: null, id: 'b' },
+        },
+        {
+          model_name: 'typo',
+          model_info: { max_classification: 'High', mode: null, id: 'c' },
+        },
+      ],
+    }
+    const snapshot = await loadModelCatalogue(clientReturning(body))
+    expect(snapshot.models).toEqual([
+      { name: 'gw-high', maxClassification: 'high', kind: 'chat' },
+    ])
+    expect(snapshot.unclassified).toEqual(['rogue', 'typo'])
   })
 
   it('projects THREE fields and carries nothing else', async () => {
