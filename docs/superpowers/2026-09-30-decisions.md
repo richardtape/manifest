@@ -1012,3 +1012,11 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
     dead-app-resources.sh --apply. manifest-be held its demos meanwhile. Rich ran it himself ("ok I ran it"). Measured after:
     12 networks, 0 mf- networks, 0 mf- containers. The four protected containers and the platform's own are running, and 7100
     is unchanged (PID 69387). The f5b-measure-1 repository on GitHub is untouched and still his to delete.
+
+    And at 23:22 PDT (the clock read just before this entry), THE U1 PLAN (plans/2026-10-03-u1-classification.md, b2bb975, by
+    manifest-17: eight tasks in three sittings). Its fresh read-only review (plans/2026-10-03-review-of-u1-plan.md): "approve with
+    fixes", faithful to his 21:48 and 22:21 decisions; C1 task order (Task 2 switches the platform's answers to U1's names while
+    releases.ts:1253, models.ts:37 and assessment.ts:97/207 still compare against 'confidential' until Tasks 3–5); I1–I7; 14
+    minors. Through the question tool — "Approve with the fixes" (Recommended): APPROVED once manifest-17 applies every fix,
+    documents only, each marked with the review's id, and manifest-af checks that C1's reorder landed. It runs right after the
+    UBC AI Gateway plan, before FE-46/47/5. Rejected: a second review after the fixes; reading the review first.
