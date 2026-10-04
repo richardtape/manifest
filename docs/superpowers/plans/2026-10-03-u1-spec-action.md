@@ -1,4 +1,10 @@
-> **DECIDED by Rich, 2026-10-03, 22:21 PDT — NOT YET APPLIED** (`../2026-09-30-decisions.md`, its 22:21 entry): every sub-decision as recommended, S9 and S10 and S2 included. Apply it after the UBC AI Gateway plan's acceptance and before the U1 plan's first sitting; the spec and the four shared pages change together. **E14, `policy.ts:213-215`'s public hint, is CODE**: it is the U1 plan's to change, in a task with its test, never by whoever applies the spec words. Rich decided Manifest's classes become U1's at 21:48 (the same file).
+> **APPLIED 2026-10-04, 13:57 PDT, by `manifest-41` (the U1 plan's sitting 1, Task 0), at Rich's word** — the question tool, 13:53
+> (`../2026-09-30-decisions.md`, its 13:53 entry): *"Apply it now (Recommended)"*. E1–E13 and the shared pages as decided; **E3's last
+> sentence in his 13:53 words**, *"Name the frozen level (Recommended)"*: *"…every agent session loses each model its project's level no
+> longer allows, and every running app's key each model the level of the release it runs no longer allows."* `manifest-phases.html`: no
+> mention (grep, 13:52). E14 is the U1 plan's Task 3.
+>
+> **DECIDED by Rich, 2026-10-03, 22:21 PDT** (`../2026-09-30-decisions.md`, its 22:21 entry): every sub-decision as recommended, S9 and S10 and S2 included. Apply it after the UBC AI Gateway plan's acceptance and before the U1 plan's first sitting; the spec and the four shared pages change together. **E14, `policy.ts:213-215`'s public hint, is CODE**: it is the U1 plan's to change, in a task with its test, never by whoever applies the spec words. Rich decided Manifest's classes become U1's at 21:48 (the same file).
 
 ## Spec actions
 

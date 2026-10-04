@@ -210,7 +210,7 @@ boundary intact even when the code inside is actively hostile.
 | D14 | **Privileged actions require an interactive human session, whichever client initiates them.** No agent-held credential — Manifest's own or a third party's — carries privileged capability. A sandbox in particular holds no credential able to mutate anything outside itself. | Prompt injection makes any agent a confused deputy: text it reads — a student PDF, a scraped page, a package README — is potential attacker instruction. The property is *not* "our front-end does it", which would make third-party clients second-class by construction and misstate the control. Stated this way it protects against a prompt-injected agent on someone's laptop exactly as it protects against one in our sandbox: one rule, one enforcement point. Generalises Vibonarium's *"the agent suggests, the human clicks, the gateway executes."* |
 | D15 | **SAML ACS and SLO URLs are derived by Manifest**, never accepted from the app. `auth.callback` is a path, not a URL. | Registering an SP means directing signed identity assertions at a URL. Free-text ACS is an assertion-phishing primitive reachable from a buggy agent or an injection in the registration path. |
 | D16 | **A newly requested CWL attribute requires approval in every environment**, not only production. | Under D6 staging signs in real people, each with a staging CWL, so the harvesting risk first assessed holds there as it does in production, and only the sandbox's test users are free of it. The control is kept in every environment for a second reason as well: in production, `auth.attributes` must be a subset of what UBC IAM actually registered. Catching an attribute change at approval time turns a launch-day login failure into a change request raised weeks earlier. |
-| D17 | **`data.classification` constrains which logical models an app may use.** | A BC public body sending student personal information to a US model provider is a FIPPA problem, and the pre-review design was one YAML line away from it by accident. Both fields already existed; linking them is nearly free. |
+| D17 | **`data.classification` constrains which logical models an app may use.** | UBC rates its information in four levels (U1, §7), and the level decides which models may receive it. Very High Risk information, such as health, identity and financial records and passwords, never reaches a model off UBC's own hardware. High Risk information, student personal information among it, reaches a commercial model only when every provider that may answer it keeps none of it: zero data retention, on a UBC determination Rich reported on 2026-10-03 (*"it's been deemed okay as long as ZDR is enabled"*), not yet on the record. Whether that suffices for an app is the Privacy Office's last word (§9). The pre-review design was one YAML line away from sending any of it anywhere by accident. Both fields already existed; linking them is nearly free. |
 | D18 | **Egress is default-deny in every environment**, through a forced proxy. | The pre-review design enforced egress only in sandboxes. Production is long-lived, holds real data and sits inside UBC's network — a compromised production app is a better pivot than a 45-minute sandbox. |
 | D19 | **Manifest generates and tracks the IAM registration and the PIA as first-class objects**, and blocks production deployment until both are approved. | The platform knows more about the app than its owner does: it can derive the SP metadata, a per-attribute justification, and most of a PIA from the AppSpec. A faculty member should review and sign, not author from nothing. This converts C4 from a blocker into the platform's most valuable service. |
 | D20 | **The production SP keypair is long-lived and stable**, generated once at registration; rotation is a tracked IAM change request with an overlap window. Certificate expiry is monitored and alarmed months ahead. | An SP certificate is registered with UBC IAM; rotating it per deploy would break authentication. Conversely an unnoticed expiry silently kills login for a live course application mid-term — an operational hazard that is invisible until it is urgent. |
@@ -389,7 +389,7 @@ auth:
   logout: /auth/logout               # PATH only, same validation
 
 ai:
-  models: [default-chat, default-embed]   # logical names only
+  models: [default-chat-large, default-chat-onprem]   # logical names only; each approved for high
   budget:
     project_monthly_usd: 50       # omitted, with models declared: the project's AI quota
     per_user_monthly_usd: 2       # validated, NOT enforced, before Phase 4 (§10)
@@ -402,7 +402,7 @@ egress:
   allow: [api.ubc.ca, registry.npmjs.org]
 
 data:                             # HOOK (§15)
-  classification: internal        # public | internal | confidential
+  classification: high            # low | medium | high | very-high (UBC's U1 levels, below); default medium
   retention_days: 365
 
 integrations: []                  # HOOK (§15) — reserved, must be empty in v1
@@ -500,33 +500,76 @@ Schema validation is then followed by a **blueprint compatibility check** agains
 the pinned blueprint's descriptor — services it cannot bind, auth providers it does
 not support, a `manifest:` version it does not understand (§25, D30).
 
+### Data classification: UBC's U1 levels
+
+**`data.classification` names the most sensitive information the app keeps or sends to a model, in the four levels of UBC's
+Information Security Standard U1, *Security Classification of UBC Electronic Information and Services* (§2.1), by U1's own
+names:**
+
+- `low`: information that would cause minimal harm if disclosed, or may be freely disclosed, such as what is on a public website,
+  the work contact details of faculty and staff, or research that is neither personal nor proprietary.
+- `medium`: information no law or regulation protects that could still harm UBC or others if released, such as material held
+  under a non-disclosure agreement, confidential financial records or proprietary research.
+- `high`: information law or regulation protects whose disclosure could cause moderate harm, such as personal information under
+  FIPPA: student names, student and employee IDs, grades, full-face photographs and home addresses.
+- `very-high`: protected information whose disclosure could cause significant harm: Social Insurance Numbers, government identity
+  documents, bank account information, personal health information, passwords and keys, biometric and personally identifiable
+  genetic data, and dates of birth.
+
+**An app that keeps any personal information is therefore `high` at least**, because U1 puts FIPPA's personal information there
+(§2.1.3). A person's work contact details are not personal information under FIPPA, which is why U1 puts faculty and staff contacts
+at Low. An app that declares no level is `medium`. U1 makes the information's steward the one who classifies, and allows a higher
+level than its table gives but never a lower one (§4.1). Manifest asks the app's owner to declare the level. It checks the
+declaration against the models the app may call (D17), never against the data, which it cannot see, and the privacy assessment
+(§9) is where UBC reviews both.
+
+**Manifest's earlier names are aliases, valid forever, each with one fixed meaning: `public` is `low`, `internal` is `medium`,
+`confidential` is `very-high`.** An alias never comes to mean anything wider. It is accepted wherever a level is (`manifest.yaml`,
+a catalogue entry's `max_classification`, a platform setting) and compared as the level it names, so writing one for the other is
+not a change (*Sensitive fields*). The platform answers and documents in U1's names.
+
 ### Classification gates model routing (D17)
 
 The platform's logical model catalogue carries a `max_classification` per entry:
 
 ```
-default-chat-onprem              max_classification: confidential
-default-chat                     max_classification: internal      # may route off-prem
-default-chat-onprem-reasoning    max_classification: confidential
-default-chat-large               max_classification: internal      # the capable model — a commercial provider, through UBC's AI Gateway or directly, off-prem
-default-chat-reasoning           max_classification: internal      # may route off-prem
-default-embed                    max_classification: internal
+default-chat-onprem              max_classification: very-high
+default-chat                     max_classification: medium     # may route off-prem; its level the administrator's attestation, below
+default-chat-onprem-reasoning    max_classification: very-high
+default-chat-large               max_classification: (a platform setting, §26 — medium unless set)   # the capable model — a commercial provider, through UBC's AI Gateway or directly, off-prem
+default-chat-reasoning           max_classification: medium     # as default-chat
+default-embed                    max_classification: medium     # as default-chat
 ```
+
+**What an entry may be is fixed by everything that may answer it: the vendor behind any gateway, and every model a gateway may fall
+back to.** An entry is `very-high` only when everything that may answer it runs on UBC's hardware. It is `high` only when
+everything that may answer it either runs on UBC's hardware or keeps none of what it is sent (zero data retention). The platform
+can see none of this, and the administrator attests it, for every entry and for whichever provider UBC points a name at. An entry
+may carry an alias; it is the level it names.
+
+**A lowered level takes effect, or the entry is withdrawn. The platform never keeps an entry at a level above the one it is now
+given.** If the lowered entry cannot be registered, it leaves the catalogue, and its refusal names the setting. At the next boot,
+every agent session loses each model its project's level no longer allows, and every running app's key each model the level of the
+release it runs no longer allows. A key left with none is revoked, and each loss is an event to the project's people.
 
 **The capable model** is one logical name, `default-chat-large`, for the agent and app work a small model cannot do. Which
 model answers it is a platform setting (§26) — a commercial provider's, reached through **UBC's AI Gateway**, a LiteLLM proxy LTIC
 runs on UBC infrastructure, or directly where an administrator sets it so — so repointing it changes no app, key or manifest.
-Whether data of a given classification may reach a provider outside Canada is the Privacy Office's to say (§9); the name's
-`max_classification` is what the platform enforces meanwhile, and a `confidential` app's own AI never leaves on-premise hardware.
+Whether information of a given level may reach a provider outside Canada is the Privacy Office's to say (§9). Meanwhile the
+platform enforces each name's `max_classification`; the capable model's is a platform setting (§26), given under the rule above.
+A `very-high` app's own AI never leaves on-premise hardware.
 
-**The agent that BUILDS an app is governed by a platform setting of its own (§26)**: whether an agent session on a `confidential`
-project may call the capable model as well as the on-premise models — **yes by default**, because writing an app is the work a small
-model cannot do. Set to on-premise only, every such session gets the on-premise models alone. Whenever a project's classification or
-this setting withdraws a model from a live agent session, the session is narrowed in place: its key keeps the models the project still
-allows and loses the rest at once, the session goes on, and its event says what was withdrawn. A session left with nothing it may use
-is ended. The app's own `ai.models` stays on-premise either way. **While the setting allows it, a delegated token on a
-`confidential` project is refused staging's and production's Incident log tails**, which can carry the input of the people the
-classification protects.
+**The agent that BUILDS an app is governed by a platform setting of its own (§26)**: whether an agent session on a project
+whose level is above the capable model's may call the capable model as well as the models D17 allows the project. The answer is
+**yes by default**, because writing an app is the work a small model cannot do, and the agent works on the code rather than the
+data. Set to D17 alone (its value is `on-premise`, named when only on-premise models stood above the capable model), every such
+session gets only the models D17 allows the project. Whenever a project's level, the capable model's level or this setting
+withdraws a model from a live agent session, the session is narrowed in place: its key keeps the models the project still allows
+and loses the rest at once, the session goes on, and its event says what was withdrawn. A session left with nothing it may use is
+ended. The app's own `ai.models` is held to its level either way. **A delegated token is refused staging's and production's
+Incident log tails on a project at `high` or above.** The level here is the strictest of the project's and of every release that
+has run in that environment. A token is the credential of an agent the platform cannot see (D24), so no administrator has
+attested the model it hands those tails to, and they carry real people's input.
 
 **Its fallback is the on-premise model.** A second platform setting (§26) names a catalogue entry — `default-chat-onprem` by
 default, which is Ollama on a laptop and UBC's on-premise inference at UBC — that the gateway answers `default-chat-large` with
@@ -540,13 +583,16 @@ fallback.
 budget and every guard (§10, D7), and reaches the AI Gateway with ONE platform credential that only it holds — referenced from its own
 environment, never stored with a model, and never kept by the control plane, which removes the AI Gateway's models rather than leave
 them without it. Besides the capable model, an administrator may add models the AI Gateway serves to the catalogue under logical names
-of their own (§26), each at the `max_classification` the administrator gives it — `confidential` only for a model that runs on UBC's
-hardware with no fallback off it, which the platform cannot see and the administrator attests. A model the platform cannot price is
-refused, except a `confidential` one, which is charged the on-premise model's synthetic price so budgets bind. Every such entry needs
-the network; `default-chat` and the on-premise model a laptop runs stay local, so nothing offline depends on the AI Gateway (C1).
+of their own (§26), each at the `max_classification` the administrator gives it, under the rule above: `very-high` only when
+everything that may answer it runs on UBC's hardware, and `high` only when everything that may answer it runs there or keeps none of
+what it is sent, the gateway's own fallbacks included, which the platform cannot see and the administrator attests. A model the
+platform cannot price is refused, except a `very-high` one, which is charged the on-premise model's synthetic price so budgets bind.
+Every such entry needs the network; `default-chat` and the on-premise model a laptop runs stay local, so nothing offline depends on
+the AI Gateway (C1).
 
-An app declaring `data.classification: confidential` may therefore resolve only to
-on-premise model groups. This is checked at spec validation, so the failure is a
+An app declaring `data.classification: very-high`, or its alias `confidential`, may therefore resolve only to models everything
+behind which runs on UBC's hardware, and one declaring `high` only to models everything behind which runs there or keeps none of
+what it is sent. This is checked at spec validation, so the failure is a
 clear message at build time rather than a privacy incident at runtime.
 
 **An entry with no valid `max_classification` is never defaulted and never resolvable.**
@@ -1034,7 +1080,7 @@ confined by `allowed_routes` like every other and carries no capability on the c
 plane (§20). **Its models are those D17 allows for the project's `data.classification`**
 — its newest valid manifest's, and never less restrictive than the classification of
 the release serving production, because the agent writes `manifest.yaml` and must not
-lower its own routing by doing so — and, on a `confidential` project while the builder
+lower its own routing by doing so — and, on a project whose level is above the capable model's while the builder
 setting allows it (§7, §26), the capable model too. **Its spend is the person's, not the app's**: a
 LiteLLM user per person holds a monthly agent budget — a platform default, which an
 administrator may change for one person (§26) — each session carries a hard cap inside
@@ -1054,11 +1100,11 @@ it is used at and its model, once; Manifest keeps no copy. **Its model is a sing
 model, the same for everyone, named by an administrator as part of the model
 catalogue** (§13), so changing it is changing the catalogue, with the catalogue's
 step-up (§20). There is no manifest yet, so **it must be a model D17 allows for §7's
-default classification, `internal`: a catalogue entry whose `max_classification` is
-`internal` or `confidential`.** What a person types before their app exists then goes
+default level, `medium`: a catalogue entry whose `max_classification` is `medium`,
+`high` or `very-high`.** What a person types before their app exists then goes
 no further than an app of the default classification could send it. The check runs
-every time a key is minted: if the entry loses its classification, or is lowered to
-`public`, intake pauses rather than sending anything elsewhere (§7). **Its cost is
+every time a key is minted: if the entry loses its level, or is lowered to
+`low`, intake pauses rather than sending anything elsewhere (§7). **Its cost is
 bounded three ways, each a platform setting (§26)**: a hard cap and a life for each
 key ($0.25 and 30 minutes by default), a number of keys per person per day (10), and
 a monthly intake budget for the whole platform. A person past the day's number, or a
@@ -1791,7 +1837,7 @@ the system becomes ordinary test-first development.
 | **Injection-contract drift** | The §8 table is asserted against the blueprint: every variable the blueprint reads is injected, and `SAML_ENVIRONMENT` is never absent. This is what keeps §8 honest — it was wrong once, from being written against memory of the libraries rather than against them. |
 | **AI-path regression** | An embedding through the blueprint asserts its **dimension**, not merely that a vector came back — without `encoding_format: 'float'` the toolkit silently returns 192 near-zero values in place of 768 (§21, S3), and every other assertion still passes. A *streamed* completion through `default-chat` asserts non-empty content, which a thinking model fails silently. LiteLLM's over-budget, revoked-key, expired-key and route-denied responses are pinned to the mapping in §20, against the LiteLLM version in §21's inventory. |
 | **Identity-path regression** | A production release whose `auth.attributes` exceed `IamRegistration.registered_attributes` fails at build; a production environment never resolves to the Manifest IdP or to UBC's staging IdP; a staging environment never resolves to UBC's production IdP, and resolves to the Manifest IdP only on a laptop (§21); a sandbox environment never resolves to real UBC Shibboleth, staging or production; certificate expiry within 90 days raises an alert. |
-| **Security regression** | Secrets never appear in captured logs, incidents or events; a sandbox cannot reach the control plane or a metadata endpoint; **an app or sandbox cannot reach the control plane *through the edge* either** — addressing the edge directly, with the console's hostname — while the same request from the host succeeds (§12); **a sandbox's LiteLLM key is refused on `/key/generate` and every other admin route** (there is no admin *port* to block — §10, §12 — so this asserts the `allowed_routes` confinement, and a key minted without it is the negative control); a spec with a `runtime.build` block or a non-path `auth.callback` is rejected; a `confidential` app cannot resolve an off-premise model. **Every denial in this tier is paired with a positive control** — the same probe succeeding from a bridge network — **and a control that cannot be paired is reported as unpaired rather than omitted.** A matrix of denials with no positive control is indistinguishable from a matrix where the probe tool is missing or the address never resolved, and S6's first run produced exactly that. One probe's control needs the internet, which the rest of the tier does not, so the tier says out loud when a pairing could not be made. |
+| **Security regression** | Secrets never appear in captured logs, incidents or events; a sandbox cannot reach the control plane or a metadata endpoint; **an app or sandbox cannot reach the control plane *through the edge* either** — addressing the edge directly, with the console's hostname — while the same request from the host succeeds (§12); **a sandbox's LiteLLM key is refused on `/key/generate` and every other admin route** (there is no admin *port* to block — §10, §12 — so this asserts the `allowed_routes` confinement, and a key minted without it is the negative control); a spec with a `runtime.build` block or a non-path `auth.callback` is rejected; a `very-high` app (or `confidential`, its alias) cannot resolve an off-premise model. **Every denial in this tier is paired with a positive control** — the same probe succeeding from a bridge network — **and a control that cannot be paired is reported as unpaired rather than omitted.** A matrix of denials with no positive control is indistinguishable from a matrix where the probe tool is missing or the address never resolved, and S6's first run produced exactly that. One probe's control needs the internet, which the rest of the tier does not, so the tier says out loud when a pairing could not be made. |
 | **Contract** | The OpenAPI document is generated from the routes and checked in; drift fails CI. `manifest-mock` is validated against the same document, so a front-end built against the mock cannot compile against a contract the real API does not serve. |
 | **Integration** | Real Postgres, real Docker driver, one tiny fixture app; Supertest per route. |
 | **Acceptance** | The §1 journey, driven twice against the same published API: by a human in the reference console, and headlessly in CI by a script using the same generated client. Two independent clients over one contract. |
@@ -2140,7 +2186,7 @@ affordable precisely because there is only one of them (§17, Phase 1).
 | Silent attribute escalation | D16 (gated in every environment); IdP-enforced attribute release in the sandbox (and a laptop's staging, §21), and in staging and production UBC's release of only what IAM registered; in production, `auth.attributes` must be a subset of `IamRegistration.registered_attributes`, enforced at build (§9) |
 | Production SP certificate expiry breaking a live app | D20: `cert_expires_at` tracked, escalating alerts from 90 days, renewal as a tracked IAM change |
 | An app reaching production without a PIA or IAM registration | `LaunchReadiness` blocks deployment on both (§13); surfaced at project creation, not at launch |
-| Personal information reaching an off-premise model | D17 classification-constrained model routing; LiteLLM log retention policy |
+| Personal information reaching an off-premise model | D17 classification-constrained model routing, in U1's levels: `high` only to models everything behind which runs on UBC's hardware or keeps none of what it is sent; LiteLLM log retention policy |
 | Secret exfiltration through logs | §14 redaction at capture; per-app+env secret scoping; push-time secret scanning |
 | Malicious or hallucinated dependency | §12 supply chain: registry mirror, lockfiles, disabled install scripts, SBOM, scanning |
 | Build-time RCE | D13 blueprint-managed Dockerfiles; credential-free, network-restricted builder |
@@ -2971,9 +3017,10 @@ the email is how the team hears of it.
 - **Platform settings** — the values §10 leaves to an administrator. They are the
   monthly agent budget's default and any one person's, and the intake model, whose
   change is a change to the model catalogue and takes its step-up (§20), and the capable
-  model's provider and model, and its fallback, the AI Gateway's address and the catalogue
-  entries it answers (§7), and whether a `confidential` project's
-  building agent may call it (§7), whose change is one too. They are
+  model's provider, model and level, and its fallback, the AI Gateway's address and the catalogue
+  entries it answers (§7), and whether the building agent of a project above the capable model's
+  level may call it (§7), each of whose changes is a change to the model catalogue too, with its
+  step-up. They are
   also intake's bounds: a key's cap and life, the keys a person may start in a day,
   and the platform's monthly intake budget. Each change is audited with its actor
   (below).
