@@ -1106,3 +1106,11 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
       - the project-less app containers (22 networks and 30 mf- containers at 13:51, the control database at 0 projects) —
         "You try it first": manifest-af's 23:12 script, unchanged but for its header, run by manifest-41 and ALLOWED. Measured
         after: 12 networks, 0 mf- containers, 39 volumes; the four protected containers running.
+
+    And at 15:52 PDT on 2026-10-04 (the clock read just after his answer), THE U1 PLAN'S SITTING 2 OPENED (manifest-5b; no
+    coordinator live, so asked directly), one through the question tool — §7e's single question (the plan's What Rich does 3):
+      - MANIFEST_CAPABLE_MODEL_CLASSIFICATION=high in .env — "Yes, append at close (Recommended)": after Task 4 lands, the
+        sitting appends the line with printf, reading no other value, and restarts 7100, whose boot line should read
+        capableClassification high. LiteLLM last started 2026-10-04 00:14 PDT (docker inspect, 07:14:32Z) during the gateway
+        plan's online acceptance, and the network was on at 15:51 (api.github.com answered 200). If the re-registration is refused
+        as unpriced, Task 4 keeps the working medium row and the sitting records it. Rejected: Rich adding the line himself.
