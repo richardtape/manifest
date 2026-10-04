@@ -674,6 +674,9 @@ export function fakeLiteLlm(): FakeLiteLlm {
   }
 }
 
+/** What a `gwleak/` success says the call cost — what Manifest's LiteLLM must charge it (the plan's F4). */
+export const STUB_RESPONSE_COST = 0.000777
+
 /** What `startStubProvider` answered, and how to stop it. */
 export interface StubProvider {
   /** How many requests arrived on `path` — e.g. `/s400/v1/chat/completions`, `/ok/v1/chat/completions`. */
@@ -705,6 +708,13 @@ export interface StubProvider {
  *   `403 key_model_access_denied`, LiteLLM 1.98.0's own answer to that case measured on `manifest-litellm` at sitting
  *   2 (the gateway's own body was not recorded at `[M5]`(c-ii), only its status, 403). The alias and fragment are
  *   the stub's, not a key's.
+ * - A first segment `gwleak/` (e.g. `/gwleak/ok/v1`, `/gwleak/s400/v1`) — the same answer, carrying the headers UBC's
+ *   gateway sends every caller (the UBC AI Gateway plan's F5, `[M3]`): its key's `x-litellm-key-max-budget` and
+ *   `-key-spend`, the answering model's `x-litellm-model-api-base`, and — on a success — the call's
+ *   `x-litellm-response-cost`, which Manifest's LiteLLM prices the call from. Plus `x-litellm-version: stub`, which
+ *   must still reach the caller as `llm_provider-x-litellm-version` (the positive control that headers are forwarded).
+ * - An `ok` request whose body says `"stream": true` is answered as an SSE stream: a role frame, `ok`, the finish
+ *   frame, a usage frame and `[DONE]`.
  *
  * Bound to 127.0.0.1 (Docker Desktop's `host.docker.internal` reaches the host's loopback — measured at
  * Task 1), on a port the caller names inside the platform's 7100–7199 block. It logs nothing: a test reads
@@ -734,13 +744,54 @@ export async function startStubProvider(
     if (expected !== undefined && req.headers.authorization === expected) {
       authorized.set(path, (authorized.get(path) ?? 0) + 1)
     }
+    const leaks = path.startsWith('/gwleak/')
+    const gatewayHeaders = (success: boolean): Record<string, string> =>
+      leaks
+        ? {
+            'x-litellm-key-max-budget': '30.0',
+            'x-litellm-key-spend': '0.0056',
+            'x-litellm-model-api-base': 'https://upstream.stub.invalid/v1',
+            'x-litellm-version': 'stub',
+            ...(success ? { 'x-litellm-response-cost': String(STUB_RESPONSE_COST) } : {}),
+          }
+        : {}
     const answer = (status: number, json: unknown) => {
-      res.writeHead(status, { 'content-type': 'application/json' })
+      res.writeHead(status, {
+        'content-type': 'application/json',
+        ...gatewayHeaders(status === 200),
+      })
       res.end(JSON.stringify(json))
     }
-    // Drained before answering: a provider that answers before reading the body is not what LiteLLM meets.
-    req.resume()
+    const stream = () => {
+      res.writeHead(200, {
+        'content-type': 'text/event-stream',
+        ...gatewayHeaders(true),
+      })
+      const frame = (body: Record<string, unknown>) =>
+        res.write(
+          `data: ${JSON.stringify({ id: 'chatcmpl-stub', object: 'chat.completion.chunk', created: Math.floor(Date.now() / 1000), model: 'stub', ...body })}\n\n`,
+        )
+      frame({ choices: [{ index: 0, delta: { role: 'assistant', content: '' } }] })
+      frame({ choices: [{ index: 0, delta: { content: 'ok' } }] })
+      frame({ choices: [{ index: 0, delta: {}, finish_reason: 'stop' }] })
+      frame({
+        choices: [],
+        usage: { prompt_tokens: 5, completion_tokens: 1, total_tokens: 6 },
+      })
+      res.end('data: [DONE]\n\n')
+    }
+    // Read before answering: a provider that answers before reading the body is not what LiteLLM meets.
+    const chunks: Buffer[] = []
+    req.on('data', (chunk: Buffer) => chunks.push(chunk))
     req.on('end', () => {
+      let streamed = false
+      try {
+        streamed =
+          (JSON.parse(Buffer.concat(chunks).toString('utf8')) as { stream?: unknown })
+            .stream === true
+      } catch {
+        streamed = false
+      }
       const gw = /^\/(?:[a-z0-9-]+\/)?gwfail\/(budget|model-not-on-key)\/v1\//.exec(path)
       if (gw !== null) {
         return gw[1] === 'budget'
@@ -770,7 +821,7 @@ export async function startStubProvider(
         })
         return
       }
-      if (m[1] === 'ok') return answer(200, completion())
+      if (m[1] === 'ok') return streamed ? stream() : answer(200, completion())
       if (m[1] === 'slow') {
         const timer = setTimeout(() => {
           timers.delete(timer)

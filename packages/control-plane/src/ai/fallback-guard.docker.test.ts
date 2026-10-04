@@ -8,6 +8,7 @@ import {
   litellmMasterKey,
   litellmUrl,
   startStubProvider,
+  STUB_RESPONSE_COST,
   type StubProvider,
 } from './testing.js'
 
@@ -128,6 +129,23 @@ for (const kind of ['budget', 'model-not-on-key']) {
     path: `/gwfail/${kind}/v1/chat/completions`,
   }
 }
+// F5's (the UBC AI Gateway plan; Rich, 2026-10-03 21:25: "Strip after costing, else record"): answers carrying the
+// headers UBC's gateway sends every caller — its key's budget and spend, the answering model's upstream address.
+PRIMARIES['gwleak-ok'] = {
+  apiBase: `${STUB}/gwleak/ok/v1`,
+  path: '/gwleak/ok/v1/chat/completions',
+}
+PRIMARIES['gwleak-400'] = {
+  apiBase: `${STUB}/gwleak/s400/v1`,
+  path: '/gwleak/s400/v1/chat/completions',
+}
+// With NO fallback (`NO_FALLBACK`): the gateway's budget refusal reaches the caller as itself ([M5](e), e-nofb).
+PRIMARIES['gwleak-429'] = {
+  apiBase: `${STUB}/gwleak/s429/v1`,
+  path: '/gwleak/s429/v1/chat/completions',
+}
+/** Primaries registered with no fallback, so their failure is what the caller receives. */
+const NO_FALLBACK = new Set(['gwleak-429'])
 PRIMARIES['s400-after-gw'] = {
   apiBase: `${STUB}/after/s400/v1`,
   path: '/after/s400/v1/chat/completions',
@@ -243,6 +261,7 @@ describeDocker(
       await register(FALLBACK, `${STUB}/fallback/ok/v1`)
       for (const [c, { apiBase }] of Object.entries(PRIMARIES)) {
         await register(probe(c), apiBase)
+        if (NO_FALLBACK.has(c)) continue
         await client.post('/fallback', {
           model: probe(c),
           fallback_models: [FALLBACK],
@@ -430,6 +449,114 @@ describeDocker(
       const before = stub!.hits(FALLBACK_PATH)
       expectTheProvidersRefusal(await chat(probe('s400-after-gw')), 400)
       expect(stub!.hits(FALLBACK_PATH)).toBe(before)
+    })
+
+    /**
+     * F5: what a caller of Manifest's LiteLLM must never read about the UPSTREAM — UBC's gateway's key's budget and
+     * spend, and the upstream address that answered (`llm_provider-*` is LiteLLM's forwarding of every provider
+     * header). The cost header is NOT among them: LiteLLM prices the call from it (the plan's F4).
+     */
+    const LEAKED = [
+      'llm_provider-x-litellm-key-max-budget',
+      'llm_provider-x-litellm-key-spend',
+      'llm_provider-x-litellm-model-api-base',
+    ]
+
+    async function send(
+      model: string,
+      stream: boolean,
+      withKey: string = key,
+    ): Promise<Response> {
+      return fetch(`${litellmUrl()}/v1/chat/completions`, {
+        method: 'POST',
+        headers: {
+          authorization: `Bearer ${withKey}`,
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify({
+          model,
+          max_tokens: 5,
+          stream,
+          messages: [{ role: 'user', content: 'Answer with the single word ok.' }],
+        }),
+      })
+    }
+
+    it('F5: an answer keeps the UPSTREAM’s key budget, spend and address from its caller — and is still charged the upstream’s cost (the UBC AI Gateway plan’s Task 4)', async () => {
+      // A key of its own, so its spend is this call's alone.
+      const alias = probe('key-f5')
+      const own = await client.post<{ key: string }>('/key/generate', {
+        user_id: USER,
+        key_alias: alias,
+        models: [probe('gwleak-ok')],
+        allowed_routes: ['/v1/chat/completions'],
+        duration: '600s',
+        max_budget: 0.5,
+      })
+      try {
+        const res = await send(probe('gwleak-ok'), false, own.key)
+        const body = (await res.json()) as {
+          choices?: { message?: { content?: unknown } }[]
+        }
+        expect(res.status).toBe(200)
+        expect(body.choices?.[0]?.message?.content).toBe('ok')
+        for (const h of LEAKED) expect(res.headers.get(h), h).toBeNull()
+        // The positive controls: the upstream's other headers are still forwarded — so the absence above is the
+        // strip, not a stub that sent nothing — and the call is priced from the upstream's own cost, not the pin
+        // (1e-6 a token, 6e-6 for this call): the header the caller reads, and the spend LiteLLM records.
+        expect(res.headers.get('llm_provider-x-litellm-version')).toBe('stub')
+        expect(res.headers.get('llm_provider-x-litellm-response-cost')).toBe(
+          String(STUB_RESPONSE_COST),
+        )
+        expect(Number(res.headers.get('x-litellm-response-cost'))).toBeCloseTo(
+          STUB_RESPONSE_COST,
+          12,
+        )
+        let spend = 0
+        for (let i = 0; i < 30 && spend === 0; i += 1) {
+          const info = await client.get<{ info?: { spend?: number } }>('/key/info', {
+            key: own.key,
+          })
+          spend = info.info?.spend ?? 0
+          if (spend === 0) await new Promise((resolve) => setTimeout(resolve, 2000))
+        }
+        expect(spend).toBeCloseTo(STUB_RESPONSE_COST, 12)
+      } finally {
+        await client.post('/key/delete', { key_aliases: [alias] })
+      }
+    }, 120_000)
+
+    it('F5: a STREAMED answer’s upstream key budget, spend and address reach its caller empty — the names only (the UBC AI Gateway plan’s Task 4)', async () => {
+      const res = await send(probe('gwleak-ok'), true)
+      const text = await res.text()
+      expect(res.status, text.slice(0, 200)).toBe(200)
+      expect(text).toContain('"content":"ok"')
+      // 1.98.0 builds a stream's headers before any hook sees the stream, and the one hook after can only set a
+      // header — so each is emptied, never left holding the upstream's value.
+      for (const h of LEAKED) expect([null, ''], h).toContain(res.headers.get(h))
+      expect(res.headers.get('llm_provider-x-litellm-version')).toBe('stub')
+    })
+
+    it('F5’s WITNESS: a refusal — a malformed 400, and a 429 with no fallback — carries none of the upstream’s headers at all (the UBC AI Gateway plan’s Task 4)', async () => {
+      // LiteLLM 1.98.0 forwards an upstream's headers on a SUCCESS only (measured at sitting 2: both refusals below
+      // reached the caller with no llm_provider-* header), so the guard strips nothing on a failure. A witness: an
+      // upgrade that starts forwarding them on a failure turns this red. The positive control first, in this test:
+      // the same stub's success DOES forward them.
+      const ok = await send(probe('gwleak-ok'), false)
+      expect(ok.status).toBe(200)
+      expect(ok.headers.get('llm_provider-x-litellm-version')).toBe('stub')
+      for (const [c, status] of [
+        ['gwleak-400', 400],
+        ['gwleak-429', 429],
+      ] as const) {
+        const res = await send(probe(c), false)
+        await res.text()
+        expect(res.status, c).toBe(status)
+        expect(
+          [...res.headers.keys()].filter((h) => h.startsWith('llm_provider-')),
+          c,
+        ).toEqual([])
+      }
     })
 
     it.each(FAILED)(

@@ -65,6 +65,24 @@
 # hook (a stream, checked BEFORE it is iterated — the stream object itself is `None`). The provider's own 422 is
 # swallowed by then, so the refusal is a fixed sentence. 422 stays in the set below for the fallback guard too.
 #
+# THE UPSTREAM'S KEY AND ADDRESS NEVER REACH A CALLER — THE THIRD GUARD, BELOW (the UBC AI Gateway plan's F5; Rich,
+# 2026-10-03 21:25: "Strip after costing, else record"). LiteLLM 1.98.0 forwards EVERY header a provider sends as
+# `llm_provider-<header>` (litellm_core_utils/llm_response_utils/get_headers.py) — so through UBC's AI Gateway, itself
+# a LiteLLM, every Manifest app and agent read the GATEWAY's key's budget and spend (`llm_provider-x-litellm-key-*`) and
+# the address of whichever upstream answered (`llm_provider-x-litellm-model-api-base`). They are removed here — and
+# NOTHING ELSE: `llm_provider-x-litellm-response-cost` stays, because LiteLLM prices the call from it
+# (cost_calculator.py's get_response_cost_from_hidden_params, the plan's F4), and a strip that took it would move every
+# gateway charge from UBC's price to the pin. Read in the pinned image, the two places a caller's headers come from:
+#  - A REQUEST'S are re-read from `response._hidden_params["additional_headers"]` AFTER the post-call success hook
+#    (proxy/common_request_processing.py, "get any updated response headers") — so that hook REMOVES them, below.
+#  - A STREAM'S are built from the same dict BEFORE any hook sees the stream, and copied; the one hook after
+#    (async_post_call_response_headers_hook) can only add or overwrite a header — so a stream's are EMPTIED: the
+#    names reach the caller, never the values.
+# A FAILURE forwards none of the upstream's headers at all (measured at the plan's sitting 2: a refused 400 and a
+# 429 with no fallback carried no llm_provider-* header), so nothing is stripped there. NOT covered, and recorded for
+# before production: a failure's BODY — the gateway's budget 429 reaches a caller with no fallback verbatim, its
+# key's alias and `sk-...` last four included (the plan's [M5](e)) — and LiteLLM's own `x-litellm-*` headers.
+#
 # PRINTS NOTHING FROM A REQUEST — no message, key, header or prompt: one line at load (`make verify` reads the
 # callback list instead, which proves it is REGISTERED and not merely imported), and one per refusal naming the
 # status, the class and the request's trace id — which a client may name, so it is printed as `repr()` and cut,
@@ -79,6 +97,11 @@ from litellm.integrations.custom_logger import CustomLogger
 # The provider refused the request as malformed. 413 is LiteLLM's too (it names Anthropic's and Replicate's 413 a
 # BadRequestError); 422 is the provider's unprocessable request.
 MALFORMED_STATUSES = frozenset({400, 413, 422})
+
+# F5 (above): the upstream's own key headers — its budget, spend, limits — and the upstream address that answered, as
+# LiteLLM forwards them. Matched on the lowercased name; the response cost is deliberately not one of them.
+UPSTREAM_KEY_PREFIX = "llm_provider-x-litellm-key-"
+UPSTREAM_HEADERS = frozenset({"llm_provider-x-litellm-model-api-base"})
 
 # Only for an exception that carries no status: openai's BadRequestError covers LiteLLM 1.98.0's BadRequestError
 # and every subclass of it (read in the running container at Task 6: ContentPolicyViolationError,
@@ -123,11 +146,29 @@ class ManifestFallbackGuard(CustomLogger):
         raise _refusal(status, str(kwargs.get("model")))
 
     # F8 (above): a provider's 422 leaves LiteLLM with no answer at all. Refused 422 here, never sent as `null`.
+    # And F5 (above): a request's answer loses the upstream's key and address headers here, after it was priced.
     async def async_post_call_success_hook(self, data, user_api_key_dict, response):
         if response is None:
             print("manifest_guard: a provider's 422 left no answer; refused 422", flush=True)
             raise _unprocessable()
+        try:
+            forwarded = _forwarded(response)
+            for name in [k for k in forwarded if _upstreams(k)]:
+                del forwarded[name]
+        except Exception as error:  # never fails a call; says so instead
+            print(f"manifest_guard: could not strip the upstream's headers ({type(error).__name__})", flush=True)
         return response
+
+    # F5 for a STREAM (above): its headers were built before any hook saw it, so the upstream's are emptied here.
+    # A request's were already removed by the success hook, so this finds none of them and changes nothing.
+    async def async_post_call_response_headers_hook(
+        self, data, user_api_key_dict, response, request_headers=None, litellm_call_info=None
+    ):
+        try:
+            return {k: "" for k in _forwarded(response) if _upstreams(k)} or None
+        except Exception as error:  # never fails a call; says so instead
+            print(f"manifest_guard: could not empty the upstream's headers ({type(error).__name__})", flush=True)
+            return None
 
     # The same for a stream: the stream object itself is `None`, so it is checked BEFORE it is iterated, and the
     # refusal is raised at the first chunk the proxy asks for — before any byte of a stream is sent. Every other
@@ -139,6 +180,22 @@ class ManifestFallbackGuard(CustomLogger):
             raise _unprocessable()
         async for item in response:
             yield item
+
+
+def _forwarded(response):
+    """The provider headers LiteLLM forwards for this answer — the dict itself, so a removal reaches the caller; `{}`
+    for an answer that has none (a failure's `response` is None)."""
+    hidden = getattr(response, "_hidden_params", None)
+    if hidden is None and isinstance(response, dict):
+        hidden = response.get("_hidden_params")
+    headers = hidden.get("additional_headers") if isinstance(hidden, dict) else None
+    return headers if isinstance(headers, dict) else {}
+
+
+def _upstreams(name):
+    """F5's headers: the upstream's key headers and the address that answered — never the response cost."""
+    lowered = str(name).lower()
+    return lowered.startswith(UPSTREAM_KEY_PREFIX) or lowered in UPSTREAM_HEADERS
 
 
 def _refusal(status, model):
