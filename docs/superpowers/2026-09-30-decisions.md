@@ -1020,3 +1020,20 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
     minors. Through the question tool — "Approve with the fixes" (Recommended): APPROVED once manifest-17 applies every fix,
     documents only, each marked with the review's id, and manifest-af checks that C1's reorder landed. It runs right after the
     UBC AI Gateway plan, before FE-46/47/5. Rejected: a second review after the fixes; reading the review first.
+
+    And at 23:31 PDT (the clock read just before this entry), two through the question tool:
+      - m99 RE-ASKED, its 22:55 premise having been WRONG (manifest-af said the facts "stay whole"; new-version.tsx:254 hides
+        them while a press holds the panel, so with the "goes to" line gone after launch nothing named the version for the
+        minutes a press works; found by manifest-app-cf's fresh review) — "Line only while the press works" (Recommended): the
+        "goes to" line is kept only while the press works or is unsure (live.tsx:552, :561), where the facts are hidden, and
+        dropped from the offer and from `changed`, where the facts name the version. Over: as ruled at 22:55 (94350b3);
+        showing the facts while the press works.
+      - F32, STREAMED CALLS UNDERCHARGED (manifest-be, the gateway acceptance, 23:22–23:28): LiteLLM 1.98.0 sends stream_options
+        to the provider, then charges its own count of the visible text. Manifest's charge ÷ the gateway's rise was 0.788
+        (14 + 1 tokens recorded where the gateway counted 13 + 4), so reasoning tokens go uncharged; non-streamed calls match
+        exactly. The front-end's agents stream (manifest-app model/client.ts:231). He answered "Fix it in this plan tonight",
+        over the recommended "record now, fix as its own item" and "upgrade LiteLLM instead". So the gateway plan's sitting 3
+        finds the drop point and corrects the charge (infra/litellm/manifest_guard.py's hooks, or where the measurement
+        points), with a failing Docker case against the stub first and the Docker tier again. The acceptance's gateway-side
+        check then compares the streamed call too. He also answered the placement question, "Right after the U1 plan"; it is
+        moot unless tonight's fix cannot land, in which case F32 becomes its own item there.
