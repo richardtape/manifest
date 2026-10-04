@@ -222,8 +222,19 @@ red() { printf '\033[31m%s\033[0m' "$1"; }
 # Then the UBC AI Gateway plan's sitting 3 (2026-10-04, the fix pass on LiteLLM 1.102.0): +3, no new file — `ai/errors.test.ts`
 # (1: 1.102.0's unknown model, never a provider's 400 quoting it, nor any other 400 — F33) and `ai/capable.test.ts` (2: failing
 # closed whatever the setting, and its positive control naming a kept gateway registration — F34).
-EXPECT_TESTS=3326
-EXPECT_FILES=203
+# Then the U1 plan's sitting 1 (2026-10-04, Tasks 1–3): +32, two new files — Task 1 +12: `spec/levels.test.ts` (6, new: the
+# four levels' ranks, every alias at its level, the seven names and no prototype name, a name's level and words, the enum,
+# stored as written), `ai/models.test.ts` (1: very-high keeps the builder exception), `api/incidents.test.ts` (1: very-high's
+# tails refused a token), `launch/assessment.test.ts` (2: very-high on premises, rule and model), `ai/gateway-models.test.ts`
+# (1: the very-high pin) and `api/contract/manifest-yaml.test.ts` (1: the published enum); Task 2 +12: `spec/levels.test.ts`
+# (+2: stored as the level, the default medium, specInLevels — replacing Task 1's boundary case), `ai/models.test.ts` (3: the
+# floors answer levels), `ai/catalogue.test.ts` (1: a U1 name, toString and a typo), `spec/diff.test.ts` (4: a rename is no
+# change, a real change is, a frozen alias, the words) and `api/levels.test.ts` (2, new: getSpec and a release in levels);
+# Task 3 +8: `spec/policy.test.ts` (4: the aliases never widen, internal vs high, the undeclared default, E14's hint),
+# `launch/assessment.test.ts` (2: Very high, high's zero retention), `api/intake.test.ts` (1: paused in medium's words, and
+# started at its alias) and `releases/releases.test.ts` (1: the deploy-time refusal in levels, and its positive control).
+EXPECT_TESTS=3358
+EXPECT_FILES=205
 # EXPECT_DOCTOR 21 -> 22 (2026-10-03, the UBC AI Gateway plan's sitting 2, Task 2): the gateway key's expiry, a
 # check_warn — counted, never failing — from 14 days ahead (its Decision 11). Measured: 22 checks, 0 failed, 0 warnings.
 EXPECT_DOCTOR=22

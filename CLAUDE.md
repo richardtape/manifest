@@ -14,8 +14,8 @@ names the next job** and the current plan's sittings table says how far it has g
 
 **The design is approved and complete, five spikes are done, and seventeen plans are executed** — each with an acceptance that
 passes; the newest is **the UBC AI Gateway plan** (`docs/superpowers/plans/2026-10-03-ubc-ai-gateway.md`), EXECUTED 2026-10-04 — LiteLLM now
-1.102.0. **The current plan, Manifest's data classes as UBC's U1 levels** (`docs/superpowers/plans/2026-10-03-u1-classification.md`), is APPROVED
-and next (Rich, 21:48, 22:21, 23:22), executed inline, a fresh session per sitting; then FE-46, FE-47 and FE-5 (their spec actions applied, their plan, `docs/superpowers/plans/2026-10-03-fe46-fe47-fe5.md`, approved); then A1 (production instances by audience, approved), B (the load rehearsal, FE-44), FE-32 with §12's package allowlist (approved), Phase 3 (sandboxes), A2 (hibernation), the
+1.102.0. **The current plan, Manifest's data classes as UBC's U1 levels** (`docs/superpowers/plans/2026-10-03-u1-classification.md`), is EXECUTING
+since 2026-10-04 (approved by Rich 2026-10-03, 21:48, 22:21, 23:22; its spec action applied — contract `1.7.0`), executed inline, a fresh session per sitting; then FE-46, FE-47 and FE-5 (their spec actions applied, their plan, `docs/superpowers/plans/2026-10-03-fe46-fe47-fe5.md`, approved); then A1 (production instances by audience, approved), B (the load rehearsal, FE-44), FE-32 with §12's package allowlist (approved), Phase 3 (sandboxes), A2 (hibernation), the
 vulnerability database in the console, and FE-45 (Rich, 2026-10-03, 15:28; B and A2 await a second review). Rich's decisions since 2026-09-30 are in `docs/superpowers/2026-09-30-decisions.md`. Each plan's *What executing this plan found* is its record; this file keeps none of it.
 
 | Plan | Executed | What it made true | Acceptance |

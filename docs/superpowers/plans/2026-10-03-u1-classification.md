@@ -73,8 +73,8 @@ That edit is the coordinator's at this plan's approval sweep, not a task here (D
 
 | Sitting | Tasks | What it delivers | `pnpm test:docker` owed? | Spec action needed first | Status |
 |---|---|---|---|---|---|
-| 1 | 0, 1, 2, 3 | **The spec action applied** (Task 0, if it is not already). **The vocabulary, and every reader made level-safe** — one rank table of seven, the enum ACCEPTING seven and storing what is written, the four `=== 'confidential'` readers compared by level, **contract `1.7.0`**, the front-end's NOTICE; no existing input's answer changes (Task 1, *C1*). **Stored and answered as the level** — the transform, the default `medium`, the canonical floors and catalogue, the diff by level, S6's answers, the level in a person's words (Task 2). **D17's words**: the refusal hint (E14), the deploy-time refusal, a `high` model's zero-retention sentence, intake, the blueprint and the guides (Task 3) | **Yes** — `ai/` (Tasks 1–2) and `releases/` (Task 3): once, at the close, in the background; and Task 2's two Docker files alone before its commit (*C1*) | **The U1 spec action** — DECIDED 22:21; Task 0 applies it | ← **next** |
-| 2 | 4, 5 — **stop point** — 6 | **The capable model's level** as a setting, the builder exception by S4, registration by level and never kept above it, the gateway's `very-high` pin (Task 4). **The token rule** (Task 5, S9). **The app-key sweep** (Task 6, S11) — its Docker case first, because it measures what it rests on | **Yes** — `ai/`, and Task 6's new Docker file: once, at the close; and `boot.docker.test.ts` ALONE before it (Task 6's real-entry-point case, *I1*, *M4*) | — | |
+| 1 | 0, 1, 2, 3 | **The spec action applied** (Task 0, if it is not already). **The vocabulary, and every reader made level-safe** — one rank table of seven, the enum ACCEPTING seven and storing what is written, the four `=== 'confidential'` readers compared by level, **contract `1.7.0`**, the front-end's NOTICE; no existing input's answer changes (Task 1, *C1*). **Stored and answered as the level** — the transform, the default `medium`, the canonical floors and catalogue, the diff by level, S6's answers, the level in a person's words (Task 2). **D17's words**: the refusal hint (E14), the deploy-time refusal, a `high` model's zero-retention sentence, intake, the blueprint and the guides (Task 3) | **Yes** — `ai/` (Tasks 1–2) and `releases/` (Task 3): once, at the close, in the background; and Task 2's two Docker files alone before its commit (*C1*) | **The U1 spec action** — DECIDED 22:21; **APPLIED by Task 0, `ad35ef9`** | ✅ **DONE 2026-10-04** (13:47–15:49, `manifest-41`): Task 0 `ad35ef9`, Task 1 `7f36c5b` (contract `1.7.0`), Task 2 `59bd934`, Task 3 `c04e1f3`, F7 `58afe04` — *What executing this plan found*, *Sitting 1* |
+| 2 | 4, 5 — **stop point** — 6 | **The capable model's level** as a setting, the builder exception by S4, registration by level and never kept above it, the gateway's `very-high` pin (Task 4). **The token rule** (Task 5, S9). **The app-key sweep** (Task 6, S11) — its Docker case first, because it measures what it rests on | **Yes** — `ai/`, and Task 6's new Docker file: once, at the close; and `boot.docker.test.ts` ALONE before it (Task 6's real-entry-point case, *I1*, *M4*) | — | ← **next** |
 | 2b | 6 — **only if sitting 2 runs out of room at its stop point** | As sitting 2's last task | Yes — `ai/` | — | |
 | 3 | 7 | **The acceptance**: `make demo-levels` three times, its controls seen red, every other demo still green, `make ci-acceptance`, the plan's one whole-branch review, and Rich reading a `high` app's privacy assessment in the console | Yes, if any code changes | — | |
 
@@ -117,7 +117,8 @@ That edit is the coordinator's at this plan's approval sweep, not a task here (D
   does not build*).
 - **PLACEMENT — "Right after the gateway plan" (Recommended)**: a spec action, then this plan, before FE-46/47/5.
 
-**At 22:21 PDT** (its 22:21 entry), THE U1 SPEC ACTION, DECIDED, NOT APPLIED — *"applied after the UBC AI Gateway plan's acceptance,
+**At 22:21 PDT** (its 22:21 entry), THE U1 SPEC ACTION, DECIDED — **APPLIED 2026-10-04 13:57 by Task 0 (`ad35ef9`), at Rich's 13:53 word,
+E3's last sentence in his 13:53 words (the frozen level)** — *"applied after the UBC AI Gateway plan's acceptance,
 before the U1 plan's first sitting"*. Through the question tool, each as recommended:
 - **S10 — "No, the building agent may use it"**: Spec action 10 stands; `MANIFEST_AGENT_BUILDER_MODELS` stays default `capable`
   (`config.ts:413`). The 21:48 rule is about where a `very-high` app's DATA may go; the building agent sends the code and the person's
@@ -368,10 +369,11 @@ with its test, never by whoever applies the spec words."* It is Task 3's.
    - **Which keys:** every instance whose state is not `gone` with an `app:llmApiKey:<instanceId>` secret — a failed instance's key is
      still live until its retirement. **P4b's environment-level keys are COUNTED, named in one operator line and not checked** (none can
      exist on a machine `pnpm test` has truncated since P4c; at UBC none ever existed).
-   - **Which level: the release's FROZEN level for that environment** (S11's row: *"its frozen level"*) — what the key was minted for. E3's
-     applied words say *"its project's level"*; the plan reads them as the level of what that instance RUNS, because a raise of the
-     project's manifest reaches a running app only at its next deploy (D9, as today), and that deploy mints a new key. **Recorded so Task
-     0's applier and a reviewer do not flag it** (*M12*); no spec change is asked.
+   - **Which level: the release's FROZEN level for that environment** (S11's row: *"its frozen level"*) — what the key was minted for,
+     because a raise of the project's manifest reaches a running app only at its next deploy (D9, as today), and that deploy mints a new
+     key. **The spec says so since Task 0** (2026-10-04, `ad35ef9`): Rich, asked the wording point at 13:53, chose *"Name the frozen level"*,
+     so E3 reads *"…every running app's key [loses] each model the level of the release it runs no longer allows"* where the 22:21 draft
+     said *"its project's level"* (*M12*; the decisions file's 13:53 entry).
    - **What it withdraws:** the agent sweep's own rule, over what the key HOLDS NOW (*I2*) — read by `GET /key/info?key=<value>` with the
      master key, never recomputed from the release's frozen `ai.models` — each held model the catalogue SERVES (classified or not) that is
      not classified at or above that level. A model the catalogue no longer serves stays on the key (LiteLLM refuses it). **So a second
@@ -2451,3 +2453,92 @@ cites was opened before it was built in. Each is marked in place with its id.*
 
 *Each sitting adds a dated entry here: its tasks; every defect, with the measurement that found it; every negative control, and which
 could not fail and why; the gate numbers and the machine, queried at the close.*
+
+### Sitting 1 — 2026-10-04, 13:47–15:49 PDT (`manifest-41`, which `ListAgents` later named `mac-lan-rustling-stallman`): Tasks 0–3
+
+**Opened** at Rich's *"proceed with the next sitting for the platform"*, HEAD `9ba4833`, no coordinator and no faculty front-end session live
+(`ListAgents`, 13:48 and 14:17), so everything went to Rich directly and this session ran the hold flag. **Three questions at 13:53**, through
+the question tool (the decisions file's 13:53 entry): the spec action *"Apply it now"*; E3's wording point (§7e's first cold-start item)
+*"Name the frozen level"*; the project-less app containers *"You try it first"* — `manifest-af`'s 23:12 script, run here and ALLOWED: 22 → 12
+networks, 30 → 0 `mf-` containers, the four protected containers running.
+
+**Task 0** (`ad35ef9`, decisions entry `7867f61`): every quoted passage of E1, E3–E13 and the shared pages re-found word for word (three
+were line-wrapped, read whole); applied by a script that asserted each old text occurred exactly once and read E2, E3, E6 and E8 from the
+action's own quote blocks; every old phrase then `grep -c` 0 and every new one 1; `manifest-phases.html` has no mention. **E3's last sentence
+is Rich's 13:53 words**, not the 22:21 draft's (*"…every agent session loses each model its project's level no longer allows, and every
+running app's key each model the level of the release it runs no longer allows"*), so the spec says what Task 6 builds; Decision 8 and *Decided
+by Rich* now say so. The classifier allowed every spec and shared-page edit and read.
+
+**Task 1** (`7f36c5b`): the seven-name rank table (`confidential` at 3), `canonicalLevel`, `levelName`, `levelWords`, the enum accepting
+seven and storing what is written, the four readers by level (`models.ts:37`, `releases.ts`'s token rule, `assessment.ts`'s
+`staysOnPremise` twice, `gateway-models.ts`'s very-high pin), `asClassification` by `Object.hasOwn`; contract **`1.7.0`**. Every new case red
+first at its predicted line (`levels.test.ts` 5 of 6 — *stores what is WRITTEN* green, as it must be; one each in models, incidents,
+gateway-models, manifest-yaml; two in assessment); the grep for `=== '<old name>'` outside tests found no reader the plan missed. **The
+whole suite on Task 1's tree: 204 files, 3338 passed, every pre-existing test unedited** — the check that no answer moved.
+
+**Task 2** (`59bd934`): the switch — the schema's `transform` and default `medium` (the description lands on the emitted node, so no move to
+the inner enum), `specInLevels`, the floors and the catalogue canonical, the diff's two views and `describeDiff` by `levelName`, S6's two
+answers, `sessions.ts`'s sentence through `levelWords`, the assessment through `levelWords`/`Words`, the twelve release examples, the PIA
+example and the mock's PIA words (`Approved for medium data at most`), `frontend.ts`'s journey check (`very-high`). Every moved expectation
+red first as predicted; **`agents.test.ts`'s *keeps a session its project still allows* (the committed `confidential`) stayed GREEN
+throughout** — Task 1's level-safe exception doing its job. The two moved Docker files alone: 8/8 and 8/8 (after F1). **The whole suite:
+205 files, 3349 passed and 1 timed out** — `source/github/driver.test.ts`'s *refuses to commit a secret* at 5021 ms, load ~3.4; alone 81/81 (a
+5 s timeout under load, TRAPS' known shape, not this change).
+
+**Task 3** (`c04e1f3`): E14's hint in levels, naming U1 and stating no law; the deploy-time refusal through `levelName`; `keepsNothing` and
+the `high` model's zero-retention sentence; intake at `medium` (its message, `INTAKE_MODEL_UNAVAILABLE`'s summary and remedy, the route's
+description — M1); the starter at `medium` with the plan's comment (its claim checked: `server.js:143-144` uses `givenName` and `sn` only for
+`/api/me`'s `displayName`; a note keeps the owner's hash, the text and a time, `:157-160`); AGENTS.md's rule 4; the guides' two places that
+name a level (`agents.md`'s raise example, `frontend.md`'s session paragraph and the `very-high` app's `ai.models`). Reds first: policy at the
+hint only (the four rank cases green, as Tasks 1–2 made them), assessment at the `high` sentence only, intake at *medium*, releases at the
+frozen alias in the message.
+
+**What executing it found**
+
+1. **F1 — two Docker files went red whenever 7100 had registered a gateway model, whatever this plan changed.**
+   `ai/ai-path.docker.test.ts`'s *the running catalogue matches infra/litellm/config.yaml* and `ai/capable.docker.test.ts`'s *…unset removes
+   it* compared the shared LiteLLM's model NAMES with `config.yaml`; 7100, running from Rich's `.env` since the gateway plan's close, registers
+   `ubc-qwen-27b` (a `manifest-gateway-` id), so both read one name too many (measured at Task 2 Step 5: `+ "ubc-qwen-27b"`). The capable file's
+   own fail-closed case then REMOVES 7100's gateway and capable registrations, which is why a second run is green and the red is order-
+   dependent. Both now leave out every `manifest-gateway-` id (`gateway-models.ts`'s `ID_PREFIX`, read from `/model/info`) and hold each such
+   entry to a level; proved by restarting 7100 from `.env` (`gateway-controls.sh start real`: `ubc-qwen-27b registered`) and running both again
+   with it present: 8/8 and 8/8. Latent since the gateway plan's Task 3; folded into Task 2's commit.
+2. **F2 — the plan's own diff test could not pass for a reason that had nothing to do with levels.** *A frozen release's alias equals the same
+   level in a new spec* compared `resolveConfig(base(), …, DEFAULTS)` (resources from the defaults) with `sensitiveViewOfSpec(base())`
+   (resources as written: none) and answered `['resources']`. The file's own rule is that the two adapters agree only when a spec sets every
+   limit; the test now does (`base({ resources: DEFAULTS })`) and gained its positive control (a `high` spec IS a change).
+3. **F3 — a moved expectation the plan's list missed: `capable.docker.test.ts`'s fallback refusal** expected *"classified 'public'"*; the
+   catalogue now answers the level, so it reads *"classified 'low'"* (the unit file's twin was in the list; the Docker one was not).
+4. **F4 — another: `assessment.test.ts`'s undeclared-classification GAP** (*"Manifest treats it as internal"*), which the plan listed as code
+   (`:267`, *M1*) but not as a test line; it reads *medium*.
+5. **F5 — Task 2's control (a) was predicted red at `agents.test.ts:1063`, and it stays green — correctly.** With `asLevel` answering the
+   stored name, the sentence still says *very high*, because `levelWords` canonicalizes any name; the FLOOR is held by `models.test.ts`'s five
+   floor cases, which went red. Worked out before recording (a green control is a question): not a hole, two tests holding two things.
+6. **F6 — Task 3 named `src/ai/intake.test.ts`, which does not exist**; intake's refusals are tested in `src/api/intake.test.ts`, where the new
+   case went.
+7. **F7 — the plan's new non-empty assertion at `agents.test.ts:303` ran INSIDE the server's catalogue getter**, so its red (Task 2's control
+   (d)) read as `500 INTERNAL`, not as the assertion. Red for the right reason, reading wrong: moved out of the server, asserted before it
+   starts (`58afe04`; broken again after, its red now reads *expected 0 to be greater than 0*).
+
+*Smaller, not counted:* Task 1 Step 6's `git diff --stat` list omitted `operations.md` and the console's `llms.txt`, both of which print the
+version; the first try at Task 2's control (d) did not apply (prettier had re-wrapped the line) and read 42/42 — re-run with the break proven
+by `git diff`, then red.
+
+**Negative controls — each committed first, broken, run, restored by `git checkout`, the break proven by `git diff`:**
+- Task 1: (a) `confidential: 2` → red at *ranks EVERY alias* only; (b) `canonicalLevel` by `in` → red at *no prototype name* (`toString`)
+  only; (c) the token rule back to `=== 'confidential'` → red at the incidents *written very-high* case only, every `confidential` case green;
+  (d) `staysOnPremise` back to the string → red at the two *very-high* assessment cases only, the old `default-chat-onprem`/`confidential` case
+  GREEN (*M3*: the alias path, as predicted).
+- Task 2: (a) `asLevel` answering the stored name → red at the three `classificationFloor` cases and two new ones; the `toString` case green
+  (it falls to the default either way) and `agents.test.ts` 42/42 (F5); (b) `sensitiveViewOfSpec`'s `levelName` removed → red at *a rename …
+  is NOT sensitive* only; (e, added) `sensitiveViewOfRelease`'s removed → red at *a frozen release's alias equals* only; (c) `getSpec`'s
+  `specInLevels` bypassed → red at its case only; (d) `:303`'s filter left at `internal` → red at that case only.
+- Task 3: (a) `keepsNothing` false → red at the zero-retention case only; (b) E14's old hint → red at *the refusal speaks in levels* only; (c)
+  the deploy-time `levelName` removed → red at its releases case only.
+
+**The front-end's NOTICE was not delivered**: no `manifest-app-*` session was live at Task 1's commit or after (ListAgents 14:17, 15:48). It is
+in ORIENTATION §7e, where the front-end's own ORIENTATION sends its next session.
+
+**The gates at the close:** `pnpm test` twice on the final tree (`58afe04`) — **3358/3358, 205 files**, 945 s and 925 s, load 2.5–4.0; `EXPECT_TESTS` 3326 → **3358**, `EXPECT_FILES` 203 → **205** (counted: Task 1 +12 and one file, Task 2 +12 and one file, Task 3 +8 — the script's comment names each); `pnpm lint`, `pnpm typecheck`, `pnpm format:check` clean. **`pnpm test:docker`**: the whole tier ONCE on `c04e1f3`, in the background, 14:51–15:13, **286/286, 42 files, 1324 s** — §2's number unmoved (no new Docker test this sitting; Task 2's two moved files had already run alone, 8/8 and 8/8); 12 networks at its start, 19 at its end. `make verify` **67**/0/0 and `make doctor` **22**/0/0 after it (`EXPECT_VERIFY`, `EXPECT_DOCTOR` unmoved). The four whole-suite runs of the sitting: Task 1's 3338/204, Task 2's 3349 + 1 timeout (above), and the close's two.
+
+**The machine at the close, queried at 15:47 PDT:** 7100 is PID 57205, restarted from `.env` on REAL GitHub at 15:45 (`gateway-controls.sh start real`: `capableModel registered`, `capableFallback set`, `ubc-qwen-27b registered`, `secretsScrubbed` 16 — it had restarted the same way at 14:24 for F1); its tables hold TWO FIXTURE PROJECTS and their two users (`fixture-…`, `other-…`, 15:46 — the F7 control's single-file run; no container, no repository on GitHub), which the next `pnpm test` truncates. **LiteLLM 1.102.0** (`sha256:32cfd7a4…`), last started 2026-10-04 00:14 PDT (the gateway plan's online acceptance). **12 Docker networks, 0 `mf-` containers, 39 volumes**; the three cleanup scripts bare, then `--apply`, after the tier (7 networks + 1 volume; 7 LiteLLM orphans — `p4b-probe-user`, `mf-platform-intake` and five truncated projects' budgets; 21 app images) — all ALLOWED. The four protected containers running; `.env` untouched (mtime 2026-10-03 23:04); the hold flag FREE. `scripts/snapshot-machine.sh` before (13:54) and after (15:47): the same containers, the edge restarted by the tier, the dead app images gone, HEAD and the dirty count as committed.

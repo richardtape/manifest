@@ -2684,3 +2684,15 @@ sitting 3, F33): §16's mapping read the string `"None"` as its only discriminat
 start (`/<route>: Invalid model name passed in model=`), so a PROVIDER's 400 quoting them — the gateway refusing a model it does not serve,
 wrapped as `litellm.BadRequestError: OpenAIException - …` — stays the provider's. Only a key with no model list reaches it; an app key is
 refused an off-list model `403 key_model_access_denied` first. After any LiteLLM re-pin, run `ai-path.docker.test.ts` before trusting the mapping.
+
+**7100's OWN REGISTRATIONS ARE ON THE SHARED LiteLLM — AND THE DOCKER TIER REMOVES THEM** (2026-10-04, the U1 plan's sitting 1, F1). 7100
+running from `.env` registers the capable model and `ubc-qwen-27b` (`MANIFEST_GATEWAY_MODELS`, a `manifest-gateway-` id) on the one LiteLLM
+every Docker test reads. Two Docker files compared that LiteLLM's model NAMES with `config.yaml` and went red whenever 7100 had registered a
+gateway model — and green on a second run, because `capable.docker.test.ts`'s fail-closed cases REMOVE 7100's gateway and capable
+registrations. Both now leave every `manifest-gateway-` id out of the comparison. The other half stands: **after any Docker run, restart 7100
+from `.env`** (`bash scripts/gateway-controls.sh start real` prints `capableModel` and `gatewayModels` when it is up), or it serves no capable
+model and no gateway model until it restarts.
+
+**A SESSION'S NAME IN `ListAgents` CAN CHANGE WHILE IT RUNS** (2026-10-04, the U1 plan's sitting 1): this session was `manifest-41` at 13:47 and
+`mac-lan-rustling-stallman` at 14:17. A peer that cached the first name messages nobody. `ListAgents` immediately before every promised
+message, as §7e says, and record a session by both names when it changes.
