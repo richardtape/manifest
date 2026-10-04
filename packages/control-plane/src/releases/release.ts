@@ -30,6 +30,7 @@ import type { InjectedService, InjectionContext, ResolvedConfig } from '../spec/
 import {
   CLASSIFICATION_RANK,
   INJECTED_FILE_PATHS,
+  levelName,
   renderInjection,
   toMebibytes,
 } from '../spec/index.js'
@@ -1099,8 +1100,8 @@ async function modelsForDeploy(
     ) {
       throw new ReleaseError(
         'RELEASE_MODEL_CLASSIFICATION_TOO_LOW',
-        `the model '${name}' is now approved only up to ${entry.maxClassification} data, ` +
-          `and this app declares ${resolved.classification} (D17)`,
+        `the model '${name}' is now approved only up to ${levelName(entry.maxClassification)} data, ` +
+          `and this app declares ${levelName(resolved.classification)} (D17)`,
       )
     }
     return entry

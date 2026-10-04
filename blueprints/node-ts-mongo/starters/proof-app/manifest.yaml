@@ -53,13 +53,12 @@ env:
   - { name: COURSE_CODE, value: CHEM_121 }
 
 data:
-  # The notes are course work, not personal records, and the app stores no UBC
-  # identifier at all — a note is keyed on sha256(puid ‖ project ‖ environment).
-  #
-  # `internal` and not `confidential`, and it bounds the models as well as the
-  # data: D17 approves `default-chat` to `internal`, so a `confidential`
-  # declaration REFUSES it at validation (SPEC_MODEL_CLASSIFICATION_TOO_LOW) —
-  # which is the gate working, and `make demo-ai`'s negative control (b) shows it.
-  # A question and the one note chosen as its context are what reach the model.
-  classification: internal
+  # UBC's U1 level (Information Security Standard U1): the most sensitive information the app KEEPS or SENDS TO A
+  # MODEL. The notes are course work, not personal records, and the app stores no UBC identifier at all — a note is
+  # keyed on sha256(puid ‖ project ‖ environment). It asks CWL for givenName and sn to greet people by name, and
+  # neither is kept nor sent to a model: it shows them and forgets them. So `medium`. An app that KEEPS a student's
+  # name, ID or grades, or sends one to a model, is `high`, and `high` refuses `default-chat` at validation
+  # (SPEC_MODEL_CLASSIFICATION_TOO_LOW): the gate working, as `make demo-ai`'s negative control (b) shows with
+  # `confidential`. A question and the one note chosen as its context are what reach the model.
+  classification: medium
   retention_days: 365

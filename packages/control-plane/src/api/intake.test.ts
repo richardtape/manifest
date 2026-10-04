@@ -281,6 +281,41 @@ describe('intake sessions (Spec action 5, FE-1)', () => {
     )
   })
 
+  it('says why intake is paused in UBC’s U1 level — medium — and starts while the model is internal, its alias (U1 plan Task 3)', async () => {
+    const catalogue = await declaredCatalogue().get()
+    const at = (level: 'public' | 'internal') => {
+      const lite = fakeLiteLlm()
+      return {
+        lite,
+        deps: {
+          llm: lite,
+          catalogue: {
+            enabled: true,
+            get: async () => ({
+              models: catalogue.models.map((m) =>
+                m.name === 'default-chat' ? { ...m, maxClassification: level } : m,
+              ),
+              unclassified: [],
+            }),
+          },
+        },
+      }
+    }
+    const lowered = at('public')
+    await withProjectServer(async (ctx) => {
+      const res = await start(ctx, ctx.ownerCookies)
+      expect(refusal(res)).toEqual({ status: 503, code: 'INTAKE_MODEL_UNAVAILABLE' })
+      expect(res.body).toContain('approved for medium data')
+      expect(res.body).not.toContain('internal data')
+      expect(mints(lowered.lite)).toEqual([])
+    }, lowered.deps)
+    // The positive control: the alias `internal` IS medium, so intake starts.
+    const allowed = at('internal')
+    await withProjectServer(async (ctx) => {
+      expect((await start(ctx, ctx.ownerCookies)).statusCode).toBe(201)
+    }, allowed.deps)
+  })
+
   it('refuses every start with AI switched off, naming the setting', async () => {
     await withProjectServer(
       async (ctx) => {

@@ -59,7 +59,7 @@ order, computed by the blueprint's `ai/end-user.js`. **The database holds no UBC
 identifier**, so what this application stores does not identify a person on its
 own. That sentence is what its PIA will say.
 
-`data.classification: internal` and `retention_days: 365` are the app's own
+`data.classification: medium` and `retention_days: 365` are the app's own
 declaration, and P6's `LaunchReadiness` is what will hold it to them.
 
 ## The AI half — what reaches a model, and who pays
@@ -81,7 +81,7 @@ wrote**, and nothing about anyone else. LiteLLM is configured not to keep prompt
 
 **Both models are declared, and both are used.** The platform mints this app a key
 confined to exactly those two models and three routes (§10), and D17 approves
-both to `internal` — so a `confidential` declaration refuses them at validation,
+both to `medium` — so a `high` or `very-high` declaration refuses them at validation,
 not at the first question.
 
 **Every request is charged to the person who asked**, as

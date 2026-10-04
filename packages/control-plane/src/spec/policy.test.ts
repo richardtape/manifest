@@ -388,3 +388,64 @@ describe('the per-user AI budget — validated, not enforced (§7, §10; Spec ac
     expect(validateSpec('manifest: [', ctx).warnings).toEqual([])
   })
 })
+
+describe('D17 in UBC’s U1 levels (U1 plan Task 3)', () => {
+  // `ctx` holds default-chat-onprem at `confidential` and default-chat/default-embed at `internal`:
+  // ALIASES, deliberately — the path every catalogue on a laptop takes.
+  const ctxWithHigh: ValidationContext = {
+    ...ctx,
+    modelCatalogue: [
+      ...ctx.modelCatalogue,
+      { name: 'gw-high', maxClassification: 'high' },
+    ],
+  }
+  const declaring = (level: string, models: string) =>
+    yaml(
+      `ai:\n  models: [${models}]\n  budget:\n    project_monthly_usd: 10\ndata:\n  classification: ${level}`,
+    )
+
+  it('the aliases never widen: confidential is refused a high entry; very-high too (Review Focus 1)', () => {
+    expect(errorCodes(declaring('confidential', 'gw-high'), ctxWithHigh)).toEqual([
+      'SPEC_MODEL_CLASSIFICATION_TOO_LOW',
+    ])
+    expect(errorCodes(declaring('very-high', 'gw-high'), ctxWithHigh)).toEqual([
+      'SPEC_MODEL_CLASSIFICATION_TOO_LOW',
+    ])
+    // The positive control: the same entry is valid for a high app, and an on-premise one for a very-high app.
+    expect(errorCodes(declaring('high', 'gw-high'), ctxWithHigh)).toEqual([])
+    expect(
+      errorCodes(declaring('confidential', 'default-chat-onprem'), ctxWithHigh),
+    ).toEqual([])
+  })
+
+  it('an entry at internal does not satisfy a high app; one at confidential satisfies a very-high app', () => {
+    expect(errorCodes(declaring('high', 'default-chat'))).toEqual([
+      'SPEC_MODEL_CLASSIFICATION_TOO_LOW',
+    ])
+    expect(errorCodes(declaring('very-high', 'default-chat-onprem'))).toEqual([])
+  })
+
+  it('an undeclared app still validates default-chat — medium is internal’s level (S5)', () => {
+    expect(
+      errorCodes(
+        yaml(`ai:\n  models: [default-chat]\n  budget:\n    project_monthly_usd: 10`),
+      ),
+    ).toEqual([])
+  })
+
+  it('the refusal speaks in levels, names U1, and states no law (E14)', () => {
+    const r = validateSpec(declaring('confidential', 'default-chat'), ctx)
+    expect(r.valid).toBe(false)
+    const error = r.valid
+      ? undefined
+      : r.errors.find((e) => e.code === 'SPEC_MODEL_CLASSIFICATION_TOO_LOW')
+    expect(error?.message).toBe('"default-chat" may not process very-high data')
+    expect(error?.hint).toBe(
+      '"default-chat" is approved for medium data at most, and this app declares very-high. Choose a model approved ' +
+        'for very-high data, or lower data.classification if it overstates the app’s data: the levels are UBC’s own ' +
+        '(Information Security Standard U1). Which models may receive each level is the platform’s catalogue to say, ' +
+        'and whether an app may use them, the Privacy Office’s.',
+    )
+    expect(error?.hint).not.toMatch(/BC public body|outside Canada|internal|confidential/)
+  })
+})

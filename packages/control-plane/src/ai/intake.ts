@@ -53,19 +53,19 @@ export async function startIntakeSession(
   actor: SessionActor,
 ): Promise<{ row: IntakeSessionRow; key: string }> {
   // 1. THE MODEL, checked at EVERY mint (Spec action 5): the setting must name a classified
-  //    catalogue entry allowed for §7's default classification, `internal`. Lowered to `public`,
-  //    unclassified, or gone, and intake PAUSES — never another model.
+  //    catalogue entry allowed for §7's default level, `medium` (`internal`, its alias). Lowered to
+  //    `low` (or `public`), unclassified, or gone, and intake PAUSES — never another model.
   const snapshot = await deps.catalogue.get()
   const llm = gatewayOf(deps)
   const model = deps.intake.model
   const entry = snapshot.models.find((m) => m.name === model)
   if (
     entry === undefined ||
-    CLASSIFICATION_RANK[entry.maxClassification] < CLASSIFICATION_RANK.internal
+    CLASSIFICATION_RANK[entry.maxClassification] < CLASSIFICATION_RANK.medium
   ) {
     throw new AgentSessionError(
       'INTAKE_MODEL_UNAVAILABLE',
-      `the platform's intake model '${model}' is not a catalogue model approved for internal data, so intake is paused rather than sent anywhere else (D17)`,
+      `the platform's intake model '${model}' is not a catalogue model approved for medium data, so intake is paused rather than sent anywhere else (D17)`,
     )
   }
 

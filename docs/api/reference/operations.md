@@ -266,7 +266,7 @@ Answer, `200`:
 
 `POST /v1/intake-sessions` · a session only — a delegated token is refused
 
-A model key for a person describing an app before creating it — to understand what they want, propose names (`checkSlug`), and choose the blueprint and starter. The platform pays; your agent budget is untouched. One model (`session.model`), approved for internal data; a key of cents and minutes, never outliving your session; a few per person per day (`INTAKE_DAILY_LIMIT_REACHED`, until midnight in Vancouver) within the platform’s monthly intake budget (`INTAKE_BUDGET_EXHAUSTED`). The key is in this answer only; a retry with the same Idempotency-Key answers `409 INTAKE_SESSION_ALREADY_STARTED`. Signed-in people only: a delegated token is refused. Only a person who may build — a faculty member or a platform administrator (`mayBuild` on `getMe`) — starts one; anyone else is refused `BUILDING_NOT_OPEN`, and nothing is minted or counted.
+A model key for a person describing an app before creating it — to understand what they want, propose names (`checkSlug`), and choose the blueprint and starter. The platform pays; your agent budget is untouched. One model (`session.model`), approved for medium data; a key of cents and minutes, never outliving your session; a few per person per day (`INTAKE_DAILY_LIMIT_REACHED`, until midnight in Vancouver) within the platform’s monthly intake budget (`INTAKE_BUDGET_EXHAUSTED`). The key is in this answer only; a retry with the same Idempotency-Key answers `409 INTAKE_SESSION_ALREADY_STARTED`. Signed-in people only: a delegated token is refused. Only a person who may build — a faculty member or a platform administrator (`mayBuild` on `getMe`) — starts one; anyone else is refused `BUILDING_NOT_OPEN`, and nothing is minted or counted.
 
 Answer, `201`:
 
@@ -296,7 +296,7 @@ Answer, `201`:
 | `IDEMPOTENCY_KEY_REUSED` | 409 | Use a new Idempotency-Key for a new action. To retry the SAME action, send the same key to the same path with exactly the same body, and the first answer is replayed — except a mint, whose secret is never kept (`TOKEN_ALREADY_MINTED`). |
 | `INTAKE_BUDGET_EXHAUSTED` | 409 | Wait for the month to reset — `limit.resetsAt` says when, `null` if the AI gateway does not say — or ask a platform administrator to raise the intake budget. |
 | `INTAKE_DAILY_LIMIT_REACHED` | 409 | Try again once `limit.resetsAt` has passed — the next midnight, Vancouver time — or create the project now and continue under an agent session (`startAgentSession`), which is charged to the person instead. |
-| `INTAKE_MODEL_UNAVAILABLE` | 503 | A platform administrator names an intake model the catalogue approves for internal data (`MANIFEST_INTAKE_MODEL`). |
+| `INTAKE_MODEL_UNAVAILABLE` | 503 | A platform administrator names an intake model the catalogue approves for medium data (`MANIFEST_INTAKE_MODEL`). |
 | `INTAKE_SESSION_ALREADY_STARTED` | 409 | Use the key from the first answer. If it was lost, end the session this refusal names in `session` (`endIntakeSession` with its `id`) and start another with a new Idempotency-Key. |
 | `INTERNAL` | 500 | Retry once; if it recurs, the platform’s operator has a line naming it — report the time and the operation. |
 | `RATE_LIMITED` | 429 | Wait the number of seconds `Retry-After` gives, then retry. A token’s limit is its `rateLimit`, fixed when it was minted. |

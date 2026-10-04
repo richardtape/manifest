@@ -1,5 +1,10 @@
 import type { ManifestError } from '../errors/index.js'
-import { CLASSIFICATION_RANK, type Classification, type ManifestSpec } from './schema.js'
+import {
+  CLASSIFICATION_RANK,
+  levelName,
+  type Classification,
+  type ManifestSpec,
+} from './schema.js'
 import { RESERVED_ENV_NAMES } from './injection.js'
 
 export interface ValidationContext {
@@ -205,14 +210,17 @@ export function checkPolicy(spec: ManifestSpec, ctx: ValidationContext): Manifes
       return
     }
     if (CLASSIFICATION_RANK[entry.maxClassification] < appRank) {
+      // In UBC's U1 levels (S6), each value as the level it names; the hint states no law (E14).
+      const declared = levelName(spec.data.classification)
       errors.push({
         code: POLICY_CODES.MODEL_CLASSIFICATION_TOO_LOW,
         path: `ai.models.${i}`,
-        message: `"${model}" may not process ${spec.data.classification} data`,
+        message: `"${model}" may not process ${declared} data`,
         hint:
-          `"${model}" is approved up to ${entry.maxClassification} data and this app declares ` +
-          `${spec.data.classification}. Choose an on-premise model, or lower data.classification ` +
-          'if it is overstated. A BC public body may not send personal information to a model running outside Canada.',
+          `"${model}" is approved for ${levelName(entry.maxClassification)} data at most, and this app declares ` +
+          `${declared}. Choose a model approved for ${declared} data, or lower data.classification if it overstates ` +
+          'the app’s data: the levels are UBC’s own (Information Security Standard U1). Which models may receive each ' +
+          'level is the platform’s catalogue to say, and whether an app may use them, the Privacy Office’s.',
       })
     }
   })

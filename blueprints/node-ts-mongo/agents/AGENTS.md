@@ -196,7 +196,7 @@ PUID is required, so a call that names nobody is refused rather than charged to
 nobody. `server.js` already calls `configureAi()` at startup for an app with models,
 so a missing variable fails the first boot rather than a person's first question.
 
-**Three things never to do. Each one fails silently.**
+**Three things never to do, each of which fails silently — and one to do every time.**
 
 1. **Never call the toolkit's `embed()` yourself.** Without `encoding_format:
    'float'` it returns 192 near-zero numbers where 768 belong — no error, and every
@@ -209,6 +209,11 @@ so a missing variable fails the first boot rather than a person's first question
 3. **Never put a vendor model id in `ai.models`** — logical names only. A model
    approved below your app's `data.classification` is refused when the manifest is
    validated, not while a student is using the app.
+4. **Declare `data.classification` every time**, from UBC's four levels: `low` (public
+   information), `medium` (internal, not personal), `high` (any personal information —
+   students' names, ID numbers, grades) or `very-high` (health, government ID, financial
+   records, passwords; on-premise models only). A model approved below it is refused when
+   the manifest is validated.
 
 **The budget.** Set `ai.budget.project_monthly_usd`, or leave it out and the
 project's AI quota is used. **Never write `0`**: a zero budget refuses every request,

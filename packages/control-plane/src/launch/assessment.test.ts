@@ -414,6 +414,51 @@ describe('assembleAssessment (Task 11)', () => {
   })
 })
 
+describe('the privacy assessment in UBC’s U1 levels (U1 plan Task 3; Review Focus 6)', () => {
+  const highSpec = (models: string[]) =>
+    manifestSchema.parse({
+      manifest: 1,
+      name: 'lp-sample',
+      blueprint: 'node-ts-mongo@1',
+      runtime: { port: 3000 },
+      ai: { models },
+      data: { classification: 'high', retention_days: 180 },
+    })
+
+  it('a very-high app’s rule is on-premise hardware, printed as a person reads it', () => {
+    const spec = manifestSchema.parse({
+      ...BARE_INPUT,
+      data: { classification: 'confidential' },
+    })
+    const flows = section(assembleAssessment(input({ spec })), 'flows')
+    expect(valueOf(flows, 'Classification')?.value).toBe(
+      'Very high — every AI model the app uses must run on on-premise hardware.',
+    )
+  })
+
+  it('a high model may leave UBC to a provider that keeps nothing — the zero-retention sentence', () => {
+    const flows = section(
+      assembleAssessment(
+        input({
+          spec: highSpec(['gw-high']),
+          catalogue: [
+            ...CATALOGUE,
+            { name: 'gw-high', maxClassification: 'high', kind: 'chat' },
+          ],
+        }),
+      ),
+      'flows',
+    )
+    expect(valueOf(flows, 'gw-high')?.value).toBe(
+      'Approved for high data at most: it may be answered by a provider off-premise that keeps none of what it is sent ' +
+        '(zero data retention), as the platform’s administrator attests, so what the app sends it may leave UBC but is not kept there.',
+    )
+    expect(valueOf(flows, 'Classification')?.value).toBe(
+      'High — every AI model the app uses must be approved for high data.',
+    )
+  })
+})
+
 describe('renderAssessmentText (Task 11)', () => {
   const RICH = assembleAssessment(input())
   const SPARSE = assembleAssessment(

@@ -849,9 +849,9 @@ export const ERROR_CODES = {
     status: 503,
     families: ['AgentSessionError'],
     summary:
-      'The platform’s intake model is not a catalogue model approved for internal data, so intake is paused rather than sent to another model.',
+      'The platform’s intake model is not a catalogue model approved for medium data, so intake is paused rather than sent to another model.',
     remedy:
-      'A platform administrator names an intake model the catalogue approves for internal data (`MANIFEST_INTAKE_MODEL`).',
+      'A platform administrator names an intake model the catalogue approves for medium data (`MANIFEST_INTAKE_MODEL`).',
   },
 
   // config.ts — mapped by toErrorResponse, raised at boot

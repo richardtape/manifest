@@ -104,6 +104,9 @@ const Words = (value: string) => {
 /** Approved for `very-high` data — or `confidential`, its alias — means on-premise only (§7: such an app resolves to nothing else). */
 const staysOnPremise = (ceiling: Classification) => toLevel(ceiling) === 'very-high'
 
+/** Approved for `high`: on premises, or at a provider that keeps none of what it is sent (§7's rule, attested). */
+const keepsNothing = (ceiling: Classification) => toLevel(ceiling) === 'high'
+
 function collected(spec: ManifestSpec): Section {
   const facts: Fact[] =
     spec.auth.provider === 'cwl'
@@ -204,7 +207,9 @@ function modelFlow(name: string, catalogue: readonly ModelEntry[] | null): Fact 
         ? 'This model is not in the platform’s model catalogue now, so Manifest cannot say where it sends data.'
         : staysOnPremise(entry.maxClassification)
           ? `Approved for ${levelWords(entry.maxClassification)} data: it runs on on-premise hardware, so what the app sends it stays there.`
-          : `Approved for ${levelWords(entry.maxClassification)} data at most: it may be answered by a provider off-premise, so what the app sends it may leave UBC.`
+          : keepsNothing(entry.maxClassification)
+            ? `Approved for ${levelWords(entry.maxClassification)} data at most: it may be answered by a provider off-premise that keeps none of what it is sent (zero data retention), as the platform’s administrator attests, so what the app sends it may leave UBC but is not kept there.`
+            : `Approved for ${levelWords(entry.maxClassification)} data at most: it may be answered by a provider off-premise, so what the app sends it may leave UBC.`
   return { label: name, value, source: MODELS }
 }
 

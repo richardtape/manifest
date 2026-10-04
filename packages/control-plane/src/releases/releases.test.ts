@@ -2994,6 +2994,60 @@ describe('deployRelease and §10’s app key (P4b Task 9)', () => {
     })
   })
 
+  it('refuses a release frozen confidential whose model is now only high, in U1’s names — and deploys it while the model is very-high (U1 plan Task 3)', async () => {
+    await withRollback(async (db) => {
+      const events: string[] = []
+      const { driver } = recordingDriver(events)
+      // Frozen with the ALIAS, as a release validated before the switch keeps it.
+      const frozen = (kind: 'sandbox' | 'staging' | 'production') => ({
+        ...withAi(kind, ['default-chat-onprem']),
+        classification: 'confidential' as const,
+      })
+      const { release, staging } = await releaseWith(db, driver, {
+        sandbox: frozen('sandbox'),
+        staging: frozen('staging'),
+        production: frozen('production'),
+      })
+      const { models: offered } = await declaredCatalogue().get()
+      const onPremAt = (level: 'high' | 'very-high'): ModelCatalogue => ({
+        enabled: true,
+        get: async () => ({
+          models: offered.map((m) =>
+            m.name === 'default-chat-onprem' ? { ...m, maxClassification: level } : m,
+          ),
+          unclassified: [],
+        }),
+      })
+      const refused = deployRelease(
+        db,
+        driver,
+        config,
+        { ...deployDeps, ai: recordingAi(events).service, catalogue: onPremAt('high') },
+        { releaseId: release.id, environmentId: staging.id },
+      )
+      await expect(refused).rejects.toMatchObject({
+        code: 'RELEASE_MODEL_CLASSIFICATION_TOO_LOW',
+      })
+      await expect(refused).rejects.toThrow(
+        "the model 'default-chat-onprem' is now approved only up to high data, and this app declares very-high (D17)",
+      )
+      expect(events).toEqual([])
+      // The positive control: the same release, while the model is still very-high.
+      const instance = await deployRelease(
+        db,
+        driver,
+        config,
+        {
+          ...deployDeps,
+          ai: recordingAi(events).service,
+          catalogue: onPremAt('very-high'),
+        },
+        { releaseId: release.id, environmentId: staging.id },
+      )
+      expect(instance.state).toBe('healthy')
+    })
+  })
+
   it('refuses a release whose project budget would refuse every request, before minting', async () => {
     await withRollback(async (db) => {
       const events: string[] = []

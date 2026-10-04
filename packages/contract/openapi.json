@@ -1552,7 +1552,7 @@
           "agents"
         ],
         "summary": "A model for describing an app, before it exists",
-        "description": "A model key for a person describing an app before creating it — to understand what they want, propose names (`checkSlug`), and choose the blueprint and starter. The platform pays; your agent budget is untouched. One model (`session.model`), approved for internal data; a key of cents and minutes, never outliving your session; a few per person per day (`INTAKE_DAILY_LIMIT_REACHED`, until midnight in Vancouver) within the platform’s monthly intake budget (`INTAKE_BUDGET_EXHAUSTED`). The key is in this answer only; a retry with the same Idempotency-Key answers `409 INTAKE_SESSION_ALREADY_STARTED`. Signed-in people only: a delegated token is refused. Only a person who may build — a faculty member or a platform administrator (`mayBuild` on `getMe`) — starts one; anyone else is refused `BUILDING_NOT_OPEN`, and nothing is minted or counted.",
+        "description": "A model key for a person describing an app before creating it — to understand what they want, propose names (`checkSlug`), and choose the blueprint and starter. The platform pays; your agent budget is untouched. One model (`session.model`), approved for medium data; a key of cents and minutes, never outliving your session; a few per person per day (`INTAKE_DAILY_LIMIT_REACHED`, until midnight in Vancouver) within the platform’s monthly intake budget (`INTAKE_BUDGET_EXHAUSTED`). The key is in this answer only; a retry with the same Idempotency-Key answers `409 INTAKE_SESSION_ALREADY_STARTED`. Signed-in people only: a delegated token is refused. Only a person who may build — a faculty member or a platform administrator (`mayBuild` on `getMe`) — starts one; anyone else is refused `BUILDING_NOT_OPEN`, and nothing is minted or counted.",
         "security": [
           {
             "session": []
@@ -11153,7 +11153,7 @@
           "INSTANCE_OUTPUT_UNAVAILABLE": "The instance no longer runs, or never started, so there is no output to read — Manifest keeps none.",
           "INTAKE_BUDGET_EXHAUSTED": "The platform’s monthly intake budget is spent, so describing new apps is paused for everyone until the month resets. It is never charged to a person’s budget instead.",
           "INTAKE_DAILY_LIMIT_REACHED": "This person has started the intake sessions a person may start in a day, so describing new apps is paused for them until midnight, Vancouver time.",
-          "INTAKE_MODEL_UNAVAILABLE": "The platform’s intake model is not a catalogue model approved for internal data, so intake is paused rather than sent to another model.",
+          "INTAKE_MODEL_UNAVAILABLE": "The platform’s intake model is not a catalogue model approved for medium data, so intake is paused rather than sent to another model.",
           "INTAKE_SESSION_ALREADY_STARTED": "This request — its Idempotency-Key — already started an intake session, and its key was answered then. A key is shown once and never again.",
           "INTERNAL": "The control plane failed; its operator log has the reason. Nothing the client sent explains it.",
           "LAUNCH_DRAFT_CHANGED": "The draft was made again after the one the request names (`draftGeneratedAt`), so what Manifest holds is not what was sent. Nothing was recorded.",
@@ -21838,8 +21838,8 @@
     },
     "INTAKE_MODEL_UNAVAILABLE": {
       "status": 503,
-      "summary": "The platform’s intake model is not a catalogue model approved for internal data, so intake is paused rather than sent to another model.",
-      "remedy": "A platform administrator names an intake model the catalogue approves for internal data (`MANIFEST_INTAKE_MODEL`)."
+      "summary": "The platform’s intake model is not a catalogue model approved for medium data, so intake is paused rather than sent to another model.",
+      "remedy": "A platform administrator names an intake model the catalogue approves for medium data (`MANIFEST_INTAKE_MODEL`)."
     },
     "INTAKE_SESSION_ALREADY_STARTED": {
       "status": 409,
