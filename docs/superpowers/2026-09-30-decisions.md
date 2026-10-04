@@ -748,3 +748,12 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
     marks the live server's in-progress builds interrupted), through the question tool — "Fix it (Recommended)": a starting
     server makes sure it is the only one (it takes the port, or a lock) before marking anything interrupted; this overrides
     the F6b plan's Review Focus 3 wording ("marked before this server can listen"). For the next front-end session.
+
+    And at 17:44 PDT, faculty-ready sitting 7's two (manifest-80; the classifier ALLOWED its restart of 7100 onto driver 1 at
+    17:34, which it had refused at sitting 3), through the question tool, each as recommended:
+      - THE .env SWAP FOR DRIVER 2 ON THE FAKE — "Yes, it does it": a 0600 copy of .env in the git-ignored workspace, only the
+        `MANIFEST_SOURCE_DRIVER=`/`MANIFEST_GITHUB_` lines commented (no value printed) for the driver-2 legs, then .env copied
+        back and proved byte-identical with `cmp`. Over: a script Rich runs; driver 2 not run.
+      - `make reset` — "Yes, once": manifest-80 runs it once after its controls (the databases including LiteLLM's, the
+        registry, the build cache, the fake's repositories and the mf- resources; NOT .manifest/repos, the seed cache, the CA,
+        Ollama's models or the four protected containers — Makefile:83-88, checked), then fresh runs on both drivers.
