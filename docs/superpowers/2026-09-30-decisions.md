@@ -844,3 +844,23 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
         to be the PROBE key, not UBC_AI_GATEWAY_API_KEY, which keeps its 90-day expiry of 16:23, about 2027-01-01). He has
         DELETED the first probe key (the all-models one) at the gateway. The regenerated one is deleted by him after Task 1's
         Step 10.
+
+    And at 20:4x PDT, the gateway's models ([M1], manifest-ec, 20:35: ten models, read on the real key; the real key's
+    /key/info answers 403, "only allowed to call routes: ['llm_api_routes']"), through the question tool. In his words:
+      - gpt-6-luna, gpt-5.6-luna, gpt-5.6-terra, gpt-5.4-mini (provider openai; [M2]: OpenAI's public API, organisation
+        ubc-ltic-incubator): "there's a difference between high risk and very high risk data at UBC. High Risk data should be
+        fine hitting the OpenAI (which is off-prem) via the API. However, VERY high risk data is not. Details here:
+        https://cio.ubc.ca/information-security/policy-standards-resources/U1 — So as long as the app isn't very high risk data,
+        using the off-prem models should be fine."
+      - llama3 (provider bedrock, AWS): "Same as OpenAI question before".
+      - THE SELF-HOSTED FIVE: "phi3.5, llama3.1, and nomic-embed-text all run on old hardware on prem. They aren't really to be
+        used. Do we need to know this info right now? I can get more details abut the onprem models later." ([M2]: qwen3.8-27b
+        answers from a UBC host, *.arc.ubc.ca. He said at 20:21 that qwen3.6-35b-a3b is on prem.)
+      - PROMPT RETENTION — "No, prompts aren't stored" (store_prompts_in_spend_logs off).
+    manifest-af's reading, put back to him: the spec's classes are public | internal | confidential (§7) and map to no UBC
+    U1 risk level. §7 (a confidential app's own AI never leaves on-premise hardware) and D17's why (student personal
+    information to a US model is a privacy problem) stand as written. So for the plan, the off-prem models take `internal`,
+    their max under the spec today. Whether Manifest's classes should map to U1's levels, so that High Risk may reach
+    OpenAI and only Very High may not, is a SPEC question. It is to be drafted with U1 read, and is not tonight's blocker. The on-prem models'
+    classifications are DEFERRED to sitting 2's close, when he chooses MANIFEST_GATEWAY_MODELS (What Rich does 5). Task 1
+    does not need them, and the three on old hardware are likely left out.
