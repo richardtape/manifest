@@ -667,3 +667,76 @@ describe('the source driver and its GitHub settings (D5, the D5 plan’s Task 3)
     ).toBe('CONFIG_INVALID')
   })
 })
+
+describe('UBC’s AI Gateway (the UBC AI Gateway plan’s Task 2)', () => {
+  const codeOf = (fn: () => unknown) => {
+    try {
+      fn()
+      return 'accepted'
+    } catch (e) {
+      return e instanceof ConfigError ? e.code : `not a ConfigError: ${String(e)}`
+    }
+  }
+  const DEFAULT = 'https://ai-gateway.apps.ltic.ubc.ca/v1'
+
+  it('reaches the gateway at its own address by default — and an EMPTY setting is unset, so the default too', () => {
+    expect(loadConfig({ ...base }).ubcAiGateway.url).toBe(DEFAULT)
+    expect(
+      loadConfig({ ...base, MANIFEST_UBC_AI_GATEWAY_URL: '' }).ubcAiGateway.url,
+    ).toBe(DEFAULT)
+    expect(
+      loadConfig({ ...base, MANIFEST_UBC_AI_GATEWAY_URL: 'https://gw.example/v1' })
+        .ubcAiGateway.url,
+    ).toBe('https://gw.example/v1')
+  })
+
+  const insecure = (url: string) => {
+    try {
+      loadConfig({ ...base, MANIFEST_UBC_AI_GATEWAY_URL: url })
+      return 'accepted'
+    } catch (e) {
+      return e instanceof ConfigError ? `${e.code}: ${e.message}` : String(e)
+    }
+  }
+
+  // The bearer key would otherwise cross the network in clear (I10). CONFIG_INVALID, an already-published code
+  // (sitting 2's ruling: a code of its own would change the published ErrorCode registry) — so the MESSAGE is
+  // what tells this refusal from a malformed URL, and the test asserts it.
+  it('refuses plain http off loopback, and accepts it on loopback — the positive control', () => {
+    for (const url of ['http://gw.example/v1', 'http://10.0.0.5:4000/v1']) {
+      expect(insecure(url)).toMatch(
+        /^CONFIG_INVALID: .*MANIFEST_UBC_AI_GATEWAY_URL is '.*': the gateway's key may cross only loopback in plaintext; use https$/,
+      )
+    }
+    for (const url of [
+      'http://127.0.0.1:9/v1',
+      'http://localhost:9/v1',
+      'http://[::1]:9/v1',
+    ]) {
+      expect(
+        loadConfig({ ...base, MANIFEST_UBC_AI_GATEWAY_URL: url }).ubcAiGateway.url,
+      ).toBe(url)
+    }
+    expect(
+      codeOf(() => loadConfig({ ...base, MANIFEST_UBC_AI_GATEWAY_URL: 'not a url' })),
+    ).toBe('CONFIG_INVALID')
+  })
+
+  it('knows whether .env carried the key — set is true, absent or empty is false', () => {
+    expect(loadConfig({ ...base }).ubcAiGateway.keyInEnv).toBe(false)
+    expect(
+      loadConfig({ ...base, UBC_AI_GATEWAY_API_KEY: '' }).ubcAiGateway.keyInEnv,
+    ).toBe(false)
+    expect(
+      loadConfig({ ...base, UBC_AI_GATEWAY_API_KEY: 'sk-canary-config-test' })
+        .ubcAiGateway.keyInEnv,
+    ).toBe(true)
+  })
+
+  it('never keeps the key’s value — the config says only whether it was set', () => {
+    const value = 'sk-canary-config-never-kept'
+    const config = loadConfig({ ...base, UBC_AI_GATEWAY_API_KEY: value })
+    expect(JSON.stringify(config)).not.toContain(value)
+    expect(config.ubcAiGateway).toEqual({ url: DEFAULT, keyInEnv: true })
+  })
+})

@@ -229,6 +229,54 @@ it** — and an app whose manifest declares `default-chat-large` is then refused
 intake on it. A call with no provider key in LiteLLM was refused inside LiteLLM as `500 litellm.AuthenticationError` — measured with
 the variable ABSENT from the container; the compose line now sets it EMPTY when `.env` lacks it, which was not re-measured.
 
+#### Through UBC's AI Gateway
+
+*Added 2026-10-03 (the UBC AI Gateway plan's Task 2; §7, §21 and §26 as its Spec action 1 amended them).* **`MANIFEST_CAPABLE_MODEL=ubc-ai-gateway/<model>`**
+names a model UBC's AI Gateway serves (`https://ai-gateway.apps.ltic.ubc.ca`, a LiteLLM proxy LTIC runs — `gpt-6-luna` is the one measured).
+Manifest's own LiteLLM stays in front of it — per-person keys, budgets, the fallback guard — and registers `default-chat-large` as
+`openai/<model>` at the gateway's address (`MANIFEST_UBC_AI_GATEWAY_URL`, `https://ai-gateway.apps.ltic.ubc.ca/v1` when absent or empty;
+plain `http` is refused off loopback), **naming the key BY REFERENCE** — `api_key: os.environ/UBC_AI_GATEWAY_API_KEY` — which LiteLLM
+resolves from its OWN environment on every call. Neither the control plane nor LiteLLM's database holds the value: `/model/info` lists no
+`api_key` at all, and the stored row decrypts to the reference. **Each registration carries a 60 s `timeout` and no retries**
+(`ai/providers.ts`): a gateway that stops answering hands the call to the fallback in about a minute, not LiteLLM's 600 s three times
+over; a NON-streamed answer longer than 60 s is cut off and answered by the fallback instead (the longest measured was 35.2 s).
+
+**THE ORDER IS LOAD-BEARING: the key in `.env`, then `make up`, THEN restart the control plane.**
+1. `.env` holds `UBC_AI_GATEWAY_API_KEY=` (a VIRTUAL key generated in the gateway's admin UI — never printed, never on a command line),
+   `UBC_AI_GATEWAY_KEY_EXPIRES=<YYYY-MM-DD>` (read from that UI: a gateway key cannot read its own `/key/info`) and the
+   `MANIFEST_CAPABLE_MODEL=ubc-ai-gateway/<model>` line.
+2. **`make up`** — LiteLLM reads its environment only when it is CREATED, and `infra/compose.yaml` hands it the gateway key and nothing
+   else does. Check with `docker exec manifest-litellm sh -c '[ -n "$UBC_AI_GATEWAY_API_KEY" ] && echo set'`, never by printing it.
+3. **Restart the control plane.** It reads only WHETHER `.env` held the key (and scrubs it at boot), and registers. The boot line's
+   `capableModel` reads as above.
+
+**Between steps 1 and 3 in the wrong order** — the control plane restarted before `make up` — the boot registers a gateway deployment
+whose reference LiteLLM cannot resolve, and **an unresolved or empty reference makes LiteLLM send `OPENAI_API_KEY` instead** (measured on
+LiteLLM 1.98.0, both providers — the plan's `[M7]`): OpenAI's key would reach UBC's gateway. `make verify` reads red throughout that window
+(below). Run `make up`, then restart.
+
+**THE BOOT FAILS CLOSED.** A `ubc-ai-gateway/` setting when `.env` carried NO key is refused with ONE `[boot] the capable model
+(MANIFEST_CAPABLE_MODEL) was refused: … UBC_AI_GATEWAY_API_KEY is not in .env, so every gateway registration is removed rather than kept …`
+line, and **every gateway registration is REMOVED** — a keyless one could only answer a `401` the fallback hides, or send `OPENAI_API_KEY` to
+UBC. A DIRECT `openai/<model>` registration that was working is kept: that is OpenAI's key going to OpenAI. **`OPENAI_API_KEY` stays in
+`.env` as a backup** (Rich, 2026-10-03: *"Keep it as a backup"*): a direct `openai/…` setting still uses it, and repointing between the two is
+one line — the ADDRESS is compared, so `openai/gpt-6-luna` and `ubc-ai-gateway/gpt-6-luna` are different registrations.
+
+**`make verify`'s *LiteLLM holds the UBC AI Gateway key .env holds*** compares a FINGERPRINT of each side — `.env`'s hashed in the shell,
+LiteLLM's inside its container — and prints only a verdict: `not configured` (neither holds one) and `matches` PASS; **`absent from
+LiteLLM`** (`.env` gained the key, `make up` not run), **`differs`** (rotated in `.env`, LiteLLM stale) and **`LiteLLM holds a key .env does
+not`** FAIL, each naming `make up`. **`make doctor`'s *the UBC AI Gateway key is not near its expiry*** WARNS from 14 days before
+`UBC_AI_GATEWAY_KEY_EXPIRES`, when it is past, when it is missing beside a key, or when it is not a date — an expired key answers `401`, and the
+fallback answers that silently, every capable call moving to the on-premise model. **To rotate:** a new key in the gateway's admin UI; both
+`.env` lines; `make up`; restart the control plane; `make verify` reads `matches`.
+
+**What a person is charged.** For a model the gateway prices, LiteLLM 1.98.0 charges what the GATEWAY reports
+(`llm_provider-x-litellm-response-cost`), cache reads included — the pin is never read; for one it does not price, the pin is the whole price.
+A gateway model LiteLLM cannot price at all is refused, as above; the fix is at the gateway (its administrator exposes it under its vendor
+name). **The gateway's own failures** — the key refused a model (`403`), a wrong or expired key (`401`), its budget spent (`429
+budget_exceeded`), the gateway unreachable (`500`) — fall back to the on-premise model; **a model the gateway does not serve is a `400` the
+fallback does not answer** (Rich, 2026-10-03: *"accept it"*), so a mistyped setting is loud to every caller until it is corrected.
+
 ### The building agent's models
 
 *Added 2026-09-28 (the front-end enablement plan's Task 14a; §7, §10 and §26 as Spec action 10 amended them).* **`MANIFEST_AGENT_BUILDER_MODELS`

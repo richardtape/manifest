@@ -37,7 +37,9 @@ import {
   createLiteLlmClient,
   disabledAiKeyService,
   disabledCatalogue,
+  gatewayKeyRef,
   narrowSessionsHoldingMore,
+  type Gateway,
 } from './ai/index.js'
 import {
   controlPlaneSpEntity,
@@ -474,6 +476,13 @@ await app.listen({ port: config.port, host: '127.0.0.1' })
  * a refusal or a gateway that does not answer is one operator line and the boot goes on, because
  * `default-chat` still serves (C1). With AI off there is no client, and nothing is registered or removed.
  */
+/**
+ * UBC's AI Gateway as a registration names it (the UBC AI Gateway plan's Task 2): its address, its key BY
+ * REFERENCE — `os.environ/UBC_AI_GATEWAY_API_KEY`, resolved by LiteLLM from its own environment — and whether
+ * `.env` carried the key at all, read before the scrub removed it. A gateway setting with no key FAILS CLOSED.
+ */
+const gateway: Gateway = { ...config.ubcAiGateway, keyRef: gatewayKeyRef() }
+
 const capable =
   litellm === undefined
     ? { capableModel: 'disabled', capableFallback: 'disabled' }
@@ -481,6 +490,7 @@ const capable =
         litellm,
         config.litellm.capableModel,
         config.litellm.capableFallback,
+        gateway,
       )
 
 /**

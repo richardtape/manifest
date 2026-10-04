@@ -214,10 +214,14 @@ red() { printf '\033[31m%s\033[0m' "$1"; }
 # `make ci-acceptance`).
 EXPECT_TESTS=3289
 EXPECT_FILES=201
-EXPECT_DOCTOR=21
+# EXPECT_DOCTOR 21 -> 22 (2026-10-03, the UBC AI Gateway plan's sitting 2, Task 2): the gateway key's expiry, a
+# check_warn — counted, never failing — from 14 days ahead (its Decision 11). Measured: 22 checks, 0 failed, 0 warnings.
+EXPECT_DOCTOR=22
 # EXPECT_VERIFY 64 -> 66 (2026-10-03, the faculty-ready plan's sitting 5, Task 9): the IdP's session store is
 # ssp_store's own and cannot read the SP metadata; ssp_ro cannot read the session store.
-EXPECT_VERIFY=66
+# EXPECT_VERIFY 66 -> 67 (2026-10-03, the UBC AI Gateway plan's sitting 2, Task 2): LiteLLM holds the gateway key
+# .env holds, by fingerprint, a verdict only (its Decision 4). Measured: 67 checks, 0 failed, 0 warnings — `matches`.
+EXPECT_VERIFY=67
 
 STEPS=""
 FAILED=0

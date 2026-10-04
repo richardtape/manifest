@@ -455,6 +455,34 @@ litellm_fallback_guard_loaded() {
 }
 check "LiteLLM runs the fallback guard — a malformed request is answered as the provider's refusal"  litellm_fallback_guard_loaded
 
+# UBC'S AI GATEWAY KEY, AS LiteLLM HOLDS IT (the UBC AI Gateway plan's Decision 4, C1). The control plane cannot see
+# LiteLLM's environment, and LiteLLM reads its environment only when `make up` CREATES it — so a key added to or
+# rotated in .env without `make up` leaves LiteLLM with none or a stale one, and every gateway call then answers 401,
+# which the capable model's fallback hides. Compared by FINGERPRINT, never presence alone: each side hashed in its
+# own process — .env's by `printf | shasum` (printf is a builtin, so the value is on no command line), LiteLLM's
+# by Python inside the container — and ONLY A VERDICT is written out, never a value or a hash. The env file is
+# re-read in a subshell, so MANIFEST_ENV_FILE can point the check at a scratch copy (the plan's control (e)).
+litellm_gateway_key_matches() {
+  ( unset UBC_AI_GATEWAY_API_KEY
+    env_file="${MANIFEST_ENV_FILE:-.env}"
+    [ -f "$env_file" ] && { set -a; . "$env_file"; set +a; }
+    ours=""
+    [ -n "${UBC_AI_GATEWAY_API_KEY:-}" ] \
+      && ours=$(printf %s "$UBC_AI_GATEWAY_API_KEY" | shasum -a 256 | cut -d' ' -f1)
+    if ! theirs=$(docker exec manifest-litellm python3 -c \
+        'import hashlib, os; v = os.environ.get("UBC_AI_GATEWAY_API_KEY", ""); print(hashlib.sha256(v.encode()).hexdigest() if v else "")' \
+        2>/dev/null); then
+      echo "could not read manifest-litellm's environment — is it running? (make up)"; exit 1
+    fi
+    if [ -z "$ours" ] && [ -z "$theirs" ]; then echo "not configured (neither $env_file nor LiteLLM holds a gateway key)"; exit 0; fi
+    if [ "$ours" = "$theirs" ]; then echo "matches"; exit 0; fi
+    if [ -z "$theirs" ]; then echo "absent from LiteLLM — run make up, then restart the control plane"; exit 1; fi
+    if [ -z "$ours" ]; then echo "LiteLLM holds a key $env_file does not — run make up"; exit 1; fi
+    echo "differs — run make up, then restart the control plane"; exit 1
+  )
+}
+check "LiteLLM holds the UBC AI Gateway key .env holds"  litellm_gateway_key_matches
+
 # THE CHECK THAT CATCHES A THINKING MODEL. A completion alone would pass; only a
 # STREAM with non-empty content proves the console will work (S3).
 litellm_streams_content() {

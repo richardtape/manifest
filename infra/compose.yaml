@@ -229,10 +229,20 @@ services:
       # The catalogue must be DB-held or every fleet repoint needs a restart (§7).
       STORE_MODEL_IN_DB: "True"
       # THE CAPABLE MODEL'S PROVIDER KEY (§7, §21, §26 — the front-end enablement plan's Task 12a).
-      # HERE AND NOWHERE ELSE: the control plane registers `default-chat-large` naming no api_key,
-      # and LiteLLM reads the provider's own variable for it. Empty unless .env sets it, and then an
-      # `openai/*` deployment answers LiteLLM's own AuthenticationError. Changing it needs `make up`.
+      # HERE AND NOWHERE ELSE: a DIRECT `openai/<model>` setting registers `default-chat-large` naming no
+      # api_key, and LiteLLM reads the provider's own variable for it — kept as a backup when the gateway
+      # answers it (Rich, 2026-10-03). Empty unless .env sets it, and then an `openai/*` deployment answers
+      # LiteLLM's own AuthenticationError. NOTE: LiteLLM also sends it for ANY `openai/` deployment whose
+      # api_key is absent, empty or an unresolved reference (the UBC AI Gateway plan's [M7]) — which is why a
+      # gateway setting with no key fails closed at boot. Changing it needs `make up`.
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      # UBC'S AI GATEWAY'S KEY (the UBC AI Gateway plan's Task 2): HERE AND NOWHERE ELSE. A registration
+      # names it as `os.environ/UBC_AI_GATEWAY_API_KEY`; LiteLLM resolves it per call. The control plane only
+      # knows whether .env holds it, and scrubs it at boot. Changing it needs `make up`.
+      UBC_AI_GATEWAY_API_KEY: ${UBC_AI_GATEWAY_API_KEY:-}
+      # NOT A SECRET: the bearer the Docker tier's stub cases reference as `os.environ/MANIFEST_STUB_BEARER`,
+      # so a case shows a reference resolving per call with no key reaching a test or a stub (the plan's I2).
+      MANIFEST_STUB_BEARER: probe-not-a-key
     extra_hosts:
       # Ollama is a HOST application — Metal GPU access is unavailable from a
       # container (§21). This is how the container reaches it (S7, S3).

@@ -62,6 +62,15 @@ export type {
   CapableModelResult,
 } from './capable.js'
 export {
+  GATEWAY_KEY_ENV,
+  GATEWAY_NUM_RETRIES,
+  GATEWAY_PREFIX,
+  GATEWAY_TIMEOUT_S,
+  gatewayKeyRef,
+  resolveSetting,
+} from './providers.js'
+export type { Gateway, ProviderParams } from './providers.js'
+export {
   AgentSessionError,
   agentSessionById,
   agentSessionsOf,

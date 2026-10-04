@@ -318,6 +318,21 @@ const envSchema = z.object({
    */
   MANIFEST_CAPABLE_MODEL_FALLBACK: z.string().default('default-chat-onprem'),
   /**
+   * UBC'S AI GATEWAY'S ADDRESS (§7, §21, §26 as the UBC AI Gateway plan's Spec action 1 amended them; its
+   * Decision 5): where LiteLLM reaches a `ubc-ai-gateway/<model>` setting, `/v1` included. Not a secret — every
+   * gateway registration sends it. EMPTY IS UNSET, so the default. Plain `http` is refused off loopback below.
+   */
+  MANIFEST_UBC_AI_GATEWAY_URL: z.preprocess(
+    (value) => (value === '' ? undefined : value),
+    z.string().url().default('https://ai-gateway.apps.ltic.ubc.ca/v1'),
+  ),
+  /**
+   * The gateway's key — read ONLY to know whether it is set, never kept; the scrub removes it from this
+   * process's environment next (`secrets/scrub.ts`, the plan's Task 0). LiteLLM alone holds the value
+   * (`infra/compose.yaml`), and a registration names it by reference.
+   */
+  UBC_AI_GATEWAY_API_KEY: z.string().optional(),
+  /**
    * AN AGENT SESSION'S NUMBERS (the front-end enablement plan's Decision 22; Rich, 2026-09-27, for
    * the laptop — at UBC the numbers are his). The month is a person's, on their own LiteLLM user;
    * the cap is one session's, on its key, and never more than what remains of the month.
@@ -528,6 +543,11 @@ export interface Config {
   /** Which of D5's drivers this process runs (the D5 plan's Decision 3). */
   sourceDriver: 'local' | 'github'
   /**
+   * UBC's AI Gateway (the UBC AI Gateway plan's Task 2): its address, and whether `.env` carried its key when
+   * this process started — never the key, which is LiteLLM's alone.
+   */
+  ubcAiGateway: { url: string; keyInEnv: boolean }
+  /**
    * Driver 2's settings. BUILT WHATEVER THE DRIVER (the webhook route reads the secret's
    * path in both modes) and READ only by driver 2, so a driver-1 control plane boots on a
    * machine that has never minted the fake's files — `loadConfig` reads no file.
@@ -705,6 +725,27 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     }
   }
 
+  // The gateway's bearer key over plaintext is a key on the network (the UBC AI Gateway plan's Decision 5, I10).
+  // Loopback only — where a stub listens. `CONFIG_INVALID`, a code already published: a code of its own would
+  // be a new value in the published ErrorCode registry, and this plan leaves the contract at 1.6.0 (its sitting
+  // 2's ruling). The message names the setting and the fix.
+  {
+    const value = raw.MANIFEST_UBC_AI_GATEWAY_URL
+    const u = new URL(value)
+    if (
+      u.protocol === 'http:' &&
+      u.hostname !== '127.0.0.1' &&
+      u.hostname !== 'localhost' &&
+      u.hostname !== '[::1]'
+    ) {
+      throw new ConfigError(
+        'CONFIG_INVALID',
+        `invalid configuration — MANIFEST_UBC_AI_GATEWAY_URL is '${value}': the gateway's key may cross ` +
+          'only loopback in plaintext; use https',
+      )
+    }
+  }
+
   // THE FAKE'S GITHUB IS A LAPTOP'S, NEVER A DEPLOYMENT'S (the authoring API plan's Task 12; the
   // D5 plan's final review, minor 4): every `MANIFEST_GITHUB_*` default names the fake on
   // loopback, so a staging or production control plane on driver 2 that forgot to set them
@@ -806,6 +847,10 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
       monthlyUsd: raw.MANIFEST_INTAKE_MONTHLY_USD,
     },
     sourceDriver: raw.MANIFEST_SOURCE_DRIVER,
+    ubcAiGateway: {
+      url: raw.MANIFEST_UBC_AI_GATEWAY_URL,
+      keyInEnv: (raw.UBC_AI_GATEWAY_API_KEY ?? '') !== '',
+    },
     github: {
       apiUrl: raw.MANIFEST_GITHUB_API_URL,
       gitUrl: raw.MANIFEST_GITHUB_GIT_URL,

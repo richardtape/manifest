@@ -7,12 +7,19 @@ import {
 } from './catalogue.js'
 import type { LiteLlmClient } from './client.js'
 import { AiError } from './errors.js'
+import {
+  resolveSetting,
+  viaGateway,
+  type Gateway,
+  type ProviderParams,
+} from './providers.js'
 
 /**
  * THE CAPABLE MODEL (§7, §21, §26 as Spec action 7 amended them; the front-end enablement plan's
  * Task 12a): ONE logical name for the agent and app work a small model cannot do. Which model
- * answers it is `MANIFEST_CAPABLE_MODEL` — a LiteLLM model string, `openai/<model>` today — so
- * repointing it changes no app, key or manifest. `default-chat` is never repointed: it is the
+ * answers it is `MANIFEST_CAPABLE_MODEL` — a LiteLLM model string, `openai/<model>` direct, or
+ * `ubc-ai-gateway/<model>` through UBC's AI Gateway (`ai/providers.ts`) — so repointing it changes no
+ * app, key or manifest. `default-chat` is never repointed: it is the
  * offline floor every demo runs on (C1).
  */
 export const CAPABLE_MODEL_NAME = 'default-chat-large'
@@ -40,6 +47,8 @@ interface Deployment {
   model_name: string
   litellm_params?: {
     model?: unknown
+    /** The provider's address — a gateway registration names one; a direct one never does (`[M3]`). */
+    api_base?: unknown
     input_cost_per_token?: unknown
     output_cost_per_token?: unknown
   }
@@ -54,6 +63,8 @@ interface Deployment {
 const idOf = (d: Deployment): string => String(d.model_info?.id)
 const modelOf = (d: Deployment): string | undefined =>
   typeof d.litellm_params?.model === 'string' ? d.litellm_params.model : undefined
+const apiBaseOf = (d: Deployment): string | undefined =>
+  typeof d.litellm_params?.api_base === 'string' ? d.litellm_params.api_base : undefined
 const positive = (value: unknown): value is number =>
   typeof value === 'number' && Number.isFinite(value) && value > 0
 
@@ -120,14 +131,14 @@ type Created = { entry: Deployment; id: string } | { refusedWith: number }
  */
 async function create(
   client: LiteLlmClient,
-  setting: string,
+  params: ProviderParams,
   price?: { input_cost_per_token: number; output_cost_per_token?: number },
 ): Promise<Created> {
   const id = `manifest-capable-${randomUUID()}`
   try {
     await client.post('/model/new', {
       model_name: CAPABLE_MODEL_NAME,
-      litellm_params: { model: setting, ...price },
+      litellm_params: { ...params, ...price },
       model_info: { id, max_classification: CAPABLE_CLASSIFICATION },
     })
   } catch (error) {
@@ -156,12 +167,17 @@ const unpricedReason = (model: string, kept: Deployment[]): string =>
   'LiteLLM prices from the list it ships with and from the one it fetches at its own start when the ' +
   'network is on — restart LiteLLM with the network on (`docker restart manifest-litellm`), then this ' +
   'control plane; or name a model it prices.' +
+  (viaGateway(model)
+    ? " LiteLLM prices a gateway model by the gateway's own name for it: the gateway's administrator " +
+      'exposes it under its vendor name.'
+    : '') +
   unavailable(kept)
 
 const unservedReason = (model: string, status: number, kept: Deployment[]): string =>
   `${CAPABLE_MODEL_SETTING} names '${model}', which LiteLLM would not serve` +
   (status > 0 ? ` (it answered HTTP ${status})` : '') +
-  ": check the provider prefix — `openai/<model>` today — and that LiteLLM holds that provider's key " +
+  ': check the provider prefix — `openai/<model>` direct, or `ubc-ai-gateway/<model>` — and that LiteLLM ' +
+  "holds that provider's key " +
   '(`docker logs manifest-litellm` says why).' +
   unavailable(kept)
 
@@ -170,9 +186,10 @@ const unservedReason = (model: string, status: number, kept: Deployment[]): stri
  *
  * **Registered through the admin API, never an `infra/litellm/config.yaml` line**: a config-file
  * deployment cannot be deleted through the admin API (S3 §Evidence 7), and it would put a model that
- * cannot answer into every agent key on a machine with no provider key. **It names no `api_key`**:
- * the provider's key is LiteLLM's environment alone (`infra/compose.yaml`), measured to be read for
- * a DB-held deployment (sitting 9a, Step 1 (e)).
+ * cannot answer into every agent key on a machine with no provider key. **A direct setting names no
+ * `api_key`**: the provider's key is LiteLLM's environment alone (`infra/compose.yaml`), measured to be
+ * read for a DB-held deployment (sitting 9a, Step 1 (e)). **A `ubc-ai-gateway/` setting names the
+ * gateway's address and its key BY REFERENCE** (`ai/providers.ts`), never a value.
  *
  * **Registered under an id this process CHOOSES**, because an unknown provider is a `500` whose row
  * LiteLLM saves anyway and `/model/info` never lists — measured — so only that id can remove it.
@@ -181,31 +198,26 @@ const unservedReason = (model: string, status: number, kept: Deployment[]): stri
  * will not serve or cannot price is refused and the working model KEPT — unless the working model is
  * itself unpriced, which is never kept, because it would spend `$0`.
  *
+ * **IT FAILS CLOSED** (the UBC AI Gateway plan's Decision 4): a gateway setting when `.env` carried no key
+ * REMOVES every gateway registration — any deployment naming an `api_base` — rather than keeping it, because
+ * a keyless gateway registration can only answer a `401` the fallback hides, or send `OPENAI_API_KEY` to UBC
+ * (`[M7]`). A DIRECT working model is still kept: that is OpenAI's key going to OpenAI.
+ *
  * Never a `.catch(() => undefined)`: a gateway that does not answer is THROWN, and the boot turns it
  * into its operator line.
  */
 export async function ensureCapableModel(
   client: LiteLlmClient,
   setting: string | undefined,
+  gateway?: Gateway,
 ): Promise<CapableModelResult> {
-  const ours = await deployments(client)
+  let ours = await deployments(client)
 
   if (setting === undefined) {
     if (ours.length === 0) return { state: 'absent' }
     for (const d of ours) await remove(client, idOf(d))
     const previous = modelOf(ours[0]!)
     return { state: 'removed', ...(previous === undefined ? {} : { model: previous }) }
-  }
-
-  const [only] = ours
-  if (
-    ours.length === 1 &&
-    modelOf(only!) === setting &&
-    only!.model_info?.max_classification === CAPABLE_CLASSIFICATION &&
-    pinned(only!) &&
-    priced(only!)
-  ) {
-    return { state: 'unchanged', model: setting }
   }
 
   // What a refusal keeps: the working registrations, never one that spends $0.
@@ -215,7 +227,31 @@ export async function ensureCapableModel(
     return { state: 'refused' as const, model: setting, reason: reason(kept) }
   }
 
-  const asSet = await create(client, setting)
+  const resolved = resolveSetting(CAPABLE_MODEL_SETTING, setting, gateway)
+  if ('refused' in resolved) {
+    if (resolved.failClosed === true) {
+      for (const d of ours.filter((x) => apiBaseOf(x) !== undefined)) {
+        await remove(client, idOf(d))
+      }
+      ours = ours.filter((x) => apiBaseOf(x) === undefined)
+    }
+    return refuse((kept) => resolved.refused + unavailable(kept))
+  }
+  const { params } = resolved
+
+  const [only] = ours
+  if (
+    ours.length === 1 &&
+    modelOf(only!) === params.model &&
+    apiBaseOf(only!) === params.api_base &&
+    only!.model_info?.max_classification === CAPABLE_CLASSIFICATION &&
+    pinned(only!) &&
+    priced(only!)
+  ) {
+    return { state: 'unchanged', model: setting }
+  }
+
+  const asSet = await create(client, params)
   if ('refusedWith' in asSet) {
     const status = asSet.refusedWith
     return refuse((kept) => unservedReason(setting, status, kept))
@@ -226,7 +262,7 @@ export async function ensureCapableModel(
     return refuse((kept) => unpricedReason(setting, kept))
   }
   const output = cost?.output_cost_per_token
-  const atPrice = await create(client, setting, {
+  const atPrice = await create(client, params, {
     input_cost_per_token: cost!.input_cost_per_token as number,
     ...(typeof output === 'number' && Number.isFinite(output) && output >= 0
       ? { output_cost_per_token: output }
@@ -435,11 +471,12 @@ export async function capableModelAtBoot(
   client: LiteLlmClient,
   setting: string | undefined,
   fallbackSetting: string | undefined,
+  gateway?: Gateway,
 ): Promise<CapableAtBoot> {
   const said = `[boot] the capable model (${CAPABLE_MODEL_SETTING})`
   let capableModel: CapableModelResult['state']
   try {
-    const result = await ensureCapableModel(client, setting)
+    const result = await ensureCapableModel(client, setting, gateway)
     if (result.state === 'refused') console.error(`${said} was refused: ${result.reason}`)
     capableModel = result.state
   } catch (error) {

@@ -18,7 +18,13 @@ import { loadModelCatalogue } from './catalogue.js'
 import { createLiteLlmClient, type LiteLlmClient } from './client.js'
 import { AiError } from './errors.js'
 import { agentModelsFor } from './models.js'
-import { LITELLM_CONFIG, litellmMasterKey, litellmUrl } from './testing.js'
+import { gatewayKeyRef, type Gateway } from './providers.js'
+import {
+  LITELLM_CONFIG,
+  litellmMasterKey,
+  litellmUrl,
+  startStubProvider,
+} from './testing.js'
 
 /**
  * A model the BUNDLED price map prices (sitting 9a, Step 1 (b)), so this tier passes whether LiteLLM
@@ -29,6 +35,10 @@ import { LITELLM_CONFIG, litellmMasterKey, litellmUrl } from './testing.js'
  * address nothing listens on, with a key that is not a key.
  */
 const PRICED = 'openai/gpt-5.6-luna'
+
+/** The UBC AI Gateway plan's stub: inside the 7100–7199 block and used by no other code (7199 is fallback-guard.docker.test.ts's). */
+const GW_STUB_PORT = 7193
+const GW_STUB = `http://host.docker.internal:${GW_STUB_PORT}`
 
 /** LiteLLM's own table, read directly: a not-live row is invisible to `/model/info` (measured). */
 async function rowsNamedCapable(): Promise<number> {
@@ -390,4 +400,64 @@ describeDocker('the capable model against the running LiteLLM (Task 12a)', () =>
       }
     }
   }, 180_000)
+
+  it('a ubc-ai-gateway model is reached at the gateway’s address with the key LiteLLM resolves from its OWN environment, per call (the UBC AI Gateway plan’s Task 2)', async () => {
+    // The reference names MANIFEST_STUB_BEARER — infra/compose.yaml gives LiteLLM the plain string `probe-not-a-key`,
+    // no secret and nothing `get_secret` reads as a boolean ([M7]) — so the stub is shown the resolved bearer and no
+    // key reaches this test or the stub. Production names UBC_AI_GATEWAY_API_KEY. NEVER an unset reference here: it
+    // would make LiteLLM send the owner's OPENAI_API_KEY to this host stub ([M7], the plan's I2).
+    const user = `gw-task2-${randomUUID()}`
+    let userMade = false
+    await startingClear(client)
+    const stub = await startStubProvider(GW_STUB_PORT, { bearer: 'probe-not-a-key' })
+    try {
+      const gateway: Gateway = {
+        url: `${GW_STUB}/gw/ok/v1`,
+        keyRef: gatewayKeyRef('MANIFEST_STUB_BEARER'),
+        keyInEnv: true,
+      }
+      const setting = `ubc-ai-gateway/${PRICED.slice('openai/'.length)}`
+      expect(await ensureCapableModel(client, setting, gateway)).toMatchObject({
+        state: 'registered',
+      })
+      // As LiteLLM lists it: the gateway's address, and NO api_key at all — not the value, not the reference ([M3]).
+      const body = await client.get<{
+        data: { model_name: string; litellm_params: Record<string, unknown> }[]
+      }>('/model/info')
+      const listed = body.data.filter((d) => d.model_name === CAPABLE_MODEL_NAME)
+      expect(listed).toHaveLength(1)
+      expect(listed[0]!.litellm_params.api_base).toBe(gateway.url)
+      expect(listed[0]!.litellm_params).not.toHaveProperty('api_key')
+
+      await client.post('/user/new', {
+        user_id: user,
+        max_budget: 1,
+        auto_create_key: false,
+      })
+      userMade = true
+      const { key } = await client.post<{ key: string }>('/key/generate', {
+        user_id: user,
+        key_alias: `${user}-key`,
+        models: [CAPABLE_MODEL_NAME],
+        allowed_routes: ['/v1/chat/completions'],
+        duration: '600s',
+        max_budget: 0.5,
+      })
+      const res = await chat(key)
+      expect(res.status, (await res.clone().text()).slice(0, 300)).toBe(200)
+      // Answered by the primary: 1.98.0 sends `0` here, not no header (measured, sitting 2).
+      expect(res.headers.get('x-litellm-attempted-fallbacks')).toBe('0')
+      expect(stub.hits('/gw/ok/v1/chat/completions')).toBe(1)
+      // The bearer LiteLLM sent is the one ITS environment resolved the reference to — and nothing else.
+      expect(stub.authorized('/gw/ok/v1/chat/completions')).toBe(1)
+    } finally {
+      try {
+        await leaveNone(client)
+      } finally {
+        await stub.close()
+        if (userMade) await client.post('/user/delete', { user_ids: [user] })
+      }
+    }
+    expect(await rowsNamedCapable()).toBe(0)
+  }, 120_000)
 })

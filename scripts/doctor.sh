@@ -504,6 +504,42 @@ scanner_db_age() {
 }
 check_warn "the vulnerability database is fresh"  scanner_db_age
 
+# THE UBC AI GATEWAY KEY'S EXPIRY (the UBC AI Gateway plan's Decision 11). A WARNING, as the database's age is: an
+# expired key answers 401, and the capable model's fallback answers that silently — every capable call moving to the
+# on-premise model with no operator line — so this says so FOURTEEN days ahead, because a rotation is Rich's, in the
+# gateway's admin UI, and needs `make up` and a restart after it. The date is HIS reading of that UI (a gateway key
+# cannot read its own /key/info — the plan's F10), written to .env as UBC_AI_GATEWAY_KEY_EXPIRES=<YYYY-MM-DD>. The
+# key itself is read only as present or absent. Offline it works unchanged. MANIFEST_ENV_FILE points it at a scratch
+# copy (the plan's control (f)).
+gateway_key_expiry() {
+  ( unset UBC_AI_GATEWAY_API_KEY UBC_AI_GATEWAY_KEY_EXPIRES
+    env_file="${MANIFEST_ENV_FILE:-.env}"
+    [ -f "$env_file" ] && { set -a; . "$env_file"; set +a; }
+    [ -n "${UBC_AI_GATEWAY_API_KEY:-}" ] || { echo "no UBC AI Gateway key in $env_file"; exit 0; }
+    when="${UBC_AI_GATEWAY_KEY_EXPIRES:-}"
+    rotate="rotate it in the gateway's admin UI, set UBC_AI_GATEWAY_API_KEY and UBC_AI_GATEWAY_KEY_EXPIRES in $env_file, run make up, then restart the control plane"
+    if [ -z "$when" ]; then
+      echo "a UBC AI Gateway key is in $env_file, but its expiry is unknown — add UBC_AI_GATEWAY_KEY_EXPIRES=<YYYY-MM-DD> from the gateway's admin UI"
+      exit 1
+    fi
+    # BSD date: a format with no time takes the CURRENT time of day, so midnight is named.
+    expires=$(date -j -f '%Y-%m-%d %H:%M:%S' "$when 00:00:00" +%s 2>/dev/null) || expires=""
+    case "$when" in [0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]) ;; *) expires="" ;; esac
+    [ -n "$expires" ] || { echo "UBC_AI_GATEWAY_KEY_EXPIRES is '$when', not a YYYY-MM-DD date"; exit 1; }
+    days=$(( (expires - $(date +%s)) / 86400 ))
+    if [ "$expires" -le "$(date +%s)" ]; then
+      echo "the UBC AI Gateway key EXPIRED on $when: every gateway call answers 401 and the capable model falls back silently — $rotate"
+      exit 1
+    fi
+    if [ "$days" -lt 14 ]; then
+      echo "the UBC AI Gateway key expires on $when, in $days days — an expired key answers 401 and the capable model falls back silently: $rotate"
+      exit 1
+    fi
+    echo "the UBC AI Gateway key expires on $when, in $days days (warned from 14 days ahead)"
+  )
+}
+check_warn "the UBC AI Gateway key is not near its expiry"  gateway_key_expiry
+
 # NOT just "the file is there". `make seed` and the Makefile's `.env` target both
 # copy .env.example ONLY when .env is absent — an existing developer's .env never
 # gains a key added later. That is silent: MANIFEST_APP_PASSWORD arrived on

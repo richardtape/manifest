@@ -8,6 +8,12 @@ import {
   ensureCapableModel,
 } from './capable.js'
 import { agentModelsFor } from './models.js'
+import {
+  GATEWAY_NUM_RETRIES,
+  GATEWAY_TIMEOUT_S,
+  gatewayKeyRef,
+  type Gateway,
+} from './providers.js'
 import { fakeLiteLlm, type FakeLiteLlm } from './testing.js'
 
 const SETTING = 'openai/gpt-6-luna'
@@ -223,6 +229,109 @@ describe('the capable model (the front-end enablement plan’s Task 12a)', () =>
   })
 })
 
+describe('the capable model through UBC’s AI Gateway (the UBC AI Gateway plan’s Task 2)', () => {
+  const GW: Gateway = {
+    url: 'https://gw.example/v1',
+    keyRef: gatewayKeyRef(),
+    keyInEnv: true,
+  }
+
+  it('registers a ubc-ai-gateway setting at the gateway’s address, the key by reference — never a value', async () => {
+    const lite = fakeLiteLlm()
+    expect(await ensureCapableModel(lite, 'ubc-ai-gateway/gpt-6-luna', GW)).toEqual({
+      state: 'registered',
+      model: 'ubc-ai-gateway/gpt-6-luna',
+    })
+    const creates = lite.calls.filter((c) => c.path === '/model/new')
+    expect(creates.length).toBeGreaterThan(0)
+    for (const create of creates) {
+      expect(create.body).toMatchObject({
+        litellm_params: {
+          model: 'openai/gpt-6-luna',
+          api_base: GW.url,
+          api_key: 'os.environ/UBC_AI_GATEWAY_API_KEY',
+          timeout: GATEWAY_TIMEOUT_S,
+          num_retries: GATEWAY_NUM_RETRIES,
+        },
+      })
+    }
+    const [only, ...rest] = capable(lite)
+    expect(rest).toHaveLength(0)
+    expect(only!.apiBase).toBe(GW.url)
+    expect(only!.inputCostPerToken).toBe(1e-7)
+  })
+
+  it('changes nothing when the gateway registration is already as the setting says', async () => {
+    const lite = fakeLiteLlm()
+    await ensureCapableModel(lite, 'ubc-ai-gateway/gpt-6-luna', GW)
+    expect(await ensureCapableModel(lite, 'ubc-ai-gateway/gpt-6-luna', GW)).toEqual({
+      state: 'unchanged',
+      model: 'ubc-ai-gateway/gpt-6-luna',
+    })
+  })
+
+  it('repoints from OpenAI direct to the gateway’s same model — the address differs, so it is not unchanged (Review Focus 5)', async () => {
+    const lite = fakeLiteLlm()
+    await ensureCapableModel(lite, 'openai/gpt-6-luna', GW)
+    expect(await ensureCapableModel(lite, 'ubc-ai-gateway/gpt-6-luna', GW)).toEqual({
+      state: 'registered',
+      model: 'ubc-ai-gateway/gpt-6-luna',
+    })
+    const [only, ...rest] = capable(lite)
+    expect(rest).toHaveLength(0)
+    expect(only!.apiBase).toBe(GW.url)
+    // And back: the direct setting is not `unchanged` against the gateway's deployment either.
+    expect(await ensureCapableModel(lite, 'openai/gpt-6-luna', GW)).toEqual({
+      state: 'registered',
+      model: 'openai/gpt-6-luna',
+    })
+    expect(capable(lite).map((d) => d.apiBase)).toEqual([undefined])
+  })
+
+  it('POSITIVE CONTROL: a gateway setting with no key in .env still KEEPS a DIRECT working model — OpenAI’s key to OpenAI', async () => {
+    const lite = fakeLiteLlm()
+    await ensureCapableModel(lite, 'openai/gpt-6-luna', GW)
+    const r = await ensureCapableModel(lite, 'ubc-ai-gateway/gpt-6-luna', {
+      ...GW,
+      keyInEnv: false,
+    })
+    expect(r.state).toBe('refused')
+    expect(r.reason).toContain('UBC_AI_GATEWAY_API_KEY is not in .env')
+    expect(capable(lite).map((d) => d.model)).toEqual(['openai/gpt-6-luna'])
+  })
+
+  it('FAILS CLOSED: a gateway registration is REMOVED, never kept, when .env no longer carries the key (Review Focus 1, C1)', async () => {
+    const lite = fakeLiteLlm()
+    await ensureCapableModel(lite, 'ubc-ai-gateway/gpt-6-luna', GW)
+    expect(capable(lite)).toHaveLength(1)
+    const r = await ensureCapableModel(lite, 'ubc-ai-gateway/gpt-6-luna', {
+      ...GW,
+      keyInEnv: false,
+    })
+    expect(r.state).toBe('refused')
+    expect(r.reason).toContain('UBC_AI_GATEWAY_API_KEY is not in .env')
+    expect(r.reason).toContain('is unavailable meanwhile')
+    expect(capable(lite)).toHaveLength(0)
+  })
+
+  it('refuses a gateway model LiteLLM cannot price — an alias — and never registers it at $0 (Review Focus 4)', async () => {
+    const lite = fakeLiteLlm()
+    lite.price('openai/ubc-luna-alias', 0)
+    const r = await ensureCapableModel(lite, 'ubc-ai-gateway/ubc-luna-alias', GW)
+    expect(r.state).toBe('refused')
+    expect(r.reason).toContain('cannot price')
+    expect(capable(lite)).toHaveLength(0)
+  })
+
+  it('refuses a gateway setting on a control plane with no gateway configured, registering nothing', async () => {
+    const lite = fakeLiteLlm()
+    const r = await ensureCapableModel(lite, 'ubc-ai-gateway/gpt-6-luna')
+    expect(r.state).toBe('refused')
+    expect(capable(lite)).toHaveLength(0)
+    expect(lite.calls.filter((c) => c.path === '/model/new')).toHaveLength(0)
+  })
+})
+
 describe('the capable model at boot — never fatal, never silent', () => {
   afterEach(() => {
     vi.restoreAllMocks()
@@ -278,6 +387,34 @@ describe('the capable model at boot — never fatal, never silent', () => {
     ).toBe('refused')
     expect(written()[1]).not.toContain('did not answer')
     expect(written()[1]).toContain("'unpriced/whatever'")
+  })
+
+  it('a gateway setting at boot with no key in .env: ONE line naming the setting and the missing key, its registration removed, no key in it (Task 2)', async () => {
+    const written = lines()
+    const lite = fakeLiteLlm()
+    const gateway: Gateway = {
+      url: 'https://gw.example/v1',
+      keyRef: gatewayKeyRef('MANIFEST_STUB_BEARER'),
+      keyInEnv: true,
+    }
+    expect(
+      (await capableModelAtBoot(lite, 'ubc-ai-gateway/gpt-6-luna', undefined, gateway))
+        .capableModel,
+    ).toBe('registered')
+    expect(written()).toEqual([])
+    expect(
+      (
+        await capableModelAtBoot(lite, 'ubc-ai-gateway/gpt-6-luna', undefined, {
+          ...gateway,
+          keyInEnv: false,
+        })
+      ).capableModel,
+    ).toBe('refused')
+    expect(written()).toHaveLength(1)
+    expect(written()[0]).toMatch(/^\[boot\] the capable model \(MANIFEST_CAPABLE_MODEL\)/)
+    expect(written()[0]).toContain('UBC_AI_GATEWAY_API_KEY is not in .env')
+    expect(written()[0]).not.toContain('probe-not-a-key')
+    expect(capable(lite)).toHaveLength(0)
   })
 })
 

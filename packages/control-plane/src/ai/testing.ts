@@ -198,6 +198,16 @@ export interface FakeDeployment {
    */
   inputCostPerToken?: number
   outputCostPerToken?: number
+  /**
+   * `litellm_params.api_base`, kept from `/model/new` and listed by `/model/info` — as LiteLLM 1.98.0 lists it
+   * (the UBC AI Gateway plan's `[M3]`).
+   */
+  apiBase?: string
+  /**
+   * `litellm_params.api_key` as SENT — a reference such as `os.environ/UBC_AI_GATEWAY_API_KEY`. Kept for a test
+   * to read, and NEVER listed by `/model/info`: LiteLLM 1.98.0 lists no `api_key` at all, not even masked (`[M3]`).
+   */
+  apiKey?: string
 }
 
 interface FakeKey {
@@ -412,6 +422,8 @@ export function fakeLiteLlm(): FakeLiteLlm {
         const id = typeof info.id === 'string' ? info.id : `fake-model-${++minted}`
         const params = (body.litellm_params ?? {}) as {
           model?: unknown
+          api_base?: unknown
+          api_key?: unknown
           input_cost_per_token?: unknown
           output_cost_per_token?: unknown
         }
@@ -430,6 +442,8 @@ export function fakeLiteLlm(): FakeLiteLlm {
           ...(typeof params.output_cost_per_token === 'number'
             ? { outputCostPerToken: params.output_cost_per_token }
             : {}),
+          ...(typeof params.api_base === 'string' ? { apiBase: params.api_base } : {}),
+          ...(typeof params.api_key === 'string' ? { apiKey: params.api_key } : {}),
         })
         // Measured: an unknown provider's row is SAVED and then refused as not live.
         if (!live) refuse(500)
@@ -524,6 +538,7 @@ export function fakeLiteLlm(): FakeLiteLlm {
             model_name: d.modelName,
             litellm_params: {
               model: d.model,
+              ...(d.apiBase === undefined ? {} : { api_base: d.apiBase }),
               ...(d.dbModel && d.inputCostPerToken !== undefined
                 ? { input_cost_per_token: d.inputCostPerToken }
                 : {}),
@@ -654,6 +669,12 @@ export function fakeLiteLlm(): FakeLiteLlm {
 export interface StubProvider {
   /** How many requests arrived on `path` — e.g. `/s400/v1/chat/completions`, `/ok/v1/chat/completions`. */
   hits(path: string): number
+  /**
+   * How many of those carried `Authorization: Bearer <bearer>` — the `bearer` the stub was started with (the UBC
+   * AI Gateway plan's Task 2). `0` when it was started with none. The stub never stores a header's value: it
+   * compares and counts.
+   */
+  authorized(path: string): number
   close(): Promise<void>
 }
 
@@ -674,8 +695,13 @@ export interface StubProvider {
  * Task 1), on a port the caller names inside the platform's 7100–7199 block. It logs nothing: a test reads
  * `hits`.
  */
-export async function startStubProvider(port: number): Promise<StubProvider> {
+export async function startStubProvider(
+  port: number,
+  options: { bearer?: string } = {},
+): Promise<StubProvider> {
   const hits = new Map<string, number>()
+  const authorized = new Map<string, number>()
+  const expected = options.bearer === undefined ? undefined : `Bearer ${options.bearer}`
   const timers = new Set<NodeJS.Timeout>()
   const completion = () => ({
     id: 'chatcmpl-stub',
@@ -690,6 +716,9 @@ export async function startStubProvider(port: number): Promise<StubProvider> {
   const server: Server = createHttpServer((req, res) => {
     const path = (req.url ?? '').split('?')[0]!
     hits.set(path, (hits.get(path) ?? 0) + 1)
+    if (expected !== undefined && req.headers.authorization === expected) {
+      authorized.set(path, (authorized.get(path) ?? 0) + 1)
+    }
     const answer = (status: number, json: unknown) => {
       res.writeHead(status, { 'content-type': 'application/json' })
       res.end(JSON.stringify(json))
@@ -739,6 +768,7 @@ export async function startStubProvider(port: number): Promise<StubProvider> {
   })
   return {
     hits: (path) => hits.get(path) ?? 0,
+    authorized: (path) => authorized.get(path) ?? 0,
     close: async () => {
       for (const timer of timers) clearTimeout(timer)
       timers.clear()
