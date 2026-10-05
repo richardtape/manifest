@@ -1114,3 +1114,21 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
         capableClassification high. LiteLLM last started 2026-10-04 00:14 PDT (docker inspect, 07:14:32Z) during the gateway
         plan's online acceptance, and the network was on at 15:51 (api.github.com answered 200). If the re-registration is refused
         as unpriced, Task 4 keeps the working medium row and the sitting records it. Rejected: Rich adding the line himself.
+
+    And at 17:57 PDT on 2026-10-04 (the clock read just after his answers), THE U1 PLAN'S SITTING 3 OPENED (manifest-9f; no
+    coordinator and no front-end session live, so asked directly), three through the question tool — ORIENTATION §7e's three:
+      - the network, for make demo-gateway (Task 7 Step 2; Task 4 changed it to compare levels, sitting 2's F15 its first run) —
+        "Yes, run it (Recommended)": on driver 1 with the network on, every call on the gateway key's budget. Rejected: run it
+        last; record it NOT RUN.
+      - the person's half (Task 7 Step 4) — "Stage it, I'll read (Recommended)": the agent stages a headless sign-in on
+        manifest.internal under his standing yes and drafts the high project's privacy assessment; he opens it and reads the
+        three lines. Rejected: he signs in himself; staged and left for later.
+      - a restart or control refused by the classifier — "Yes, I'll run it (Recommended)": tried once first; on a refusal he
+        runs scripts/levels-controls.sh with ! bash. Rejected: ask at each refusal.
+    And at 18:03 PDT, sitting 3's second pair (manifest-9f), through the question tool, each as recommended:
+      - THE .env SWAP FOR DRIVER 2 ON THE FAKE — "Yes, do the swap": faculty-ready sitting 7's, again — a 0600 copy of .env
+        in the git-ignored workspace, only the MANIFEST_SOURCE_DRIVER=/MANIFEST_GITHUB_ lines commented (no value printed) for
+        the driver-2 legs, then .env copied back and proved byte-identical with cmp; 7100 back on real GitHub at the close.
+        Rejected: driver 1 only; a script Rich runs.
+      - make reset — "Yes, once": after the controls, then a fresh make demo-levels on each driver (the control database held
+        only the unit suite's fixture project, so no real-GitHub repository is orphaned). Rejected: no reset.

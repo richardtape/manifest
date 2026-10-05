@@ -12,12 +12,13 @@
 #
 # IT IS NOT scripts/offline-acceptance.sh. That one is C1's — run by hand with the network
 # OFF, because turning the network off from a tool call cuts the agent off too — and its
-# eighteen `=== n.` headings are numbered 0 to 17, where 0 is the precondition and 1-17 are
+# nineteen `=== n.` headings are numbered 0 to 18, where 0 is the precondition and 1-18 are
 # the work (this line said "ten, 0 to 9" through P5c's step 10; P6a Task 19 found it; P6b
 # Task 11 added step 12, `make demo-releases`; the D5 plan's Task 15 step 13, `make
 # demo-github`; the authoring API plan's Task 13 step 14, `make demo-authoring`; the front-end
 # enablement plan's Task 15 step 15, `make demo-frontend`; the launch path plan's Task 15 step
-# 16, `make demo-launch`; the faculty-ready plan's Task 11 step 17, `make demo-faculty-ready`).
+# 16, `make demo-launch`; the faculty-ready plan's Task 11 step 17, `make demo-faculty-ready`;
+# the U1 plan's Task 7 step 18, `make demo-levels`).
 # This one runs with the network on and asserts the gates' COUNTS as well.
 #
 # EVERY STEP REPORTS RATHER THAN EXITS (P4c Decision 26), so a red run is a MEASUREMENT of
@@ -462,6 +463,19 @@ esac
 case "$DRIVER" in
   local | github) run "make demo-faculty-ready" make demo-faculty-ready ;;
   *) record "make demo-faculty-ready" "NOT RUN" "no control plane answered the driver probe at 127.0.0.1:7100" ;;
+esac
+
+# ---------------------------------------------------------------- 11. the U1 plan's acceptance
+#   demo-levels     — Manifest's data classes as UBC's U1 levels (the U1 plan's Task 7): D17's refusal
+#                     hint naming U1 and no law; an earlier name never widening (confidential is
+#                     very-high); a level stored and answered by its U1 name, a rename not a sensitive
+#                     change; the agents' models by rank at high and by the builder exception above
+#                     it; a token refused a high project's staging Incidents; the privacy assessment's
+#                     level and model lines. EITHER driver, on its own projects (levels-local and
+#                     levels-vh-local, or the -github pair); it adds no test.
+case "$DRIVER" in
+  local | github) run "make demo-levels" make demo-levels ;;
+  *) record "make demo-levels" "NOT RUN" "no control plane answered the driver probe at 127.0.0.1:7100" ;;
 esac
 
 # ---------------------------------------------------------------- the summary

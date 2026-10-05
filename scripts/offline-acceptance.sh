@@ -16,7 +16,7 @@ cd "$(dirname "$0")/.."
 
 # WHICH SOURCE DRIVER the control plane runs (the D5 plan's Decision 3: ONE per process), asked
 # the way `make demo-github` asks it — an unsigned delivery: `local`, `github`, or `none`. Steps 6
-# to 12 are DRIVER 1's, step 13 is DRIVER 2's and steps 14 to 17 run on either; run a driver-1 demo on driver 2 and it CREATES
+# to 12 are DRIVER 1's, step 13 is DRIVER 2's and steps 14 to 18 run on either; run a driver-1 demo on driver 2 and it CREATES
 # its project there, where no route can delete it (P6a F5) and driver 1 refuses it for ever.
 source_driver() {
   local answer
@@ -331,6 +331,27 @@ case "$(source_driver)" in
   local | github)
     echo "  on driver $([ "$(source_driver)" = local ] && echo '1 — facultyready-local' || echo '2 — facultyready-github')"
     make demo-faculty-ready; echo "demo-faculty-ready exit=$?"
+    ;;
+  *) echo "  SKIPPED: no control plane answered 127.0.0.1:7100/webhooks/github — start one on either driver (RUNBOOK)." ;;
+esac
+
+echo
+echo "=== 18. The U1 plan's acceptance: Manifest's data classes as UBC's U1 levels, offline ==="
+# APPENDED, like steps 7 to 17. WHAT THIS PROVES OFFLINE THAT THE OTHER SEVENTEEN DO NOT: the four U1 levels
+# (low | medium | high | very-high) and the three earlier names as aliases with one meaning each — D17's
+# refusal hint naming U1 and no law; `confidential` never widened below very-high; a level stored and
+# answered by its U1 name, a rename not a sensitive change; the agents' models by rank at high and by the
+# builder exception above it; a delegated token refused a high project's staging Incidents; and the
+# privacy assessment's level and model lines. Nothing in it launches and it calls no model — it reads
+# LiteLLM's catalogue for the capable model's level, and every half that needs it at `high` reads NOT RUN
+# when it is not.
+#
+# IT RUNS ON EITHER DRIVER, like steps 14 to 17, and says which slugs: `levels-local` and `levels-vh-local`
+# on driver 1, `levels-github` and `levels-vh-github` on driver 2. A second run deletes both and makes them again.
+case "$(source_driver)" in
+  local | github)
+    echo "  on driver $([ "$(source_driver)" = local ] && echo '1 — levels-local' || echo '2 — levels-github')"
+    make demo-levels; echo "demo-levels exit=$?"
     ;;
   *) echo "  SKIPPED: no control plane answered 127.0.0.1:7100/webhooks/github — start one on either driver (RUNBOOK)." ;;
 esac

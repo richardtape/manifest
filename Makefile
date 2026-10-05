@@ -16,7 +16,7 @@ LITELLM_DIGEST := $(shell awk '$$1 ~ /berriai\/litellm/ {print $$2}' infra/image
 LITELLM_DIGEST := $(or $(LITELLM_DIGEST),sha256:0000000000000000000000000000000000000000000000000000000000000000)
 COMPOSE := LITELLM_DIGEST=$(LITELLM_DIGEST) docker compose -f infra/compose.yaml -p manifest --env-file .env
 
-.PHONY: help seed refresh-vulndb up down reset github-up github-down github-conformance doctor verify demo demo-identity demo-ai demo-redeploy demo-journey demo-token demo-production demo-releases demo-github demo-authoring demo-frontend demo-launch demo-faculty-ready demo-gateway demo-console ci-acceptance host-setup host-undo
+.PHONY: help seed refresh-vulndb up down reset github-up github-down github-conformance doctor verify demo demo-identity demo-ai demo-redeploy demo-journey demo-token demo-production demo-releases demo-github demo-authoring demo-frontend demo-launch demo-faculty-ready demo-gateway demo-levels demo-console ci-acceptance host-setup host-undo
 
 # Every compose target needs .env to exist — `--env-file` on a missing file is a
 # hard error, not a warning. `make seed` also writes it; this makes `make up` on
@@ -195,6 +195,13 @@ demo-faculty-ready: up  ## The faculty-ready plan's acceptance: what stood befor
 # or CI step. Driver 1 or the GitHub fake, never real GitHub (RUNBOOK, `make demo-gateway`).
 demo-gateway: up  ## The UBC AI Gateway plan's acceptance: models answered by UBC's AI Gateway, charged exactly — the network on.
 	@bash scripts/demo-gateway.sh
+
+# The U1 plan's acceptance (its Task 7): Manifest's data classes as UBC's U1 levels — D17's refusal in U1's words, an
+# earlier name never widening, a level stored and answered by its U1 name, the agents' models by rank and by the builder
+# exception, a token refused a high project's staging Incidents, and the privacy assessment's three sentences. Offline;
+# EITHER driver: step 0 picks levels-local or levels-github (RUNBOOK, `make demo-levels`).
+demo-levels: up  ## The U1 plan's acceptance: data classes as UBC's U1 levels — either driver, offline.
+	@bash scripts/demo-levels.sh
 
 demo-console: up  ## P5c: serve the reference console and print the checklist a person clicks.
 	@bash scripts/demo-console.sh
