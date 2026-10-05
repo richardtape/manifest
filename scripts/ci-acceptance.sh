@@ -233,8 +233,15 @@ red() { printf '\033[31m%s\033[0m' "$1"; }
 # Task 3 +8: `spec/policy.test.ts` (4: the aliases never widen, internal vs high, the undeclared default, E14's hint),
 # `launch/assessment.test.ts` (2: Very high, high's zero retention), `api/intake.test.ts` (1: paused in medium's words, and
 # started at its alias) and `releases/releases.test.ts` (1: the deploy-time refusal in levels, and its positive control).
-EXPECT_TESTS=3358
-EXPECT_FILES=205
+# Then the U1 plan's sitting 2 (2026-10-04, Tasks 4–6): +36, one new file — Task 4 +14: `config.test.ts` (4: the capable model's
+# level, its default and the seven names, and its refusal; the gateway entries in U1's names, and theirs), `ai/models.test.ts`
+# (3: the builder exception at every level above the capable model's), `ai/capable.test.ts` (3: registered at the level given,
+# an alias row unchanged at its level, the fallback's floor moving with it) and `ai/gateway-models.test.ts` (4: a lowered level
+# refused leaves the catalogue, a lower one kept, a new session never given it, the boot's thread); Task 5 +13:
+# `api/incidents.test.ts` (+3: one case inverted, three joined), `api/authz-contract.test.ts` (+9: the high project's row, nine
+# actors) and `packages/mock/src/scripted.test.ts` (1: MANIFEST_MOCK_LEVEL); Task 6 +9: `ai/app-key-sweep.test.ts` (9, new).
+EXPECT_TESTS=3394
+EXPECT_FILES=206
 # EXPECT_DOCTOR 21 -> 22 (2026-10-03, the UBC AI Gateway plan's sitting 2, Task 2): the gateway key's expiry, a
 # check_warn — counted, never failing — from 14 days ahead (its Decision 11). Measured: 22 checks, 0 failed, 0 warnings.
 EXPECT_DOCTOR=22

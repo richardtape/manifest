@@ -2696,3 +2696,13 @@ model and no gateway model until it restarts.
 **A SESSION'S NAME IN `ListAgents` CAN CHANGE WHILE IT RUNS** (2026-10-04, the U1 plan's sitting 1): this session was `manifest-41` at 13:47 and
 `mac-lan-rustling-stallman` at 14:17. A peer that cached the first name messages nobody. `ListAgents` immediately before every promised
 message, as §7e says, and record a session by both names when it changes.
+
+**THE UNIT TIER DOES NOT MIGRATE — A NEW MIGRATION REDS ITS OWN TEST AS "current transaction is aborted"** (2026-10-04, the U1 plan's
+sitting 2, F9): migrations are applied by `pnpm --filter @manifest/control-plane db:migrate` — RUNBOOK's start sequence and
+`scripts/gateway-controls.sh`'s restart run it before the control plane, which never migrates itself — and Vitest's global setup only
+TRUNCATEs. So a test that writes what a
+new migration allows — a new event type's row, refused by the old `events_type_known` CHECK — fails inside its `withRollback`
+transaction, and every later query reads `current transaction is aborted, commands ignored until end of transaction block`, which names
+neither the CHECK nor the migration. Apply it before the first run: RUNBOOK's export block in a subshell, then
+`pnpm --filter @manifest/control-plane db:migrate`. The shared database then carries it — harmless to a running control plane on the
+older code when the migration only widens a CHECK.
