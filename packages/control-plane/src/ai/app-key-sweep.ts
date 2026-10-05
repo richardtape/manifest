@@ -8,8 +8,7 @@ import {
   type Db,
 } from '../db/index.js'
 import { makeRedactor, publishEvent, type EventBus } from '../observability/index.js'
-import type { MasterKeypair } from '../secrets/index.js'
-import { getSecret } from '../secrets/store.js'
+import { getSecret, type MasterKeypair } from '../secrets/index.js'
 import { CLASSIFICATION_RANK, canonicalLevel, levelWords } from '../spec/index.js'
 import { loadModelCatalogue } from './catalogue.js'
 import type { LiteLlmClient } from './client.js'

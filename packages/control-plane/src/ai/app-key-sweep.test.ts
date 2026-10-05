@@ -11,9 +11,8 @@ import {
   type Db,
 } from '../db/index.js'
 import { withProject } from '../db/testing.js'
-import { createEventBus } from '../observability/bus.js'
-import { generateMasterKeypair } from '../secrets/envelope.js'
-import { putSecret } from '../secrets/store.js'
+import { createEventBus } from '../observability/index.js'
+import { generateMasterKeypair, putSecret } from '../secrets/index.js'
 import { appKeysAtBoot, withdrawLoweredAppModels } from './app-key-sweep.js'
 import { instanceKeySecretName, LLM_API_KEY_SECRET } from './keys.js'
 import { fakeLiteLlm, type FakeLiteLlm } from './testing.js'

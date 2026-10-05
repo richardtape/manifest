@@ -89,6 +89,10 @@ const PUBLISHED_ELSEWHERE = {
   // withdraws a model from a live session, and this lifecycle's project is never raised.
   'agent_session.narrowed':
     'api/agents.test.ts — a commit raising the project to confidential (Task 7)',
+  // The U1 plan's Task 6 (S11): published by the BOOT's app-key sweep when a running app's key holds a model its
+  // release's level no longer allows — this lifecycle never boots a control plane over such a key.
+  'ai.models_withdrawn':
+    'ai/app-key-sweep.test.ts — withdrawLoweredAppModels, and boot.docker.test.ts through the booted entry point',
   // The faculty-ready plan's Task 13 (FE-52): a person's act ending a token that is waiting on a
   // question — this lifecycle's token asks nothing it then revokes.
   'pending_action.expired':
