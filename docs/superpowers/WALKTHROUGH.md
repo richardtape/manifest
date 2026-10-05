@@ -307,6 +307,19 @@ leaves the IdP's session alive.
 | 4 | operator | **Rename** → a new name → **Save**, the Reason box empty; then type a reason → **Save** | refused, and the console shows *If you ask for help, quote this reference: <a UUID>* — the refusal's `x-request-id`, which the control plane's log holds on one line; then renamed |
 | 5 | instructor | reload the project's page | its events read *Test Operator acted as a platform administrator — reason: '<what you typed>'* |
 
+### A `high` app's privacy assessment, read — the U1 acceptance
+
+*Added by the U1 plan's sitting 3, 2026-10-04 (Task 7's person's half). `make demo-levels` is the headless half; it leaves the project
+`levels-local` (driver 1) declared `high`, with `[default-chat-large, default-chat-onprem]`, and its privacy assessment drafted.* With the
+console served by `vite preview` on 7104 (RUNBOOK, *Running the reference console*), sign in as **`instructor`** at
+`https://console.manifest.internal/`, open **levels-local → Records**, and read the privacy assessment's *Where it flows* section:
+
+| What | What it must read |
+|---|---|
+| *Classification* | **High — every AI model the app uses must be approved for high data.** |
+| `default-chat-onprem` | **Approved for very high data: it runs on on-premise hardware, so what the app sends it stays there.** |
+| `default-chat-large` (the capable model at `high`, `.env`'s `MANIFEST_CAPABLE_MODEL_CLASSIFICATION`) | **Approved for high data at most: it may be answered by a provider off-premise that keeps none of what it is sent (zero data retention), as the platform’s administrator attests, so what the app sends it may leave UBC but is not kept there.** — the one new sentence the Privacy Office reads |
+
 ### An application whose code is on GitHub, clicked — driver 2
 
 *Added by the D5 plan's sitting 8, 2026-09-25 (Task 15).* On a control plane started on **driver 2**, after

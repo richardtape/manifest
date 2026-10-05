@@ -1132,3 +1132,10 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
         Rejected: driver 1 only; a script Rich runs.
       - make reset — "Yes, once": after the controls, then a fresh make demo-levels on each driver (the control database held
         only the unit suite's fixture project, so no real-GitHub repository is orphaned). Rejected: no reset.
+    And at 19:43 PDT (the clock read just after his answer), THE U1 ACCEPTANCE'S PERSON'S HALF (Task 7 Step 4), staged by manifest-9f
+    (the console served by vite preview on 7104, 7100 on driver 1, make ci-acceptance's demo-levels run having drafted levels-local's
+    privacy assessment): Rich signed in as instructor, opened levels-local's Records, and pasted the draft's *Where it flows* section —
+    "Classification: High — every AI model the app uses must be approved for high data."; "default-chat-large: Approved for high data
+    at most: it may be answered by a provider off-premise that keeps none of what it is sent (zero data retention), as the platform's
+    administrator attests, so what the app sends it may leave UBC but is not kept there."; "default-chat-onprem: Approved for very high
+    data: it runs on on-premise hardware, so what the app sends it stays there." — every line as Task 7 specifies, each with its source.

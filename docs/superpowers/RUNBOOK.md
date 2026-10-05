@@ -1080,7 +1080,7 @@ what those commands reported *on 2026-09-05*; P3 and then P4a have since added c
 and the current numbers are stated ONCE each (Rich, 2026-09-30): **`scripts/ci-acceptance.sh`'s `EXPECT_` lines** for
 `pnpm test`, `make doctor` and `make verify`, and **ORIENTATION §2's `pnpm test:docker` row** — this file states none of them. **The offline acceptance has not been
 re-run since 2026-09-05**, and P4a Task 15 owes it: it is Rich's to run, because
-disabling Wi-Fi cuts an agent off too. **It now has SEVENTEEN steps, 1 to 17, after step 0's offline check** (the faculty-ready plan's Task 11 added step 17, `make demo-faculty-ready`; the launch path plan's Task 15 step 16, `make demo-launch`; the front-end enablement plan's Task 15 step 15, `make demo-frontend`; and the authoring API plan's Task 13 step 14, `make demo-authoring` — all four run on either driver; this line said SIXTEEN until the faculty-ready plan's sitting 7, FIFTEEN until the launch path plan's sitting 12, and FOURTEEN until its sitting 2's sweep) — P5a sitting 12 added `make demo-journey` as step 8,
+disabling Wi-Fi cuts an agent off too. **It now has EIGHTEEN steps, 1 to 18, after step 0's offline check** (the U1 plan's Task 7 added step 18, `make demo-levels`; the faculty-ready plan's Task 11 step 17, `make demo-faculty-ready`; the launch path plan's Task 15 step 16, `make demo-launch`; the front-end enablement plan's Task 15 step 15, `make demo-frontend`; and the authoring API plan's Task 13 step 14, `make demo-authoring` — all five run on either driver; this line said SEVENTEEN until the U1 plan's sitting 3, SIXTEEN until the faculty-ready plan's sitting 7, FIFTEEN until the launch path plan's sitting 12, and FOURTEEN until its sitting 2's sweep) — P5a sitting 12 added `make demo-journey` as step 8,
 P5b sitting 9 added `make demo-token` as step 9, P5c sitting 9 added the console's
 preflight as step 10 (2026-09-19), and P6a sitting 11 added `make demo-production` as step 11
 (2026-09-22), and P6b sitting 7 added `make demo-releases` as step 12 (2026-09-23) — whose
@@ -1657,7 +1657,7 @@ bash scripts/levels-controls.sh all local       # its eleven negative controls, 
 LEVELS_CONTROLS_DRY=1 bash scripts/levels-controls.sh all   # each control's edit applied and shown, restored — no restart
 ```
 
-**Measured 2026-10-04** (sitting 3, on `a2e3fc7`): **~9 s** on driver 1, fresh and re-used.
+**Measured 2026-10-04** (sitting 3, on `a2e3fc7`): **~9–16 s** on either driver — driver 1 fresh 9 s and re-used, the fake ~12 s fresh and re-used, and from a `make reset` machine 11 s (driver 1) and 16 s (the fake).
 
 | Step | What happens | What must be true |
 |---|---|---|

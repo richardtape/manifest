@@ -1,5 +1,9 @@
 # Manifest's Data Classes as UBC's U1 Levels — Implementation Plan
 
+> **EXECUTED 2026-10-04 in three sittings** (`manifest-41`, `manifest-5b`, `manifest-9f`): Tasks 0–7, the spec action applied, contract `1.7.0`;
+> `make demo-levels` green on both drivers and from a `make reset` machine, its eleven controls as predicted, the one whole-branch review's
+> fix wave in, and Rich reading a `high` app's privacy assessment. *What executing this plan found* is the record; the next plan is FE-46/47/5.
+
 > **WRITTEN 2026-10-03, 22:25–23:00 PDT, DOCUMENTS ONLY**, by a fresh platform session Rich started for it, at the word of the
 > coordinator `manifest-af`. **Rich decided the shape at 21:48 and the spec action — every sub-decision as recommended — at 22:21**
 > (`../2026-09-30-decisions.md`, both entries; *Decided by Rich*, below). **Every fact in *Read this first* was read from the code at
@@ -76,7 +80,7 @@ That edit is the coordinator's at this plan's approval sweep, not a task here (D
 | 1 | 0, 1, 2, 3 | **The spec action applied** (Task 0, if it is not already). **The vocabulary, and every reader made level-safe** — one rank table of seven, the enum ACCEPTING seven and storing what is written, the four `=== 'confidential'` readers compared by level, **contract `1.7.0`**, the front-end's NOTICE; no existing input's answer changes (Task 1, *C1*). **Stored and answered as the level** — the transform, the default `medium`, the canonical floors and catalogue, the diff by level, S6's answers, the level in a person's words (Task 2). **D17's words**: the refusal hint (E14), the deploy-time refusal, a `high` model's zero-retention sentence, intake, the blueprint and the guides (Task 3) | **Yes** — `ai/` (Tasks 1–2) and `releases/` (Task 3): once, at the close, in the background; and Task 2's two Docker files alone before its commit (*C1*) | **The U1 spec action** — DECIDED 22:21; **APPLIED by Task 0, `ad35ef9`** | ✅ **DONE 2026-10-04** (13:47–15:49, `manifest-41`): Task 0 `ad35ef9`, Task 1 `7f36c5b` (contract `1.7.0`), Task 2 `59bd934`, Task 3 `c04e1f3`, F7 `58afe04` — *What executing this plan found*, *Sitting 1* |
 | 2 | 4, 5 — **stop point** — 6 | **The capable model's level** as a setting, the builder exception by S4, registration by level and never kept above it, the gateway's `very-high` pin (Task 4). **The token rule** (Task 5, S9). **The app-key sweep** (Task 6, S11) — its Docker case first, because it measures what it rests on | **Yes** — `ai/`, and Task 6's new Docker file: once, at the close; and `boot.docker.test.ts` ALONE before it (Task 6's real-entry-point case, *I1*, *M4*) | — | ✅ **DONE 2026-10-04** (15:51–17:45, `manifest-5b`): Task 4 `0d5ce7b`, Task 5 `e6e5a5e` — the stop point, passed with room — Task 6 `e27d548` (Step 1 measured green first, alone) — *What executing this plan found*, *Sitting 2* |
 | 2b | 6 — **only if sitting 2 runs out of room at its stop point** | As sitting 2's last task | Yes — `ai/` | — | **Not needed** — sitting 2 built Task 6 |
-| 3 | 7 | **The acceptance**: `make demo-levels` three times, its controls seen red, every other demo still green, `make ci-acceptance`, the plan's one whole-branch review, and Rich reading a `high` app's privacy assessment in the console | Yes, if any code changes | — | ← **next** |
+| 3 | 7 | **The acceptance**: `make demo-levels` three times, its controls seen red, every other demo still green, `make ci-acceptance`, the plan's one whole-branch review, and Rich reading a `high` app's privacy assessment in the console | Yes, if any code changes | — | ✅ **DONE 2026-10-04** (17:55–19:55, `manifest-9f`): Task 7 `a2e3fc7`, `1ec1b18`, the review's fix wave `4273aed` — *What executing this plan found*, *Sitting 3*. **THE PLAN IS EXECUTED**; next: FE-46/47/5 (ORIENTATION §7e) |
 
 **EVERY SITTING ENDS THE SAME WAY, and none of these four steps is optional:**
 
@@ -2673,3 +2677,136 @@ containers, 39 volumes** after the three cleanup scripts, bare then `--apply` (7
 and `p4b-probe-user`; 17 app images) — all ALLOWED. The four protected containers running; the hold flag FREE. `scripts/snapshot-machine.sh`
 before (15:54) and after (17:44): the same containers, the edge restarted by the tier, free disk 61 → 59 GiB, HEAD and the dirty count as
 committed.
+
+### Sitting 3 — 2026-10-04, 17:55–19:55 PDT (`manifest-9f`): Task 7, the acceptance — and the plan's close
+
+**Opened** at Rich's *"please read @docs/superpowers/ORIENTATION.md and proceed with the next sitting"*, HEAD `9bed3bb`, no coordinator and no
+faculty front-end session live (`ListAgents`, 17:56 and at every later check), so everything went to Rich directly and this session ran the
+hold flag. 7100 was PID 95305 on REAL GitHub (17:43), `default-chat-large` `high`, priced, at the gateway; 12 networks, 0 `mf-` containers.
+**Five questions through the question tool** (the decisions file's 17:57 and 18:03 entries), each as recommended: `make demo-gateway` with
+the network on — *"Yes, run it"*; the person's half — *"Stage it, I'll read"*; a refused control — *"Yes, I'll run it"*; and two the plan
+did not foresee: **the `.env` swap for driver 2 on the fake** (`require_fake_github` refuses while `.env`'s real-App block is active —
+faculty-ready sitting 7's pattern, again) — *"Yes, do the swap"*; and **`make reset`, once** — *"Yes, once"*.
+
+**Task 7** (`a2e3fc7`, then `1ec1b18` and the fix wave `4273aed`): `packages/journey/src/levels.ts` (phases `find`, `clear`, `make`,
+`levels` — steps 0–6 as Step 1 lists them), `scripts/demo-levels.sh` (the faculty-ready sign-in prelude; the capable model read ONCE from
+LiteLLM's `/model/info` and `.env`, each through the seven-name map), `scripts/levels-controls.sh` (eleven controls, each edit asserted to
+match exactly once, its diff shown, 7100 rebuilt on it, the FAIL lines compared with the prediction, restored by a trap;
+`LEVELS_CONTROLS_DRY=1` shows each edit without a restart), the `Makefile`'s `demo-levels`, `make ci-acceptance`'s step 11, the offline
+acceptance's step 18, RUNBOOK's *make demo-levels*, ORIENTATION §2's row.
+
+**Step 2 — green.** **Driver 1** (`a2e3fc7`): fresh 9 s, re-used twice — every check passed, NO half NOT RUN (the capable model listed at
+`high`, `.env` `high`). **Driver 2, the fake** (`.env`'s seven active `MANIFEST_SOURCE_DRIVER`/`MANIFEST_GITHUB_*` lines commented in place, a
+0600 copy in the workspace): fresh 11.8 s, re-used 12.2 s and 12.2 s; then `make demo-faculty-ready` (47 s), `make demo-frontend` (118 s —
+Task 2's changed assertion), `make demo-github` (75 s) and `make demo-launch` (231 s) on the fake, all green; networks 12 → 18. **`make reset`**
+(18:22, 7100 stopped first): `mf-` 0, networks 12, the four protected containers up; `make up` re-created LiteLLM (started `01:22:51Z`, the
+network on), so 7100's boot on the fake read `capableModel registered` at `high`, priced, `ubc-qwen-27b registered`; **`make demo-levels`
+FRESH from the reset machine on the fake, 15.6 s, green**; `.env` copied back and **`cmp` byte-identical (18:24:05)**; 7100 on driver 1 →
+**FRESH from the reset machine on driver 1, 11.4 s, green**; `make demo-ai` 85 s, green. **`make demo-gateway`** (driver 1, the network on, after the tier): 81 s, every check passed — `default-chat-large` at the gateway at
+`high`, priced; Manifest's charge ÷ the gateway's rise **1.000000000** (sitting 2's F15, its first run since Task 4). **`make ci-acceptance`**
+(driver 1, 19:14:57–19:39:19, 1462 s): doctor 22, `pnpm test` **3395/206**, the three builds, `demo-journey`, `demo-token`, `demo-authoring`,
+`demo-frontend`, `demo-faculty-ready` and **`demo-levels`** PASS, `demo-github` NOT RUN (driver 1) — and **four FAIL, all one cause**: `make
+verify` 3 failed (*the public listener answers a production name on 127.0.0.3*, *all three §23 zones … trusted certificate*, *a name allocated at
+runtime … on both listeners*) and `demo-production`, `demo-releases`, `demo-launch` each *"no step threw — read ECONNRESET"*. Reproduced: the
+host's `curl` to `127.0.0.3` reset, the internal listener answered `401`, and the edge had been restarted at 18:43 by the Docker tier — TRAPS'
+*"A `make up` OR `make reset` CAN LEAVE THE EDGE'S PUBLIC LISTENER (127.0.0.3) RESETTING THE HOST"*, here after the tier (§2's `pnpm test:docker`
+row names it too). `docker restart manifest-caddy` → `200`; 7100 restarted; **`make verify` 67/0/0**; re-run: `demo-production` 41 s,
+`demo-releases` 140 s, `demo-launch` 145 s — green. **What went wrong in the sitting's own work:** §2's row says to run `make verify`
+after the tier, and this sitting ran the cleanup scripts and `make demo-gateway` (internal listener only) instead — the red arrived 45 minutes
+later, inside `make ci-acceptance`.
+
+**Step 3 — the controls**, `levels-controls.sh all local` on `a2e3fc7` (18:27–18:41), every one as predicted:
+- **(a)** S9 narrowed to rank ≥ `very-high` (≡ Task 1's `toLevel(…) === 'very-high'`, without an import edit — sitting 2's Task 5 (a) was VOID
+  once that way) → RED at *the token on staging: 403* only (`200`).
+- **(b)** the transform AND `getSpec`'s `specInLevels` removed → RED at *getSpec answers medium* only (`internal`). **Each alone measured**:
+  **(b-transform)** GREEN — `specInLevels` answers the level for the stored alias; **(b-getspec)** GREEN — the transform stored the level.
+  Two paths covering each other, by design; Task 2's unit controls (b) and (c) see each alone.
+- **(b2)** `sensitiveViewOfSpec`'s `levelName` removed → GREEN alone (the transform stored `medium` for `internal`); **(b2-transform)** with
+  the transform removed too → RED at the rename's *does NOT list data.classification* only.
+- **(c)** E14's old hint → RED at the three hint checks only.
+- **(d)** `staysOnPremise` back to `=== 'confidential'` → RED at the on-premise line only (it read the off-premise sentence: the catalogue is
+  canonical, so `default-chat-onprem` is `very-high`).
+- **(e)** `MANIFEST_AGENT_BUILDER_MODELS=on-premise` → RED at the very-high project's builder half only (`default-chat-onprem`,
+  `-reasoning`, `ubc-qwen-27b`); the high project's capable half GREEN (by rank, D17) and step 5 GREEN (S9: the builder setting no longer
+  decides the tails).
+- **(f)** `confidential: 2` AND the transform removed → RED at *confidential + [default-chat-large] is refused too* only (answered `201`,
+  valid). **(f-rank)** the rank edit alone → GREEN: the transform canonicalizes before anything ranks; Task 1's unit control (a) holds it.
+Source restored (`git diff` nothing), 7100 restored on driver 1. The first verdict lines called four of those reds NOT AS PREDICTED — the
+harness's defect, F19, not the controls'.
+
+**Step 5 — the plan's one whole-branch review** (opus, read-only, `9ba4833..a2e3fc7`, the source-only diff at `review-src.diff`; it was told to
+read files with `git show` because the controls were editing the working tree): *"ready with fixes"* — no Critical; I1, I2 Important; M1–M8
+Minor; all six Review Focus items hold at HEAD. **The fix wave** (`4273aed`) and its rulings are F20–F22 and F29 below; the deferred ones
+are F23–F28. **Step 4 — the person** (19:43, Rich): with the console served by `vite preview` on 7104 and 7100 on driver 1, he signed in as `instructor`,
+opened `levels-local`'s *Records* (the project `make ci-acceptance`'s `demo-levels` left, `high` with `[default-chat-large,
+default-chat-onprem]`) and pasted its draft's *Where it flows*: *Classification: High — every AI model the app uses must be approved for high
+data.*; `default-chat-large`: the zero-retention sentence, word for word; `default-chat-onprem`: *Approved for very high data: it runs on
+on-premise hardware, so what the app sends it stays there.* — each with its source. Every line as Task 7 specifies (the decisions file, 19:43).
+
+**What executing it found**
+
+1. **F19 — `levels-controls.sh`'s matcher called four correct reds NOT AS PREDICTED** ((b), (c), (e), (f)): it cut each `FAIL` line at its
+   FIRST ` — ` to get the check's name, and those checks' names contain one (*"and not "BC public body" — a level states no law"*). Its
+   `same_reds` now takes each predicted name as the WHOLE check (the line is the name, or the name and ` — `) and counts the lines; proved on
+   the run's saved logs — five correct predictions match, four wrong ones (one missing, a truncated name, another control's, a green log) do
+   not — and control (e) re-run end to end: RED EXACTLY AS PREDICTED (`1ec1b18`). A trap now.
+2. **F20 — the review's I1, sitting 2's F11 judged: `capableFloor` FAILED OPEN on a level none of the seven names.** It reduced from
+   `toLevel(undefined)` — `undefined` — so every `rank(x) < rank(undefined)` was false and every fallback was SET, even a `medium` one under a
+   `high` capable model. Unreachable today (`loadConfig` hands a validated level; only `tsc` guarded it). Seeded with `canonicalLevel(…) ??
+   'very-high'`: an unreadable level lets only an on-premise fallback answer. `capable.test.ts`'s new case RED first (`set` for `undefined`),
+   then the file 48/48 (`4273aed`). The review's table of every other reader that ranks a raw value: `refuseKeeping`, the assessment, the
+   gateway pin, the diff and the catalogue fail CLOSED; `policy.ts`, `release.ts`'s deploy check, the token rule, `models.ts`' floors and
+   `intake.ts` would fail OPEN on an unknown value, each unreachable today (every path canonicalizes first, or the value is the platform's own)
+   — recorded, not changed.
+3. **F21 — the review's I2: every boot's app-key sweep reads each LIVE app key with `GET /key/info?key=<the VALUE>`**, and LiteLLM's uvicorn
+   access log prints query strings (`/user/info?user_id=…` appears whole). **Measured** after `make demo-ai`'s app was live and 7100
+   rebooted: LiteLLM 1.102.0 logs that call as `"GET /key/info?REDACTED HTTP/1.1"`, and `sk-` occurs **0** times in `docker logs
+   manifest-litellm`. **Ruling: recorded, not fixed** — no person gets a leak on the pinned version; the defence is LiteLLM's, so a TRAPS entry
+   makes every re-pin re-measure it, and names the fix (query by the stored hash, which `/key/update` accepted at Task 6 Step 1, or a
+   body-carried read).
+4. **F22 — the review's M4, re-graded Important: a false green in this sitting's own acceptance.** Step 4's *"default-chat-large — above its
+   level, so ONLY by the builder exception"* would pass by RANK if the capable model were ever registered at `very-high`. **Measured, not
+   argued** (`m4-measure.sh`): 7100 restarted with the capable model at `very-high` and the builder exception OFF — `a2e3fc7`'s check read
+   `ok` (exit 0, the false green); `4273aed`'s reads `NOT RUN … reaches very-high by rank`. 7100 restored at `high` (`registered`).
+5. **F23 (deferred, the review's M1)** — `app-key-sweep.ts:142-180` narrows or revokes a key BEFORE `publishEvent`; when the event fails (a
+   boot before `db:migrate` applied `0052` — F9's trap) the catch counts it `failed` and says it *"could not be narrowed or revoked"*, which is
+   false, and the next boot finds nothing to withdraw, so the project's people are never told.
+6. **F24 (deferred, M2)** — `heldModels` reads a missing `models` list, or `[]`, as nothing held, so a key LiteLLM reads as EVERY model (only by
+   an out-of-band edit) is skipped silently.
+7. **F25 (deferred, M3)** — the mock's `MANIFEST_MOCK_LEVEL` ignores the three aliases (`confidential` falls to `medium`, so a token is answered
+   tails a front-end developer expected refused). Told to the front-end in the NOTICE.
+8. **F26 (deferred, M5)** — `make demo-levels`' token refusal has no level-dependent positive control in the demo (a `medium` project's staging
+   answered); a regression refusing every staging would stay green there. The unit and authorization-contract tiers hold the `medium` case.
+9. **F27 (deferred, M6)** — `incidents.test.ts`' *a release frozen high after a commit lowers the manifest to medium* has no same-test positive
+   control.
+10. **F28 (deferred, M8)** — `spec/index.ts:100`'s comment says stored specs carry `internal` (they now carry `medium`); the sweep's event says
+    each withdrawn model is *"approved only below"* the level, false for a served-but-unclassified model it also withdraws.
+11. **F29 (the review's M7)** — `levels-controls.sh`'s header said it restores 7100 *"as found"*; it restores on the control's driver (driver 1
+    by default), which is not real GitHub. The words now say so (`4273aed`).
+
+*Smaller, not counted:* a dry-run commit answers `201`, not `200` (the demo reads `ok` and `dryRun`); the plan's `levels-<run>` slugs became
+fixed per-driver slugs deleted and made again (a ruling: the faculty-ready pattern, nothing accumulates, the high project stays for the
+person); `docs/external-track.md`'s *new item* (U1 §3.2.4) already existed as item 15, added by the coordinator `manifest-af` — item 11 is
+restated in U1's levels and the log has a line; two markdown table cells written with `low | medium | …` were caught before commit (a pipe
+splits a cell).
+
+**The gates at the close.** **`pnpm test:docker`** once, on `4273aed`, in the background, 18:30:43–18:55:17 — **289/289, 43 files, 1474 s**
+(§2's number unmoved: the fix wave added a unit case, no Docker test); 13 networks at its start, 20 at its end. **`pnpm test` twice on the final
+code tree** (`4273aed`; documents and `EXPECT_TESTS` only after it): **3395/3395, 206 files** (18:57:45–19:14:01, 976 s, load ~3) and again inside
+`make ci-acceptance` (3395/206). **`EXPECT_TESTS` 3394 → 3395** (+1: `capable.test.ts`' I1 case — the script's comment names it), `EXPECT_FILES`
+206 unmoved. `pnpm lint`, `pnpm typecheck`, `pnpm format:check` clean. **`make doctor` 22/0/0, `make verify` 67/0/0** at the close
+(`EXPECT_DOCTOR`, `EXPECT_VERIFY` unmoved). **The four shared HTML pages checked**: nothing they state moved — the U1 decision's words were
+Task 0's, and the schematic's *Status* narrative has ended at the launch path since that plan (the faculty-ready and gateway plans did not
+extend it either), left as it is.
+
+**The machine at the close, queried at 19:48 PDT:** **7100 is PID 32372, restarted from `.env` on REAL GitHub** (`gateway-controls.sh start
+real`: `capableModel` and `ubc-qwen-27b` `unchanged`, `secretsScrubbed` 16) — as found. **LiteLLM 1.102.0**, re-created by `make reset`'s `make
+up` and started `01:22:51Z` (18:22 PDT) with the network on; `default-chat-large` `high`, priced, at the gateway. **`.env` byte-identical to the
+open** (`cmp`, 18:24:05); its 0600 copy and the M4 measurement's scratch copy removed. The tables hold what `make ci-acceptance` and the three
+re-runs left — ten slugs (`board-local`, `facultyready-local`, `frontend-local`, `frontend-scratch-local`, `journey-app`, `launch-app`,
+`launchpath-local`, `levels-local` — Rich's reading — `levels-vh-local`, `token-app`) and their **30 `mf-` containers on 10 `mf-` networks**:
+**22 Docker networks** (12 at the open), 69 volumes (39: the demos' 20 `mf-` data volumes and their databases' anonymous ones). The three
+cleanup scripts bare, then `--apply`, after the tier and at the close — all ALLOWED; `proof-app`'s three containers, project-less after the
+suite, removed with `docker rm -f -v` (ALLOWED). The GitHub fake stopped again, the console's `preview` on 7104 stopped, the four protected
+containers running, the hold flag FREE. `scripts/snapshot-machine.sh` before (17:57) and after (19:48): the same platform and protected
+containers; the edge restarted (by the tier, then this sitting's `docker restart manifest-caddy`), LiteLLM and Postgres re-created by `make reset` (Rich's yes).

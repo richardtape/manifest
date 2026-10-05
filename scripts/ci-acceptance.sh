@@ -241,7 +241,9 @@ red() { printf '\033[31m%s\033[0m' "$1"; }
 # refused leaves the catalogue, a lower one kept, a new session never given it, the boot's thread); Task 5 +13:
 # `api/incidents.test.ts` (+3: one case inverted, three joined), `api/authz-contract.test.ts` (+9: the high project's row, nine
 # actors) and `packages/mock/src/scripted.test.ts` (1: MANIFEST_MOCK_LEVEL); Task 6 +9: `ai/app-key-sweep.test.ts` (9, new).
-EXPECT_TESTS=3394
+# Then the U1 plan's sitting 3 (2026-10-04, Task 7 and the whole-branch review's fix wave): +1, no new file —
+# `ai/capable.test.ts` (1: a level none of the seven names floors the fallback at very-high, the review's I1).
+EXPECT_TESTS=3395
 EXPECT_FILES=206
 # EXPECT_DOCTOR 21 -> 22 (2026-10-03, the UBC AI Gateway plan's sitting 2, Task 2): the gateway key's expiry, a
 # check_warn — counted, never failing — from 14 days ahead (its Decision 11). Measured: 22 checks, 0 failed, 0 warnings.

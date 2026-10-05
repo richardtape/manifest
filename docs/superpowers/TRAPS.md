@@ -2706,3 +2706,19 @@ transaction, and every later query reads `current transaction is aborted, comman
 neither the CHECK nor the migration. Apply it before the first run: RUNBOOK's export block in a subshell, then
 `pnpm --filter @manifest/control-plane db:migrate`. The shared database then carries it — harmless to a running control plane on the
 older code when the migration only widens a CHECK.
+
+**LiteLLM 1.102.0 REDACTS `/key/info`'s QUERY IN ITS ACCESS LOG — AND ONLY THAT KEEPS EVERY RUNNING APP'S KEY OUT OF IT** (2026-10-04, the
+U1 plan's sitting 3, the whole-branch review's I2). Since Task 6, every boot's app-key sweep reads what each live instance key holds with
+`GET /key/info?key=<the key's VALUE>` (`ai/app-key-sweep.ts`'s `heldModels`), and LiteLLM's uvicorn access log prints every path WITH its
+query string — `/user/info?user_id=mf-person-…` and `/fallback/default-chat-large?fallback_type=general` appear whole. Measured on
+`sha256:32cfd7a4…` after `make demo-ai`'s app was live and 7100 rebooted: the sweep's line reads `"GET /key/info?REDACTED HTTP/1.1"`, and
+`docker logs manifest-litellm 2>&1 | grep -c 'sk-'` reads `0`. So the platform's own code does not keep the key out of that operator
+surface — LiteLLM does. **After ANY LiteLLM re-pin, re-measure it**: one AI app live, restart 7100, then that `grep -c 'sk-'` must read 0.
+If it does not, `heldModels` must query by the key's stored hash (sha256 hex, which `/key/update` was measured to accept at Task 6 Step 1)
+or by a body-carried read — measured first on the new version.
+
+**A NEGATIVE-CONTROL HARNESS THAT CUTS A CHECK'S LINE AT ITS FIRST SEPARATOR MISREADS A CHECK WHOSE NAME HOLDS ONE** (2026-10-04, the U1 plan's
+sitting 3, F19). The journey prints `  FAIL <name> — <detail>`, and many check names themselves contain ` — ` (*"and not "BC public body" — a
+level states no law (E14)"*). `scripts/levels-controls.sh`'s first matcher cut every line at the FIRST ` — ` and called four correct reds
+NOT AS PREDICTED. A matcher must take each predicted name as the WHOLE check — the line is the name, or the name followed by ` — ` — and
+count the lines; prove it against saved logs both ways (correct predictions match, wrong ones do not) before trusting its verdicts.
