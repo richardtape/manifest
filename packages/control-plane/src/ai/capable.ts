@@ -1,4 +1,8 @@
-import { CLASSIFICATION_RANK, toLevel, type Classification } from '../spec/index.js'
+import {
+  canonicalLevel,
+  CLASSIFICATION_RANK,
+  type Classification,
+} from '../spec/index.js'
 import { loadModelCatalogue, type CatalogueSnapshot } from './catalogue.js'
 import type { LiteLlmClient } from './client.js'
 import { AiError } from './errors.js'
@@ -162,6 +166,8 @@ const rank = (c: Classification): number => CLASSIFICATION_RANK[c]
 /**
  * The most sensitive data a call to the capable model may carry: its own level as the catalogue lists it, and
  * never less than `classification`, the level this boot registers it at (MANIFEST_CAPABLE_MODEL_CLASSIFICATION).
+ * **A level that is none of the seven names floors it at `very-high` — FAIL CLOSED** (the U1 plan's whole-branch
+ * review, I1): ranked as given, `undefined` made every comparison false and every fallback was set.
  */
 function capableFloor(
   snapshot: CatalogueSnapshot,
@@ -172,7 +178,7 @@ function capableFloor(
     .map((m) => m.maxClassification)
     .reduce<Classification>(
       (a, b) => (rank(b) > rank(a) ? b : a),
-      toLevel(classification),
+      canonicalLevel(classification) ?? 'very-high',
     )
 }
 

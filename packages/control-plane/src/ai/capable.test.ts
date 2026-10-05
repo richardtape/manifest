@@ -15,6 +15,7 @@ import {
   type Gateway,
 } from './providers.js'
 import { fakeLiteLlm, type FakeLiteLlm } from './testing.js'
+import type { Classification } from '../spec/index.js'
 
 const SETTING = 'openai/gpt-6-luna'
 
@@ -863,5 +864,23 @@ describe('the capable model’s level is the setting’s (S3; U1 plan Task 4)', 
     expect((await ensureCapableFallback(lite, 'probe-medium-chat', 'medium')).state).toBe(
       'set',
     )
+  })
+
+  it('a level that is none of the seven names floors the fallback at very-high — it FAILS CLOSED (sitting 3’s review, I1)', async () => {
+    // An untyped caller is the hole (sitting 2's F11): `rank(x) < rank(undefined)` is false, so the floor fell to
+    // nothing and every fallback was SET. Only an on-premise one may answer for a level nobody can read.
+    for (const unreadable of [
+      undefined,
+      'secret',
+      'toString',
+    ] as unknown as Classification[]) {
+      const lite = await withCapable()
+      await entry(lite, 'probe-medium-chat', { max_classification: 'medium' })
+      const refused = await ensureCapableFallback(lite, 'probe-medium-chat', unreadable)
+      expect(refused.state, String(unreadable)).toBe('refused')
+      expect(refused.reason, String(unreadable)).toContain("below 'very-high'")
+      // The positive control, in the same catalogue: the on-premise model is set.
+      expect((await ensureCapableFallback(lite, FALLBACK, unreadable)).state).toBe('set')
+    }
   })
 })

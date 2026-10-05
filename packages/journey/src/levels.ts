@@ -526,13 +526,18 @@ async function step4(owner: ManifestClient, id: string): Promise<void> {
     vh.join(', '),
   )
   checks.ok('and NOT default-chat', !vh.includes(SMALL), vh.join(', '))
-  if (capable.listed)
+  // Only BELOW very-high is the builder exception the one way in: at very-high the capable model reaches this
+  // project by rank, so the check would pass with the exception gone (the whole-branch review's M4).
+  if (capable.listed && capable.level !== 'very-high')
     checks.ok(
       `and default-chat-large — above its level (${capable.level}), so ONLY by the builder exception (S4/S10)`,
       vh.includes(CAPABLE),
       vh.join(', '),
     )
-  else console.log('  NOT RUN  the builder exception — the capable model is not listed')
+  else
+    console.log(
+      `  NOT RUN  the builder exception — the capable model is ${capable.listed ? `listed at ${capable.level}, which reaches very-high by rank` : 'not listed'}`,
+    )
   done(4)
 }
 

@@ -2,7 +2,9 @@
 # THE U1 ACCEPTANCE'S NEGATIVE CONTROLS (the U1 plan's Task 7, Step 3) — each breaks ONE thing (an edit to the control
 # plane's source, or a setting), restarts the control plane on 7100 on that tree, runs `make demo-levels`, and says
 # whether it went red EXACTLY where predicted — every FAIL line named, no other. Restore-safe: a trap puts every edited
-# file back with `git checkout --` and restarts 7100 from .env, as found, on ANY exit, Ctrl-C included.
+# file back with `git checkout --` and restarts 7100 from .env ON THE CONTROL'S DRIVER (below), on ANY exit, Ctrl-C
+# included. That is not necessarily the driver 7100 was found on: a control plane on real GitHub is put back with
+# `bash scripts/gateway-controls.sh start real`.
 #
 #   bash scripts/levels-controls.sh <control> [local|fake]   # one control
 #   bash scripts/levels-controls.sh all [local|fake]         # every control in turn, one restore at the end
