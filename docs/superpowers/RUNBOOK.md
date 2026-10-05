@@ -1633,6 +1633,54 @@ fail-closed boot, nothing at the gateway, `NOT RUN`; **(b2)** a DIRECT capable m
 **A green run leaves** the two projects (re-used next time), a `mf-person-` user at LiteLLM holding two ended sessions' keys, and the
 key's spend a fraction of a cent higher.
 
+## `make demo-levels` — the U1 plan's acceptance: Manifest's data classes as UBC's U1 levels
+
+*Added by the U1 plan's sitting 3, 2026-10-04 (Task 7).*
+
+Manifest's data classes ARE UBC's four U1 levels (Information Security Standard U1) — `low | medium | high | very-high` — and its
+three earlier names are aliases with one meaning each (`public` = `low`, `internal` = `medium`, `confidential` = `very-high`). The
+bash half (`scripts/demo-levels.sh`) signs the instructor in, steps them up to delete an earlier run's projects, and reads the
+capable model's level ONCE — its `default-chat-large` row in LiteLLM's `/model/info` (the master key, as `make demo-gateway` reads
+it) and `.env`'s `MANIFEST_CAPABLE_MODEL_CLASSIFICATION` (`medium` unset), each through the seven-name map; the TypeScript half
+(`packages/journey/src/levels.ts`) is every client call, through `@manifest/contract` alone. **It runs on EITHER driver**:
+`levels-local` and `levels-vh-local` on driver 1, `levels-github` and `levels-vh-github` on driver 2 — **the GitHub FAKE**, refused
+by name while `.env`'s real-App block is in force, as `make demo-faculty-ready` is. **Offline**: nothing launches and no model is
+called (it reads the catalogue); a project an earlier run left is deleted and made again. **Every half that needs the capable model
+at `high`** — step 2's two capable dry runs, step 3's models, step 4's high-project half, step 6's zero-retention line — **prints
+`NOT RUN`** when it is not listed there (offline, or `MANIFEST_CAPABLE_MODEL` unset); a half not run is not a pass.
+
+```bash
+make demo-levels                                # whichever driver answers
+DEMO_LEVELS_STOP_AFTER=3 make demo-levels       # stop after a step, 0 to 6 — a negative control's short run
+MANIFEST_ENV_FILE=<copy of .env> make demo-levels   # read the capable model's setting from a copy of .env
+bash scripts/levels-controls.sh all local       # its eleven negative controls, restoring the source and 7100 after
+LEVELS_CONTROLS_DRY=1 bash scripts/levels-controls.sh all   # each control's edit applied and shown, restored — no restart
+```
+
+**Measured 2026-10-04** (sitting 3, on `a2e3fc7`): **~9 s** on driver 1, fresh and re-used.
+
+| Step | What happens | What must be true |
+|---|---|---|
+| 0 | the build; `/v1/me`; the driver; LiteLLM's `default-chat-large` row and `.env`'s setting; sign-in; the two projects from `node-ts-mongo@1` | `401 UNAUTHENTICATED` through the edge; on driver 2 the fake answers; each project's repository on the driver asked; the high project's staging and sandbox |
+| 1 | a DRY-RUN commit of `high` with `[default-chat]` | **`422 SPEC_INVALID`**, a detail at `ai.models.0` coded **`SPEC_MODEL_CLASSIFICATION_TOO_LOW`**, its hint *"approved for medium data at most"* and *"(Information Security Standard U1)"*, and NOT *"BC public body"* (E14: a level states no law); the capable model's row level **equal to** `.env`'s setting |
+| 2 | dry runs at `confidential` | `[default-chat-onprem]` valid; `[default-chat]` refused, its message naming **`very-high`**; with the capable model at `high`, `[default-chat-large]` refused too — and `high` with `[default-chat-large]` valid, its positive control |
+| 3 | commits: `internal`, then `medium`, then `high` with `[default-chat-large, default-chat-onprem]` (the spec's own S7 example) | `getSpec` answers **`medium`** for `internal`; the `medium` commit's `sensitiveDiff.fields` does **NOT** list `data.classification` (a rename is not a change); `high` is valid, `getSpec` answers **`high`**, and its diff **DOES** list it |
+| 4 | an agent session on each project — the `high` one, and `levels-vh-…` committed `very-high` with `[default-chat-onprem]` | both hold `default-chat-onprem` and NOT `default-chat`; the high project holds `default-chat-large` **by rank** (D17); the very-high one **only by the builder exception** (S4/S10, `MANIFEST_AGENT_BUILDER_MODELS=capable`, the default); each ended |
+| 5 | a delegated token with `project:read` lists Incidents | staging **`403 INCIDENT_LOG_CONFIDENTIAL`** (S9: at `high` and above, whatever the builder setting); the sandbox `200`; the person's own session on staging `200`; the token revoked |
+| 6 | `draftPrivacyAssessment` on the high project | the *flows* section's *Classification* reads **"High — every AI model the app uses must be approved for high data."**; `default-chat-onprem`'s line, the on-premise sentence; `default-chat-large`'s, **the zero-retention sentence** — what the Privacy Office reads (Task 7's person's half reads it in the console's Records) |
+
+**What it does not cover:** a running app's key narrowed when a level is LOWERED (S11) — that is `boot.docker.test.ts`'s, through
+the booted `dist/index.js`, because a demo would have to lower a model's level and restart mid-run (the plan's *What this plan does
+not build*); a model call; production.
+
+**`scripts/levels-controls.sh`** edits ONE thing in the control plane's source (or sets one setting), restarts 7100 on that tree,
+runs the demo and compares its `FAIL` lines with the prediction — exactly those, no others — and puts the source back with `git
+checkout --` and restarts 7100 from `.env` by a trap on any exit. Each control's edit must match its text exactly once or nothing is
+edited. Its controls and their predictions are in the script's header; what each measured is the plan's *Sitting 3*.
+
+**A green run leaves** the two projects (the high one's privacy assessment drafted, for a person to read in the console's
+*Records*), and a `mf-person-` user at LiteLLM holding two ended sessions' keys.
+
 ## `make ci-acceptance` and `make demo-console` — 1c's acceptance, in two halves
 
 *Added by P5c sitting 8, 2026-09-19 (Task 13).*

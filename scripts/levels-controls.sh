@@ -169,6 +169,24 @@ TRANSFORM_OLD="          .transform((name): Classification => toLevel(name))
 no_transform() { edit "$SCHEMA" "$TRANSFORM_OLD" ""; }
 no_getspec() { edit "$READS" "spec: specInLevels(latest.parsed)," "spec: latest.parsed as Record<string, unknown>,"; }
 
+# same_reds <demo log> <predicted check names, one per line> — 0 when the log's FAIL lines are exactly the predicted
+# checks: as many lines as names, and each name the WHOLE of one line's check. A check's name may itself hold " — ", so
+# a line is `FAIL <name>` or `FAIL <name> — <detail>`, matched by prefix — never by cutting at the first " — ", which
+# mislabelled four correct reds in this script's first run (the U1 plan's sitting 3).
+same_reds() {
+  PREDICTED="$2" python3 - "$1" <<'PY'
+import os, sys
+fails = [l[len('  FAIL '):].rstrip('\n') for l in open(sys.argv[1], encoding='utf-8') if l.startswith('  FAIL ')]
+names = [n for n in os.environ['PREDICTED'].split('\n') if n]
+def is_line_of(line, name):
+    return line == name or line.startswith(name + ' — ')
+ok = (len(fails) == len(names)
+      and all(sum(is_line_of(l, n) for l in fails) == 1 for n in names)
+      and all(any(is_line_of(l, n) for n in names) for l in fails))
+sys.exit(0 if ok else 1)
+PY
+}
+
 # run_control <name> <predicted FAIL lines, one per line; empty = green> [NAME=VALUE …] — the edits are already made.
 run_control() {
   local name="$1" predicted="$2" log="$OUT/demo-$1.log" rc actual
@@ -196,17 +214,17 @@ run_control() {
   fi
   bash scripts/demo-levels.sh > "$log" 2>&1
   rc=$?
-  actual="$(grep -E '^  FAIL ' "$log" | sed -E 's/^  FAIL (.*)$/\1/; s/ — .*$//')"
+  actual="$(grep -cE '^  FAIL ' "$log")"
   grep -E '^  (FAIL|NOT RUN) ' "$log" | cut -c1-260 | sed 's/^/    /' | tee -a "$SUMMARY"
   if [ -z "$predicted" ]; then
-    if [ "$rc" = 0 ] && [ -z "$actual" ]; then
+    if [ "$rc" = 0 ] && [ "$actual" = 0 ]; then
       say "  RESULT ($name): GREEN, as predicted (exit 0) — $log"
     else
       say "  RESULT ($name): NOT AS PREDICTED — predicted green, exit $rc — $log"
     fi
   else
-    if [ "$rc" != 0 ] && [ "$(printf '%s\n' "$actual" | sort)" = "$(printf '%s\n' "$predicted" | sort)" ]; then
-      say "  RESULT ($name): RED EXACTLY AS PREDICTED (exit $rc; $(printf '%s\n' "$actual" | grep -c .) FAIL) — $log"
+    if [ "$rc" != 0 ] && same_reds "$log" "$predicted"; then
+      say "  RESULT ($name): RED EXACTLY AS PREDICTED (exit $rc; $actual FAIL) — $log"
     else
       say "  RESULT ($name): NOT AS PREDICTED (exit $rc) — predicted:"
       printf '%s\n' "$predicted" | sed 's/^/      /' | tee -a "$SUMMARY"
