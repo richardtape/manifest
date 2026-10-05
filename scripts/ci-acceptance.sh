@@ -505,7 +505,7 @@ cat <<'TAIL'
      services/, build/, releases/, identity/, sso/, secrets/, projects/, blueprints/,
      ai/, observability/, infra/ or a *.docker.test.ts;
    - the OFFLINE acceptance — `scripts/offline-acceptance.sh`, run by hand with the
-     network off, whose steps 0-17 include `make demo-identity` and `make demo-ai`;
+     network off, whose steps 0-18 include `make demo-identity` and `make demo-ai`;
    - BOTH source drivers in one run — one driver per control-plane process, so a run on
      driver 1 reads `make demo-github` NOT RUN, and a run on driver 2 the other four.
 TAIL
