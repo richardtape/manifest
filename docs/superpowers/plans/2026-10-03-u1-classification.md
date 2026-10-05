@@ -2810,3 +2810,13 @@ cleanup scripts bare, then `--apply`, after the tier and at the close — all AL
 suite, removed with `docker rm -f -v` (ALLOWED). The GitHub fake stopped again, the console's `preview` on 7104 stopped, the four protected
 containers running, the hold flag FREE. `scripts/snapshot-machine.sh` before (17:57) and after (19:48): the same platform and protected
 containers; the edge restarted (by the tier, then this sitting's `docker restart manifest-caddy`), LiteLLM and Postgres re-created by `make reset` (Rich's yes).
+
+### After the close — 2026-10-05 (`manifest-fd`): what Rich's own testing met
+
+**The level filter this plan made common met a model the faculty front-end pins.** Since Task 3 (`c04e1f3`) the knowledge pack sends every
+app that keeps personal information to `high`, and D17 keeps `default-chat` out of a `high` project's agent session, as designed. The
+front-end writes every plan on ONE model, `default-chat` unless `MANIFEST_APP_PLAN_MODEL` names another, and refuses itself when the session
+lacks it — so after its first build almost no faculty app could have a change planned. Measured on `ask-my-notes`: three refusals, 15:38–15:42
+PDT, each session offered four models and not `default-chat`. Nothing in this plan read the front-end's pinned names; a plan that narrows
+what a session offers should grep its clients for a model they pin. The stop-gap (`MANIFEST_APP_PLAN_MODEL=default-chat-large`) and the fix
+(the front-end's) are in the roadmap's *Tracked defects found in use*.

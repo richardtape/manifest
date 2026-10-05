@@ -2722,3 +2722,18 @@ sitting 3, F19). The journey prints `  FAIL <name> — <detail>`, and many check
 level states no law (E14)"*). `scripts/levels-controls.sh`'s first matcher cut every line at the FIRST ` — ` and called four correct reds
 NOT AS PREDICTED. A matcher must take each predicted name as the WHOLE check — the line is the name, or the name followed by ` — ` — and
 count the lines; prove it against saved logs both ways (correct predictions match, wrong ones do not) before trusting its verdicts.
+
+### Found in use — Rich testing `ask-my-notes` (2026-10-05, `manifest-fd`)
+
+**AN APP THAT SAYS "NOT SIGNED IN" AFTER A SIGN-IN MAY BE A SIGNED-IN `500`.** An agent-written page can treat ANY failure of the app's
+`/api/me` as signed out, so a crash in that handler looks exactly like a CWL round trip that did not take. Tell them apart before touching
+the IdP: `curl -s -o /dev/null -w '%{http_code}' https://<slug>.sandbox.manifest.internal/api/me` signed out must read `401`; then read the
+app's own log, `docker logs -t mf-<slug>-sandbox-<…>-app` — a stack that passes the app's `signedIn` and throws beyond it means the
+person WAS signed in. Measured on `ask-my-notes`: `COURSE_CODE is required and was not injected`, the `proof-app` starter's demo variable
+kept in `/api/me` after the agent dropped its `env:` declaration. The roadmap's *Tracked defects found in use*.
+
+**THE FACULTY FRONT-END REFUSES ITS OWN PLANS AND SAYS AN ADMINISTRATOR IS TO BLAME.** *"Writing plans is waiting on a Manifest
+administrator"* is the front-end's `MODEL_NOT_AVAILABLE`, raised by the front-end ITSELF when the agent session does not offer its ONE plan
+model (`MANIFEST_APP_PLAN_MODEL`, default `default-chat`) — which a `high` or `very-high` project's never does. The platform's log shows
+nothing; the front-end's shows `"code":"MODEL_NOT_AVAILABLE","status":null,"platformRequestId":null`. And the front-end reads only its
+PROCESS environment: a line in `.env` reaches it only through RUNBOOK's start line (*The building agent's models*) — check with `ps eww`.

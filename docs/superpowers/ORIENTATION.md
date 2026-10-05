@@ -158,6 +158,12 @@ keeps the number as that sitting left it, dated.
   for exactly that reason). **Its offline-failure branch has never run** — it prints that the refresh needs the
   network and exits 1. Refreshing it from the CONSOLE is a plan of its own, placed after the GitHub plan (§8
   *Decided*).
+- **Two defects for the faculty front-end, found 2026-10-05 in Rich's own testing (`ask-my-notes`) — to RELAY to its next live
+  session** (none was running): *Ask for a change* is refused for every `high` or `very-high` app, because the front-end plans on
+  `default-chat` alone; and a change asked for a fault never sees the app's output. The roadmap's *Tracked defects found in use* has both,
+  measured, with the fix for each, and two the platform owns (§8 *Open*). **Stop-gap in force since 2026-10-05:**
+  `MANIFEST_APP_PLAN_MODEL=default-chat-large` in `.env`, passed to the front-end at its start (RUNBOOK, *The building agent's models*) —
+  **a front-end started without it plans on `default-chat` again.**
 - **The UBC external track — DEFERRED by Rich, 2026-09-30**: *"We can defer this. I have to get all of this working first
   locally. And then show demos. I've already been given approval to work about it. The people who need to know about it at UBC know
   about it. This isn't a blocked in any way to our work."* **Do not raise it as urgent.** [`docs/external-track.md`](../external-track.md)
@@ -2038,6 +2044,12 @@ reasoning is recorded.**
 
 ### Open
 
+- **WHERE THE TWO PLATFORM FIXES FROM `ask-my-notes` GO — RAISED 2026-10-05 (`manifest-fd`).** The roadmap's *Tracked defects found in
+  use*: the `proof-app` starter reads `COURSE_CODE` at module load, so a dropped `env:` declaration fails an app's first boot rather than
+  every signed-in `/api/me`; and two sentences in the knowledge pack (a variable read is injected or declared; `/api/me`'s `401` is signed
+  out and anything else is an error to show). Small, but `blueprints/` owes the Docker tier and the proof app's demos. *Recommended:* out of
+  plan, before FE-46/47/5's sitting 1 — every app built until then can meet the first — rather than folded into a plan that never touches
+  `blueprints/`.
 - **FE-24'S OPEN QUESTIONS, for the external track and the Privacy Office** (carried from Spec action 6's draft — APPLIED
   2026-09-27, `25e7445`, so the first three are now §19's rows and `docs/external-track.md`'s items 12–14): whether D21's
   rehearsal keeps a purpose once staging signs people in against UBC's staging IdP every day; **whether a privacy assessment

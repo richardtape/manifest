@@ -354,6 +354,25 @@ D17 already allows it, so the setting changes nothing there. Nothing else is acc
 than guess. **The app's own `ai.models` is validated by D17 whatever this says**, so a `very-high` app's own AI stays on-premise either way.
 It is a platform setting (§26): put the line in `.env` and restart the control plane.
 
+**The faculty front-end plans on ONE model, and must be started with it** (2026-10-05, Rich's testing of `ask-my-notes`). Its server on
+7105 writes every plan — the first and every *Ask for a change* — on `MANIFEST_APP_PLAN_MODEL`, and only if the agent session offers it;
+its own default is `default-chat`, which a `high` or `very-high` project's session never offers, so without the setting every change to such
+an app is refused *"Writing plans is waiting on a Manifest administrator"*. `.env` holds `MANIFEST_APP_PLAN_MODEL=default-chat-large`
+(`.env.example`'s section 2g), but **the front-end reads only its process environment** — no `.env` of its own — so its start passes that
+ONE line, never the whole file, which holds the master secret and the gateway key the front-end must not hold:
+
+```bash
+cd ~/Developer/manifest-app
+MANIFEST_APP_PLAN_MODEL="$(sed -n 's/^MANIFEST_APP_PLAN_MODEL=//p' ~/Developer/manifest/.env)" \
+  nohup pnpm dev > "<your scratchpad>/manifest-app-edge.log" 2>&1 &
+# the start line reads: manifest-app (edge) on http://127.0.0.1:7105, asking http://127.0.0.1:7100, who at https://app.manifest.internal
+ps eww -p "$(lsof -nP -iTCP:7105 -sTCP:LISTEN -t)" | tr ' ' '\n' | grep '^MANIFEST_APP_PLAN_MODEL='   # proves it arrived
+```
+
+Stop the old one first by its whole process tree — `tsx watch` outlives a killed child and takes 7105 back (the front-end's ORIENTATION,
+*Our own server is left running*). The setting is a stop-gap: the fix — the plan model chosen from `session.models` — is the front-end's
+(the roadmap's *Tracked defects found in use*).
+
 **A session never holds more than its project now allows** (FE-36; since the launch path plan's Task 7, Spec action 1, it is
 NARROWED IN PLACE). Every valid `manifest.yaml` the platform records — a commit through the API, a push, a validation — and every
 PRODUCTION deploy, the rehearsal's included (the release production serves floors the classification; the review's I2), is followed
