@@ -51,12 +51,12 @@ vulnerability database in the console, and FE-45 (Rich, 2026-10-03, 15:28; B and
   `docker logs manifest-litellm` per call, and `make doctor` warns 14 days ahead. **Its `.env` line is live** since the gateway plan's Task 0 scrubbed
   it at boot (`90bca1e`), with `UBC_AI_GATEWAY_KEY_EXPIRES=2027-01-01` beside it; sitting 1's PROBE key — its file removed — is Rich's to
   delete at the gateway;
-- **any real repository in `Manifest-local-dev` that no project owns** — THREE on 2026-10-03, `f6-watch`, `keep-walk-1002` and
-  `f6b-measure-1` (the faculty front-end's F6 sitting 1, its F6 walk and its F6b measurements; their rows truncated by the launch path
-  plan's sittings 8 and 12 and the faculty-ready plan's sitting 2, at Rich's word) — and a FOURTH, `f5b-measure-1` (the front-end's
-  F5b sitting 1; unowned since the gateway plan's sitting 2's `pnpm test` truncated its rows, 2026-10-03 ~22:05 — its 9 containers and 3
-  networks still run) (`bash scripts/github-real-repos.sh`);
-  removing one is his;
+- **any real repository in `Manifest-local-dev` that no project owns** — since Rich's `make reset` of 2026-10-05 ~12:30 PDT (a demo
+  bring-up, at his word) NO earlier project has a row, so every repository made before it is unowned: at least the EIGHT whose driver-2
+  mirrors `scripts/dead-app-resources.sh` names — `class-check-ins`, `f5-reading`, `f5b-measure-1`, `f6-watch`, `f6b-measure-1`,
+  `keep-walk-1002`, `lp-real-a`, `my-answers` (`f5b-measure-1`'s containers and networks went with the reset). The 16 orphaned mirrors
+  in `.manifest/repos` (eight of the fake's too) are left as they are; a new project with one of those slugs is refused
+  `SOURCE_REPOSITORY_EXISTS` (`bash scripts/github-real-repos.sh` lists GitHub's side); removing one is his;
 - **the UBC external track — DEFERRED by Rich, 2026-09-30** (*"I have to get all of this working first locally. And then show
   demos"*): not a blocker; do not raise it as urgent;
 - the rest of ORIENTATION §8 *Open*.
