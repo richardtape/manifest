@@ -279,6 +279,16 @@ describe('the Manifest team’s step on screen (the FE-46/47/5 plan’s Task 8a)
         }),
       ),
     ).toBe('With the Manifest team since 1 October 2026')
+    // A CHANGE to the live registration with the team (the FE-46/47/5 plan's Task 7).
+    expect(
+      holderLine(
+        registration({
+          state: 'sent',
+          sentFrom: 'active',
+          sentAt: '2026-10-01T16:45:00.000Z',
+        }),
+      ),
+    ).toBe('A change is with the Manifest team since 1 October 2026')
     expect(
       holderLine(
         registration({ state: 'submitted', submittedAt: '2026-10-02T19:00:00.000Z' }),
@@ -397,6 +407,7 @@ describe('the administrators’ queue', () => {
     ).toBe(`/releases/${fixtures.RELEASE_ID}/approval`)
     for (const kind of [
       'iam-registration-to-submit',
+      'iam-change-to-file',
       'privacy-assessment-to-submit',
       'iam-registration',
       'iam-change-request',
@@ -428,6 +439,11 @@ describe('the administrators’ queue', () => {
         queueItem({ kind: 'iam-registration-to-submit', environment: 'staging' }),
       ),
     ).toBe('Staging registration to submit to UBC IAM')
+    expect(
+      queueKindWords(
+        queueItem({ kind: 'iam-change-to-file', environment: 'production' }),
+      ),
+    ).toBe('Production change to file with UBC IAM')
     expect(queueKindWords(queueItem({ kind: 'privacy-assessment-to-submit' }))).toBe(
       'Privacy assessment to submit to the Privacy Office',
     )

@@ -316,6 +316,22 @@ export async function deployRelease(
   const resolved = (release.resolvedConfig as ResolvedConfigSet)[environment.kind]
 
   /**
+   * A CWL RELEASE THAT ASKS FOR NO ATTRIBUTE, REFUSED BEFORE ANYTHING (FE-55; the FE-46/47/5 plan's Task 7):
+   * its SP would be registered with no attribute list, which releases every attribute UBC holds — §9's
+   * fail-open case — and `registerServiceProvider` refuses the row, after the services and the secrets, as
+   * an error no client could read (`500`). Validation refuses such a manifest now; a release made before it
+   * did is refused here, typed. The rehearsal deploys through this function and inherits it.
+   */
+  const frozenAuth = resolved.auth as ResolvedConfig['auth'] | undefined
+  if (frozenAuth?.provider === 'cwl' && frozenAuth.attributes.length === 0)
+    throw new ReleaseError(
+      'RELEASE_CWL_NO_ATTRIBUTES',
+      'this release signs people in with CWL and asks for no attribute (auth.attributes is empty), so its ' +
+        'registration would release every attribute UBC holds — nothing was started. List the attributes ' +
+        'the app needs in auth.attributes, validate it, then build, release and deploy again.',
+    )
+
+  /**
    * THE APP'S DECLARED SECRETS, READ AND REFUSED **BEFORE ANYTHING** (the authoring API plan's
    * Task 8, Decision 13) — for the digest check's reason above: an instance row, a service, a
    * Service Provider and a network are all side effects, and a refusal after any of them has

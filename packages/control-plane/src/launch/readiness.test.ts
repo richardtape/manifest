@@ -301,7 +301,11 @@ describe('LaunchReadiness (§13, P5a Task 15; the two external records, P6a Task
       expect(iam.state).toBe('unmet')
       expect(iam.why).toContain('sn')
       expect(iam.why).toContain('Registered: mail, ubcEduCwlPuid')
-      expect(iam.why).toContain('IAM-4471')
+      // HOW TO ASK FOR IT (the FE-46/47/5 plan's Task 7): from Manifest, through the Manifest team — which
+      // replaced "raise an IAM change request against IAM-4471"; the team files it with UBC.
+      expect(iam.why).toContain(
+        'ask for the change from Manifest: draft the registration again and send it to the Manifest team (sendIamRegistration)',
+      )
     })
   })
 
@@ -800,6 +804,104 @@ describe('who has it, and since when (Task 6)', () => {
 
       await recordIamRegistration(tx, bus, { ...IAM, projectId, state: 'active', actor })
       expect((await item(tx, projectId, 'iam-registration')).state).toBe('met')
+    })
+  })
+
+  /**
+   * A CHANGE TO THE LIVE REGISTRATION (Task 7, FE-47; Review Focus 4): while the Manifest team holds it, and
+   * once it is filed with UBC, UBC's registration still stands — a release that asks for nothing new stays
+   * `met`, and the item says where the change is. A release that asks for the change waits since the send.
+   */
+  it('a change with the Manifest team: a release asking nothing new stays met and says where the change is; one asking for it waits since the send', async () => {
+    await withProject(async (tx, { projectId, ownerId }) => {
+      await tx
+        .update(projects)
+        .set({ launchedAt: new Date() })
+        .where(eq(projects.id, projectId))
+      await serving(
+        tx,
+        projectId,
+        ownerId,
+        scan(1, false),
+        ['ubcEduCwlPuid', 'mail'],
+        PRODUCTION,
+      )
+      await recordIam(tx, projectId, ownerId, 'active', 'IAM-4471')
+      // THE POSITIVE CONTROL: before the change is asked for, met.
+      expect((await item(tx, projectId, 'iam-registration')).state).toBe('met')
+      const asked = ['ubcEduCwlPuid', 'mail', 'sn']
+      await tx
+        .update(iamRegistrations)
+        .set({
+          state: 'sent',
+          sentFrom: 'active',
+          sentAt: FIRST,
+          sentBy: ownerId,
+          requestedAttributes: asked,
+        })
+        .where(eq(iamRegistrations.projectId, projectId))
+      const withTeam = await item(tx, projectId, 'iam-registration')
+      expect(withTeam.state).toBe('met')
+      expect(withTeam.why).toContain(
+        'A change is with the Manifest team since September 22, 2026 (asking for mail, sn, ubcEduCwlPuid);',
+      )
+
+      // FILED BY THE TEAM: still met, and the change request is on file with UBC.
+      await tx
+        .update(iamRegistrations)
+        .set({
+          state: 'change_requested',
+          changeRequestedFrom: 'active',
+          sentFrom: null,
+          submittedAt: SECOND,
+        })
+        .where(eq(iamRegistrations.projectId, projectId))
+      const filed = await item(tx, projectId, 'iam-registration')
+      expect(filed.state).toBe('met')
+      expect(filed.why).toContain(
+        "A change request is on file ('change_requested' (ticket IAM-4471), asking for mail, sn, ubcEduCwlPuid);",
+      )
+      expect(filed.why).not.toContain('Manifest team since')
+    })
+  })
+
+  it('a release asking for what the change asks: unmet, waiting since the send, naming the change with the team', async () => {
+    await withProject(async (tx, { projectId, ownerId }) => {
+      await tx
+        .update(projects)
+        .set({ launchedAt: new Date() })
+        .where(eq(projects.id, projectId))
+      await serving(
+        tx,
+        projectId,
+        ownerId,
+        scan(1, false),
+        ['ubcEduCwlPuid', 'mail', 'sn'],
+        PRODUCTION,
+      )
+      await recordIam(tx, projectId, ownerId, 'active', 'IAM-4471')
+      const uncovered = await item(tx, projectId, 'iam-registration')
+      // NOTHING ON FILE: it says how to ask — through the Manifest team — and waits on nobody.
+      expect(uncovered.state).toBe('unmet')
+      expect(uncovered.since).toBeNull()
+      expect(uncovered.why).toContain(
+        'ask for the change from Manifest: draft the registration again and send it to the Manifest team (sendIamRegistration), or remove the attribute(s) from auth.attributes and build again.',
+      )
+      await tx
+        .update(iamRegistrations)
+        .set({
+          state: 'sent',
+          sentFrom: 'active',
+          sentAt: FIRST,
+          sentBy: ownerId,
+          requestedAttributes: ['ubcEduCwlPuid', 'mail', 'sn'],
+        })
+        .where(eq(iamRegistrations.projectId, projectId))
+      const waiting = await item(tx, projectId, 'iam-registration')
+      expect(waiting).toMatchObject({ state: 'unmet', since: FIRST.toISOString() })
+      expect(waiting.why).toContain(
+        'a change is with the Manifest team since September 22, 2026, asking for mail, sn, ubcEduCwlPuid;',
+      )
     })
   })
 })

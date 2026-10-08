@@ -833,7 +833,7 @@
             }
           },
           "default": {
-            "description": "An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: ADMIN_REASON_REQUIRED, AI_BACKEND_UNAVAILABLE, CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, PROJECT_ARCHIVED, RATE_LIMITED, RELEASE_AI_BUDGET_MISSING, RELEASE_AI_DISABLED, RELEASE_DIGEST_MISSING, RELEASE_DIGEST_NOT_APPROVED, RELEASE_MODEL_CLASSIFICATION_TOO_LOW, RELEASE_MODEL_NOT_IN_CATALOGUE, RELEASE_MODEL_UNCLASSIFIED, RELEASE_NOT_FOUND, RELEASE_NOT_STAGED, RELEASE_PRODUCTION_GATE_UNAVAILABLE, RELEASE_REESCALATED, RELEASE_SECRET_NOT_SET, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, STEP_UP_REQUIRED, TOKEN_ACTION_PENDING, TOKEN_ACTION_REJECTED, UNAUTHENTICATED.",
+            "description": "An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: ADMIN_REASON_REQUIRED, AI_BACKEND_UNAVAILABLE, CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, PROJECT_ARCHIVED, RATE_LIMITED, RELEASE_AI_BUDGET_MISSING, RELEASE_AI_DISABLED, RELEASE_CWL_NO_ATTRIBUTES, RELEASE_DIGEST_MISSING, RELEASE_DIGEST_NOT_APPROVED, RELEASE_MODEL_CLASSIFICATION_TOO_LOW, RELEASE_MODEL_NOT_IN_CATALOGUE, RELEASE_MODEL_UNCLASSIFIED, RELEASE_NOT_FOUND, RELEASE_NOT_STAGED, RELEASE_PRODUCTION_GATE_UNAVAILABLE, RELEASE_REESCALATED, RELEASE_SECRET_NOT_SET, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, STEP_UP_REQUIRED, TOKEN_ACTION_PENDING, TOKEN_ACTION_REJECTED, UNAUTHENTICATED.",
             "content": {
               "application/json": {
                 "schema": {
@@ -856,6 +856,7 @@
           "RATE_LIMITED",
           "RELEASE_AI_BUDGET_MISSING",
           "RELEASE_AI_DISABLED",
+          "RELEASE_CWL_NO_ATTRIBUTES",
           "RELEASE_DIGEST_MISSING",
           "RELEASE_DIGEST_NOT_APPROVED",
           "RELEASE_MODEL_CLASSIFICATION_TOO_LOW",
@@ -4944,7 +4945,7 @@
           "launch"
         ],
         "summary": "Draft a registration request for UBC IAM",
-        "description": "Manifest generates what the project’s owner sends UBC IAM to register the staging or production environment of an app that signs people in with CWL, and keeps it on the record as `package`: the entity ID and the sign-in and sign-out addresses for that environment; the certificate the app signs with there (never its private key, which stays with Manifest); every attribute the app asks for, with its purpose and the lines of the app’s code that read it; the contacts; the privacy assessment’s PIA number once it is approved; and the SAML metadata, built from the same values. An attribute nothing reads is flagged, so it can be removed before it is asked for. Production’s is drawn from the release serving staging — or, while nothing serves staging, from the newest valid manifest, and the package says so — and staging’s from the newest valid manifest. Drafting again replaces the draft until it is sent: once the registration is with the Manifest team (`sent`), `submitted`, `active`, or holds a change request the team filed with UBC IAM, what was sent is kept and drafting is `409 LAUNCH_RECORD_SUBMITTED` — until the team hands it back, UBC IAM asks its owner for changes, or the registration lapses. An app that signs nobody in with CWL, or asks for no attribute, is `409 LAUNCH_NOT_CWL`. The project’s owner, a collaborator, a platform administrator, or an agent on a token holding `launch:draft`, may draft — a draft sends nothing and decides nothing. Sending it to the Manifest team is `sendIamRegistration`.",
+        "description": "Manifest generates what the project’s owner sends UBC IAM to register the staging or production environment of an app that signs people in with CWL, and keeps it on the record as `package`: the entity ID and the sign-in and sign-out addresses for that environment; the certificate the app signs with there (never its private key, which stays with Manifest); every attribute the app asks for, with its purpose and the lines of the app’s code that read it; the contacts; the privacy assessment’s PIA number once it is approved; and the SAML metadata, built from the same values. An attribute nothing reads is flagged, so it can be removed before it is asked for. Production’s is drawn from the release serving staging — or, while nothing serves staging, from the newest valid manifest, and the package says so — and staging’s from the newest valid manifest. Drafting again replaces the draft until it is sent: once the registration is with the Manifest team (`sent`), `submitted`, or holds a change request the team filed with UBC IAM, what was sent is kept and drafting is `409 LAUNCH_RECORD_SUBMITTED` — until the team hands it back, UBC IAM answers, or the registration lapses. **A registration UBC registered (`active`) is drafted again as a change**, from the newest valid manifest, whichever environment — the release serving staging cannot ask for what UBC has not registered — and the package says so; the record keeps what UBC registered. An app that signs nobody in with CWL, or asks for no attribute, is `409 LAUNCH_NOT_CWL`. The project’s owner, a collaborator, a platform administrator, or an agent on a token holding `launch:draft`, may draft — a draft sends nothing and decides nothing. Sending it to the Manifest team is `sendIamRegistration`.",
         "parameters": [
           {
             "name": "environment",
@@ -5127,7 +5128,7 @@
           "launch"
         ],
         "summary": "Hand a registration back to its owner, unsubmitted",
-        "description": "A platform administrator, in their own session, hands the staging or production registration the Manifest team holds back to its owner, unsubmitted: it returns to the state it was sent from (`sentFrom`) — a draft, UBC IAM’s questions to its owner, or a lapsed registration — for its owner to change and send again. Why it came back travels outside the record, as UBC’s questions do. Only a registration with the Manifest team is handed back: any other is `409 LAUNCH_TRANSITION_INVALID`. A delegated token is refused `403 TOKEN_CREDENTIAL_REFUSED`; a member who is not an administrator `403 FORBIDDEN`; anyone else is answered `404 NOT_FOUND`.",
+        "description": "A platform administrator, in their own session, hands the staging or production registration the Manifest team holds back to its owner, unsubmitted: it returns to the state it was sent from (`sentFrom`) — a draft, UBC IAM’s questions to its owner, a lapsed registration, or the live registration a change was asked of (`active`, with nothing requested any more) — for its owner to change and send again. Why it came back travels outside the record, as UBC’s questions do. Only a registration with the Manifest team is handed back: any other is `409 LAUNCH_TRANSITION_INVALID`. A delegated token is refused `403 TOKEN_CREDENTIAL_REFUSED`; a member who is not an administrator `403 FORBIDDEN`; anyone else is answered `404 NOT_FOUND`.",
         "security": [
           {
             "session": []
@@ -5303,7 +5304,7 @@
           "launch"
         ],
         "summary": "Send a registration request to the Manifest team",
-        "description": "The project’s owner, a collaborator or a platform administrator, in their own session, sends the staging or production registration to the Manifest team, who submit it to UBC IAM (`submitIamRegistration`) or hand it back (`returnIamRegistration`). It is sent now, from Manifest: the record moves to `sent`, with `sentAt`, `sentBy` and `sentFrom`, and the Manifest team is emailed — the app, the record and who sent it, never what the package says. What is sent is Manifest’s draft, so a record with none is `409 LAUNCH_DRAFT_REQUIRED`. UBC works in an order: neither registration is sent until the privacy assessment is approved with its PIA number (`409 LAUNCH_PIA_NOT_APPROVED`), and production’s only once staging’s is active as well (`409 LAUNCH_STAGING_NOT_REGISTERED`). What is sent must be the draft the person read — name it with `draftGeneratedAt`, or a draft made since is `409 LAUNCH_DRAFT_CHANGED` — and it must carry the assessment’s PIA number: a draft made before the assessment was approved is `409 LAUNCH_DRAFT_STALE`, to be drafted again. It is sent from a draft, once UBC IAM has asked its owner for changes, or once it lapsed — a second send, or one while UBC holds it, is `409 LAUNCH_TRANSITION_INVALID`. A delegated token is refused `403 TOKEN_CREDENTIAL_REFUSED`; anyone else is answered `404 NOT_FOUND`.",
+        "description": "The project’s owner, a collaborator or a platform administrator, in their own session, sends the staging or production registration to the Manifest team, who submit it to UBC IAM (`submitIamRegistration`) or hand it back (`returnIamRegistration`). It is sent now, from Manifest: the record moves to `sent`, with `sentAt`, `sentBy` and `sentFrom`, and the Manifest team is emailed — the app, the record and who sent it, never what the package says. What is sent is Manifest’s draft, so a record with none is `409 LAUNCH_DRAFT_REQUIRED`. UBC works in an order: neither registration is sent until the privacy assessment is approved with its PIA number (`409 LAUNCH_PIA_NOT_APPROVED`), and production’s only once staging’s is active as well (`409 LAUNCH_STAGING_NOT_REGISTERED`). What is sent must be the draft the person read — name it with `draftGeneratedAt`, or a draft made since is `409 LAUNCH_DRAFT_CHANGED` — and it must carry the assessment’s PIA number: a draft made before the assessment was approved is `409 LAUNCH_DRAFT_STALE`, to be drafted again. It is sent from a draft, once UBC IAM has asked its owner for changes, or once it lapsed — a second send, or one while UBC holds it, is `409 LAUNCH_TRANSITION_INVALID`. **Sent from a live registration (`active`), it is a change**: the Manifest team files it with UBC IAM as a change request, what the package asks for becomes `requestedAttributes`, and what UBC registered stands until UBC answers — a change that asks for exactly what UBC registered (the same attributes, at the same ACS and SLO) is `409 LAUNCH_CHANGE_EMPTY`. A delegated token is refused `403 TOKEN_CREDENTIAL_REFUSED`; anyone else is answered `404 NOT_FOUND`.",
         "security": [
           {
             "session": []
@@ -5467,7 +5468,7 @@
             }
           },
           "default": {
-            "description": "An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: ADMIN_REASON_REQUIRED, CSRF_ORIGIN_REFUSED, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, LAUNCH_DRAFT_CHANGED, LAUNCH_DRAFT_REQUIRED, LAUNCH_DRAFT_STALE, LAUNCH_PIA_NOT_APPROVED, LAUNCH_STAGING_NOT_REGISTERED, LAUNCH_TRANSITION_INVALID, NOT_FOUND, PROJECT_ARCHIVED, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED.",
+            "description": "An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: ADMIN_REASON_REQUIRED, CSRF_ORIGIN_REFUSED, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, LAUNCH_CHANGE_EMPTY, LAUNCH_DRAFT_CHANGED, LAUNCH_DRAFT_REQUIRED, LAUNCH_DRAFT_STALE, LAUNCH_PIA_NOT_APPROVED, LAUNCH_STAGING_NOT_REGISTERED, LAUNCH_TRANSITION_INVALID, NOT_FOUND, PROJECT_ARCHIVED, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED.",
             "content": {
               "application/json": {
                 "schema": {
@@ -5483,6 +5484,7 @@
           "IDEMPOTENCY_KEY_REQUIRED",
           "IDEMPOTENCY_KEY_REUSED",
           "INTERNAL",
+          "LAUNCH_CHANGE_EMPTY",
           "LAUNCH_DRAFT_CHANGED",
           "LAUNCH_DRAFT_REQUIRED",
           "LAUNCH_DRAFT_STALE",
@@ -5507,7 +5509,7 @@
           "launch"
         ],
         "summary": "Record that the Manifest team submitted a registration to UBC IAM",
-        "description": "A platform administrator, in their own session, records that the Manifest team submitted the staging or production registration its owner sent them to UBC IAM — on `sentAt` (today in Vancouver when absent; not after today, and not before its owner sent it to the team, or `400 LAUNCH_SENT_AT_INVALID`), with UBC IAM’s `reference`. The record moves from `sent` to `submitted`, and the launch checklist says how long it has waited for UBC from that day. Only a registration with the Manifest team is submitted: any other is `409 LAUNCH_TRANSITION_INVALID`. It is never refused for UBC’s order, which was held when its owner sent it. UBC’s answer is recorded later (`recordIamRegistration`). A delegated token is refused `403 TOKEN_CREDENTIAL_REFUSED`; a member who is not an administrator `403 FORBIDDEN`; anyone else is answered `404 NOT_FOUND`.",
+        "description": "A platform administrator, in their own session, records that the Manifest team submitted the staging or production registration its owner sent them to UBC IAM — on `sentAt` (today in Vancouver when absent; not after today, and not before its owner sent it to the team, or `400 LAUNCH_SENT_AT_INVALID`), with UBC IAM’s `reference`. The record moves from `sent` to `submitted`, and the launch checklist says how long it has waited for UBC from that day. **A change to a live registration** (sent from `active`) is filed as a change request instead: it moves to `change_requested`, `changeRequestedFrom: active`, what it asks for kept as `requestedAttributes` and what UBC registered still standing. Only a registration with the Manifest team is submitted: any other is `409 LAUNCH_TRANSITION_INVALID`. It is never refused for UBC’s order, which was held when its owner sent it. UBC’s answer is recorded later (`recordIamRegistration`). A delegated token is refused `403 TOKEN_CREDENTIAL_REFUSED`; a member who is not an administrator `403 FORBIDDEN`; anyone else is answered `404 NOT_FOUND`.",
         "security": [
           {
             "session": []
@@ -8884,7 +8886,7 @@
           "administration"
         ],
         "summary": "Everything waiting on an administrator",
-        "description": "Everything waiting on a platform administrator, oldest first, each item saying since when it has waited: a release someone asked them to sign off (`requestApproval`), with the asker’s note; a registration or privacy assessment its owner sent to the Manifest team, which the team submits to UBC and records that it has, or hands back to its owner, waiting since the send and naming the sender; the staging and production registrations sent to UBC IAM, and the change requests filed with it, whose answers an administrator records; and the privacy assessments sent to the Privacy Office. A registration UBC IAM sent back to its owner with questions is the owner’s to answer, and is not here; nor is anything of an archived project, which cannot be acted on until it is restored. `oldestSince` is the age of the oldest item. For platform administrators: anyone else is refused `403 FORBIDDEN`, and a delegated token `403 TOKEN_CREDENTIAL_REFUSED` however it was minted.",
+        "description": "Everything waiting on a platform administrator, oldest first, each item saying since when it has waited: a release someone asked them to sign off (`requestApproval`), with the asker’s note; a registration or privacy assessment its owner sent to the Manifest team, which the team submits to UBC and records that it has, or hands back to its owner, waiting since the send and naming the sender — and a change to a live registration, which the team files with UBC IAM as a change request; the staging and production registrations sent to UBC IAM, and the change requests filed with it, whose answers an administrator records; and the privacy assessments sent to the Privacy Office. A registration UBC IAM sent back to its owner with questions is the owner’s to answer, and is not here; nor is anything of an archived project, which cannot be acted on until it is restored. `oldestSince` is the age of the oldest item. For platform administrators: anyone else is refused `403 FORBIDDEN`, and a delegated token `403 TOKEN_CREDENTIAL_REFUSED` however it was minted.",
         "security": [
           {
             "session": []
@@ -12320,6 +12322,7 @@
           "INTAKE_MODEL_UNAVAILABLE",
           "INTAKE_SESSION_ALREADY_STARTED",
           "INTERNAL",
+          "LAUNCH_CHANGE_EMPTY",
           "LAUNCH_DRAFT_CHANGED",
           "LAUNCH_DRAFT_REQUIRED",
           "LAUNCH_DRAFT_STALE",
@@ -12352,6 +12355,7 @@
           "RELEASE_BLUEPRINT_NOT_FOUND",
           "RELEASE_BUILD_NOT_DEPLOYABLE",
           "RELEASE_BUILD_NOT_FOUND",
+          "RELEASE_CWL_NO_ATTRIBUTES",
           "RELEASE_DIGEST_MISSING",
           "RELEASE_DIGEST_NOT_APPROVED",
           "RELEASE_ENVIRONMENT_NOT_FOUND",
@@ -12466,6 +12470,7 @@
           "INTAKE_MODEL_UNAVAILABLE": "The platform’s intake model is not a catalogue model approved for medium data, so intake is paused rather than sent to another model.",
           "INTAKE_SESSION_ALREADY_STARTED": "This request — its Idempotency-Key — already started an intake session, and its key was answered then. A key is shown once and never again.",
           "INTERNAL": "The control plane failed; its operator log has the reason. Nothing the client sent explains it.",
+          "LAUNCH_CHANGE_EMPTY": "A change to a live registration was sent that asks UBC IAM for exactly what it registered — the same attributes, at the same ACS and SLO — so there is nothing for the Manifest team to file. Nothing was sent.",
           "LAUNCH_DRAFT_CHANGED": "The draft was made again after the one the request names (`draftGeneratedAt`), so what Manifest holds is not what the person read. Nothing was sent.",
           "LAUNCH_DRAFT_REQUIRED": "There is no draft of this registration or privacy assessment to send: Manifest drafts it, and what a person sends is that draft.",
           "LAUNCH_DRAFT_STALE": "The registration’s draft does not carry the privacy assessment’s PIA number, which UBC IAM asks for: it was drafted before the assessment was approved with it, or the number has changed since. Nothing was recorded.",
@@ -12473,7 +12478,7 @@
           "LAUNCH_NOT_CWL": "The app signs nobody in with CWL — or asks for no attribute, which no registration may — so there is nothing to register with UBC IAM.",
           "LAUNCH_PIA_NOT_APPROVED": "Neither registration is sent until the privacy assessment is approved and carries its reference, the PIA number UBC IAM asks for. UBC’s order is the assessment first.",
           "LAUNCH_RECORD_INVALID": "An external record’s fields cannot be accepted — for example an empty registered-attribute list, against which every release’s attributes would pass the check that they are registered; the message names the field.",
-          "LAUNCH_RECORD_SUBMITTED": "This record has been sent, and what was sent is kept as it was sent. A record with the Manifest team (`sent`) is drafted again only if the team hands it back; a registration that is with UBC IAM or registered by it (`submitted`, `active`, or a change request the team filed) only once UBC asks its owner for changes or the registration lapses; a privacy assessment that is with the Privacy Office or approved by it (`submitted` or `approved`), only once the Office sends it back.",
+          "LAUNCH_RECORD_SUBMITTED": "This record has been sent, and what was sent is kept as it was sent. A record with the Manifest team (`sent`) is drafted again only if the team hands it back; a registration that is with UBC IAM (`submitted`, or a change request the team filed) only once UBC answers; a privacy assessment that is with the Privacy Office or approved by it (`submitted` or `approved`), only once the Office sends it back. A registration UBC has registered (`active`) is drafted again as a change.",
           "LAUNCH_SENT_AT_INVALID": "The day the Manifest team says it sent the record to UBC cannot be true: it is after today in Vancouver, or before its owner sent it to the team.",
           "LAUNCH_STAGING_NOT_REGISTERED": "The production registration is sent only once the staging registration is active — registered by UBC IAM, and the app tested at staging. UBC’s order is staging before production.",
           "LAUNCH_TRANSITION_INVALID": "An IAM registration or a privacy assessment was asked to move to a state it cannot reach from the one it is in — sent to the Manifest team twice, recorded into or out of `sent` by the record route, or submitted or handed back by the team when it was not sent to them; the message names what the record CAN do.",
@@ -12498,6 +12503,7 @@
           "RELEASE_BLUEPRINT_NOT_FOUND": "The project’s blueprint is no longer in the registry.",
           "RELEASE_BUILD_NOT_DEPLOYABLE": "The build did not succeed, so nothing can be released from it.",
           "RELEASE_BUILD_NOT_FOUND": "No build with this id.",
+          "RELEASE_CWL_NO_ATTRIBUTES": "The release signs people in with CWL and asks for no attribute, which would register it with no attribute list — releasing every attribute UBC holds — so nothing was started. Validation refuses such a manifest now; this release was made before it did.",
           "RELEASE_DIGEST_MISSING": "The release’s build recorded no digest.",
           "RELEASE_DIGEST_NOT_APPROVED": "This production deploy needs an administrator’s approval — a first launch, or a launched app’s change to a sensitive field — and none covers the digest it would run; or an administrator rejected this release, which is final. The message says which.",
           "RELEASE_ENVIRONMENT_NOT_FOUND": "No environment with this id.",
@@ -20165,6 +20171,7 @@
           "SPEC_ATTRIBUTE_NOT_WHITELISTED",
           "SPEC_BLUEPRINT_NOT_PINNED",
           "SPEC_BUILD_BLOCK_FORBIDDEN",
+          "SPEC_CWL_NO_ATTRIBUTES",
           "SPEC_ENV_NAME_RESERVED",
           "SPEC_FIELD_NOT_ENFORCED",
           "SPEC_INVALID_BLUEPRINT_REF",
@@ -20192,6 +20199,7 @@
           "SPEC_ATTRIBUTE_NOT_WHITELISTED": "A CWL attribute UBC does not release to applications.",
           "SPEC_BLUEPRINT_NOT_PINNED": "`blueprint` names a different blueprint from the one the project is pinned to; a commit cannot move a project.",
           "SPEC_BUILD_BLOCK_FORBIDDEN": "manifest.yaml supplies its own build definition (`runtime.build`); the Dockerfile is the blueprint’s.",
+          "SPEC_CWL_NO_ATTRIBUTES": "An app that signs people in with CWL asks for no attribute — an empty `auth.attributes` would register it with no attribute list, which releases every attribute UBC holds.",
           "SPEC_ENV_NAME_RESERVED": "An `env` entry declares a variable the platform sets for every app.",
           "SPEC_FIELD_NOT_ENFORCED": "A WARNING, not an error: a field Manifest validates and records with the release but does not enforce yet — today `ai.budget.per_user_monthly_usd`. The manifest is valid.",
           "SPEC_INVALID_BLUEPRINT_REF": "`blueprint` is not a name pinned to a major version.",
@@ -20345,7 +20353,7 @@
                   "minLength": 1
                 },
                 "default": [],
-                "description": "The CWL attributes the app receives about a signed-in person — `ubcEduCwlPuid`, `mail`, `givenName`, `sn`, `eduPersonAffiliation`. The identifier is `ubcEduCwlPuid`, never `uid`."
+                "description": "The CWL attributes the app receives about a signed-in person — `ubcEduCwlPuid`, `mail`, `givenName`, `sn`, `eduPersonAffiliation`. The identifier is `ubcEduCwlPuid`, never `uid`. At least one when `provider` is `cwl`."
               },
               "callback": {
                 "type": "string",
@@ -21768,11 +21776,12 @@
         "type": "object",
         "properties": {
           "kind": {
-            "description": "What waits, in this order among items of the same moment: `release-approval` — someone asked for the release serving staging to be approved (`requestApproval`); `iam-registration-to-submit` — a registration its owner sent to the Manifest team, which submits it to UBC IAM and records that it has (`submitIamRegistration`), or hands it back (`returnIamRegistration`); `privacy-assessment-to-submit` — the privacy assessment its owner sent to the Manifest team, which submits it to the Privacy Office (`submitPrivacyAssessment`), or hands it back (`returnPrivacyAssessment`); `iam-registration` — a registration sent to UBC IAM, whose answer an administrator records; `iam-change-request` — a change request filed with UBC IAM; `privacy-assessment` — an assessment sent to the Privacy Office, whose answer an administrator records. A client switches on this, never on `summary`.",
+            "description": "What waits, in this order among items of the same moment: `release-approval` — someone asked for the release serving staging to be approved (`requestApproval`); `iam-registration-to-submit` — a registration its owner sent to the Manifest team, which submits it to UBC IAM and records that it has (`submitIamRegistration`), or hands it back (`returnIamRegistration`); `iam-change-to-file` — a change to a live registration its owner sent to the Manifest team, which files it with UBC IAM as a change request (`submitIamRegistration`), or hands it back; `privacy-assessment-to-submit` — the privacy assessment its owner sent to the Manifest team, which submits it to the Privacy Office (`submitPrivacyAssessment`), or hands it back (`returnPrivacyAssessment`); `iam-registration` — a registration sent to UBC IAM, whose answer an administrator records; `iam-change-request` — a change request filed with UBC IAM; `privacy-assessment` — an assessment sent to the Privacy Office, whose answer an administrator records. A client switches on this, never on `summary`.",
             "type": "string",
             "enum": [
               "release-approval",
               "iam-registration-to-submit",
+              "iam-change-to-file",
               "privacy-assessment-to-submit",
               "iam-registration",
               "iam-change-request",
@@ -24077,6 +24086,11 @@
       "summary": "The control plane failed; its operator log has the reason. Nothing the client sent explains it.",
       "remedy": "Retry once; if it recurs, the platform’s operator has a line naming it — report the time and the operation."
     },
+    "LAUNCH_CHANGE_EMPTY": {
+      "status": 409,
+      "summary": "A change to a live registration was sent that asks UBC IAM for exactly what it registered — the same attributes, at the same ACS and SLO — so there is nothing for the Manifest team to file. Nothing was sent.",
+      "remedy": "Change `auth.attributes`, `auth.callback` or `auth.logout` in manifest.yaml, validate it, draft the registration again (`draftIamRegistration`), then send it."
+    },
     "LAUNCH_DRAFT_CHANGED": {
       "status": 409,
       "summary": "The draft was made again after the one the request names (`draftGeneratedAt`), so what Manifest holds is not what the person read. Nothing was sent.",
@@ -24114,8 +24128,8 @@
     },
     "LAUNCH_RECORD_SUBMITTED": {
       "status": 409,
-      "summary": "This record has been sent, and what was sent is kept as it was sent. A record with the Manifest team (`sent`) is drafted again only if the team hands it back; a registration that is with UBC IAM or registered by it (`submitted`, `active`, or a change request the team filed) only once UBC asks its owner for changes or the registration lapses; a privacy assessment that is with the Privacy Office or approved by it (`submitted` or `approved`), only once the Office sends it back.",
-      "remedy": "To change what was sent, ask the Manifest team to hand it back while they hold it; once UBC holds it, ask UBC IAM or the Privacy Office. Once a record shows UBC asked for changes (`change_requested` from `submitted`), that the registration lapsed (`expired`), or that the assessment came back (`draft`), draft it again."
+      "summary": "This record has been sent, and what was sent is kept as it was sent. A record with the Manifest team (`sent`) is drafted again only if the team hands it back; a registration that is with UBC IAM (`submitted`, or a change request the team filed) only once UBC answers; a privacy assessment that is with the Privacy Office or approved by it (`submitted` or `approved`), only once the Office sends it back. A registration UBC has registered (`active`) is drafted again as a change.",
+      "remedy": "To change what was sent, ask the Manifest team to hand it back while they hold it; once UBC holds it, ask UBC IAM or the Privacy Office. Once a record shows UBC asked for changes (`change_requested` from `submitted`), that the registration is registered (`active`) or lapsed (`expired`), or that the assessment came back (`draft`), draft it again."
     },
     "LAUNCH_SENT_AT_INVALID": {
       "status": 400,
@@ -24236,6 +24250,11 @@
       "status": 409,
       "summary": "No build with this id.",
       "remedy": "Check the build id; `listBuilds` lists the project’s builds."
+    },
+    "RELEASE_CWL_NO_ATTRIBUTES": {
+      "status": 409,
+      "summary": "The release signs people in with CWL and asks for no attribute, which would register it with no attribute list — releasing every attribute UBC holds — so nothing was started. Validation refuses such a manifest now; this release was made before it did.",
+      "remedy": "List the attributes the app needs in `auth.attributes` (or set `auth.provider: none`), validate it, build, release and deploy the new release."
     },
     "RELEASE_DIGEST_MISSING": {
       "status": 409,
@@ -24595,7 +24614,7 @@
     },
     "SPEC_ATTRIBUTE_NOT_REGISTERED": {
       "summary": "A launched app asks for a CWL attribute its recorded IAM registration does not release; refused when the production build runs.",
-      "remedy": "Remove the attribute from `auth.attributes`, or have UBC IAM approve the registration’s change and record it (`recordIamRegistration`), then build again."
+      "remedy": "Remove the attribute from `auth.attributes`, or ask for the change: draft the registration again and send it to the Manifest team (`draftIamRegistration`, `sendIamRegistration`), who file it with UBC IAM — this builds once UBC registers it and an administrator records it `active`."
     },
     "SPEC_ATTRIBUTE_NOT_WHITELISTED": {
       "summary": "A CWL attribute UBC does not release to applications.",
@@ -24608,6 +24627,10 @@
     "SPEC_BUILD_BLOCK_FORBIDDEN": {
       "summary": "manifest.yaml supplies its own build definition (`runtime.build`); the Dockerfile is the blueprint’s.",
       "remedy": "Remove `runtime.build`. Declare what the app needs — never how to build it."
+    },
+    "SPEC_CWL_NO_ATTRIBUTES": {
+      "summary": "An app that signs people in with CWL asks for no attribute — an empty `auth.attributes` would register it with no attribute list, which releases every attribute UBC holds.",
+      "remedy": "List the attributes the app needs in `auth.attributes` — at least `ubcEduCwlPuid`, the person’s identifier — or set `auth.provider: none` if it signs nobody in."
     },
     "SPEC_ENV_NAME_RESERVED": {
       "summary": "An `env` entry declares a variable the platform sets for every app.",

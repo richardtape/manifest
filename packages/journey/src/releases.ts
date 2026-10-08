@@ -1098,10 +1098,12 @@ async function buildC(): Promise<void> {
   const first = await build(owner, commit)
   console.log(`  ${first.error ?? '(no error)'}`.slice(0, 500))
   checks.ok(
-    'the build FAILS, naming sn and telling the owner to raise a change request',
+    'the build FAILS, naming sn and telling the owner to ask for the change from Manifest',
     first.status === 'failed' &&
       (first.error ?? '').includes(': sn.') &&
-      (first.error ?? '').includes('Raise an IAM change request'),
+      (first.error ?? '').includes(
+        'Ask for the change from Manifest: draft the registration again and send it to the Manifest team',
+      ),
     `${first.status}: ${first.error}`,
   )
 

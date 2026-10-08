@@ -625,26 +625,43 @@ function coverageGap(
   if (coverage.missing.length > 0)
     sentences.push(
       `${subject} asks for CWL attribute(s) UBC IAM did not register: ${coverage.missing.join(', ')}. Registered: ${[...row.registeredAttributes].sort().join(', ')}. A production release may request only what was registered, or students hit a broken login — ${
+        // WHERE THE CHANGE IS, OR HOW TO ASK FOR ONE (the FE-46/47/5 plan's Task 7, FE-47).
         row.requestedAttributes === null
-          ? `raise an IAM change request${row.externalTicketRef === null ? '' : ` against ${row.externalTicketRef}`} (an administrator records it here as 'change_requested', with requestedAttributes), or remove the attribute(s) from auth.attributes and build again.`
-          : `a change request is on file ('${row.state}'${ticket(row.externalTicketRef)}, asking for ${[...row.requestedAttributes].sort().join(', ')}); this release waits for UBC IAM to register it and an administrator to record it 'active'.`
+          ? `${ASK_FOR_A_CHANGE}, or remove the attribute(s) from auth.attributes and build again.`
+          : row.state === 'sent'
+            ? `a change is with the Manifest team${withTeamSince(row)}, asking for ${[...row.requestedAttributes].sort().join(', ')}; this release waits for UBC IAM to register it and an administrator to record it 'active'.`
+            : `a change request is on file ('${row.state}'${ticket(row.externalTicketRef)}, asking for ${[...row.requestedAttributes].sort().join(', ')}); this release waits for UBC IAM to register it and an administrator to record it 'active'.`
       }`,
     )
   if (coverage.acsDiffers)
     sentences.push(
-      `auth.callback moves the ACS to ${would.acsUrl}, but UBC IAM registered ${row.acsUrl} — sign-in responses would be posted where the app does not listen. Raise an IAM change request for the new ACS; it goes to production once an administrator records the registration 'active'.`,
+      `auth.callback moves the ACS to ${would.acsUrl}, but UBC IAM registered ${row.acsUrl} — sign-in responses would be posted where the app does not listen. ${capitalised(ASK_FOR_A_CHANGE)}; it goes to production once an administrator records the registration 'active'.`,
     )
   if (coverage.sloDiffers)
     sentences.push(
-      `auth.logout moves the SLO to ${would.sloUrl}, but UBC IAM registered ${row.sloUrl} — a sign-out would not reach the app. Raise an IAM change request for the new SLO.`,
+      `auth.logout moves the SLO to ${would.sloUrl}, but UBC IAM registered ${row.sloUrl} — a sign-out would not reach the app. ${capitalised(ASK_FOR_A_CHANGE)}.`,
     )
   return sentences.join(' ')
 }
 
-/** A change request on file, said once, for a registration that is otherwise covering. */
+/** How a change to a live registration is asked for: from Manifest, through the Manifest team (FE-47). */
+const ASK_FOR_A_CHANGE =
+  'ask for the change from Manifest: draft the registration again and send it to the Manifest team (sendIamRegistration)'
+
+/** *" since September 22, 2026"* — when the owner sent a change to the Manifest team. */
+const withTeamSince = (row: IamRegistrationRow) =>
+  row.sentAt === null ? '' : ` since ${vancouverDayInWords(row.sentAt)}`
+
+/**
+ * A change on file, said once, for a registration that is otherwise covering — WHERE IT IS (the FE-46/47/5
+ * plan's Task 7): with the Manifest team while `sent`, on file with UBC once the team filed it.
+ */
 function changeRequestOnFile(row: IamRegistrationRow): string {
   if (row.requestedAttributes === null) return ''
-  return ` A change request is on file ('${row.state}'${ticket(row.externalTicketRef)}, asking for ${[...row.requestedAttributes].sort().join(', ')}); until UBC registers it, releases are checked against what it registered.`
+  const asked = [...row.requestedAttributes].sort().join(', ')
+  return row.state === 'sent'
+    ? ` A change is with the Manifest team${withTeamSince(row)} (asking for ${asked}); until UBC registers it, releases are checked against what it registered.`
+    : ` A change request is on file ('${row.state}'${ticket(row.externalTicketRef)}, asking for ${asked}); until UBC registers it, releases are checked against what it registered.`
 }
 
 const ticket = (ref: string | null) => (ref === null ? '' : ` (ticket ${ref})`)

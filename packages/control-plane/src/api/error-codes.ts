@@ -486,6 +486,11 @@ export const ERROR_CODES = {
     'The environment names a project that does not exist.',
     'Check the environment id: its project has been deleted, and nothing can be deployed to it.',
   ),
+  // FE-55 (the FE-46/47/5 plan's Task 7): a release made before validation refused it — before anything starts.
+  RELEASE_CWL_NO_ATTRIBUTES: release(
+    'The release signs people in with CWL and asks for no attribute, which would register it with no attribute list — releasing every attribute UBC holds — so nothing was started. Validation refuses such a manifest now; this release was made before it did.',
+    'List the attributes the app needs in `auth.attributes` (or set `auth.provider: none`), validate it, build, release and deploy the new release.',
+  ),
   // The authoring API plan's Task 8: refused BEFORE anything starts, naming the names.
   RELEASE_SECRET_NOT_SET: release(
     'The release’s manifest.yaml declares a secret (`secret: true`) that has no value in this environment, so nothing was started. Set each name the message lists with `setAppSecret`, then deploy again.',
@@ -526,6 +531,15 @@ export const ERROR_CODES = {
     remedy:
       'Answer every gap of the draft you read, once each, by its id — “does not apply” is an answer — and send it again. If the draft was made again since, read it first: its gaps may have changed.',
   },
+  // The FE-46/47/5 plan's Task 7 (FE-47): a change to a live registration that asks UBC for nothing new.
+  LAUNCH_CHANGE_EMPTY: {
+    status: 409,
+    families: ['LaunchRecordError'],
+    summary:
+      'A change to a live registration was sent that asks UBC IAM for exactly what it registered — the same attributes, at the same ACS and SLO — so there is nothing for the Manifest team to file. Nothing was sent.',
+    remedy:
+      'Change `auth.attributes`, `auth.callback` or `auth.logout` in manifest.yaml, validate it, draft the registration again (`draftIamRegistration`), then send it.',
+  },
   LAUNCH_SENT_AT_INVALID: {
     status: 400,
     families: ['LaunchRecordError'],
@@ -555,9 +569,9 @@ export const ERROR_CODES = {
     status: 409,
     families: ['LaunchRecordError'],
     summary:
-      'This record has been sent, and what was sent is kept as it was sent. A record with the Manifest team (`sent`) is drafted again only if the team hands it back; a registration that is with UBC IAM or registered by it (`submitted`, `active`, or a change request the team filed) only once UBC asks its owner for changes or the registration lapses; a privacy assessment that is with the Privacy Office or approved by it (`submitted` or `approved`), only once the Office sends it back.',
+      'This record has been sent, and what was sent is kept as it was sent. A record with the Manifest team (`sent`) is drafted again only if the team hands it back; a registration that is with UBC IAM (`submitted`, or a change request the team filed) only once UBC answers; a privacy assessment that is with the Privacy Office or approved by it (`submitted` or `approved`), only once the Office sends it back. A registration UBC has registered (`active`) is drafted again as a change.',
     remedy:
-      'To change what was sent, ask the Manifest team to hand it back while they hold it; once UBC holds it, ask UBC IAM or the Privacy Office. Once a record shows UBC asked for changes (`change_requested` from `submitted`), that the registration lapsed (`expired`), or that the assessment came back (`draft`), draft it again.',
+      'To change what was sent, ask the Manifest team to hand it back while they hold it; once UBC holds it, ask UBC IAM or the Privacy Office. Once a record shows UBC asked for changes (`change_requested` from `submitted`), that the registration is registered (`active`) or lapsed (`expired`), or that the assessment came back (`draft`), draft it again.',
   },
   // Task 10's whole-branch review: what is sent is the draft the person read, carrying what UBC asks for.
   LAUNCH_DRAFT_STALE: {
@@ -1077,11 +1091,18 @@ export const MANIFEST_ERRORS: Record<
     remedy:
       'Use an attribute the hint lists. The person’s identifier is `ubcEduCwlPuid`, never `uid`.',
   },
+  // FE-55 (the FE-46/47/5 plan's Task 7): §9's fail-open case, refused at the field.
+  SPEC_CWL_NO_ATTRIBUTES: {
+    summary:
+      'An app that signs people in with CWL asks for no attribute — an empty `auth.attributes` would register it with no attribute list, which releases every attribute UBC holds.',
+    remedy:
+      'List the attributes the app needs in `auth.attributes` — at least `ubcEduCwlPuid`, the person’s identifier — or set `auth.provider: none` if it signs nobody in.',
+  },
   SPEC_ATTRIBUTE_NOT_REGISTERED: {
     summary:
       'A launched app asks for a CWL attribute its recorded IAM registration does not release; refused when the production build runs.',
     remedy:
-      'Remove the attribute from `auth.attributes`, or have UBC IAM approve the registration’s change and record it (`recordIamRegistration`), then build again.',
+      'Remove the attribute from `auth.attributes`, or ask for the change: draft the registration again and send it to the Manifest team (`draftIamRegistration`, `sendIamRegistration`), who file it with UBC IAM — this builds once UBC registers it and an administrator records it `active`.',
   },
   SPEC_MODEL_UNKNOWN: {
     summary: 'A model the catalogue does not name.',

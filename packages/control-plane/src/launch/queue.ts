@@ -19,6 +19,7 @@ import { vancouverDayInWords } from './records.js'
 export const QUEUE_KINDS = [
   'release-approval',
   'iam-registration-to-submit',
+  'iam-change-to-file',
   'privacy-assessment-to-submit',
   'iam-registration',
   'iam-change-request',
@@ -67,6 +68,8 @@ export interface Queue {
  *  - **`iam-registration-to-submit`**, **`privacy-assessment-to-submit`** — a record its owner SENT to
  *    the Manifest team (`sent`; the FE-46/47/5 plan's Task 6, Decision 16): the team submits it to UBC
  *    and records that it has, or hands it back. Since the send, naming the sender.
+ *  - **`iam-change-to-file`** — a change to a LIVE registration its owner sent (`sent` from `active`;
+ *    Task 7, FE-47): the team files it with UBC IAM as a change request, or hands it back.
  *  - **`iam-registration`** — a registration `submitted` to UBC IAM, staging's or production's: the
  *    administrator records UBC's answer when it comes.
  *  - **`iam-change-request`** — a registration `change_requested` FROM `active`: a change request an
@@ -121,6 +124,10 @@ const personOf = (u: { id: string | null; displayName: string | null } | null) =
 const isActive = eq(projects.state, 'active')
 
 const ticket = (ref: string | null) => (ref === null ? '' : ` (ticket ${ref})`)
+
+/** *", asking for ubcEduCwlPuid, mail, sn"* — what a change asks UBC for, in the order it was asked. */
+const asking = (attributes: readonly string[] | null) =>
+  (attributes ?? []).length === 0 ? '' : `, asking for ${(attributes ?? []).join(', ')}`
 
 /**
  * The open sign-off requests. Undecided requests are found in SQL, then each project's is held to
@@ -203,16 +210,28 @@ async function recordsWithTheTeam(db: Db): Promise<QueueItem[]> {
   return [
     ...registrations.map(({ record, project, sender: by }) => {
       const since = record.sentAt ?? record.updatedAt
-      return {
-        kind: 'iam-registration-to-submit' as const,
+      const day = vancouverDayInWords(since)
+      const env = record.environmentKind
+      const base = {
         project: projectOf(project),
         subjectId: record.id,
-        environment: record.environmentKind,
+        environment: env,
         requestedBy: personOf(by),
         since,
-        summary: `${sender(by)} sent the ${record.environmentKind} registration to the Manifest team on ${vancouverDayInWords(since)}: submit it to UBC IAM and record that you have, or hand it back.`,
         note: null,
       }
+      // A CHANGE TO THE LIVE REGISTRATION (Task 7): filed with UBC IAM as a change request, not submitted.
+      return record.sentFrom === 'active'
+        ? {
+            ...base,
+            kind: 'iam-change-to-file' as const,
+            summary: `${sender(by)} asked for a change to the ${env} registration on ${day}${asking(record.requestedAttributes)}: file it with UBC IAM as a change request and record that you have, or hand it back.`,
+          }
+        : {
+            ...base,
+            kind: 'iam-registration-to-submit' as const,
+            summary: `${sender(by)} sent the ${env} registration to the Manifest team on ${day}: submit it to UBC IAM and record that you have, or hand it back.`,
+          }
     }),
     ...assessments.map(({ record, project, sender: by }) => {
       const since = record.sentAt ?? record.updatedAt
@@ -291,8 +310,7 @@ async function registrationsWithUbc(db: Db): Promise<QueueItem[]> {
           since,
           summary:
             `A change request for the ${env} registration was filed with UBC IAM on ${day}${ticket(record.externalTicketRef)}` +
-            `${(record.requestedAttributes ?? []).length === 0 ? '' : `, asking for ${(record.requestedAttributes ?? []).join(', ')}`}` +
-            ': record UBC IAM’s answer when it comes.',
+            `${asking(record.requestedAttributes)}: record UBC IAM’s answer when it comes.`,
           note: null,
         }
   })

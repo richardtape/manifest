@@ -100,16 +100,19 @@ export type SentFrom = 'draft' | 'change_requested' | 'expired' | 'active'
 
 /**
  * WHERE AN OWNER'S SEND TO THE MANIFEST TEAM MAY TAKE A REGISTRATION FROM (§9; the FE-46/47/5 plan's
- * Decisions 5 and 6): a draft, once UBC asked the OWNER for changes (`change_requested` from `submitted`), or
- * once it lapsed. **Never** from `sent` (a second send would restart the team's clock), from what UBC holds
- * (`submitted`, or a change request the team FILED — `change_requested` from `active`, Decision 5), or from
- * what UBC decided. Null when it may not be sent; the state it is sent from otherwise, which `sent_from` keeps.
+ * Decisions 5, 6 and 21): a draft, once UBC asked the OWNER for changes (`change_requested` from
+ * `submitted`), once it lapsed — or **a live registration (`active`), which is a CHANGE** the team files with
+ * UBC IAM as a change request (FE-47). **Never** from `sent` (a second send would restart the team's clock),
+ * from what UBC holds (`submitted`, or a change request the team FILED — `change_requested` from `active`,
+ * Decision 5). Null when it may not be sent; the state it is sent from otherwise, which `sent_from` keeps.
+ * **What may be sent may be drafted** (`records.ts`'s `draftable`): one set.
  */
 export function iamSendableFrom(row: {
   state: IamState
   changeRequestedFrom: 'submitted' | 'active' | null
 }): SentFrom | null {
-  if (row.state === 'draft' || row.state === 'expired') return row.state
+  if (row.state === 'draft' || row.state === 'expired' || row.state === 'active')
+    return row.state
   if (row.state === 'change_requested' && row.changeRequestedFrom === 'submitted')
     return 'change_requested'
   return null

@@ -37,6 +37,9 @@ export function unregisteredAttributes(
   return [...new Set(requested.filter((a) => !registered.includes(a)))].sort()
 }
 
+/** Attribute names once each, sorted — so two refusals for one reason say it in the same words. */
+const sorted = (names: readonly string[]) => [...new Set(names)].sort().join(', ')
+
 /**
  * §7's last production clause and §9's *Attribute drift is a build-time failure*: a build
  * may request only CWL attributes UBC IAM has REGISTERED for this app, or it fails —
@@ -51,8 +54,9 @@ export function unregisteredAttributes(
  * is a check that stops working when that constraint moves.
  *
  * **THE MESSAGE IS THE "PRE-GENERATED CHANGE REQUEST" §9 ASKS FOR**, at the level this plan
- * builds: the app, every missing attribute, what IS registered, the ticket to raise it
- * against, and the other way out. P8 generates the document; this generates the sentence.
+ * builds: the app, every missing attribute, what IS registered, where a change is (or how to
+ * ask for one, from Manifest), and the other way out. P8 generates the document; this
+ * generates the sentence.
  *
  * Order-insensitive and duplicate-insensitive: it compares SETS, and it sorts what it
  * names so two builds refused for the same reason say it in the same words.
@@ -86,15 +90,19 @@ export function assertRegisteredAttributes(
       `${[...new Set(registered)].sort().join(', ')}.`,
     'A production release must request a subset of what UBC IAM registered — ' +
       'otherwise students hit a broken login on launch day. ' +
+      // WHERE THE CHANGE IS, AND HOW TO ASK FOR ONE (the FE-46/47/5 plan's Task 7, FE-47): from Manifest,
+      // through the Manifest team — never "an administrator records it", which is the team's half.
       (pending === null
-        ? 'Raise an IAM change request' +
-          `${context.ticketRef === null ? '' : ` against ${context.ticketRef}`} for the ` +
-          "missing attribute(s) — an administrator records it on the project as 'change_requested', " +
-          'with the attributes it asks for — or remove them from auth.attributes.'
-        : `A change request is on file ('${pending.state}'` +
-          `${context.ticketRef === null ? '' : `, ticket ${context.ticketRef}`}, asking for ` +
-          `${[...new Set(pending.requested)].sort().join(', ')}): UBC IAM has not registered it yet, ` +
-          "and this builds once an administrator records the registration 'active'. Or remove " +
-          'them from auth.attributes.'),
+        ? 'Ask for the change from Manifest: draft the registration again and send it to the ' +
+          'Manifest team (sendIamRegistration) — or remove them from auth.attributes.'
+        : pending.state === 'sent'
+          ? `A change is with the Manifest team (asking for ${sorted(pending.requested)}): it files ` +
+            "it with UBC IAM, and this builds once UBC IAM registers it and an administrator records it 'active'. " +
+            'Or remove them from auth.attributes.'
+          : `A change request is on file ('${pending.state}'` +
+            `${context.ticketRef === null ? '' : `, ticket ${context.ticketRef}`}, asking for ` +
+            `${sorted(pending.requested)}): UBC IAM has not registered it yet, and this builds once ` +
+            "UBC IAM registers it and an administrator records it 'active'. Or remove them from " +
+            'auth.attributes.'),
   )
 }

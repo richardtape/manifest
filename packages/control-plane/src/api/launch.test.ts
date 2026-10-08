@@ -2,7 +2,7 @@ import { randomUUID, X509Certificate } from 'node:crypto'
 import { and, asc, eq } from 'drizzle-orm'
 import pg from 'pg'
 import { describe, expect, it, vi } from 'vitest'
-import { events, privacyAssessments } from '../db/index.js'
+import { events, instances, privacyAssessments, projects, releases } from '../db/index.js'
 import { resetDatabase } from '../db/testing.js'
 import { ensureTestUser } from '../identity/testing.js'
 import { createMailer } from '../mail/index.js'
@@ -1188,9 +1188,14 @@ describe('D19’s registration package (Task 10)', () => {
       }
       const recordUrl = `/v1/projects/${ctx.project.id}/launch-records/iam-registration`
       await post(ctx, recordUrl, { ...registered, state: 'active' }, admin)
-      expect(refusal(await draft(ctx, 'staging'))).toEqual({
-        status: 409,
-        code: 'LAUNCH_RECORD_SUBMITTED',
+      // REGISTERED BY UBC, IT IS DRAFTED AGAIN AS A CHANGE (the FE-46/47/5 plan's Task 7, FE-47) — the
+      // record keeps what UBC registered; only the package is new.
+      const asChange = await draft(ctx, 'staging')
+      expect(asChange.statusCode, asChange.body).toBe(200)
+      expect(asChange.json()).toMatchObject({
+        state: 'active',
+        acsUrl: registered.acsUrl,
+        registeredAttributes: ['ubcEduCwlPuid', 'mail'],
       })
 
       // An administrator files a change request: UBC holds it, so it is not drafted again.
@@ -1973,6 +1978,223 @@ describe('the assessment’s draft against what launches, and on GitHub (Task 11
       )!
       expect(again.fromCommit).toBe(newer.commitSha)
       expect(await why()).not.toMatch(/draft it again/)
+    })
+  })
+})
+
+/**
+ * A CHANGE TO A LIVE REGISTRATION, THROUGH THE MANIFEST TEAM, THROUGH THE ROUTES (the FE-46/47/5 plan's Task 7,
+ * Decision 21; FE-47): an app whose two registrations UBC has registered, launched, asks for one more attribute.
+ * The owner drafts production's registration again — drawn from the NEWEST VALID MANIFEST, since the release
+ * serving staging cannot ask for what UBC has not registered — and sends it; the team files it; UBC's answer is
+ * recorded. Before the manifest changes, a send that asks for nothing new is refused `LAUNCH_CHANGE_EMPTY`.
+ */
+describe('a change to a live registration, through the Manifest team (FE-46/47/5 plan Task 7; FE-47)', () => {
+  const CHANGE_DRAWN =
+    'A change to a live registration is drawn from the newest valid manifest: the release serving staging cannot ask for what UBC has not registered.'
+
+  it('drafted from the newest valid manifest, sent, filed by the team, answered by UBC — the live release met throughout; nothing new is LAUNCH_CHANGE_EMPTY', async () => {
+    await withCwlProject(['ubcEduCwlPuid', 'mail'], async (ctx) => {
+      const admin = await loginAs(ctx.deps, 'platform_admin')
+      const recordUrl = `/v1/projects/${ctx.project.id}/launch-records/iam-registration`
+      await cwlPiaApproved(ctx)
+      await stage(ctx)
+      // UBC registered both, exactly as the platform derives them.
+      const registered: Record<string, Json> = {}
+      for (const environment of ['staging', 'production'] as const) {
+        const pkg = packageOf((await draft(ctx, environment)).json())
+        registered[environment] = {
+          environment,
+          entityId: pkg.entityId,
+          acsUrl: pkg.acsUrl,
+          sloUrl: pkg.sloUrl,
+          registeredAttributes: pkg.attributes.map((a) => a.name),
+          externalTicketRef: `IAM-${environment}`,
+        }
+        for (const state of ['submitted', 'active'] as const)
+          await post(ctx, recordUrl, { ...registered[environment], state }, admin)
+      }
+      await ctx.deps.db
+        .update(projects)
+        .set({ launchedAt: new Date() })
+        .where(eq(projects.id, ctx.project.id))
+      const live = async () =>
+        (
+          (await (
+            await ctx.app.inject({
+              method: 'GET',
+              url: `/v1/projects/${ctx.project.id}/launch-readiness`,
+              cookies: ctx.ownerCookies,
+            })
+          ).json()) as { items: { id: string; state: string; why: string }[] }
+        ).items.find((i) => i.id === 'iam-registration')!
+      expect((await live()).state).toBe('met')
+      const sendProduction = (body: Json) =>
+        ctx.app.inject({
+          method: 'POST',
+          url: `${recordUrl}/production/send`,
+          payload: body,
+          cookies: ctx.ownerCookies,
+          headers: mutationHeaders(ctx.deps),
+        })
+
+      // NOTHING NEW TO ASK FOR: drafted again from what it already asks — refused, nothing written.
+      const same = packageOf((await draft(ctx, 'production')).json())
+      const empty = await sendProduction({ draftGeneratedAt: same.generatedAt })
+      expect(refusal(empty)).toEqual({ status: 409, code: 'LAUNCH_CHANGE_EMPTY' })
+      expect((await cwlRecords(ctx)).iamRegistration).toMatchObject({ state: 'active' })
+
+      // THE NEWEST VALID MANIFEST ASKS FOR sn — it is not what serves staging.
+      const newer = await commitManifest(
+        { app: ctx.app, deps: ctx.deps, cookies: ctx.ownerCookies, project: ctx.project },
+        cwlManifest(ctx.project.slug, ['ubcEduCwlPuid', 'mail', 'sn']),
+        'feat: family names',
+      )
+      const drafted = await draft(ctx, 'production')
+      expect(drafted.statusCode, drafted.body).toBe(200)
+      expect(drafted.json()).toMatchObject({
+        state: 'active',
+        registeredAttributes: ['ubcEduCwlPuid', 'mail'],
+        acsUrl: registered.production!.acsUrl,
+      })
+      const change = packageOf(drafted.json())
+      expect(change.attributes.map((a) => a.name)).toEqual([
+        'ubcEduCwlPuid',
+        'mail',
+        'sn',
+      ])
+      expect(change.fromCommit).toBe(newer.commitSha)
+      expect(change.warnings).toContain(CHANGE_DRAWN)
+
+      const sent = await sendProduction({ draftGeneratedAt: change.generatedAt })
+      expect(sent.statusCode, sent.body).toBe(200)
+      expect(sent.json()).toMatchObject({
+        state: 'sent',
+        sentFrom: 'active',
+        requestedAttributes: ['ubcEduCwlPuid', 'mail', 'sn'],
+        registeredAttributes: ['ubcEduCwlPuid', 'mail'],
+      })
+      expect(
+        (ctx.deps.mailer as ReturnType<typeof recordingMailer>).told.at(-1),
+      ).toMatchObject({
+        kind: 'record-sent',
+        record: 'production-registration',
+        change: true,
+      })
+      const queued = async () =>
+        (
+          (await (
+            await ctx.app.inject({ method: 'GET', url: '/v1/queue', cookies: admin })
+          ).json()) as { items: { kind: string; project: { id: string } }[] }
+        ).items
+          .filter((i) => i.project.id === ctx.project.id)
+          .map((i) => i.kind)
+      expect(await queued()).toEqual(['iam-change-to-file'])
+      // THE RELEASE SERVING PRODUCTION'S CANDIDATE ASKS FOR NOTHING NEW: met, saying where the change is.
+      const meanwhile = await live()
+      expect(meanwhile.state).toBe('met')
+      expect(meanwhile.why).toContain('A change is with the Manifest team since')
+
+      // THE TEAM FILES IT WITH UBC IAM.
+      const filed = await post(
+        ctx,
+        `${recordUrl}/production/submission`,
+        { reference: 'IAM-CHG-1' },
+        admin,
+      )
+      expect(filed).toMatchObject({
+        state: 'change_requested',
+        changeRequestedFrom: 'active',
+        requestedAttributes: ['ubcEduCwlPuid', 'mail', 'sn'],
+        externalTicketRef: 'IAM-CHG-1',
+      })
+      expect(await queued()).toEqual(['iam-change-request'])
+      expect((await live()).state).toBe('met')
+
+      // UBC REGISTERS IT, recorded through `submitted`: nothing requested any more.
+      await post(ctx, recordUrl, { ...registered.production, state: 'submitted' }, admin)
+      const answered = await post(
+        ctx,
+        recordUrl,
+        {
+          ...registered.production,
+          registeredAttributes: ['ubcEduCwlPuid', 'mail', 'sn'],
+          state: 'active',
+        },
+        admin,
+      )
+      expect(answered).toMatchObject({
+        state: 'active',
+        registeredAttributes: ['ubcEduCwlPuid', 'mail', 'sn'],
+        requestedAttributes: null,
+      })
+      expect(await queued()).toEqual([])
+    })
+  })
+})
+
+/**
+ * FE-55 (Rich, 2026-10-08: the FE-46/47/5 plan's Task 7): a CWL app that asks for NO attribute validated, built
+ * and released, and then every deploy answered `500 INTERNAL` — the SP's registration refused an empty attribute
+ * list (§9's fail-open case) in a way no client could read. Validation now refuses it at the field; a release
+ * made before the rule is refused at the deploy, typed, before anything starts.
+ */
+describe('a CWL app that asks for no attribute (FE-55)', () => {
+  it('validation refuses it at auth.attributes; a release made before the rule is refused at deploy — 409 RELEASE_CWL_NO_ATTRIBUTES, never 500 — before anything starts', async () => {
+    await withCwlProject(['ubcEduCwlPuid', 'mail'], async (ctx) => {
+      // THE POSITIVE CONTROL: the release asking for two attributes deploys.
+      await stage(ctx)
+      const none = (await commitManifest(
+        { app: ctx.app, deps: ctx.deps, cookies: ctx.ownerCookies, project: ctx.project },
+        cwlManifest(ctx.project.slug, []),
+        'feat: sign in, asking nothing',
+        { valid: false },
+      )) as unknown as { errors: { code: string; path: string }[] }
+      expect(none.errors).toEqual([
+        expect.objectContaining({
+          code: 'SPEC_CWL_NO_ATTRIBUTES',
+          path: 'auth.attributes',
+        }),
+      ])
+      const [release] = await ctx.deps.db
+        .select()
+        .from(releases)
+        .where(eq(releases.projectId, ctx.project.id))
+      // A RELEASE MADE BEFORE THE RULE: its frozen config asks for none.
+      const frozen = release!.resolvedConfig as Record<string, { auth: Json }>
+      await ctx.deps.db
+        .update(releases)
+        .set({
+          resolvedConfig: Object.fromEntries(
+            Object.entries(frozen).map(([kind, config]) => [
+              kind,
+              { ...config, auth: { ...config.auth, attributes: [] } },
+            ]),
+          ),
+        })
+        .where(eq(releases.id, release!.id))
+      const staging = ctx.project.environments.find((e) => e.kind === 'staging')!
+      const before = await ctx.deps.db
+        .select()
+        .from(instances)
+        .where(eq(instances.environmentId, staging.id))
+      const ensure = vi.spyOn(ctx.deps.driver, 'ensureInstance')
+      const refused = await ctx.app.inject({
+        method: 'POST',
+        url: `/v1/environments/${staging.id}/deploy`,
+        payload: { releaseId: release!.id },
+        cookies: ctx.ownerCookies,
+        headers: mutationHeaders(ctx.deps),
+      })
+      expect(refusal(refused)).toEqual({ status: 409, code: 'RELEASE_CWL_NO_ATTRIBUTES' })
+      expect(refused.body).toContain('auth.attributes')
+      expect(ensure).not.toHaveBeenCalled()
+      expect(
+        await ctx.deps.db
+          .select()
+          .from(instances)
+          .where(eq(instances.environmentId, staging.id)),
+      ).toEqual(before)
     })
   })
 })

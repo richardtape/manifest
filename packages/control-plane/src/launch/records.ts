@@ -629,7 +629,7 @@ export async function sendIamRegistration(
         existing.state === 'change_requested'
           ? "'change_requested' with a change request the Manifest team filed with UBC IAM"
           : `'${existing.state}'`,
-        "'draft', 'expired', or 'change_requested' once UBC IAM has asked its owner for changes",
+        "'draft', 'expired', 'active' (a change to the live registration), or 'change_requested' once UBC IAM has asked its owner for changes",
       )
 
     const [pia] = await tx
@@ -678,6 +678,21 @@ export async function sendIamRegistration(
           : `the draft of ${what} carries PIA number ${sent.privacyAssessmentReference}, and the approved assessment's is ${pia.externalTicketRef}`,
         'Draft it again — the new draft carries the PIA number — and send that one.',
       )
+    // A CHANGE TO THE LIVE REGISTRATION (FE-47; Decision 21) asks UBC for what the package asks — and one
+    // that asks for nothing UBC has not registered, at the ACS and SLO it registered, is nothing to file.
+    const change = sentFrom === 'active'
+    const asked = sent.attributes.map((a) => a.name)
+    if (
+      change &&
+      sameAttributeSet(asked, existing.registeredAttributes) &&
+      sent.acsUrl === existing.acsUrl &&
+      sent.sloUrl === existing.sloUrl
+    )
+      throw new LaunchRecordError(
+        'LAUNCH_CHANGE_EMPTY',
+        `the draft of ${what} asks UBC IAM for exactly what it registered — the same attributes, at the same ACS and SLO — so there is no change to send`,
+        'Change auth.attributes, auth.callback or auth.logout in manifest.yaml, validate it, draft the registration again, then send it.',
+      )
 
     const [updated] = await tx
       .update(iamRegistrations)
@@ -686,6 +701,9 @@ export async function sendIamRegistration(
         sentFrom,
         sentAt: new Date(),
         sentBy: input.actor.id,
+        // WHAT A CHANGE ASKS FOR is the package's (Decision 21: one statement of one fact); the build's
+        // check reads it, so a build that asks for it names the change. What UBC registered is untouched.
+        ...(change ? { requestedAttributes: asked } : {}),
         // Out of `change_requested`, when it was there (Task 12): the origin goes with the state, and
         // `sent_from` keeps where it was for the hand-back.
         changeRequestedFrom: null,
@@ -705,7 +723,10 @@ export async function sendIamRegistration(
       subject: `iam-registration:${row.id}`,
       type: 'iam_registration.sent',
       machineDetail: { environment: input.environment, sentFrom: row.sentFrom! },
-      humanMessage: `${name} sent this app's ${input.environment} registration to the Manifest team, to submit to UBC IAM.`,
+      humanMessage:
+        row.sentFrom === 'active'
+          ? `${name} asked for a change to this app's ${input.environment} registration, sent to the Manifest team to file with UBC IAM.`
+          : `${name} sent this app's ${input.environment} registration to the Manifest team, to submit to UBC IAM.`,
     },
     makeRedactor([]),
   )
@@ -715,7 +736,7 @@ export async function sendIamRegistration(
     mailer.tellTeam({
       kind: 'record-sent',
       record: NOTICE_RECORD[input.environment],
-      change: false,
+      change: row.sentFrom === 'active',
       project,
       by: name,
       at: row.sentAt!,
@@ -820,9 +841,10 @@ const notWithTeam = (what: string, state: string | undefined): LaunchTransitionE
  * THE MANIFEST TEAM SUBMITTED A REGISTRATION TO UBC IAM (§9; the FE-46/47/5 plan's Task 5, Decisions 2 and
  * 3) — an administrator's record (`launch:record`): `sent → submitted`, stamped with the day the team sent
  * it (noon in Vancouver; not after today, not before the owner sent it) and UBC's reference, by the
- * administrator. **Never refused for UBC's order**: that was held when the owner sent it. In one
- * transaction, the row `FOR UPDATE`; `iam_registration.submitted` after the commit. The caller is
- * `submitIamRegistration`'s route.
+ * administrator. **A change to the live registration** (sent from `active`, Task 7) is FILED as a change
+ * request instead: `sent → change_requested` from `active`, the event's `changeRequest` true. **Never refused
+ * for UBC's order**: that was held when the owner sent it. In one transaction, the row `FOR UPDATE`;
+ * `iam_registration.submitted` after the commit. The caller is `submitIamRegistration`'s route.
  */
 export async function recordIamSubmission(
   db: Db,
@@ -846,10 +868,16 @@ export async function recordIamSubmission(
       at: existing.sentAt,
       what: 'the owner sent it to the Manifest team',
     })
+    // A CHANGE TO THE LIVE REGISTRATION IS FILED AS A CHANGE REQUEST (FE-47; Decision 21): `change_requested`
+    // from `active`, exactly what an administrator's filed change request stamps — what it asks for and what
+    // UBC registered (and when) kept. Anything else goes to UBC as a request: `submitted`.
+    const filesAChange = existing.sentFrom === 'active'
     const [updated] = await tx
       .update(iamRegistrations)
       .set({
-        state: 'submitted',
+        ...(filesAChange
+          ? { state: 'change_requested' as const, changeRequestedFrom: 'active' as const }
+          : { state: 'submitted' as const }),
         sentFrom: null,
         submittedAt: vancouverNoon(day),
         submittedBy: input.actor.id,
@@ -860,6 +888,7 @@ export async function recordIamSubmission(
       .returning()
     return { row: updated!, day }
   })
+  const changeRequest = row.state === 'change_requested'
 
   await publishEvent(
     db,
@@ -872,9 +901,11 @@ export async function recordIamSubmission(
         environment: input.environment,
         sentAt: day,
         externalTicketRef: row.externalTicketRef ?? null,
-        changeRequest: false,
+        changeRequest,
       },
-      humanMessage: `${await personName(db, input.actor.id)} recorded that the Manifest team submitted this app's ${input.environment} registration to UBC IAM on ${vancouverDayInWords(vancouverNoon(day))} (ticket ${input.reference}).`,
+      humanMessage: changeRequest
+        ? `${await personName(db, input.actor.id)} recorded that the Manifest team filed a change request for this app's ${input.environment} registration with UBC IAM on ${vancouverDayInWords(vancouverNoon(day))} (ticket ${input.reference}).`
+        : `${await personName(db, input.actor.id)} recorded that the Manifest team submitted this app's ${input.environment} registration to UBC IAM on ${vancouverDayInWords(vancouverNoon(day))} (ticket ${input.reference}).`,
     },
     makeRedactor([]),
   )
@@ -959,7 +990,13 @@ export async function returnIamRegistration(
       throw notWithTeam(`this app's ${input.environment} registration`, existing?.state)
     const [updated] = await tx
       .update(iamRegistrations)
-      .set({ ...iamReturnTo(existing.sentFrom), sentFrom: null, updatedAt: new Date() })
+      .set({
+        ...iamReturnTo(existing.sentFrom),
+        sentFrom: null,
+        // A CHANGE HANDED BACK (FE-47): live again, as UBC registered it — nothing is asked of UBC any more.
+        ...(existing.sentFrom === 'active' ? { requestedAttributes: null } : {}),
+        updatedAt: new Date(),
+      })
       .where(eq(iamRegistrations.id, existing.id))
       .returning()
     return { updated: updated!, to: existing.sentFrom }
@@ -1032,9 +1069,9 @@ export async function submitterOf(
 
 /**
  * A REGISTRATION ONCE SENT IS KEPT AS IT WAS SENT (Decision 9): drafted again only where it may be sent
- * from (`iamSendableFrom` — the FE-46/47/5 plan's Decision 5): a draft, UBC's questions to the OWNER, or a
- * lapse, where a new request is the point. Never while the Manifest team holds it, what UBC holds — a change
- * request the team filed included — or what UBC decided.
+ * from (`iamSendableFrom` — the FE-46/47/5 plan's Decisions 5 and 21): a draft, UBC's questions to the OWNER,
+ * a lapse, or a live registration to change, where a new request is the point. Never while the Manifest team
+ * holds it, or what UBC holds — a change request the team filed included.
  */
 const draftable = (row: Pick<IamRegistrationRow, 'state' | 'changeRequestedFrom'>) =>
   iamSendableFrom(row) !== null
@@ -1057,7 +1094,7 @@ const alreadySent = (
         )
       : new LaunchRecordError(
           'LAUNCH_RECORD_SUBMITTED',
-          `the ${environment} registration is '${row.state}': what was sent to UBC IAM is kept as it was sent, and Manifest drafts it again only once UBC asks for changes or the registration lapses`,
+          `the ${environment} registration is '${row.state}': what was sent to UBC IAM is kept as it was sent, and Manifest drafts it again only once UBC answers — it asks for changes, or registers it and a change is asked for from the live registration`,
           'To change what UBC IAM was sent, ask UBC IAM; once an administrator records that it asked for changes, draft it again.',
         )
 
@@ -1145,7 +1182,22 @@ async function drawnFrom(
   db: Db,
   projectId: string,
   environment: RegistrationEnvironment,
+  /** The record's state today — `active` is a change to the live registration (Task 7). */
+  state: IamState | undefined,
 ): Promise<{ auth: ManifestSpec['auth']; commit: string; warnings: string[] }> {
+  // A CHANGE TO A LIVE REGISTRATION (FE-47; Decision 21), for either environment, is drawn from the NEWEST
+  // VALID MANIFEST: the release serving staging cannot ask for what UBC has not registered — its build is
+  // refused until UBC registers it — so the candidate would only ever ask for what UBC already has.
+  if (state === 'active') {
+    const newest = await newestValidSpec(db, projectId, 'a change to a registration')
+    return {
+      auth: newest.spec.auth,
+      commit: newest.commit,
+      warnings: [
+        'A change to a live registration is drawn from the newest valid manifest: the release serving staging cannot ask for what UBC has not registered.',
+      ],
+    }
+  }
   if (environment === 'production') {
     const candidate = await candidateFor(db, projectId)
     if (candidate !== undefined)
@@ -1272,7 +1324,8 @@ export interface DraftDeps {
  * and a submission sends exactly what is stored. In this order:
  *
  *  1. **A record UBC holds is not drafted again** (`409 LAUNCH_RECORD_SUBMITTED`, before anything is
- *     read or minted): `submitted` or `active`.
+ *     read or minted): `submitted`, a change request the team filed, or one the Manifest team holds. A LIVE
+ *     registration (`active`) is drafted again as a CHANGE (FE-47), from the newest valid manifest.
  *  2. **What it is drawn from** (`drawnFrom`), refused `409 LAUNCH_NOT_CWL` for an app that signs
  *     nobody in with CWL — or asks for no attribute, which no registration may (§9's fail-open list).
  *  3. The entity (`deriveSpEntity`, D15, at the environment row's hostname, as a deploy registers it),
@@ -1306,7 +1359,7 @@ export async function draftIamRegistration(
     .from(projects)
     .where(eq(projects.id, input.projectId))
   if (project === undefined) throw new Error(`no project ${input.projectId}`)
-  const drawn = await drawnFrom(db, input.projectId, input.environment)
+  const drawn = await drawnFrom(db, input.projectId, input.environment, existing?.state)
   if (drawn.auth.provider !== 'cwl')
     throw new LaunchRecordError(
       'LAUNCH_NOT_CWL',

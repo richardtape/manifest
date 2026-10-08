@@ -50,6 +50,13 @@ export const POLICY_CODES = {
   SERVICE_TYPE_UNKNOWN: 'SPEC_SERVICE_TYPE_UNKNOWN',
   ATTRIBUTE_NOT_WHITELISTED: 'SPEC_ATTRIBUTE_NOT_WHITELISTED',
   /**
+   * §9's fail-open case, at the field (FE-55; the FE-46/47/5 plan's Task 7): a CWL app that asks for no
+   * attribute would be registered with no attribute list, which releases EVERY attribute the IdP holds.
+   * The SP registration refuses the row (`sso/entity.ts`), which every deploy reached as a `500`; the
+   * drafts refuse it too (`LAUNCH_NOT_CWL`). Validation is where a person can still fix it.
+   */
+  CWL_NO_ATTRIBUTES: 'SPEC_CWL_NO_ATTRIBUTES',
+  /**
    * §7's last production clause. **Thrown at BUILD time by `AttributeDriftError`
    * (`registered-attributes.ts`), not returned by validation** — since P6a Task 13, which
    * found the validation branch that used to return it unreachable: its context field was
@@ -151,6 +158,17 @@ export function checkPolicy(spec: ManifestSpec, ctx: ValidationContext): Manifes
       })
     }
   })
+
+  if (spec.auth.provider === 'cwl' && spec.auth.attributes.length === 0)
+    errors.push({
+      code: POLICY_CODES.CWL_NO_ATTRIBUTES,
+      path: 'auth.attributes',
+      message:
+        'auth.provider is cwl and auth.attributes is empty — an app registered with no attribute list receives every attribute UBC holds, so it is never registered',
+      hint:
+        `List the attributes the app needs — at least ubcEduCwlPuid, the person's identifier; permitted: ${ctx.attributeWhitelist.join(', ')}. ` +
+        'Or set auth.provider: none if the app signs nobody in.',
+    })
 
   spec.auth.attributes.forEach((attr, i) => {
     if (!ctx.attributeWhitelist.includes(attr)) {

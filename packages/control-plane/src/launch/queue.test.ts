@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto'
+import { eq } from 'drizzle-orm'
 import { describe, expect, it } from 'vitest'
 import {
   approvals,
@@ -66,7 +67,11 @@ async function registration(
     by?: string
     ticket?: string
     /** The owner's send to the Manifest team (Task 6): the day, by whom, and from where. */
-    sent?: { day: string; by: string; from?: 'draft' | 'expired' | 'change_requested' }
+    sent?: {
+      day: string
+      by: string
+      from?: 'draft' | 'expired' | 'change_requested' | 'active'
+    }
   },
 ): Promise<string> {
   const [row] = await db
@@ -535,6 +540,48 @@ describe('what the Manifest team holds (Task 6)', () => {
       expect(await listed()).toEqual([['privacy-assessment-to-submit', projectId]])
       await returnPrivacyAssessment(db, bus, { projectId, actor: owner })
       expect(await listed()).toEqual([])
+    })
+  })
+
+  it('a change asked for: iam-change-to-file since the send, naming the sender and what it asks for; filed, an iam-change-request still naming them (Task 7)', async () => {
+    await withProject(async (db, { projectId, ownerId }) => {
+      const admin = await administrator(db)
+      const changed = await registration(db, {
+        projectId,
+        environment: 'production',
+        state: 'sent',
+        from: 'active',
+        sent: { day: '2001-09-01', by: ownerId, from: 'active' },
+      })
+      const items = mine((await listQueue(db)).items, [projectId])
+      expect(items.map((i) => [i.kind, i.subjectId, i.environment])).toEqual([
+        ['iam-change-to-file', changed, 'production'],
+      ])
+      expect(items[0]).toMatchObject({
+        requestedBy: { id: ownerId, displayName: 'Test Owner' },
+        since: vancouverNoon('2001-09-01'),
+        summary:
+          'Test Owner asked for a change to the production registration on September 1, 2001, asking for ubcEduCwlPuid, mail, sn: file it with UBC IAM as a change request and record that you have, or hand it back.',
+      })
+
+      // FILED BY THE TEAM: UBC's to answer, and still the person who asked.
+      await db
+        .update(iamRegistrations)
+        .set({
+          state: 'change_requested',
+          changeRequestedFrom: 'active',
+          sentFrom: null,
+          submittedAt: vancouverNoon('2001-09-02'),
+          submittedBy: admin,
+          externalTicketRef: 'IAM-2001-0099',
+        })
+        .where(eq(iamRegistrations.id, changed))
+      const filed = mine((await listQueue(db)).items, [projectId])
+      expect(filed.map((i) => i.kind)).toEqual(['iam-change-request'])
+      expect(filed[0]).toMatchObject({
+        requestedBy: { id: ownerId, displayName: 'Test Owner' },
+        since: vancouverNoon('2001-09-02'),
+      })
     })
   })
 })

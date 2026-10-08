@@ -75,6 +75,32 @@ describe('policy validation (§7)', () => {
     expect(errorCodes(text)).toContain('SPEC_ATTRIBUTE_NOT_WHITELISTED')
   })
 
+  /**
+   * FE-55 (the FE-46/47/5 plan's Task 7): a CWL app that asks for NO attribute would be registered with no
+   * attribute list, which releases every attribute the IdP holds (§9's fail-open case) — every deploy
+   * refused it as a `500`. Refused here instead, at the field, before anything is built.
+   */
+  it('rejects a CWL app that asks for no attribute, at auth.attributes — and accepts one attribute and an app that signs nobody in', () => {
+    const none = yaml(`auth:\n  provider: cwl\n  attributes: []`)
+    const r = validateSpec(none, ctx)
+    expect(r.valid).toBe(false)
+    if (!r.valid)
+      expect(r.errors).toEqual([
+        expect.objectContaining({
+          code: 'SPEC_CWL_NO_ATTRIBUTES',
+          path: 'auth.attributes',
+        }),
+      ])
+    // An omitted list is the same empty list.
+    expect(errorCodes(yaml(`auth:\n  provider: cwl`))).toEqual(['SPEC_CWL_NO_ATTRIBUTES'])
+    // THE POSITIVE CONTROLS: one attribute; and no sign-in at all, which asks for nothing.
+    expect(
+      validateSpec(yaml(`auth:\n  provider: cwl\n  attributes: [ubcEduCwlPuid]`), ctx)
+        .valid,
+    ).toBe(true)
+    expect(validateSpec(yaml(`auth:\n  provider: none`), ctx).valid).toBe(true)
+  })
+
   it('rejects a model outside the catalogue', () => {
     const text = yaml(`ai:\n  models: [gpt-9-turbo]`)
     expect(errorCodes(text)).toContain('SPEC_MODEL_UNKNOWN')

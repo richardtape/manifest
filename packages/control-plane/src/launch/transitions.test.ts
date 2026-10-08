@@ -43,7 +43,10 @@ function walk<S extends string>(
       try {
         transition(from, to)
         allowed++
-      } catch {
+      } catch (error) {
+        // ONLY THE MACHINE'S OWN REFUSAL COUNTS (the FE-46/47/5 plan's sitting 3, F4): a `TypeError` from a
+        // state the table does not have was counted "refused" — the right count for the wrong reason.
+        if (!(error instanceof LaunchTransitionError)) throw error
         refused++
       }
     }
@@ -164,7 +167,7 @@ describe('the two machines are separate, and say so', () => {
  * request the team filed) or from what UBC decided.
  */
 describe('iamSendableFrom and PIA_SENDABLE — where launch:submit may send a record from', () => {
-  it('a registration: draft, expired, and change_requested only when UBC asked the owner', () => {
+  it('a registration: draft, expired, active (a change — the FE-46/47/5 plan’s Task 7), and change_requested only when UBC asked the owner', () => {
     const at = (
       state: IamState,
       changeRequestedFrom: 'submitted' | 'active' | null = null,
@@ -172,10 +175,11 @@ describe('iamSendableFrom and PIA_SENDABLE — where launch:submit may send a re
     expect(at('draft')).toBe('draft')
     expect(at('expired')).toBe('expired')
     expect(at('change_requested', 'submitted')).toBe('change_requested')
+    // A LIVE REGISTRATION: the owner asks for a change to it, through the Manifest team (Decision 21).
+    expect(at('active')).toBe('active')
     // A change request the team FILED is UBC's to answer.
     expect(at('change_requested', 'active')).toBeNull()
-    for (const state of ['sent', 'submitted', 'active'] as const)
-      expect(at(state)).toBeNull()
+    for (const state of ['sent', 'submitted'] as const) expect(at(state)).toBeNull()
   })
 
   it('an assessment: draft alone', () => {
@@ -192,6 +196,8 @@ describe('iamSendableFrom and PIA_SENDABLE — where launch:submit may send a re
       state: 'change_requested',
       changeRequestedFrom: 'submitted',
     })
+    // A change handed back: the registration UBC holds is as it was — live (Task 7).
+    expect(iamReturnTo('active')).toEqual({ state: 'active', changeRequestedFrom: null })
   })
 })
 

@@ -10,7 +10,7 @@ const ctx = { slug: 'chem-labs', ticketRef: 'IAM-4471' }
 function refusal(
   requested: readonly string[],
   registered: readonly string[],
-  context: { slug: string; ticketRef: string | null } = ctx,
+  context: Parameters<typeof assertRegisteredAttributes>[2] = ctx,
 ): AttributeDriftError | undefined {
   try {
     assertRegisteredAttributes(requested, registered, context)
@@ -47,9 +47,12 @@ describe('§7’s last production clause — auth.attributes ⊆ registered_attr
     expect(error.code).toBe('SPEC_ATTRIBUTE_NOT_REGISTERED')
     expect(error.message).toContain("for 'chem-labs': mail.")
     expect(error.message).toContain('Registered: ubcEduCwlPuid.')
-    // §9's pre-generated change request: the ticket to raise it against, and the other way out.
-    expect(error.hint).toContain('Raise an IAM change request against IAM-4471')
-    expect(error.hint).toContain('remove them from auth.attributes')
+    // HOW TO ASK FOR IT (the FE-46/47/5 plan's Task 7): from Manifest, through the Manifest team — and the
+    // other way out. Never "an administrator records it", which is the team's half.
+    expect(error.hint).toContain(
+      'Ask for the change from Manifest: draft the registration again and send it to the Manifest team (sendIamRegistration) — or remove them from auth.attributes.',
+    )
+    expect(error.hint).not.toContain('an administrator records it on the project')
   })
 
   it('names every missing attribute once, sorted, whatever order and repeats they came in', () => {
@@ -62,9 +65,29 @@ describe('§7’s last production clause — auth.attributes ⊆ registered_attr
     const error = refusal(['mail'], ['ubcEduCwlPuid'], {
       slug: 'chem-labs',
       ticketRef: null,
+      changeRequest: { state: 'change_requested', requested: ['ubcEduCwlPuid', 'mail'] },
     })!
-    expect(error.hint).toContain('Raise an IAM change request for the missing')
-    expect(error.hint).not.toContain('against')
+    expect(error.hint).toContain(
+      "A change request is on file ('change_requested', asking for",
+    )
+    expect(error.hint).not.toContain('ticket')
+  })
+
+  it('a change with the Manifest team says so; a change filed with UBC says what it waits for (Task 7)', () => {
+    const withTeam = refusal(['ubcEduCwlPuid', 'sn'], ['ubcEduCwlPuid'], {
+      ...ctx,
+      changeRequest: { state: 'sent', requested: ['sn', 'ubcEduCwlPuid'] },
+    })!
+    expect(withTeam.hint).toContain(
+      "A change is with the Manifest team (asking for sn, ubcEduCwlPuid): it files it with UBC IAM, and this builds once UBC IAM registers it and an administrator records it 'active'. Or remove them from auth.attributes.",
+    )
+    const filed = refusal(['ubcEduCwlPuid', 'sn'], ['ubcEduCwlPuid'], {
+      ...ctx,
+      changeRequest: { state: 'change_requested', requested: ['sn', 'ubcEduCwlPuid'] },
+    })!
+    expect(filed.hint).toContain(
+      "A change request is on file ('change_requested', ticket IAM-4471, asking for sn, ubcEduCwlPuid): UBC IAM has not registered it yet, and this builds once UBC IAM registers it and an administrator records it 'active'.",
+    )
   })
 
   /**

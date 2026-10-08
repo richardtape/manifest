@@ -105,7 +105,10 @@ describe('attribute drift fails the BUILD (§7, §9 — P6a Task 13)', () => {
       // The row, which a faculty member reads (§14): the code, the app, the attribute.
       expect(build.error).toMatch(/^SPEC_ATTRIBUTE_NOT_REGISTERED: /)
       expect(build.error).toContain(`for '${slug}': mail.`)
-      expect(build.error).toContain('Raise an IAM change request against IAM-4471')
+      // HOW TO ASK FOR IT (the FE-46/47/5 plan's Task 7): through the Manifest team, from Manifest.
+      expect(build.error).toContain(
+        'Ask for the change from Manifest: draft the registration again and send it to the Manifest team (sendIamRegistration) — or remove them from auth.attributes.',
+      )
       // The log's last line is the same sentence — the only line, because nothing ran.
       const log = await readBuildLog(tx, build.id)
       expect(log.at(-1)?.text).toBe(build.error)
@@ -118,6 +121,50 @@ describe('attribute drift fails the BUILD (§7, §9 — P6a Task 13)', () => {
         buildId: build.id,
         code: 'SPEC_ATTRIBUTE_NOT_REGISTERED',
       })
+    })
+  })
+
+  it('while a change asking for it is with the Manifest team, the build is STILL refused — and names the team (Task 7; Review Focus 4)', async () => {
+    await withProject(async (tx, { projectId }) => {
+      const { build: before } = await buildOf(
+        tx,
+        projectId,
+        { provider: 'cwl', attributes: ['ubcEduCwlPuid', 'sn'] },
+        ['ubcEduCwlPuid'],
+      )
+      expect(before.status).toBe('failed')
+      await tx
+        .update(iamRegistrations)
+        .set({
+          state: 'sent',
+          sentFrom: 'active',
+          sentAt: new Date(),
+          sentBy: (await tx.select().from(projects).where(eq(projects.id, projectId)))[0]!
+            .ownerId,
+          requestedAttributes: ['ubcEduCwlPuid', 'sn'],
+        })
+        .where(eq(iamRegistrations.projectId, projectId))
+      const [spec] = await tx
+        .select({ id: appSpecs.id })
+        .from(appSpecs)
+        .where(eq(appSpecs.projectId, projectId))
+      const [project] = await tx.select().from(projects).where(eq(projects.id, projectId))
+      const again = await buildToEnd(
+        { db: tx, driver: createFakeDriver(), bus },
+        {
+          projectId,
+          projectSlug: project!.slug,
+          appSpecId: spec!.id,
+          commitSha: 'a'.repeat(40),
+          blueprintRef: 'fixture-node@1',
+          repoPath: '/tmp/repo',
+        },
+      )
+      expect(again.status).toBe('failed')
+      expect(again.error).toMatch(/^SPEC_ATTRIBUTE_NOT_REGISTERED: /)
+      expect(again.error).toContain(
+        "A change is with the Manifest team (asking for sn, ubcEduCwlPuid): it files it with UBC IAM, and this builds once UBC IAM registers it and an administrator records it 'active'.",
+      )
     })
   })
 

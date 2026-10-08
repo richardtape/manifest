@@ -267,16 +267,22 @@ export function holderLine(
   record:
     | Pick<
         Schemas['IamRegistration'],
-        'state' | 'sentAt' | 'submittedAt' | 'changeRequestedFrom'
+        'state' | 'sentAt' | 'submittedAt' | 'changeRequestedFrom' | 'sentFrom'
       >
     | Pick<Schemas['PrivacyAssessment'], 'state' | 'sentAt' | 'submittedAt'>
     | null,
 ): string | null {
   if (record === null) return null
-  if (record.state === 'sent')
+  if (record.state === 'sent') {
+    // A CHANGE to the live registration (the FE-46/47/5 plan's Task 7) — UBC's registration still stands.
+    const holder =
+      'sentFrom' in record && record.sentFrom === 'active'
+        ? 'A change is with the Manifest team'
+        : 'With the Manifest team'
     return record.sentAt === null
-      ? 'With the Manifest team'
-      : `With the Manifest team since ${dayInWords(record.sentAt)}`
+      ? holder
+      : `${holder} since ${dayInWords(record.sentAt)}`
+  }
   const ubc = 'changeRequestedFrom' in record ? 'UBC IAM' : 'the UBC Privacy Office'
   const withUbc =
     record.state === 'submitted' ||
@@ -335,6 +341,8 @@ export function queueKindWords(item: Schemas['QueueItem']): string {
     // WHAT THE MANIFEST TEAM HOLDS (the FE-46/47/5 plan's Task 6): sent to it, the team's to submit.
     case 'iam-registration-to-submit':
       return `${environment} registration to submit to UBC IAM`.trim()
+    case 'iam-change-to-file':
+      return `${environment} change to file with UBC IAM`.trim()
     case 'privacy-assessment-to-submit':
       return 'Privacy assessment to submit to the Privacy Office'
     case 'iam-registration':

@@ -234,11 +234,15 @@ const refuseSend = (what: string, from: string, allowed: string) =>
     `${what} that is ${from} cannot be sent to the Manifest team — it is sent from ${allowed}`,
   )
 
-/** The platform's `iamSendableFrom`: a draft, UBC's questions to the owner, or a lapse. */
+/**
+ * The platform's `iamSendableFrom`: a draft, UBC's questions to the owner, a lapse — or a live registration,
+ * which is a CHANGE the team files with UBC IAM (the FE-46/47/5 plan's Task 7).
+ */
 function iamSendableFrom(
   held: Registration,
-): 'draft' | 'change_requested' | 'expired' | null {
-  if (held.state === 'draft' || held.state === 'expired') return held.state
+): 'draft' | 'change_requested' | 'expired' | 'active' | null {
+  if (held.state === 'draft' || held.state === 'expired' || held.state === 'active')
+    return held.state
   if (held.state === 'change_requested' && held.changeRequestedFrom === 'submitted')
     return 'change_requested'
   return null
@@ -384,13 +388,30 @@ export function draftRegistration(
       now,
     )
   const held = registrationOf(o, environment, now)!
+  // A LIVE REGISTRATION IS DRAFTED AGAIN AS A CHANGE (the FE-46/47/5 plan's Task 7): from the newest valid
+  // manifest — the fixtures' — with what UBC registered kept on the record; only the package is new.
+  if (held.state === 'active') {
+    const at = new Date(now).toISOString()
+    return {
+      ...held,
+      package: {
+        ...f.registrationPackage(environment, 'sent', at),
+        warnings: [CHANGE_DRAWN],
+      },
+      updatedAt: at,
+    }
+  }
   throw new MockRefusal(
     409,
     'LAUNCH_RECORD_SUBMITTED',
-    `the ${environment} registration is '${held.state}': what was sent to UBC IAM is kept as it was sent, and Manifest drafts it again only once UBC asks for changes or the registration lapses`,
+    `the ${environment} registration is '${held.state}': what was sent to UBC IAM is kept as it was sent, and Manifest drafts it again only once UBC answers — it asks for changes, or registers it and a change is asked for from the live registration`,
     'To change what UBC IAM was sent, ask UBC IAM; once an administrator records that it asked for changes, draft it again.',
   )
 }
+
+/** The warning on a change's package — the platform's words (`launch/records.ts`'s `drawnFrom`). */
+const CHANGE_DRAWN =
+  'A change to a live registration is drawn from the newest valid manifest: the release serving staging cannot ask for what UBC has not registered.'
 
 /** `draftPrivacyAssessment`: drafted until it is sent; refused while submitted or approved. */
 export function draftAssessment(o: LaunchOptions, now: number): Assessment {
@@ -455,7 +476,7 @@ export function sendRegistration(
       held.state === 'change_requested'
         ? "'change_requested' with a change request the Manifest team filed with UBC IAM"
         : `'${held.state}'`,
-      "'draft', 'expired', or 'change_requested' once UBC IAM has asked its owner for changes",
+      "'draft', 'expired', 'active' (a change to the live registration), or 'change_requested' once UBC IAM has asked its owner for changes",
     )
   const pia = records(o, now).privacyAssessment
   if (pia?.state !== 'approved' || pia.externalTicketRef === null)
@@ -493,6 +514,22 @@ export function sendRegistration(
         : `the draft of this app's ${environment} registration carries PIA number ${held.package.privacyAssessmentReference}, and the approved assessment's is ${pia.externalTicketRef}`,
       'Draft it again — the new draft carries the PIA number — and send that one.',
     )
+  // A CHANGE THAT ASKS FOR NOTHING NEW (Task 7): the platform's `LAUNCH_CHANGE_EMPTY`.
+  const asked = held.package.attributes.map((a) => a.name)
+  const same = (a: readonly string[], b: readonly string[]) =>
+    [...new Set(a)].sort().join(',') === [...new Set(b)].sort().join(',')
+  if (
+    sentFrom === 'active' &&
+    same(asked, held.registeredAttributes) &&
+    held.package.acsUrl === held.acsUrl &&
+    held.package.sloUrl === held.sloUrl
+  )
+    throw new MockRefusal(
+      409,
+      'LAUNCH_CHANGE_EMPTY',
+      `the draft of this app's ${environment} registration asks UBC IAM for exactly what it registered — the same attributes, at the same ACS and SLO — so there is no change to send`,
+      'Change auth.attributes, auth.callback or auth.logout in manifest.yaml, validate it, draft the registration again, then send it.',
+    )
   const at = new Date(now).toISOString()
   return {
     ...held,
@@ -501,6 +538,8 @@ export function sendRegistration(
     sentAt: at,
     sentBy: INSTRUCTOR,
     changeRequestedFrom: null,
+    // A change asks UBC for what its package asks; what UBC registered stands.
+    ...(sentFrom === 'active' ? { requestedAttributes: asked } : {}),
     updatedAt: at,
   }
 }
@@ -541,7 +580,10 @@ export function teamSubmitsRegistration(
   const day = sentDay(body.sentAt, held.sentAt, now)
   return {
     ...held,
-    state: 'submitted',
+    // A CHANGE IS FILED AS A CHANGE REQUEST (Task 7): `change_requested` from `active`.
+    ...(held.sentFrom === 'active'
+      ? { state: 'change_requested' as const, changeRequestedFrom: 'active' as const }
+      : { state: 'submitted' as const }),
     sentFrom: null,
     submittedAt: vancouverNoon(day).toISOString(),
     submittedBy: OPERATOR,
@@ -571,7 +613,14 @@ export function returnRegistration(
     held.sentFrom === 'change_requested'
       ? { state: 'change_requested' as const, changeRequestedFrom: 'submitted' as const }
       : { state: held.sentFrom, changeRequestedFrom: null }
-  return { ...held, ...back, sentFrom: null, updatedAt: new Date(now).toISOString() }
+  return {
+    ...held,
+    ...back,
+    sentFrom: null,
+    // A change handed back: live again, nothing asked of UBC (Task 7).
+    ...(held.sentFrom === 'active' ? { requestedAttributes: null } : {}),
+    updatedAt: new Date(now).toISOString(),
+  }
 }
 
 // ─── The checklist (`launch/readiness.ts`), composed from the options ───
@@ -853,16 +902,30 @@ export function queueOf(
   const sender = (by: { displayName: string } | null) => by?.displayName ?? 'Its owner'
   for (const reg of [r.stagingRegistration, r.iamRegistration])
     if (reg?.state === 'sent' && reg.sentAt !== null)
-      own.push({
-        kind: 'iam-registration-to-submit',
-        project,
-        subjectId: reg.id,
-        environment: reg.environment,
-        requestedBy: reg.sentBy,
-        since: reg.sentAt,
-        summary: `${sender(reg.sentBy)} sent the ${reg.environment} registration to the Manifest team on ${dayInWords(new Date(reg.sentAt))}: submit it to UBC IAM and record that you have, or hand it back.`,
-        note: null,
-      })
+      own.push(
+        // A CHANGE TO THE LIVE REGISTRATION (Task 7): the team files it as a change request.
+        reg.sentFrom === 'active'
+          ? {
+              kind: 'iam-change-to-file',
+              project,
+              subjectId: reg.id,
+              environment: reg.environment,
+              requestedBy: reg.sentBy,
+              since: reg.sentAt,
+              summary: `${sender(reg.sentBy)} asked for a change to the ${reg.environment} registration on ${dayInWords(new Date(reg.sentAt))}${(reg.requestedAttributes ?? []).length === 0 ? '' : `, asking for ${(reg.requestedAttributes ?? []).join(', ')}`}: file it with UBC IAM as a change request and record that you have, or hand it back.`,
+              note: null,
+            }
+          : {
+              kind: 'iam-registration-to-submit',
+              project,
+              subjectId: reg.id,
+              environment: reg.environment,
+              requestedBy: reg.sentBy,
+              since: reg.sentAt,
+              summary: `${sender(reg.sentBy)} sent the ${reg.environment} registration to the Manifest team on ${dayInWords(new Date(reg.sentAt))}: submit it to UBC IAM and record that you have, or hand it back.`,
+              note: null,
+            },
+      )
   const pia = r.privacyAssessment
   if (pia?.state === 'sent' && pia.sentAt !== null)
     own.push({

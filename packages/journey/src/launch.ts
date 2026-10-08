@@ -199,18 +199,28 @@ function fixture(file: string): string {
 /** The app's `manifest.yaml`, with this project's slug as its name — §7 refuses any other. */
 function appManifest(
   slug: string,
-  change: { classification?: string; health?: string } = {},
+  change: {
+    classification?: string
+    health?: string
+    attributes?: readonly string[]
+  } = {},
 ): string {
   let source = fixture('manifest.yaml')
   if (
     !/^name: .*$/m.test(source) ||
     !/^ {2}classification: internal$/m.test(source) ||
-    !/^ {2}health: \/healthz$/m.test(source)
+    !/^ {2}health: \/healthz$/m.test(source) ||
+    !/^ {2}attributes: \[.*\]$/m.test(source)
   )
     throw new JourneyStop(
-      'the fixture manifest.yaml has no top-level name, is not internal, or has no /healthz',
+      'the fixture manifest.yaml has no top-level name, is not internal, has no /healthz, or no one-line auth.attributes',
     )
   source = source.replace(/^name: .*$/m, `name: ${slug}`)
+  if (change.attributes !== undefined)
+    source = source.replace(
+      /^ {2}attributes: \[.*\]$/m,
+      `  attributes: [${change.attributes.join(', ')}]`,
+    )
   if (change.classification !== undefined)
     source = source.replace(
       /^ {2}classification: internal$/m,
@@ -1612,6 +1622,274 @@ async function reusePhase(): Promise<void> {
     kindsOf(ours(await queueFor(admin))).join(','),
   )
   save()
+}
+
+/** The fixture app's four attributes — what UBC registered for it at launch — and the one a change asks for. */
+const LAUNCHED_ATTRIBUTES = ['ubcEduCwlPuid', 'mail', 'givenName', 'sn'] as const
+const ASKED_FOR = 'eduPersonAffiliation'
+
+/**
+ * THE REUSE PATH'S CHANGE LEG (the FE-46/47/5 plan's Task 7, Step 5; FE-47): the launched app asks for one
+ * attribute more — the owner commits it, its build is refused naming the Manifest team, the owner drafts
+ * production's registration again (from the newest valid manifest) and sends it, the team hands it back
+ * once, the owner sends it again, the team files it with UBC IAM, and UBC's answer is recorded — the
+ * release serving production met throughout. It deploys nothing to production, and STARTS FROM WHEREVER A
+ * PREVIOUS RUN LEFT IT (as `make demo-releases`' leg C does): a registration with the team is handed back,
+ * one not `active` at the launched four is walked there, and a manifest asking for more is committed back.
+ */
+async function changeLeg(): Promise<void> {
+  checks.step(
+    '8b. The launched app asks for a change to its live registration, through the Manifest team',
+  )
+  const owner = clientFor('MANIFEST_SESSION')
+  const admin = clientFor('MANIFEST_ADMIN_SESSION')
+  const id = projectId()
+  const slug = checks.must('the slug', state.slug)
+  const production = () => records(owner).then((r) => r.iamRegistration)
+  const params = (environment: 'production') => ({
+    path: { projectId: id, environment },
+    header: { 'Idempotency-Key': idempotencyKey() },
+  })
+  const recordAs = async (
+    s: 'submitted' | 'active',
+    registeredAttributes: readonly string[],
+  ): Promise<Schemas['IamRegistration']> => {
+    const held = checks.must('production’s registration', await production())
+    return unwrap(
+      await admin.POST('/v1/projects/{projectId}/launch-records/iam-registration', {
+        params: {
+          path: { projectId: id },
+          header: { 'Idempotency-Key': idempotencyKey() },
+        },
+        body: {
+          environment: 'production',
+          entityId: held.entityId,
+          acsUrl: held.acsUrl,
+          sloUrl: held.sloUrl,
+          registeredAttributes: [...registeredAttributes],
+          state: s,
+          externalTicketRef: held.externalTicketRef ?? `IAM-PRD-${state.runId}`,
+        },
+      }),
+      'recordIamRegistration',
+    )
+  }
+
+  // 1. RESET, from wherever a run left it.
+  let held = checks.must('production’s registration', await production())
+  if (held.state === 'sent') {
+    console.log('  (a change was with the Manifest team: handed back first)')
+    unwrap(
+      await admin.POST(
+        '/v1/projects/{projectId}/launch-records/iam-registration/{environment}/return',
+        { params: params('production') },
+      ),
+      'returnIamRegistration',
+    )
+    held = checks.must('production’s registration', await production())
+  }
+  const atLaunch = [...LAUNCHED_ATTRIBUTES].sort().join(',')
+  if (
+    held.state !== 'active' ||
+    [...held.registeredAttributes].sort().join(',') !== atLaunch
+  ) {
+    console.log(
+      `  (production's registration is '${held.state}' at ${held.registeredAttributes.join(', ')}: walked back to active at the launched four)`,
+    )
+    if (held.state !== 'active') await recordAs('submitted', held.registeredAttributes)
+    held = await recordAs('active', LAUNCHED_ATTRIBUTES)
+  }
+  checks.ok(
+    'production’s registration is live, at the four it launched with, nothing requested',
+    held.state === 'active' &&
+      [...held.registeredAttributes].sort().join(',') === atLaunch &&
+      held.requestedAttributes === null,
+    `${held.state} [${held.registeredAttributes.join(', ')}] requested ${JSON.stringify(held.requestedAttributes)}`,
+  )
+  const liveMet = async (when: string) => {
+    const live = item(await readiness(owner), 'iam-registration')
+    checks.ok(
+      `the release serving production stays met ${when}`,
+      live.state === 'met',
+      `${live.state}: ${live.why}`,
+    )
+    return live
+  }
+  await liveMet('before the change is asked for')
+
+  // 2. ASK: the manifest asks for one more; its build is refused, naming the Manifest team.
+  const asked = [...LAUNCHED_ATTRIBUTES, ASKED_FOR]
+  const committed = await commit(owner, `Ask for ${ASKED_FOR}`, [
+    {
+      op: 'write',
+      path: 'manifest.yaml',
+      content: appManifest(slug, { attributes: asked }),
+    },
+  ])
+  const changeSha = checks.must('the change’s commit', committed.commitSha ?? undefined)
+  const refusedBuild = await build(owner, changeSha)
+  checks.ok(
+    `its build is refused, naming ${ASKED_FOR} and how to ask for it — through the Manifest team`,
+    refusedBuild.status === 'failed' &&
+      (refusedBuild.error ?? '').startsWith('SPEC_ATTRIBUTE_NOT_REGISTERED') &&
+      (refusedBuild.error ?? '').includes(`: ${ASKED_FOR}.`) &&
+      (refusedBuild.error ?? '').includes(
+        'Ask for the change from Manifest: draft the registration again and send it to the Manifest team',
+      ),
+    `${refusedBuild.status}: ${refusedBuild.error}`,
+  )
+  const drafted = unwrap(
+    await owner.POST(
+      '/v1/projects/{projectId}/launch-records/iam-registration/{environment}/draft',
+      { params: params('production') },
+    ),
+    'draftIamRegistration',
+  )
+  const pkg = checks.must('the change’s package', drafted.package)
+  checks.ok(
+    `production's registration drafted again as a change: it asks for ${ASKED_FOR}, drawn from the newest valid manifest; what UBC registered kept`,
+    drafted.state === 'active' &&
+      pkg.attributes.some((a) => a.name === ASKED_FOR) &&
+      pkg.fromCommit === changeSha &&
+      pkg.warnings.some((w) =>
+        w.startsWith(
+          'A change to a live registration is drawn from the newest valid manifest',
+        ),
+      ) &&
+      [...drafted.registeredAttributes].sort().join(',') === atLaunch,
+    `${drafted.state} [${pkg.attributes.map((a) => a.name).join(', ')}] from ${pkg.fromCommit.slice(0, 12)}; ${pkg.warnings.join(' | ')}`,
+  )
+  const sendChange = async () => {
+    const sent = await sendIt(owner, id, 'production', {
+      draftGeneratedAt: pkg.generatedAt,
+    })
+    checks.must(
+      'the owner sends the change to the Manifest team',
+      sent.done ? sent : undefined,
+      JSON.stringify(sent),
+    )
+    return checks.must('production’s registration', await production())
+  }
+  let sent = await sendChange()
+  checks.ok(
+    `sent — from active, asking for the five, what UBC registered untouched`,
+    sent.state === 'sent' &&
+      sent.sentFrom === 'active' &&
+      [...(sent.requestedAttributes ?? [])].sort().join(',') ===
+        [...asked].sort().join(',') &&
+      [...sent.registeredAttributes].sort().join(',') === atLaunch,
+    `${sent.state} from ${sent.sentFrom}, requested [${(sent.requestedAttributes ?? []).join(', ')}]`,
+  )
+  const toFile = ours(await queueFor(admin))
+  checks.ok(
+    'the queue: iam-change-to-file, since the send, naming the instructor',
+    kindsOf(toFile).join(',') === 'iam-change-to-file:production' &&
+      toFile[0]?.since === sent.sentAt &&
+      toFile[0]?.requestedBy?.displayName === 'Test Instructor',
+    `${kindsOf(toFile).join(',')} ${toFile[0]?.since} ${toFile[0]?.summary}`,
+  )
+  const withTeam = await liveMet('while the change is with the Manifest team')
+  checks.ok(
+    '…and says the change is with the Manifest team',
+    withTeam.why.includes(`A change is with the Manifest team since ${todayInWords()}`),
+    withTeam.why,
+  )
+
+  // 3. HANDED BACK ONCE: live again, nothing requested; the owner sends it again.
+  const back = unwrap(
+    await admin.POST(
+      '/v1/projects/{projectId}/launch-records/iam-registration/{environment}/return',
+      { params: params('production') },
+    ),
+    'returnIamRegistration',
+  )
+  checks.ok(
+    'the team hands it back: active again, nothing requested',
+    back.state === 'active' &&
+      back.requestedAttributes === null &&
+      back.sentFrom === null,
+    `${back.state} requested ${JSON.stringify(back.requestedAttributes)}`,
+  )
+  sent = await sendChange()
+  checks.ok(
+    'the owner sends it again',
+    sent.state === 'sent' && sent.sentFrom === 'active',
+  )
+
+  // 4. FILED: the team files it with UBC IAM as a change request; the build is still refused.
+  const filed = await teamSubmitted(admin, id, 'production', {
+    reference: `IAM-CHG-${state.runId}`,
+  })
+  checks.must(
+    'the administrator records that the Manifest team filed it with UBC IAM',
+    filed.done ? filed : undefined,
+    JSON.stringify(filed),
+  )
+  const onFile = checks.must('production’s registration', await production())
+  checks.ok(
+    'change_requested, from active — what it asks for and what UBC registered kept',
+    onFile.state === 'change_requested' &&
+      onFile.changeRequestedFrom === 'active' &&
+      [...(onFile.requestedAttributes ?? [])].sort().join(',') ===
+        [...asked].sort().join(',') &&
+      [...onFile.registeredAttributes].sort().join(',') === atLaunch,
+    `${onFile.state} from ${onFile.changeRequestedFrom}`,
+  )
+  checks.ok(
+    'the queue: iam-change-request — UBC’s to answer',
+    kindsOf(ours(await queueFor(admin))).join(',') === 'iam-change-request:production',
+    kindsOf(ours(await queueFor(admin))).join(','),
+  )
+  await liveMet('while the change request is with UBC IAM')
+  const stillRefused = await build(owner, changeSha)
+  checks.ok(
+    'the build is still refused — now naming the change request on file with UBC IAM',
+    stillRefused.status === 'failed' &&
+      (stillRefused.error ?? '').includes(
+        "A change request is on file ('change_requested'",
+      ),
+    `${stillRefused.status}: ${stillRefused.error}`,
+  )
+
+  // 5. ANSWERED: UBC registers it, recorded through `submitted`; the build succeeds.
+  await recordAs('submitted', LAUNCHED_ATTRIBUTES)
+  const answered = await recordAs('active', asked)
+  checks.ok(
+    `UBC IAM's answer recorded: active with ${ASKED_FOR}, nothing requested any more`,
+    answered.state === 'active' &&
+      answered.registeredAttributes.includes(ASKED_FOR) &&
+      answered.requestedAttributes === null,
+    `${answered.state} [${answered.registeredAttributes.join(', ')}]`,
+  )
+  checks.ok(
+    'and nothing of the app waits on the administrators',
+    ours(await queueFor(admin)).length === 0,
+    kindsOf(ours(await queueFor(admin))).join(','),
+  )
+  const built = await build(owner, changeSha)
+  checks.ok(
+    `and the build of ${ASKED_FOR} succeeds`,
+    built.status === 'succeeded',
+    `${built.status}: ${built.error}`,
+  )
+
+  // The change's two emails to the team, read back and deleted by id.
+  const emails = await Promise.all(
+    (await mailpitSearch(slug)).map(async (m) => ({
+      id: m.ID,
+      ...(await mailpitMessage(m.ID)),
+    })),
+  )
+  const changes = emails.filter((e) =>
+    e.Subject.includes('a change to the production IAM registration'),
+  )
+  checks.ok(
+    'the team was emailed each send of the change — twice — and the email says change',
+    changes.length === 2 && changes.every((e) => !e.Text.includes(ASKED_FOR)),
+    emails.map((e) => e.Subject).join(' | '),
+  )
+  await mailpitDelete(emails.map((e) => e.id))
+  save()
   done(8)
 }
 
@@ -2001,7 +2279,7 @@ const phases: Record<Phase, (() => Promise<void>)[]> = {
   owner: [step1Staging, step2Drafts, step3Token, step4AssessmentSent],
   admin: [step5Queue, step6Registrations],
   launch: [step7Approve, step8Launch],
-  reuse: [reusePhase],
+  reuse: [reusePhase, changeLeg],
   people: [step9People],
   instances: [step10Instances],
   narrow: [step11Narrow],

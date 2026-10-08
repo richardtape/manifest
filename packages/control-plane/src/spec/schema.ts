@@ -206,7 +206,7 @@ const authSchema = z
       .array(z.string().min(1))
       .default([])
       .describe(
-        'The CWL attributes the app receives about a signed-in person — `ubcEduCwlPuid`, `mail`, `givenName`, `sn`, `eduPersonAffiliation`. The identifier is `ubcEduCwlPuid`, never `uid`.',
+        'The CWL attributes the app receives about a signed-in person — `ubcEduCwlPuid`, `mail`, `givenName`, `sn`, `eduPersonAffiliation`. The identifier is `ubcEduCwlPuid`, never `uid`. At least one when `provider` is `cwl`.',
       ),
     callback: z
       .string()

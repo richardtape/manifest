@@ -25,7 +25,7 @@ Every field an app’s manifest.yaml may declare, as a table: its path, its type
 | `services[].name` | string | yes |  | The app’s own name for it, unique in the manifest: lower-case letters, digits and hyphens. |
 | `auth` | object | no | `{}` | Who may use the app, and what it learns about them. |
 | `auth.provider` | `cwl`, `none` | no | `"none"` | `cwl` signs people in with UBC’s CWL; `none` signs nobody in. |
-| `auth.attributes` | list of string | no | `[]` | The CWL attributes the app receives about a signed-in person — `ubcEduCwlPuid`, `mail`, `givenName`, `sn`, `eduPersonAffiliation`. The identifier is `ubcEduCwlPuid`, never `uid`. |
+| `auth.attributes` | list of string | no | `[]` | The CWL attributes the app receives about a signed-in person — `ubcEduCwlPuid`, `mail`, `givenName`, `sn`, `eduPersonAffiliation`. The identifier is `ubcEduCwlPuid`, never `uid`. At least one when `provider` is `cwl`. |
 | `auth.callback` | string | no | `"/auth/ubcshib/callback"` | The PATH the identity provider posts a sign-in to — Manifest derives the origin. |
 | `auth.logout` | string | no | `"/auth/logout"` | The PATH single logout arrives at. |
 | `ai` | object | no | `{}` | The AI the app uses, through the platform’s gateway. |

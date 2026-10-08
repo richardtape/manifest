@@ -842,21 +842,14 @@ describe('the owner sends a registration to the Manifest team (FE-46/47/5 plan T
       const held = await getIamRegistration(db, projectId, 'staging')
       expect(held?.sentAt?.toISOString()).toBe(first.sentAt?.toISOString())
       expect(told).toHaveLength(1)
-      // Nor from `submitted` or `active` — UBC holds it, or has answered.
+      // Nor from `submitted` — UBC holds it. (From `active` it is a CHANGE, the FE-46/47/5 plan's Task 7 —
+      // below, in *a change to a live registration*.)
       const admin = await teamMember(db)
       await recordIamSubmission(db, bus, {
         projectId,
         environment: 'staging',
         actor: admin,
         reference: 'IAM-STG-1',
-      })
-      await expect(send()).rejects.toMatchObject({ code: 'LAUNCH_TRANSITION_INVALID' })
-      await recordIamRegistration(db, bus, {
-        ...IAM,
-        environment: 'staging',
-        projectId,
-        state: 'active',
-        actor,
       })
       await expect(send()).rejects.toMatchObject({ code: 'LAUNCH_TRANSITION_INVALID' })
     })
@@ -1870,6 +1863,224 @@ describe('where a change request came from (Task 12, Spec action 10)', () => {
         .update(iamRegistrations)
         .set({ state: 'change_requested', changeRequestedFrom: 'submitted' })
         .where(eq(iamRegistrations.projectId, projectId))
+    })
+  })
+})
+
+/**
+ * A CHANGE TO A LIVE REGISTRATION, THROUGH THE MANIFEST TEAM (the FE-46/47/5 plan's Task 7, Decision 21; FE-47):
+ * from `active` the owner sends a package that asks for more — `sent`, `sentFrom: 'active'`, what it asks for
+ * kept as `requested_attributes`, what UBC registered untouched — and the team files it with UBC IAM as a
+ * change request (`change_requested` from `active`), or hands it back (`active`, nothing requested). A change
+ * that asks for nothing new is refused. Staging's registration, for the shortest setup: UBC's order asks only
+ * for the approved assessment before it.
+ */
+describe('a change to a live registration (FE-46/47/5 plan Task 7; FE-47)', () => {
+  const STAGING = {
+    ...IAM,
+    entityId: 'https://manifest.internal/sp/chem-labs/staging',
+    acsUrl: 'https://chem-labs.staging.manifest.internal/auth/ubcshib/callback',
+    sloUrl: 'https://chem-labs.staging.manifest.internal/auth/logout',
+    registeredAttributes: ['ubcEduCwlPuid', 'mail'],
+  }
+  /** Staging registered by UBC as `STAGING`, the assessment approved first. */
+  async function live(db: Db, projectId: string, actor: typeof ACTOR) {
+    await piaApproved(db, projectId, actor)
+    for (const state of ['submitted', 'active'] as const)
+      await recordIamRegistration(db, bus, {
+        ...STAGING,
+        environment: 'staging',
+        projectId,
+        state,
+        actor,
+      })
+    return (await getIamRegistration(db, projectId, 'staging'))!
+  }
+  /** A package drafted from the live registration, asking for `attributes` at `acsUrl`. */
+  const drafted = (
+    db: Db,
+    projectId: string,
+    attributes: string[],
+    acsUrl = STAGING.acsUrl,
+  ) =>
+    withDraft(db, {
+      projectId,
+      environment: 'staging',
+      attributes,
+      acsUrl,
+      sloUrl: STAGING.sloUrl,
+    })
+
+  it('sent from active: what the package asks for is requested, what UBC registered is kept — and the event and the email say change', async () => {
+    await withProject(async (db, { projectId, ownerId }) => {
+      const actor = { ...ACTOR, id: ownerId }
+      const registered = await live(db, projectId, actor)
+      await drafted(db, projectId, ['ubcEduCwlPuid', 'mail', 'sn'])
+      const { deps, said, told } = sending(db)
+      const row = await sendIamRegistration(deps, {
+        projectId,
+        environment: 'staging',
+        actor,
+      })
+      expect(row).toMatchObject({
+        state: 'sent',
+        sentFrom: 'active',
+        sentBy: ownerId,
+        requestedAttributes: ['ubcEduCwlPuid', 'mail', 'sn'],
+        registeredAttributes: ['ubcEduCwlPuid', 'mail'],
+        acsUrl: STAGING.acsUrl,
+      })
+      expect(row.registeredAt?.toISOString()).toBe(registered.registeredAt?.toISOString())
+      const [event] = await eventsOf(db, projectId, 'iam_registration.sent')
+      expect(event?.machineDetail).toEqual({ environment: 'staging', sentFrom: 'active' })
+      expect(event?.humanMessage).toBe(
+        "Test Owner asked for a change to this app's staging registration, sent to the Manifest team to file with UBC IAM.",
+      )
+      expect(said).toEqual(['iam_registration.sent', 'told:record-sent'])
+      expect(told).toMatchObject([{ record: 'staging-registration', change: true }])
+    })
+  })
+
+  it('a change that asks for nothing new is refused — 409 LAUNCH_CHANGE_EMPTY — and writes nothing; an ACS change alone is a change', async () => {
+    await withProject(async (db, { projectId, ownerId }) => {
+      const actor = { ...ACTOR, id: ownerId }
+      await live(db, projectId, actor)
+      // THE SAME attributes, in another order, at the same ACS and SLO: nothing to ask UBC for.
+      await drafted(db, projectId, ['mail', 'ubcEduCwlPuid'])
+      const before = await getIamRegistration(db, projectId, 'staging')
+      const { deps, told } = sending(db)
+      await expect(
+        sendIamRegistration(deps, { projectId, environment: 'staging', actor }),
+      ).rejects.toMatchObject({ name: 'LaunchRecordError', code: 'LAUNCH_CHANGE_EMPTY' })
+      expect(await getIamRegistration(db, projectId, 'staging')).toEqual(before)
+      expect(told).toEqual([])
+      // THE POSITIVE CONTROL: the same attributes at another ACS is a change UBC must register.
+      await drafted(
+        db,
+        projectId,
+        ['ubcEduCwlPuid', 'mail'],
+        'https://chem-labs.staging.manifest.internal/auth/saml/callback',
+      )
+      const sent = await sendIamRegistration(deps, {
+        projectId,
+        environment: 'staging',
+        actor,
+      })
+      expect(sent).toMatchObject({
+        state: 'sent',
+        sentFrom: 'active',
+        requestedAttributes: ['ubcEduCwlPuid', 'mail'],
+      })
+    })
+  })
+
+  it('the team files it with UBC IAM: change_requested from active, its day, its ticket — what was asked for and what UBC registered kept', async () => {
+    await withProject(async (db, { projectId, ownerId }) => {
+      const actor = { ...ACTOR, id: ownerId }
+      const registered = await live(db, projectId, actor)
+      await drafted(db, projectId, ['ubcEduCwlPuid', 'mail', 'sn'])
+      await sendIamRegistration(sending(db).deps, {
+        projectId,
+        environment: 'staging',
+        actor,
+      })
+      const admin = await teamMember(db)
+      const today = vancouverToday()
+      const row = await recordIamSubmission(db, bus, {
+        projectId,
+        environment: 'staging',
+        actor: admin,
+        sentAt: today,
+        reference: 'IAM-CHG-1',
+      })
+      expect(row).toMatchObject({
+        state: 'change_requested',
+        changeRequestedFrom: 'active',
+        sentFrom: null,
+        submittedBy: admin.id,
+        externalTicketRef: 'IAM-CHG-1',
+        requestedAttributes: ['ubcEduCwlPuid', 'mail', 'sn'],
+        registeredAttributes: ['ubcEduCwlPuid', 'mail'],
+      })
+      expect(row.submittedAt?.toISOString()).toBe(vancouverNoon(today).toISOString())
+      expect(row.registeredAt?.toISOString()).toBe(registered.registeredAt?.toISOString())
+      const [event] = await eventsOf(db, projectId, 'iam_registration.submitted')
+      expect(event?.machineDetail).toEqual({
+        environment: 'staging',
+        sentAt: today,
+        externalTicketRef: 'IAM-CHG-1',
+        changeRequest: true,
+      })
+      expect(event?.humanMessage).toBe(
+        `Platform Admin recorded that the Manifest team filed a change request for this app's staging registration with UBC IAM on ${vancouverDayInWords(vancouverNoon(today))} (ticket IAM-CHG-1).`,
+      )
+
+      // A FILED CHANGE IS UBC'S (Review Focus 5): not drafted again, not sent over.
+      const draftDeps = { db, bus } as unknown as Parameters<
+        typeof draftIamRegistration
+      >[0]
+      await expect(
+        draftIamRegistration(draftDeps, { projectId, environment: 'staging', actor }),
+      ).rejects.toMatchObject({ code: 'LAUNCH_RECORD_SUBMITTED' })
+      await expect(
+        sendIamRegistration(sending(db).deps, {
+          projectId,
+          environment: 'staging',
+          actor,
+        }),
+      ).rejects.toMatchObject({ code: 'LAUNCH_TRANSITION_INVALID' })
+
+      // UBC's answer, recorded through `submitted`: registered with sn, nothing requested any more.
+      await recordIamRegistration(db, bus, {
+        ...STAGING,
+        environment: 'staging',
+        projectId,
+        state: 'submitted',
+        actor: admin,
+      })
+      const answered = await recordIamRegistration(db, bus, {
+        ...STAGING,
+        registeredAttributes: ['ubcEduCwlPuid', 'mail', 'sn'],
+        environment: 'staging',
+        projectId,
+        state: 'active',
+        actor: admin,
+      })
+      expect(answered).toMatchObject({
+        state: 'active',
+        registeredAttributes: ['ubcEduCwlPuid', 'mail', 'sn'],
+        requestedAttributes: null,
+      })
+    })
+  })
+
+  it('handed back, it is live again — active, nothing requested — and the owner may ask again', async () => {
+    await withProject(async (db, { projectId, ownerId }) => {
+      const actor = { ...ACTOR, id: ownerId }
+      await live(db, projectId, actor)
+      await drafted(db, projectId, ['ubcEduCwlPuid', 'mail', 'sn'])
+      const send = () =>
+        sendIamRegistration(sending(db).deps, {
+          projectId,
+          environment: 'staging',
+          actor,
+        })
+      await send()
+      const back = await returnIamRegistration(db, bus, {
+        projectId,
+        environment: 'staging',
+        actor: await teamMember(db),
+      })
+      expect(back).toMatchObject({
+        state: 'active',
+        sentFrom: null,
+        changeRequestedFrom: null,
+        requestedAttributes: null,
+        registeredAttributes: ['ubcEduCwlPuid', 'mail'],
+      })
+      const [event] = await eventsOf(db, projectId, 'iam_registration.returned')
+      expect(event?.machineDetail).toEqual({ environment: 'staging', to: 'active' })
+      expect(await send()).toMatchObject({ state: 'sent', sentFrom: 'active' })
     })
   })
 })

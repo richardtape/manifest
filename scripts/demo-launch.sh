@@ -22,7 +22,9 @@
 # DEMO_LAUNCH_REAL=1). A project's repository never moves between drivers.
 #
 # A LAUNCH HAPPENS ONCE PER PROJECT, and no route deletes a launched project. So a second run finds
-# it launched, checks what that launch durably is, and runs steps 9–11, which repeat; a project an
+# it launched, checks what that launch durably is, asks for a change to its live production
+# registration through the Manifest team (8b — reset first from wherever a run left it), and runs
+# steps 9–11, which repeat; a project an
 # earlier run left UNLAUNCHED is deleted and made again, so steps 1–8 always run whole.
 #
 # THE SPLIT, as every headless demo's (P5a Decision 38). Signing in and stepping up are the
@@ -250,7 +252,7 @@ ADMIN_SESSION="$(session_of "$OP_JAR")"
 [ -n "$ADMIN_SESSION" ] || fail "the operator's second sign-in left no session"
 
 if [ "$EXISTING" = launched ]; then
-  say "1–8. $SLUG launched on an earlier run — the RE-USE path"
+  say "1–8. $SLUG launched on an earlier run — the RE-USE path, and a change to its live registration (8b)"
   run_phase reuse
   stopped
 else

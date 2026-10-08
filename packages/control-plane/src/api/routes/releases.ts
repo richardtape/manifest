@@ -1103,6 +1103,9 @@ export const releaseRoutes = [
       // The authoring API plan's Task 8: the release declares a secret this environment has no
       // value for — refused before anything starts, naming the names.
       'RELEASE_SECRET_NOT_SET',
+      // A CWL release asking for no attribute, made before validation refused it (FE-55) — refused before
+      // anything starts, never the 500 its registration answered.
+      'RELEASE_CWL_NO_ATTRIBUTES',
       // D24 (P5b Task 6): a token deploying to PRODUCTION asks for `release:promote`,
       // which is privileged — and is refused here, before the launch gate above.
       'TOKEN_ACTION_PENDING',

@@ -785,12 +785,11 @@ describe('the launch path plan’s Task 13 — the records by stage, the sign-of
     // A CERTIFICATE IS PUBLIC; A PRIVATE KEY IS NEVER IN AN ANSWER.
     expect(JSON.stringify(r)).not.toMatch(/PRIVATE KEY/)
 
+    // (Both registrations are LIVE here, so they are drafted and sent again as a CHANGE — the FE-46/47/5
+    // plan's Task 7, below.)
     for (const [refused, code] of [
-      [await draftIam(origin, 'staging'), 'LAUNCH_RECORD_SUBMITTED'],
-      [await draftIam(origin, 'production'), 'LAUNCH_RECORD_SUBMITTED'],
       [await draftPia(origin), 'LAUNCH_RECORD_SUBMITTED'],
       [await sendPia(origin), 'LAUNCH_TRANSITION_INVALID'],
-      [await sendIam(origin, 'staging'), 'LAUNCH_TRANSITION_INVALID'],
       // NOTHING IS WITH THE MANIFEST TEAM at this stage: its submission and hand-back are refused.
       [await teamSubmits(origin, 'privacy-assessment'), 'LAUNCH_TRANSITION_INVALID'],
       [
@@ -806,6 +805,46 @@ describe('the launch path plan’s Task 13 — the records by stage, the sign-of
       expect(refused.status, code).toBe(409)
       expect(await codeOf(refused)).toBe(code)
     }
+  })
+
+  it('a live registration is drafted again as a change, from the newest valid manifest, and sent as one — sentFrom active, what the package asks for requested, what UBC registered kept (the FE-46/47/5 plan’s Task 7)', async () => {
+    // `approved`: the assessment approved and both registrations live — UBC's order allows a send.
+    const at = await serve({ records: 'approved' })
+    const drafted = await draftIam(at, 'production')
+    expect(drafted.status).toBe(200)
+    const change = (await drafted.json()) as Registration & {
+      registeredAttributes: string[]
+      registeredAt: string | null
+    }
+    const live = (await records(at)).iamRegistration as Registration & {
+      registeredAttributes: string[]
+      registeredAt: string | null
+    }
+    // The record keeps what UBC registered; only the package is new, and says where it is drawn from.
+    expect(change).toMatchObject({
+      state: 'active',
+      registeredAttributes: live.registeredAttributes,
+      registeredAt: live.registeredAt,
+      acsUrl: live.acsUrl,
+    })
+    expect(change.package!.warnings).toEqual([
+      'A change to a live registration is drawn from the newest valid manifest: the release serving staging cannot ask for what UBC has not registered.',
+    ])
+    expect(Date.parse(change.package!.generatedAt)).toBeGreaterThan(
+      Date.parse(live.package!.generatedAt),
+    )
+
+    const sent = await sendIam(at, 'production')
+    expect(sent.status, await sent.clone().text()).toBe(200)
+    const asked = live.package!.attributes.map((a) => a.name)
+    expect(await sent.json()).toMatchObject({
+      state: 'sent',
+      sentFrom: 'active',
+      sentBy: { displayName: 'Instructor One' },
+      requestedAttributes: asked,
+      registeredAttributes: live.registeredAttributes,
+      registeredAt: live.registeredAt,
+    })
   })
 
   it('MANIFEST_MOCK_RECORDS=none — nothing recorded; a draft is made now; nothing can be sent before it', async () => {

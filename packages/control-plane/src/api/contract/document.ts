@@ -105,7 +105,12 @@ import { STREAM_PATH, streamPathItem } from './websocket.js'
  *    the Manifest team holds, since the owner's send, naming the sender — ordered after `release-approval`; a record with
  *    UBC's `requestedBy` is the person who SENT it, not the administrator who recorded the team's submission. A
  *    checklist item's `since` is the send while the team holds a record (`sent`), and its `why` names the holder.
- *  - Still to land: a change to a live registration (Task 7).
+ *  - **Task 7 (LANDED)**: a change to a live registration — `sendIamRegistration` from `active` is a change
+ *    (`409 LAUNCH_CHANGE_EMPTY`, new, when it asks for nothing new), the team's `submitIamRegistration` files it
+ *    as a change request (`change_requested` from `active`; `iam_registration.submitted`'s `changeRequest`
+ *    true), a hand-back returns it to `active`; `QueueItem.kind` gains `iam-change-to-file`. And FE-55:
+ *    `SPEC_CWL_NO_ATTRIBUTES` (validation, at `auth.attributes`) and `409 RELEASE_CWL_NO_ATTRIBUTES` (a
+ *    deploy of a release made before it), both new.
  *
  * Three files carry it and two tests hold them together: this constant,
  * `packages/contract/openapi.json`'s `info.version` (GENERATED — `pnpm contract:write`,
