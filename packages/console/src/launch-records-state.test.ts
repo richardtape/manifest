@@ -7,6 +7,7 @@ import {
   dayInWords,
   DOES_NOT_APPLY,
   holderLine,
+  teamStepWords,
   teamActions,
   fleetStateWords,
   queueHeadline,
@@ -115,6 +116,84 @@ describe('what the owner may do with each record', () => {
     })
   })
 
+  /**
+   * ASK FOR A CHANGE (the FE-46/47/5 plan's Task 8b; FE-47): offered on a LIVE registration only when the
+   * newest manifest asks for an attribute UBC IAM has not registered; once a change is drafted (a package
+   * made after UBC registered it, asking for something it did not), its send is offered.
+   */
+  it('offers Ask for a change on a live registration only when the newest manifest asks for more', () => {
+    const live = registration({ state: 'active' })
+    // NOTHING MORE ASKED (or nothing known): nothing to offer.
+    expect(registrationActions(live, null)).toMatchObject({ draft: null, send: false })
+    expect(registrationActions(live, ['ubcEduCwlPuid', 'mail'])).toMatchObject({
+      draft: null,
+      send: false,
+    })
+    const more = registrationActions(live, [
+      'ubcEduCwlPuid',
+      'mail',
+      'eduPersonAffiliation',
+    ])
+    expect(more).toMatchObject({ draft: 'change', send: false, waiting: false })
+    expect(more.status).toBe(
+      'Registered with UBC IAM. Your app now asks for eduPersonAffiliation, which UBC IAM has not registered: ask for a change, and the Manifest team files it with UBC IAM.',
+    )
+  })
+
+  it('once a change is drafted, offers its send — and a change with the team waits on it', () => {
+    const live = registration({ state: 'active' })
+    const changed = registration({
+      state: 'active',
+      package: {
+        ...live.package!,
+        generatedAt: '2026-10-08T17:00:00.000Z',
+        attributes: [
+          ...live.package!.attributes,
+          { ...live.package!.attributes[0]!, name: 'eduPersonAffiliation' },
+        ],
+      },
+    })
+    expect(registrationActions(changed, null)).toMatchObject({
+      draft: 'change',
+      send: true,
+      waiting: false,
+    })
+    // THE PACKAGE SENT AT LAUNCH is older than UBC's registration: not a change to send.
+    expect(registrationActions(live, null).send).toBe(false)
+    const withTeam = registrationActions(
+      registration({
+        state: 'sent',
+        sentFrom: 'active',
+        sentAt: '2026-10-08T17:30:00.000Z',
+      }),
+    )
+    expect(withTeam).toMatchObject({ draft: null, send: false, waiting: true })
+    expect(withTeam.status).toBe(
+      'A change is with the Manifest team since 8 October 2026. They file it with UBC IAM as a change request, or hand it back to you.',
+    )
+  })
+
+  it('the Manifest team’s step says what to do with what it holds: submit a request, or file a change', () => {
+    expect(
+      teamStepWords(registration({ state: 'sent', sentFrom: 'draft' }), 'UBC IAM'),
+    ).toEqual({
+      lead: 'Submit it to UBC IAM and record that you have',
+      submit: 'Record that the team submitted it',
+    })
+    expect(
+      teamStepWords(registration({ state: 'sent', sentFrom: 'active' }), 'UBC IAM'),
+    ).toEqual({
+      lead: 'File it with UBC IAM as a change request and record that you have',
+      submit: 'Record that the team filed it',
+    })
+    expect(
+      teamStepWords(assessment({ state: 'sent' }), 'the UBC Privacy Office'),
+    ).toEqual({
+      lead: 'Submit it to the UBC Privacy Office and record that you have',
+      submit: 'Record that the team submitted it',
+    })
+  })
+
   it('tells the two change requests apart by whose move it is', () => {
     // UBC came back with questions on a request the owner sent: drafting again is the owner's.
     const asked = registrationActions(
@@ -127,7 +206,7 @@ describe('what the owner may do with each record', () => {
       registration({ state: 'change_requested', changeRequestedFrom: 'active' }),
     )
     expect(filed).toMatchObject({ draft: null, send: false, waiting: true })
-    expect(filed.status).toMatch(/administrator/)
+    expect(filed.status).toMatch(/UBC IAM is considering it/)
   })
 
   it('drafts a lapsed registration again', () => {

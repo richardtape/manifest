@@ -8,6 +8,7 @@ import {
   dayInWords,
   DOES_NOT_APPLY,
   holderLine,
+  teamStepWords,
   registrationActions,
   sentLine,
   teamActions,
@@ -58,6 +59,13 @@ export function Records({
     const readiness = await api.getLaunchReadiness(projectId)
     if (readiness.candidateReleaseId === null) return null
     return (await api.getRelease(readiness.candidateReleaseId)).config
+  }, [projectId])
+  // WHAT THE NEWEST MANIFEST ASKS FOR (the FE-46/47/5 plan's Task 8b), to offer *Ask for a change* on a
+  // live registration. Unknown — a manifest not validated, or not valid — offers nothing.
+  const newest = useAsync(async () => {
+    // `ManifestYaml` describes the parsed spec the contract answers as an open object.
+    const auth = ((await api.getSpec(projectId)).spec as Schemas['ManifestYaml']).auth
+    return auth?.provider === 'cwl' ? (auth.attributes ?? []) : []
   }, [projectId])
   const value = records.value
 
@@ -124,6 +132,7 @@ export function Records({
                   projectId={projectId}
                   environment={environment}
                   record={record}
+                  newestAsks={newest.value ?? null}
                   onChanged={records.reload}
                 />
                 {teamActions(record, isAdmin).submit && (
@@ -630,11 +639,14 @@ function DraftButton({
               ? 'drafting…'
               : actions.draft === 'first'
                 ? 'Draft it'
-                : 'Draft it again'}
+                : actions.draft === 'change'
+                  ? 'Ask for a change'
+                  : 'Draft it again'}
           </button>{' '}
           <span className="hint">
-            Manifest fills in what it knows from the release serving staging — nothing is
-            sent anywhere.
+            {actions.draft === 'change'
+              ? 'Manifest drafts the registration again from your newest manifest — what UBC IAM registered stands until it registers the change. Nothing is sent anywhere yet.'
+              : 'Manifest fills in what it knows from the release serving staging — nothing is sent anywhere.'}
           </span>
         </p>
       )}
@@ -652,15 +664,18 @@ function RegistrationOwner({
   projectId,
   environment,
   record,
+  newestAsks,
   onChanged,
 }: {
   api: Api
   projectId: string
   environment: 'staging' | 'production'
   record: Schemas['IamRegistration'] | null
+  /** What the newest manifest asks for; null when unknown. */
+  newestAsks: readonly string[] | null
   onChanged: () => void
 }) {
-  const actions = registrationActions(record)
+  const actions = registrationActions(record, newestAsks)
   const sent = record?.package ?? null
   return (
     <div className="owner">
@@ -677,6 +692,7 @@ function RegistrationOwner({
       {actions.send && sent !== null && (
         <SendForm
           to="UBC IAM"
+          change={record?.state === 'active'}
           draftGeneratedAt={sent.generatedAt}
           gaps={null}
           newKey={api.newKey}
@@ -884,6 +900,7 @@ function CopyBlock({ label, text }: { label: string; text: string }) {
  */
 function SendForm({
   to,
+  change = false,
   draftGeneratedAt,
   gaps,
   newKey,
@@ -891,6 +908,8 @@ function SendForm({
   onSent,
 }: {
   to: string
+  /** A change to a live registration (Task 8b): the team files it with UBC IAM as a change request. */
+  change?: boolean
   draftGeneratedAt: string
   /** The assessment's gaps, to answer each; null for a registration, which has none. */
   gaps: readonly { id: string; text: string }[] | null
@@ -943,10 +962,13 @@ function SendForm({
 
   return (
     <form className="record-form" onSubmit={(e) => void submit(e)}>
-      <h3>Send it to the Manifest team</h3>
+      <h3>
+        {change ? 'Send the change to the Manifest team' : 'Send it to the Manifest team'}
+      </h3>
       <p className="hint">
-        The Manifest team submits this draft to {to} for you, or hands it back with what
-        to change. It is sent as you read it above.
+        {change
+          ? `The Manifest team files this change with ${to} as a change request for you, or hands it back with what to change. What ${to} registered stands until it registers the change. It is sent as you read it above.`
+          : `The Manifest team submits this draft to ${to} for you, or hands it back with what to change. It is sent as you read it above.`}
       </p>
       {gaps !== null && gaps.length > 0 && (
         <p className="hint">
@@ -1032,6 +1054,7 @@ function TeamStep({
   onChanged: () => void
 }) {
   const today = vancouverDay(new Date())
+  const words = teamStepWords(record, to)
   const [day, setDay] = useState(today)
   const [ticket, setTicket] = useState('')
   const [busy, setBusy] = useState(false)
@@ -1074,9 +1097,8 @@ function TeamStep({
       <p className="hint">
         Its owner sent this to the Manifest team
         {record.sentAt === null ? '' : ` on ${dayInWords(record.sentAt)}`}
-        {record.sentBy === null ? '' : `, as ${record.sentBy.displayName}`}. Submit it to{' '}
-        {to} and record that you have — or hand it back to them, unsubmitted, with what to
-        change.
+        {record.sentBy === null ? '' : `, as ${record.sentBy.displayName}`}. {words.lead}{' '}
+        — or hand it back to them, unsubmitted, with what to change.
       </p>
       {answers !== null && (
         <>
@@ -1118,7 +1140,7 @@ function TeamStep({
           />
         </Field>
         <button type="submit" disabled={busy || ticket.trim() === ''}>
-          {busy ? 'recording…' : 'Record that the team submitted it'}
+          {busy ? 'recording…' : words.submit}
         </button>{' '}
         <button type="button" disabled={busy} onClick={() => void act('return')}>
           Hand it back to the owner

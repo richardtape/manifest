@@ -264,9 +264,12 @@ function assertHeld(params: Record<string, string>): void {
   }
 }
 
-/** `mock-app` as asked: launched when `MANIFEST_MOCK_LAUNCHED=1` says so (Task 13). */
+/**
+ * `mock-app` as asked: launched when `MANIFEST_MOCK_LAUNCHED=1` says so (Task 13) — and at the
+ * `change-with-team` stage, whose story is a launched app's (a change is asked of a LIVE registration).
+ */
 const projectOf = (ctx: Context): typeof f.PROJECT =>
-  ctx.options.launched
+  ctx.options.launched || ctx.options.records === 'change-with-team'
     ? { ...f.PROJECT, launchedAt: '2026-09-18T12:00:00.000Z' }
     : f.PROJECT
 
@@ -1255,9 +1258,14 @@ export function createMockServer(options: MockOptions = {}): Server {
         : 'ok'),
     records:
       options.records ??
-      (['none', 'drafted', 'with-team', 'assessed', 'approved'].includes(
-        process.env.MANIFEST_MOCK_RECORDS ?? '',
-      )
+      ([
+        'none',
+        'drafted',
+        'with-team',
+        'assessed',
+        'approved',
+        'change-with-team',
+      ].includes(process.env.MANIFEST_MOCK_RECORDS ?? '')
         ? (process.env.MANIFEST_MOCK_RECORDS as RecordsStage)
         : 'sent'),
     approval:

@@ -22,13 +22,16 @@ import { MockRefusal } from './refusal.js'
  *   assessment sent again and with the Privacy Office.
  * - `approved` — everything approved and registered: with the default approval and rehearsal, the
  *   checklist is ready (FE-40 (1)).
+ * - `change-with-team` — `approved`'s records on a LAUNCHED app, with production's registration `sent`
+ *   from `active`: a change asking for `eduPersonAffiliation`, sent to the Manifest team yesterday (the
+ *   FE-46/47/5 plan's Task 8b). The team can file it with UBC IAM or hand it back; the live item stays met.
  *
  * **WHAT IT CANNOT DO**: remember. A draft or a send answers as the platform would, and the next read
  * answers the stage again — exactly as `recordIamRegistration` always has.
  */
 
 export type RecordsStage =
-  'none' | 'drafted' | 'with-team' | 'assessed' | 'sent' | 'approved'
+  'none' | 'drafted' | 'with-team' | 'assessed' | 'sent' | 'approved' | 'change-with-team'
 export type ApprovalState = 'approved' | 'pending' | 'rejected'
 
 export interface LaunchOptions {
@@ -162,6 +165,41 @@ function sentAssessmentRecord(now: number): Assessment {
   }
 }
 
+/**
+ * A CHANGE TO PRODUCTION'S LIVE REGISTRATION WITH THE MANIFEST TEAM (`change-with-team`, Task 8b): the
+ * registration UBC registered, its package drafted again from a newest manifest asking for
+ * `eduPersonAffiliation` too, and sent by the instructor yesterday — what UBC registered untouched.
+ */
+function changeSentRecord(now: number): Registration {
+  const live = f.IAM_REGISTRATION
+  // PER VANCOUVER DAY, as every stage's times are, so two reads of the stage agree.
+  const yesterday = vancouverDay(new Date(now - 86_400_000))
+  const drafted = `${yesterday}T16:45:00.000Z`
+  const sentAt = `${yesterday}T17:15:00.000Z`
+  const pkg = f.registrationPackage('production', 'sent', drafted)
+  const affiliation = {
+    name: 'eduPersonAffiliation',
+    oid: 'urn:oid:1.3.6.1.4.1.5923.1.1.1.1',
+    purpose:
+      'Says whether the person is a student, faculty or staff, so the app can show each what is theirs.',
+    usedAt: [{ path: 'server.js', line: 58 }],
+    justification:
+      'Says whether the person is a student, faculty or staff, so the app can show each what is theirs. The app reads it in server.js:58.',
+    unused: false,
+  }
+  const attributes = [...pkg.attributes, affiliation]
+  return {
+    ...live,
+    state: 'sent',
+    sentFrom: 'active',
+    sentAt,
+    sentBy: INSTRUCTOR,
+    requestedAttributes: attributes.map((a) => a.name),
+    package: { ...pkg, attributes, warnings: [CHANGE_DRAWN] },
+    updatedAt: sentAt,
+  }
+}
+
 /** The assessment approved with its PIA number — five days ago at the `assessed` stage. */
 function approvedAssessment(when: string): Assessment {
   return {
@@ -204,6 +242,12 @@ export function launchRecords(o: LaunchOptions, now: number): Schemas['LaunchRec
       return {
         ...f.LAUNCH_RECORDS,
         privacyAssessment: approvedAssessment(APPROVED_ON),
+      }
+    case 'change-with-team':
+      return {
+        ...f.LAUNCH_RECORDS,
+        privacyAssessment: approvedAssessment(APPROVED_ON),
+        iamRegistration: changeSentRecord(now),
       }
   }
 }
@@ -401,6 +445,13 @@ export function draftRegistration(
       updatedAt: at,
     }
   }
+  if (held.state === 'sent')
+    throw new MockRefusal(
+      409,
+      'LAUNCH_RECORD_SUBMITTED',
+      `the ${environment} registration is with the Manifest team ('sent'): what its owner sent is kept as it was sent, and Manifest drafts it again only if the team hands it back`,
+      'Ask the Manifest team to hand it back if it needs to change, then draft it again.',
+    )
   throw new MockRefusal(
     409,
     'LAUNCH_RECORD_SUBMITTED',
@@ -639,6 +690,13 @@ function iamItem(o: LaunchOptions, base: Item, now: number): Item {
       since: null,
     }
   if (row.state === 'active') return base
+  // A CHANGE WITH THE MANIFEST TEAM (Task 8b): UBC's registration still stands, so a launched app's live
+  // item stays met — saying where the change is, in the platform's words (`changeRequestOnFile`).
+  if (row.state === 'sent' && row.sentFrom === 'active')
+    return {
+      ...base,
+      why: `${base.why} A change is with the Manifest team since ${dayInWords(new Date(row.sentAt!))} (asking for ${[...(row.requestedAttributes ?? [])].sort().join(', ')}); until UBC registers it, releases are checked against what it registered.`,
+    }
   // WITH THE MANIFEST TEAM SINCE THE SEND (the FE-46/47/5 plan's Task 6) — who has it, and since when.
   const withTeam = row.state === 'sent' && row.sentAt !== null
   return {
@@ -733,6 +791,8 @@ export function launchReadiness(
   })
   return {
     ...f.LAUNCH_READINESS,
+    // A change is asked of a live registration: `change-with-team` is a launched app's checklist.
+    ...(o.records === 'change-with-team' ? { launched: true } : {}),
     // READ BY THE CONSOLE, NEVER RECOMPUTED THERE — and composed here, as the platform's
     // `readyOf` does: every blocking item met.
     ready: items.every((i) => !i.blocking || i.state === 'met'),

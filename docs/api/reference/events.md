@@ -360,7 +360,7 @@ An administrator recorded what UBC’s Privacy Office said of the app’s privac
 
 ## `iam_registration.submitted`
 
-The Manifest team submitted the app’s staging or production registration request to UBC IAM, and an administrator recorded it. It now waits for UBC’s answer, which an administrator records.
+The Manifest team submitted the app’s staging or production registration request to UBC IAM — or filed a change to its live registration with UBC IAM as a change request (`changeRequest`) — and an administrator recorded it. It now waits for UBC’s answer, which an administrator records.
 
 ```json
 {
@@ -384,7 +384,7 @@ The Manifest team submitted the app’s privacy impact assessment to UBC’s Pri
 
 ## `iam_registration.sent`
 
-The owner sent the app’s staging or production registration to the Manifest team, who submit it to UBC IAM or hand it back. The team was emailed.
+The owner sent the app’s staging or production registration to the Manifest team, who submit it to UBC IAM or hand it back — or, sent from a live registration (`sentFrom: active`), a change to it, which the team files with UBC IAM as a change request. The team was emailed.
 
 ```json
 {

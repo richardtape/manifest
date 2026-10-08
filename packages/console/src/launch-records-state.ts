@@ -88,13 +88,14 @@ export function sinceWords(
  * answers any other with its own refusal; this only chooses which buttons are worth showing.
  *
  * - `draft`: `'first'` when there is nothing to send yet, `'again'` when there is a draft (or a
- *   request UBC sent back) that a new draft would replace, `null` when the record is with UBC or
- *   decided and drafting is refused.
+ *   request UBC sent back) that a new draft would replace, `'change'` when a live registration is to
+ *   be asked to change (the FE-46/47/5 plan's Task 8b), `null` when the record is with UBC or decided
+ *   and drafting is refused.
  * - `send`: there is a draft, and *"I've sent it"* is a move the record can make.
  * - `waiting`: the record is with UBC (or the Privacy Office), and the owner has nothing to do.
  */
 export interface OwnerActions {
-  draft: 'first' | 'again' | null
+  draft: 'first' | 'again' | 'change' | null
   send: boolean
   waiting: boolean
   status: string
@@ -102,6 +103,11 @@ export interface OwnerActions {
 
 export function registrationActions(
   record: Schemas['IamRegistration'] | null,
+  /**
+   * What the NEWEST MANIFEST asks for (`getSpec`'s `auth.attributes` for a CWL app), or null when it is
+   * not known — read only for a live registration, to offer *Ask for a change* (Task 8b).
+   */
+  newestAsks: readonly string[] | null = null,
 ): OwnerActions {
   if (record === null)
     return {
@@ -128,6 +134,14 @@ export function registrationActions(
             status: 'Nothing has been drafted yet.',
           }
     case 'sent':
+      // A CHANGE TO THE LIVE REGISTRATION with the team (Task 8b): theirs to file with UBC IAM.
+      if (record.sentFrom === 'active')
+        return {
+          draft: null,
+          send: false,
+          waiting: true,
+          status: `A change is with the Manifest team since ${record.sentAt === null ? 'it was sent' : dayInWords(record.sentAt)}. They file it with UBC IAM as a change request, or hand it back to you.`,
+        }
       // WITH THE MANIFEST TEAM (the FE-46/47/5 plan's Task 5): theirs to submit or hand back.
       return {
         draft: null,
@@ -142,13 +156,27 @@ export function registrationActions(
         waiting: true,
         status: 'With UBC IAM. An administrator records its answer here.',
       }
-    case 'active':
-      return {
-        draft: null,
-        send: false,
-        waiting: false,
-        status: 'Registered with UBC IAM.',
-      }
+    case 'active': {
+      // A CHANGE DRAFTED (Task 8b): a package made after UBC registered it, asking for something UBC did
+      // not register — the platform's own rule for a change worth sending (`LAUNCH_CHANGE_EMPTY` otherwise).
+      if (changeDrafted(record))
+        return {
+          draft: 'change',
+          send: true,
+          waiting: false,
+          status:
+            'Registered with UBC IAM. You drafted a change, below: send it to the Manifest team, who file it with UBC IAM as a change request.',
+        }
+      const more = unregisteredAsks(record, newestAsks)
+      return more.length === 0
+        ? { draft: null, send: false, waiting: false, status: 'Registered with UBC IAM.' }
+        : {
+            draft: 'change',
+            send: false,
+            waiting: false,
+            status: `Registered with UBC IAM. Your app now asks for ${more.join(', ')}, which UBC IAM has not registered: ask for a change, and the Manifest team files it with UBC IAM.`,
+          }
+    }
     case 'change_requested':
       // WHOSE MOVE IT IS (the launch path plan's Task 12): UBC asking about a request the owner
       // sent is the owner's to answer; a change an administrator filed on a live registration is
@@ -159,7 +187,7 @@ export function registrationActions(
             send: false,
             waiting: true,
             status:
-              'An administrator asked UBC IAM for a change to this registration, and UBC is considering it.',
+              'A change to this registration was filed with UBC IAM, and UBC IAM is considering it.',
           }
         : {
             draft: 'again',
@@ -177,6 +205,52 @@ export function registrationActions(
           'The registration lapsed. Draft it again, then send it to the Manifest team.',
       }
   }
+}
+
+/** What the newest manifest asks for that UBC IAM has not registered — in the manifest's order. */
+export function unregisteredAsks(
+  record: Pick<Schemas['IamRegistration'], 'registeredAttributes'>,
+  newestAsks: readonly string[] | null,
+): string[] {
+  return (newestAsks ?? []).filter((a) => !record.registeredAttributes.includes(a))
+}
+
+/**
+ * A CHANGE DRAFTED AND NOT YET SENT: the package was made after UBC registered the record, and it asks
+ * UBC for something other than what it registered — the attribute set, the ACS or the SLO.
+ */
+function changeDrafted(record: Schemas['IamRegistration']): boolean {
+  const pkg = record.package
+  if (pkg === null || record.registeredAt === null) return false
+  if (Date.parse(pkg.generatedAt) <= Date.parse(record.registeredAt)) return false
+  const key = (xs: readonly string[]) => [...new Set(xs)].sort().join(',')
+  return (
+    key(pkg.attributes.map((a) => a.name)) !== key(record.registeredAttributes) ||
+    pkg.acsUrl !== record.acsUrl ||
+    pkg.sloUrl !== record.sloUrl
+  )
+}
+
+/**
+ * WHAT THE MANIFEST TEAM DOES WITH WHAT IT HOLDS (the FE-46/47/5 plan's Task 8b): a request it submits to
+ * UBC — or a change to a live registration (sent from `active`), which it files with UBC IAM as a change
+ * request. The words beside the team's two actions.
+ */
+export function teamStepWords(
+  record:
+    | Pick<Schemas['IamRegistration'], 'sentFrom'>
+    | Pick<Schemas['PrivacyAssessment'], 'state'>,
+  to: string,
+): { lead: string; submit: string } {
+  return 'sentFrom' in record && record.sentFrom === 'active'
+    ? {
+        lead: `File it with ${to} as a change request and record that you have`,
+        submit: 'Record that the team filed it',
+      }
+    : {
+        lead: `Submit it to ${to} and record that you have`,
+        submit: 'Record that the team submitted it',
+      }
 }
 
 export function assessmentActions(

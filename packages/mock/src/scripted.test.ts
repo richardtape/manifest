@@ -1070,6 +1070,116 @@ describe('the launch path plan’s Task 13 — the records by stage, the sign-of
     expect(((await back.json()) as Assessment).state).toBe('draft')
   })
 
+  it('MANIFEST_MOCK_RECORDS=change-with-team — a launched app’s production registration with a change the Manifest team holds: iam-change-to-file, the live item still met; the team files it or hands it back (the FE-46/47/5 plan’s Task 8b)', async () => {
+    // THE ENVIRONMENT NAMES IT: on the allow-list, never silently `sent`.
+    const was = process.env.MANIFEST_MOCK_RECORDS
+    process.env.MANIFEST_MOCK_RECORDS = 'change-with-team'
+    let at: string
+    try {
+      at = await serve()
+    } finally {
+      if (was === undefined) delete process.env.MANIFEST_MOCK_RECORDS
+      else process.env.MANIFEST_MOCK_RECORDS = was
+    }
+    type Live = Registration & {
+      sentFrom: string | null
+      sentAt: string | null
+      sentBy: { displayName: string } | null
+      requestedAttributes: string[] | null
+      registeredAttributes: string[]
+      registeredAt: string | null
+      changeRequestedFrom: string | null
+    }
+    const r = await records(at)
+    const production = r.iamRegistration as Live
+    expect(production).toMatchObject({
+      state: 'sent',
+      sentFrom: 'active',
+      sentBy: { displayName: 'Instructor One' },
+      registeredAttributes: (f.IAM_REGISTRATION as Live).registeredAttributes,
+      registeredAt: (f.IAM_REGISTRATION as Live).registeredAt,
+    })
+    expect(production.requestedAttributes).toContain('eduPersonAffiliation')
+    expect(production.requestedAttributes).toEqual(
+      production.package!.attributes.map((a) => a.name),
+    )
+    expect(Date.parse(production.sentAt!)).toBeLessThan(Date.now())
+    expect(r.stagingRegistration!.state).toBe('active')
+    expect(r.privacyAssessment!.state).toBe('approved')
+    // A LAUNCHED APP: the live registration still covers what production serves — met, saying where the change is.
+    const project = (await (
+      await fetch(`${at}/v1/projects/${f.PROJECT_ID}`, { headers: SESSION })
+    ).json()) as { launchedAt: string | null }
+    expect(project.launchedAt).not.toBeNull()
+    expect((await readiness(at)) as unknown as { launched: boolean }).toMatchObject({
+      launched: true,
+    })
+    const live = await item(at, 'iam-registration')
+    expect(live.state).toBe('met')
+    expect(live.why).toMatch(
+      /A change is with the Manifest team since [A-Z][a-z]+ \d{1,2}, \d{4} \(asking for .*eduPersonAffiliation.*\); until UBC registers it, releases are checked against what it registered\.$/,
+    )
+    // THE QUEUE: the team's to file, since the send, naming the sender.
+    const queued = (await (
+      await fetch(
+        `${await serve({ role: 'admin', records: 'change-with-team' })}/v1/queue`,
+        {
+          headers: SESSION,
+        },
+      )
+    ).json()) as {
+      items: {
+        kind: string
+        environment: string | null
+        since: string
+        requestedBy: { displayName: string } | null
+        summary: string
+      }[]
+    }
+    expect(queued.items.map((i) => [i.kind, i.environment])).toEqual([
+      ['iam-change-to-file', 'production'],
+    ])
+    expect(queued.items[0]).toMatchObject({
+      since: production.sentAt,
+      requestedBy: { displayName: 'Instructor One' },
+    })
+    expect(queued.items[0]!.summary).toMatch(
+      /^Instructor One asked for a change to the production registration on .+, asking for .*eduPersonAffiliation.*: file it with UBC IAM as a change request and record that you have, or hand it back\.$/,
+    )
+
+    // THE OWNER may not draft it again or send it over while the team holds it.
+    for (const [refused, code] of [
+      [await draftIam(at, 'production'), 'LAUNCH_RECORD_SUBMITTED'],
+      [await sendIam(at, 'production'), 'LAUNCH_TRANSITION_INVALID'],
+    ] as const) {
+      expect(refused.status, code).toBe(409)
+      expect(await codeOf(refused)).toBe(code)
+    }
+    // THE TEAM files it with UBC IAM as a change request…
+    const filed = await teamSubmits(at, 'iam-registration/production', {
+      reference: 'IAM-2026-0599',
+    })
+    expect(filed.status).toBe(200)
+    expect(await filed.json()).toMatchObject({
+      state: 'change_requested',
+      changeRequestedFrom: 'active',
+      sentFrom: null,
+      requestedAttributes: production.requestedAttributes,
+      registeredAttributes: production.registeredAttributes,
+      submittedBy: { displayName: 'Operator One' },
+      externalTicketRef: 'IAM-2026-0599',
+    })
+    // …or hands it back: live again, nothing requested.
+    const back = await handsBack(at, 'iam-registration/production')
+    expect(back.status).toBe(200)
+    expect(await back.json()).toMatchObject({
+      state: 'active',
+      sentFrom: null,
+      requestedAttributes: null,
+      registeredAttributes: production.registeredAttributes,
+    })
+  })
+
   it('MANIFEST_MOCK_RECORDS=approved is FE-40 (1) — every blocking item met, and a production deploy answers a production instance of its own', async () => {
     const deployProduction = (at: string) =>
       post(at, `/v1/environments/${f.PRODUCTION_ID}/deploy`, { releaseId: f.RELEASE_ID })

@@ -3487,7 +3487,7 @@ export interface components {
             type: "iam_registration.submitted";
             /** @description What happened, in words for a person. Never parse it. */
             humanMessage: string;
-            /** @description The Manifest team submitted the app’s staging or production registration request to UBC IAM, and an administrator recorded it. It now waits for UBC’s answer, which an administrator records. */
+            /** @description The Manifest team submitted the app’s staging or production registration request to UBC IAM — or filed a change to its live registration with UBC IAM as a change request (`changeRequest`) — and an administrator recorded it. It now waits for UBC’s answer, which an administrator records. */
             machineDetail: {
                 /**
                  * @description Which registration was submitted: the staging one, or production’s.
@@ -3572,7 +3572,7 @@ export interface components {
             type: "iam_registration.sent";
             /** @description What happened, in words for a person. Never parse it. */
             humanMessage: string;
-            /** @description The owner sent the app’s staging or production registration to the Manifest team, who submit it to UBC IAM or hand it back. The team was emailed. */
+            /** @description The owner sent the app’s staging or production registration to the Manifest team, who submit it to UBC IAM or hand it back — or, sent from a live registration (`sentFrom: active`), a change to it, which the team files with UBC IAM as a change request. The team was emailed. */
             machineDetail: {
                 /**
                  * @description Which registration was sent: the staging one, or production’s.

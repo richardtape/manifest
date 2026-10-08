@@ -141,8 +141,14 @@ function recordsActions(
   // owner sends it and says so — on the same screen where an administrator records UBC's answer.
   return isAdmin
     ? {
-        'iam-registration': <a {...records}>Record what UBC IAM said</a>,
-        'privacy-assessment': <a {...records}>Record what the Privacy Office said</a>,
+        // THE TEAM'S STEP AND UBC'S ANSWER (the FE-46/47/5 plan's Task 8b): an administrator submits what
+        // an owner sent, files a change, hands it back, or records what UBC said — all on that screen.
+        'iam-registration': (
+          <a {...records}>The Manifest team’s step, and UBC IAM’s answer</a>
+        ),
+        'privacy-assessment': (
+          <a {...records}>The Manifest team’s step, and the Privacy Office’s answer</a>
+        ),
       }
     : {
         // NEUTRAL, because what the owner may do depends on the record, not the item: a draft to
