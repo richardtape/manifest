@@ -20,12 +20,18 @@ import {
   queueOf,
   rehearsalOf,
   requestApproval,
-  submitAssessment,
-  submitRegistration,
+  returnAssessment,
+  returnRegistration,
+  sendAssessment,
+  sendRegistration,
+  teamSubmitsAssessment,
+  teamSubmitsRegistration,
   type ApprovalState,
   type LaunchOptions,
   type RecordsStage,
-  type SubmitBody,
+  type SendAssessmentBody,
+  type SendBody,
+  type TeamSubmissionBody,
 } from './launch.js'
 
 export { MockRefusal }
@@ -591,27 +597,44 @@ const ANSWERS: Record<string, Answerer> = {
   getLaunchReadiness: (ctx) =>
     ok('LaunchReadiness', launchReadiness(launchOf(ctx), ctx.now)),
   getLaunchRecords: (ctx) => ok('LaunchRecords', launchRecords(launchOf(ctx), ctx.now)),
-  // THE OWNER'S HALF (Tasks 9–11): each draft and *"I've sent it"* answered as the platform answers
-  // it from the stage — the draft, or the refusal, in its words and its order of checks.
+  // THE OWNER'S HALF (Tasks 9–11; the FE-46/47/5 plan's Task 5): each draft and each send to the
+  // Manifest team answered as the platform answers it from the stage — the draft, the record sent, or
+  // the refusal, in its words and its order of checks.
   draftIamRegistration: (ctx) =>
     ok('IamRegistration', draftRegistration(launchOf(ctx), environmentOf(ctx), ctx.now)),
-  submitIamRegistration: (ctx) =>
+  sendIamRegistration: (ctx) =>
     ok(
       'IamRegistration',
-      submitRegistration(
-        launchOf(ctx),
-        environmentOf(ctx),
-        bodyOf<SubmitBody>(ctx),
-        ctx.now,
-      ),
+      sendRegistration(launchOf(ctx), environmentOf(ctx), bodyOf<SendBody>(ctx), ctx.now),
     ),
   draftPrivacyAssessment: (ctx) =>
     ok('PrivacyAssessment', draftAssessment(launchOf(ctx), ctx.now)),
+  sendPrivacyAssessment: (ctx) =>
+    ok(
+      'PrivacyAssessment',
+      sendAssessment(launchOf(ctx), bodyOf<SendAssessmentBody>(ctx), ctx.now),
+    ),
+  // THE MANIFEST TEAM'S HALF (Task 5): its submission and hand-back of what the stage has with it —
+  // refused, in the platform's words, when the stage has nothing with the team.
+  submitIamRegistration: (ctx) =>
+    ok(
+      'IamRegistration',
+      teamSubmitsRegistration(
+        launchOf(ctx),
+        environmentOf(ctx),
+        bodyOf<TeamSubmissionBody>(ctx),
+        ctx.now,
+      ),
+    ),
   submitPrivacyAssessment: (ctx) =>
     ok(
       'PrivacyAssessment',
-      submitAssessment(launchOf(ctx), bodyOf<SubmitBody>(ctx), ctx.now),
+      teamSubmitsAssessment(launchOf(ctx), bodyOf<TeamSubmissionBody>(ctx), ctx.now),
     ),
+  returnIamRegistration: (ctx) =>
+    ok('IamRegistration', returnRegistration(launchOf(ctx), environmentOf(ctx), ctx.now)),
+  returnPrivacyAssessment: (ctx) =>
+    ok('PrivacyAssessment', returnAssessment(launchOf(ctx), ctx.now)),
   // BOTH RECORD ROUTES ANSWER THE FIXTURE, NOT THE REQUEST. The mock does not keep state
   // (P5c Decision 9), and a record route that echoed the body back would let a console bug
   // that sends the wrong state look correct here and wrong against the platform.

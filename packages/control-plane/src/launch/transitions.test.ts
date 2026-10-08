@@ -1,9 +1,17 @@
 import { describe, expect, it } from 'vitest'
 import {
+  iamRegistrationState,
+  privacyAssessmentState,
+  RECORDED_IAM_STATES,
+  RECORDED_PIA_STATES,
+} from '../db/index.js'
+import {
+  iamReturnTo,
+  iamSendableFrom,
   iamTransition,
   LaunchTransitionError,
+  PIA_SENDABLE,
   piaTransition,
-  SUBMIT_ARROWS,
   type IamState,
   type PiaState,
 } from './transitions.js'
@@ -16,12 +24,13 @@ import {
  */
 const IAM_STATES: readonly IamState[] = [
   'draft',
+  'sent',
   'submitted',
   'active',
   'change_requested',
   'expired',
 ]
-const PIA_STATES: readonly PiaState[] = ['draft', 'submitted', 'approved']
+const PIA_STATES: readonly PiaState[] = ['draft', 'sent', 'submitted', 'approved']
 
 function walk<S extends string>(
   states: readonly S[],
@@ -90,10 +99,18 @@ describe('§9’s IAM registration states', () => {
   // that threw for everything would pass every refusal test above, and one that returned
   // `to` unconditionally would pass every happy-path test. This is the pair for both.
   it('allows every arrow the table declares, and refuses every one it does not', () => {
-    // 8 and 17 are derived from IAM_ARROWS BY HAND. If the table changes this goes red,
-    // and that is correct — the arrows are a design statement, not an implementation
-    // detail.
-    expect(walk(IAM_STATES, iamTransition)).toEqual({ allowed: 8, refused: 17 })
+    // 8 and 28 are derived from IAM_ARROWS BY HAND — six states, a 36-cell grid, and `sent`
+    // adds no arrow: only the Manifest team's two operations move into or out of it. If the
+    // table changes this goes red, and that is correct — the arrows are a design statement,
+    // not an implementation detail.
+    expect(walk(IAM_STATES, iamTransition)).toEqual({ allowed: 8, refused: 28 })
+  })
+
+  it('has no arrow into or out of `sent` — the generic record never moves a record the team holds', () => {
+    for (const state of IAM_STATES) {
+      expect(() => iamTransition(state, 'sent')).toThrow(LaunchTransitionError)
+      expect(() => iamTransition('sent', state)).toThrow(LaunchTransitionError)
+    }
   })
 })
 
@@ -120,8 +137,13 @@ describe('§9’s privacy assessment states', () => {
   })
 
   it('allows every arrow the table declares, and refuses every one it does not', () => {
-    // 4 and 5, counted from PIA_ARROWS by hand — 3 states is a 9-cell grid.
-    expect(walk(PIA_STATES, piaTransition)).toEqual({ allowed: 4, refused: 5 })
+    // 4 and 12, counted from PIA_ARROWS by hand — 4 states is a 16-cell grid, and `sent` adds
+    // no arrow.
+    expect(walk(PIA_STATES, piaTransition)).toEqual({ allowed: 4, refused: 12 })
+    for (const state of PIA_STATES) {
+      expect(() => piaTransition(state, 'sent')).toThrow(LaunchTransitionError)
+      expect(() => piaTransition('sent', state)).toThrow(LaunchTransitionError)
+    }
   })
 })
 
@@ -135,26 +157,53 @@ describe('the two machines are separate, and say so', () => {
 })
 
 /**
- * WHERE AN OWNER'S *"I'VE SENT IT"* MAY MOVE A RECORD FROM (the launch path plan's Task 9, Decision
- * 8) — LITERALS, for the reason the states above are. A registration is sent from a draft, again
- * after UBC asked for changes, and again once it lapsed; a privacy assessment from a draft. Never
- * from what UBC decides (`active`, `approved`) and never from `submitted`: a second "I've sent it"
- * would move the day the clock started.
+ * WHERE AN OWNER'S SEND TO THE MANIFEST TEAM MAY TAKE A RECORD FROM (the FE-46/47/5 plan's Task 5,
+ * Decisions 5 and 6) — LITERALS, for the reason the states above are. A registration is sent from a
+ * draft, once UBC asked the OWNER for changes, or once it lapsed; an assessment from a draft. Never from
+ * `sent` (a second send would restart the team's clock), from what UBC holds (`submitted`, a change
+ * request the team filed) or from what UBC decided.
  */
-describe('SUBMIT_ARROWS — the moves launch:submit may make', () => {
-  it('is exactly draft, change_requested and expired for a registration, and draft for an assessment', () => {
-    expect([...SUBMIT_ARROWS.iam].sort()).toEqual([
-      'change_requested',
-      'draft',
-      'expired',
-    ])
-    expect([...SUBMIT_ARROWS.pia]).toEqual(['draft'])
+describe('iamSendableFrom and PIA_SENDABLE — where launch:submit may send a record from', () => {
+  it('a registration: draft, expired, and change_requested only when UBC asked the owner', () => {
+    const at = (
+      state: IamState,
+      changeRequestedFrom: 'submitted' | 'active' | null = null,
+    ) => iamSendableFrom({ state, changeRequestedFrom })
+    expect(at('draft')).toBe('draft')
+    expect(at('expired')).toBe('expired')
+    expect(at('change_requested', 'submitted')).toBe('change_requested')
+    // A change request the team FILED is UBC's to answer.
+    expect(at('change_requested', 'active')).toBeNull()
+    for (const state of ['sent', 'submitted', 'active'] as const)
+      expect(at(state)).toBeNull()
   })
 
-  it('names only states the machines can move to submitted from', () => {
-    for (const from of SUBMIT_ARROWS.iam)
-      expect(iamTransition(from, 'submitted')).toBe('submitted')
-    for (const from of SUBMIT_ARROWS.pia)
-      expect(piaTransition(from, 'submitted')).toBe('submitted')
+  it('an assessment: draft alone', () => {
+    expect([...PIA_SENDABLE]).toEqual(['draft'])
+  })
+
+  it('a hand-back returns a registration where it was sent from — UBC’s questions to the owner again', () => {
+    expect(iamReturnTo('draft')).toEqual({ state: 'draft', changeRequestedFrom: null })
+    expect(iamReturnTo('expired')).toEqual({
+      state: 'expired',
+      changeRequestedFrom: null,
+    })
+    expect(iamReturnTo('change_requested')).toEqual({
+      state: 'change_requested',
+      changeRequestedFrom: 'submitted',
+    })
+  })
+})
+
+describe('the generic record routes’ states — every state but `sent` (FE-46/47/5 plan Task 5; Decision 4)', () => {
+  it('RECORDED_IAM_STATES and RECORDED_PIA_STATES are their enums less `sent`, in order', () => {
+    expect([...RECORDED_IAM_STATES]).toEqual(
+      iamRegistrationState.enumValues.filter((s) => s !== 'sent'),
+    )
+    expect([...RECORDED_PIA_STATES]).toEqual(
+      privacyAssessmentState.enumValues.filter((s) => s !== 'sent'),
+    )
+    expect(iamRegistrationState.enumValues).toContain('sent')
+    expect(privacyAssessmentState.enumValues).toContain('sent')
   })
 })

@@ -139,6 +139,26 @@ const BUILDING_NOT_OPEN = { status: 403, code: 'BUILDING_NOT_OPEN' } as const
 const DRAFT_REQUIRED = { status: 409, code: 'LAUNCH_DRAFT_REQUIRED' } as const
 
 /**
+ * The Manifest team's two records (the FE-46/47/5 plan's Task 5) for this fixture, which has sent the
+ * team nothing — what an administrator, who holds `launch:record`, is answered: a `409` naming its code,
+ * so the row cannot be green against `FORBIDDEN` or a missing route. The sent case is `api/launch.test.ts`'s.
+ */
+const NOT_WITH_TEAM = { status: 409, code: 'LAUNCH_TRANSITION_INVALID' } as const
+
+/** Who may record the team's step: an administrator alone, in their own session. */
+const TEAM_ONLY: Record<Actor, Expectation> = {
+  owner: 403,
+  collaborator: 403,
+  stranger: 404,
+  admin: NOT_WITH_TEAM,
+  anonymous: 401,
+  'token-capable': SESSION_ONLY,
+  'token-incapable': SESSION_ONLY,
+  'token-other-project': SESSION_ONLY,
+  'token-privileged': SESSION_ONLY,
+}
+
+/**
  * Drafting a registration (the launch path plan's Task 10) for this fixture's app, which signs
  * nobody in (`fixture-node@1`, `auth.provider: none`) — what everyone who HOLDS `launch:draft` is
  * answered, a token included. A `409` naming its code, so the row cannot be green against
@@ -1404,17 +1424,17 @@ const ROUTES: RouteCase[] = [
     },
   },
   /**
-   * AN OWNER'S *"I'VE SENT IT"* (the launch path plan's Task 9; Spec action 3): `launch:submit`, held
-   * by the owner, a collaborator and an administrator, in their own session — so all three reach
-   * the record and are told there is no draft to send (this fixture drafts nothing; the sent case
-   * is `api/launch.test.ts`'s). Person-only: every token is refused for its credential class before
-   * the project is read, exactly as `launch:record`'s rows above.
+   * THE OWNER'S SEND TO THE MANIFEST TEAM (the FE-46/47/5 plan's Task 5; the launch path plan's Task 9
+   * before it): `launch:submit`, held by the owner, a collaborator and an administrator, in their own
+   * session — so all three reach the record and are told there is no draft to send (this fixture drafts
+   * nothing; the sent case is `api/launch.test.ts`'s). Person-only: every token is refused for its
+   * credential class before the project is read, exactly as `launch:record`'s rows above.
    */
   {
     method: 'POST',
-    url: '/v1/projects/:projectId/launch-records/iam-registration/:environment/submission',
+    url: '/v1/projects/:projectId/launch-records/iam-registration/:environment/send',
     request: (f) => ({
-      url: `/v1/projects/${f.projectId}/launch-records/iam-registration/production/submission`,
+      url: `/v1/projects/${f.projectId}/launch-records/iam-registration/production/send`,
       payload: {},
     }),
     expect: {
@@ -1431,10 +1451,10 @@ const ROUTES: RouteCase[] = [
   },
   {
     method: 'POST',
-    url: '/v1/projects/:projectId/launch-records/privacy-assessment/submission',
+    url: '/v1/projects/:projectId/launch-records/privacy-assessment/send',
     request: (f) => ({
-      url: `/v1/projects/${f.projectId}/launch-records/privacy-assessment/submission`,
-      payload: {},
+      url: `/v1/projects/${f.projectId}/launch-records/privacy-assessment/send`,
+      payload: { answers: [] },
     }),
     expect: {
       owner: DRAFT_REQUIRED,
@@ -1448,6 +1468,36 @@ const ROUTES: RouteCase[] = [
       'token-privileged': SESSION_ONLY,
     },
   },
+  /**
+   * THE MANIFEST TEAM'S SUBMISSION AND HAND-BACK (the FE-46/47/5 plan's Task 5): `launch:record`, an
+   * administrator's — so the owner and a collaborator are `403` — in their own session, every token
+   * refused for its credential class before the project is read, as the record rows above. The
+   * administrator reaches the record and is told it is not with the team (`NOT_WITH_TEAM`).
+   */
+  ...(
+    [
+      ['iam-registration/:environment', 'iam-registration/production'],
+      ['privacy-assessment', 'privacy-assessment'],
+    ] as const
+  ).flatMap(([pattern, path]) => [
+    {
+      method: 'POST' as const,
+      url: `/v1/projects/:projectId/launch-records/${pattern}/submission`,
+      request: (f: Fixture) => ({
+        url: `/v1/projects/${f.projectId}/launch-records/${path}/submission`,
+        payload: { reference: 'UBC-AUTHZ-1' },
+      }),
+      expect: TEAM_ONLY,
+    },
+    {
+      method: 'POST' as const,
+      url: `/v1/projects/:projectId/launch-records/${pattern}/return`,
+      request: (f: Fixture) => ({
+        url: `/v1/projects/${f.projectId}/launch-records/${path}/return`,
+      }),
+      expect: TEAM_ONLY,
+    },
+  ]),
   /**
    * DRAFTING A REGISTRATION (the launch path plan's Task 10, Decision 11): `launch:draft`, held by
    * the owner, a collaborator and an administrator — and MINTABLE, neither privileged nor
@@ -3093,11 +3143,11 @@ export function describeAuthorizationContract(
         'requestApproval',
         'restoreProject',
         'runRehearsal',
+        'sendIamRegistration',
+        'sendPrivacyAssessment',
         'setAppSecret',
         'startAgentSession',
         'startBuild',
-        'submitIamRegistration',
-        'submitPrivacyAssessment',
         'updateProject',
         'validateSpec',
       ])

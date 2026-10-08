@@ -484,12 +484,14 @@ describe('the console’s data layer against manifest-mock', () => {
   })
 
   /**
-   * THE SIX OPERATIONS THE LAUNCH PATH PLAN ADDS (its Task 13): the owner's half of the records, the
-   * sign-off request and the administrators' queue — each called at the mock's stage where the
-   * platform would answer it, and each refusal the screens render asserted by its code.
+   * THE SIX OPERATIONS THE LAUNCH PATH PLAN ADDS (its Task 13), AND THE MANIFEST TEAM'S STEP (the
+   * FE-46/47/5 plan's Task 5): the owner's half of the records — a send to the Manifest team, every gap
+   * of the assessment answered — the team's submission and hand-back, the sign-off request and the
+   * administrators' queue — each called at the mock's stage where the platform would answer it, and
+   * each refusal the screens render asserted by its code.
    */
-  it('calls every operation the launch path plan adds', async () => {
-    // Week one, drafted: the assessment can be sent; a registration waits for it.
+  it('calls every operation the launch path plan adds, and the Manifest team’s step', async () => {
+    // Week one, drafted: the assessment can be sent, every gap answered; a registration waits for it.
     await withMock(
       async (origin) => {
         const a = api(origin)
@@ -498,20 +500,50 @@ describe('the console’s data layer against manifest-mock', () => {
         expect(
           (await a.draftPrivacyAssessment(PROJECT_ID, a.newKey())).draft!.generatedAt,
         ).toBe(draft.generatedAt)
-        const sent = await a.submitPrivacyAssessment(
+        const answers = draft.sections.flatMap((s) =>
+          s.gaps.map((g) => ({ gapId: g.id, answer: 'does not apply' })),
+        )
+        await expect(
+          a.sendPrivacyAssessment(
+            PROJECT_ID,
+            { draftGeneratedAt: draft.generatedAt, answers: answers.slice(1) },
+            a.newKey(),
+          ),
+        ).rejects.toMatchObject({ code: 'LAUNCH_GAP_ANSWERS_INVALID' })
+        const sent = await a.sendPrivacyAssessment(
           PROJECT_ID,
-          { reference: 'PRISM-0042', draftGeneratedAt: draft.generatedAt },
+          { draftGeneratedAt: draft.generatedAt, answers },
           a.newKey(),
         )
-        expect(sent).toMatchObject({
-          state: 'submitted',
-          externalTicketRef: 'PRISM-0042',
-        })
+        expect(sent).toMatchObject({ state: 'sent', gapAnswers: answers })
+
+        // Nothing is with the team at this stage: its submission and hand-back are refused.
+        await expect(
+          a.submitPrivacyAssessment(
+            PROJECT_ID,
+            { reference: 'PIA-2026-0101' },
+            a.newKey(),
+          ),
+        ).rejects.toMatchObject({ code: 'LAUNCH_TRANSITION_INVALID' })
+        await expect(
+          a.returnPrivacyAssessment(PROJECT_ID, a.newKey()),
+        ).rejects.toMatchObject({ code: 'LAUNCH_TRANSITION_INVALID' })
+        await expect(
+          a.submitIamRegistration(
+            PROJECT_ID,
+            'staging',
+            { reference: 'IAM-1' },
+            a.newKey(),
+          ),
+        ).rejects.toMatchObject({ code: 'LAUNCH_TRANSITION_INVALID' })
+        await expect(
+          a.returnIamRegistration(PROJECT_ID, 'staging', a.newKey()),
+        ).rejects.toMatchObject({ code: 'LAUNCH_TRANSITION_INVALID' })
 
         const staging = await a.draftIamRegistration(PROJECT_ID, 'staging', a.newKey())
         expect(staging.package!.environment).toBe('staging')
         await expect(
-          a.submitIamRegistration(
+          a.sendIamRegistration(
             PROJECT_ID,
             'staging',
             { draftGeneratedAt: staging.package!.generatedAt },
@@ -522,18 +554,22 @@ describe('the console’s data layer against manifest-mock', () => {
       { records: 'drafted' },
     )
 
-    // The assessment approved: staging is sent, with UBC's ticket.
+    // The assessment approved: staging is sent to the Manifest team.
     await withMock(
       async (origin) => {
         const a = api(origin)
         const staging = (await a.getLaunchRecords(PROJECT_ID)).stagingRegistration!
-        const sent = await a.submitIamRegistration(
+        const sent = await a.sendIamRegistration(
           PROJECT_ID,
           'staging',
-          { reference: 'IAM-2026-0500', draftGeneratedAt: staging.package!.generatedAt },
+          { draftGeneratedAt: staging.package!.generatedAt },
           a.newKey(),
         )
-        expect(sent).toMatchObject({ state: 'submitted', environment: 'staging' })
+        expect(sent).toMatchObject({
+          state: 'sent',
+          sentFrom: 'draft',
+          environment: 'staging',
+        })
       },
       { records: 'assessed' },
     )

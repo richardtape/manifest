@@ -4,7 +4,9 @@ import type {
   LaunchRecords,
   PrivacyAssessment,
   PrivacyAssessmentDraft,
-  SubmitLaunchRecordRequest,
+  RecordSubmissionRequest,
+  SendLaunchRecordRequest,
+  SendPrivacyAssessmentRequest,
 } from '../representations/launch.js'
 
 /**
@@ -13,6 +15,11 @@ import type {
  * are captured, never written) — one flow: the assessment approved, the staging registration drafted,
  * then said to be sent naming that draft. Long because a real package is: the certificate and the
  * metadata are what a person sends UBC IAM. Their own module so the routes stay readable.
+ *
+ * **THE MANIFEST TEAM'S STEP (the FE-46/47/5 plan's Task 5) EXTENDS THAT FLOW BY HAND**: the owner's send
+ * (`sent`), the team's submission and hand-back — each the captured record with exactly the fields those
+ * operations write (`sent_from`, `sent_at`, `sent_by`, `gap_answers`, the team's day and the administrator),
+ * the shape held by `satisfies` and by the contract's examples test.
  */
 
 /** `draftIamRegistration`: the staging registration's draft, made once the assessment was approved. */
@@ -31,6 +38,9 @@ export const DRAFTED_EXAMPLE = {
   state: 'draft',
   changeRequestedFrom: null,
   externalTicketRef: null,
+  sentFrom: null,
+  sentAt: null,
+  sentBy: null,
   submittedAt: null,
   submittedBy: null,
   package: {
@@ -101,13 +111,25 @@ export const DRAFTED_EXAMPLE = {
   updatedAt: '2026-10-01T15:37:23.114Z',
 } satisfies z.input<typeof IamRegistration>
 
-/** `submitIamRegistration`'s request: UBC's reference, and the draft the person was shown. */
-export const SUBMIT_REQUEST_EXAMPLE = {
-  reference: 'IAM-2026-0500',
+/** `sendIamRegistration`'s request: the draft the person was shown. */
+export const SEND_REQUEST_EXAMPLE = {
   draftGeneratedAt: '2026-10-01T15:37:23.111Z',
-} satisfies z.input<typeof SubmitLaunchRecordRequest>
+} satisfies z.input<typeof SendLaunchRecordRequest>
 
-/** `submitIamRegistration`: that draft, said to have been sent — the package kept as it was sent. */
+/** `submitIamRegistration`'s and `submitPrivacyAssessment`'s request: the team's day and UBC's reference. */
+export const TEAM_SUBMISSION_REQUEST_EXAMPLE = {
+  sentAt: '2026-10-01',
+  reference: 'IAM-2026-0500',
+} satisfies z.input<typeof RecordSubmissionRequest>
+
+/** Who sent it: the owner, and who recorded it with UBC: the administrator. */
+const BIO_PROF = { id: 'af3dc1c0-722c-469c-8c2a-b6179ca3f327', displayName: 'Bio Prof' }
+const PLATFORM_ADMIN = {
+  id: 'c4113a47-bf3c-4653-9260-ca723416fdc6',
+  displayName: 'Platform Admin',
+}
+
+/** `submitIamRegistration`: that draft, sent to the team and submitted by it — the package kept as it was sent. */
 export const SUBMITTED_EXAMPLE = {
   id: 'e196ea92-0c4e-4f68-b42f-00ce57e1d92f',
   projectId: '72bc6c0a-bf2b-4b4f-8165-bc86227cd46d',
@@ -123,11 +145,11 @@ export const SUBMITTED_EXAMPLE = {
   state: 'submitted',
   changeRequestedFrom: null,
   externalTicketRef: 'IAM-2026-0500',
+  sentFrom: null,
+  sentAt: '2026-10-01T15:37:23.130Z',
+  sentBy: BIO_PROF,
   submittedAt: '2026-10-01T19:00:00.000Z',
-  submittedBy: {
-    id: 'af3dc1c0-722c-469c-8c2a-b6179ca3f327',
-    displayName: 'Bio Prof',
-  },
+  submittedBy: PLATFORM_ADMIN,
   package: {
     environment: 'staging',
     generatedAt: '2026-10-01T15:37:23.111Z',
@@ -196,6 +218,25 @@ export const SUBMITTED_EXAMPLE = {
   updatedAt: '2026-10-01T15:37:23.131Z',
 } satisfies z.input<typeof IamRegistration>
 
+/** `sendIamRegistration`: the staging registration's draft, sent to the Manifest team — with them now. */
+export const SENT_EXAMPLE = {
+  ...SUBMITTED_EXAMPLE,
+  state: 'sent',
+  sentFrom: 'draft',
+  externalTicketRef: null,
+  submittedAt: null,
+  submittedBy: null,
+  updatedAt: '2026-10-01T15:37:23.130Z',
+} satisfies z.input<typeof IamRegistration>
+
+/** `returnIamRegistration`: handed back to its owner, unsubmitted — the draft again, the send kept as history. */
+export const RETURNED_EXAMPLE = {
+  ...SENT_EXAMPLE,
+  state: 'draft',
+  sentFrom: null,
+  updatedAt: '2026-10-01T15:37:23.140Z',
+} satisfies z.input<typeof IamRegistration>
+
 /** `getLaunchRecords`: the three records once the staging registration was sent. */
 export const RECORDS_EXAMPLE = {
   projectId: '72bc6c0a-bf2b-4b4f-8165-bc86227cd46d',
@@ -215,11 +256,11 @@ export const RECORDS_EXAMPLE = {
     state: 'submitted',
     changeRequestedFrom: null,
     externalTicketRef: 'IAM-2026-0500',
+    sentFrom: null,
+    sentAt: '2026-10-01T15:37:23.130Z',
+    sentBy: BIO_PROF,
     submittedAt: '2026-10-01T19:00:00.000Z',
-    submittedBy: {
-      id: 'af3dc1c0-722c-469c-8c2a-b6179ca3f327',
-      displayName: 'Bio Prof',
-    },
+    submittedBy: PLATFORM_ADMIN,
     package: {
       environment: 'staging',
       generatedAt: '2026-10-01T15:37:23.111Z',
@@ -294,11 +335,11 @@ export const RECORDS_EXAMPLE = {
     reviewer: 'K. Privacy',
     approvedAt: '2026-10-01T15:37:22.363Z',
     externalTicketRef: 'PIA-2026-0088',
+    sentAt: null,
+    sentBy: null,
+    gapAnswers: null,
     submittedAt: '2026-10-01T15:37:22.354Z',
-    submittedBy: {
-      id: 'c4113a47-bf3c-4653-9260-ca723416fdc6',
-      displayName: 'Platform Admin',
-    },
+    submittedBy: PLATFORM_ADMIN,
     draft: null,
     createdAt: '2026-10-01T15:37:22.353Z',
     updatedAt: '2026-10-01T15:37:22.363Z',
@@ -505,6 +546,9 @@ export const ASSESSMENT_DRAFTED_EXAMPLE = {
   reviewer: null,
   approvedAt: null,
   externalTicketRef: null,
+  sentAt: null,
+  sentBy: null,
+  gapAnswers: null,
   submittedAt: null,
   submittedBy: null,
   draft: ASSESSMENT_DRAFT,
@@ -512,13 +556,89 @@ export const ASSESSMENT_DRAFTED_EXAMPLE = {
   updatedAt: '2026-10-01T18:03:26.518Z',
 } satisfies z.input<typeof PrivacyAssessment>
 
-/** `submitPrivacyAssessment`'s request: the PIA number, and the draft the person read. */
-export const ASSESSMENT_SUBMIT_REQUEST_EXAMPLE = {
-  reference: 'PIA-2026-0101',
-  draftGeneratedAt: '2026-10-01T18:03:26.508Z',
-} satisfies z.input<typeof SubmitLaunchRecordRequest>
+/** The owner's answer to each of the draft's gaps — "does not apply" is an answer. */
+const ASSESSMENT_ANSWERS = [
+  {
+    gapId: 'collected.app-data',
+    answer:
+      'Each student’s check-in times and the course section they chose; nothing else.',
+  },
+  {
+    gapId: 'stored.staging-cover',
+    answer:
+      'Asked the Privacy Office on October 1, 2026: it says this assessment covers staging.',
+  },
+  {
+    gapId: 'retention.removal',
+    answer: 'A nightly job deletes check-ins older than 365 days.',
+  },
+  {
+    gapId: 'retention.disposal',
+    answer:
+      'At the end of the course, the instructor exports the records and deletes the app.',
+  },
+  {
+    gapId: 'accountable.breach',
+    answer: 'The instructor, Bio Prof, answers for it, with the department’s IT lead.',
+  },
+  {
+    gapId: 'hosting.production',
+    answer: 'Does not apply until UBC chooses the infrastructure.',
+  },
+  {
+    gapId: 'hosting.offshore-ai',
+    answer: 'The app sends the model only a course code and a question, never a name.',
+  },
+]
 
-/** `submitPrivacyAssessment`: the assessment, now submitted — the draft kept as it was sent. */
+/** `sendPrivacyAssessment`'s request: the draft the person read, and an answer to every gap. */
+export const ASSESSMENT_SEND_REQUEST_EXAMPLE = {
+  draftGeneratedAt: '2026-10-01T18:03:26.508Z',
+  answers: ASSESSMENT_ANSWERS,
+} satisfies z.input<typeof SendPrivacyAssessmentRequest>
+
+/** `submitPrivacyAssessment`'s request: the team's day, and the PIA number. */
+export const ASSESSMENT_SUBMIT_REQUEST_EXAMPLE = {
+  sentAt: '2026-10-01',
+  reference: 'PIA-2026-0101',
+} satisfies z.input<typeof RecordSubmissionRequest>
+
+/** The owner, who sent it, and the administrator who recorded the team's submission. */
+const ASSESSMENT_OWNER = {
+  id: '7fdf38c3-b751-4bb0-8199-dbec140b0a9e',
+  displayName: 'Bio Prof',
+}
+const ASSESSMENT_ADMIN = {
+  id: '5d0f4a8e-1b2c-4d3e-8f9a-0b1c2d3e4f5a',
+  displayName: 'Platform Admin',
+}
+
+/** `sendPrivacyAssessment`: the assessment, sent to the Manifest team with its answers. */
+export const ASSESSMENT_SENT_EXAMPLE = {
+  id: '7eb7baa8-5a73-4f0e-a57f-7e776e40419f',
+  projectId: '0429adab-74d1-45eb-81fe-44de4829ee63',
+  state: 'sent',
+  reviewer: null,
+  approvedAt: null,
+  externalTicketRef: null,
+  sentAt: '2026-10-01T18:03:26.530Z',
+  sentBy: ASSESSMENT_OWNER,
+  gapAnswers: ASSESSMENT_ANSWERS,
+  submittedAt: null,
+  submittedBy: null,
+  draft: ASSESSMENT_DRAFT,
+  createdAt: '2026-10-01T18:03:26.518Z',
+  updatedAt: '2026-10-01T18:03:26.530Z',
+} satisfies z.input<typeof PrivacyAssessment>
+
+/** `returnPrivacyAssessment`: handed back to its owner — a draft again, the send kept as history. */
+export const ASSESSMENT_RETURNED_EXAMPLE = {
+  ...ASSESSMENT_SENT_EXAMPLE,
+  state: 'draft',
+  updatedAt: '2026-10-01T18:03:26.533Z',
+} satisfies z.input<typeof PrivacyAssessment>
+
+/** `submitPrivacyAssessment`: the assessment, now submitted by the team — the draft kept as it was sent. */
 export const ASSESSMENT_SUBMITTED_EXAMPLE = {
   id: '7eb7baa8-5a73-4f0e-a57f-7e776e40419f',
   projectId: '0429adab-74d1-45eb-81fe-44de4829ee63',
@@ -526,11 +646,11 @@ export const ASSESSMENT_SUBMITTED_EXAMPLE = {
   reviewer: null,
   approvedAt: null,
   externalTicketRef: 'PIA-2026-0101',
+  sentAt: '2026-10-01T18:03:26.530Z',
+  sentBy: ASSESSMENT_OWNER,
+  gapAnswers: ASSESSMENT_ANSWERS,
   submittedAt: '2026-10-01T19:00:00.000Z',
-  submittedBy: {
-    id: '7fdf38c3-b751-4bb0-8199-dbec140b0a9e',
-    displayName: 'Bio Prof',
-  },
+  submittedBy: ASSESSMENT_ADMIN,
   draft: ASSESSMENT_DRAFT,
   createdAt: '2026-10-01T18:03:26.518Z',
   updatedAt: '2026-10-01T18:03:26.536Z',
@@ -544,11 +664,11 @@ export const ASSESSMENT_APPROVED_EXAMPLE = {
   reviewer: 'K. Privacy',
   approvedAt: '2026-10-01T18:03:26.544Z',
   externalTicketRef: 'PIA-2026-0101',
+  sentAt: '2026-10-01T18:03:26.530Z',
+  sentBy: ASSESSMENT_OWNER,
+  gapAnswers: ASSESSMENT_ANSWERS,
   submittedAt: '2026-10-01T19:00:00.000Z',
-  submittedBy: {
-    id: '7fdf38c3-b751-4bb0-8199-dbec140b0a9e',
-    displayName: 'Bio Prof',
-  },
+  submittedBy: ASSESSMENT_ADMIN,
   draft: ASSESSMENT_DRAFT,
   createdAt: '2026-10-01T18:03:26.518Z',
   updatedAt: '2026-10-01T18:03:26.544Z',

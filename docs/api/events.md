@@ -138,8 +138,12 @@ Each type, and the one sentence that says what it means; *Event types* has an ex
 | `pending_action.expired` | A token’s question ended unanswered because a person ended the token: it was revoked, its minter was taken off the project, or the project was switched off. Nothing can retry the request, so the question can no longer be confirmed or rejected. Not published when a question simply runs out of time. |
 | `iam_registration.recorded` | An administrator recorded what UBC IAM registered for the app’s staging or production sign-in. |
 | `privacy_assessment.recorded` | An administrator recorded what UBC’s Privacy Office said of the app’s privacy impact assessment. |
-| `iam_registration.submitted` | A person said the app’s staging or production registration request was sent to UBC IAM. It now waits for UBC’s answer, which an administrator records. |
-| `privacy_assessment.submitted` | A person said the app’s privacy impact assessment was sent to UBC’s Privacy Office. It now waits for the Office’s answer, which an administrator records. |
+| `iam_registration.submitted` | The Manifest team submitted the app’s staging or production registration request to UBC IAM, and an administrator recorded it. It now waits for UBC’s answer, which an administrator records. |
+| `privacy_assessment.submitted` | The Manifest team submitted the app’s privacy impact assessment to UBC’s Privacy Office, and an administrator recorded it. It now waits for the Office’s answer, which an administrator records. |
+| `iam_registration.sent` | The owner sent the app’s staging or production registration to the Manifest team, who submit it to UBC IAM or hand it back. The team was emailed. |
+| `privacy_assessment.sent` | The owner sent the app’s privacy impact assessment to the Manifest team, with an answer to every gap, for the team to submit to the Privacy Office or hand back. The team was emailed. |
+| `iam_registration.returned` | The Manifest team handed the app’s staging or production registration back to its owner, unsubmitted, to the state it was sent from. |
+| `privacy_assessment.returned` | The Manifest team handed the app’s privacy impact assessment back to its owner, unsubmitted. It is a draft again. |
 | `iam_registration.drafted` | Manifest drafted the app’s staging or production registration request for a person to send to UBC IAM. Nothing was sent; the draft is on the record. |
 | `privacy_assessment.drafted` | Manifest drafted the app’s privacy impact assessment for a person to complete and send to UBC’s Privacy Office. Nothing was sent; the draft is on the record. |
 | `rehearsal.completed` | A production-shaped rehearsal of the app’s CWL sign-in ran for the release serving staging, and passed or did not. |

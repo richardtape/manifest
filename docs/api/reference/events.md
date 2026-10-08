@@ -360,24 +360,67 @@ An administrator recorded what UBC’s Privacy Office said of the app’s privac
 
 ## `iam_registration.submitted`
 
-A person said the app’s staging or production registration request was sent to UBC IAM. It now waits for UBC’s answer, which an administrator records.
+The Manifest team submitted the app’s staging or production registration request to UBC IAM, and an administrator recorded it. It now waits for UBC’s answer, which an administrator records.
 
 ```json
 {
   "environment": "staging",
   "sentAt": "2026-09-29",
-  "externalTicketRef": "IAM-2026-0500"
+  "externalTicketRef": "IAM-2026-0500",
+  "changeRequest": false
 }
 ```
 
 ## `privacy_assessment.submitted`
 
-A person said the app’s privacy impact assessment was sent to UBC’s Privacy Office. It now waits for the Office’s answer, which an administrator records.
+The Manifest team submitted the app’s privacy impact assessment to UBC’s Privacy Office, and an administrator recorded it. It now waits for the Office’s answer, which an administrator records.
 
 ```json
 {
   "sentAt": "2026-09-22",
   "externalTicketRef": "PIA-2026-0088"
+}
+```
+
+## `iam_registration.sent`
+
+The owner sent the app’s staging or production registration to the Manifest team, who submit it to UBC IAM or hand it back. The team was emailed.
+
+```json
+{
+  "environment": "staging",
+  "sentFrom": "draft"
+}
+```
+
+## `privacy_assessment.sent`
+
+The owner sent the app’s privacy impact assessment to the Manifest team, with an answer to every gap, for the team to submit to the Privacy Office or hand back. The team was emailed.
+
+```json
+{
+  "gapCount": 8
+}
+```
+
+## `iam_registration.returned`
+
+The Manifest team handed the app’s staging or production registration back to its owner, unsubmitted, to the state it was sent from.
+
+```json
+{
+  "environment": "staging",
+  "to": "draft"
+}
+```
+
+## `privacy_assessment.returned`
+
+The Manifest team handed the app’s privacy impact assessment back to its owner, unsubmitted. It is a draft again.
+
+```json
+{
+  "to": "draft"
 }
 ```
 

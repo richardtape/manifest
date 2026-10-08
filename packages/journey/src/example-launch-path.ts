@@ -21,12 +21,13 @@ const refusedBy = (error: unknown): Refused => {
 /**
  * Draft the privacy assessment — the first of the three records, in UBC's order. A person's client,
  * or an agent's on a token holding `launch:draft`: drafting sends nothing anywhere. What comes back is
- * what to read before sending it, and the questions only the owner can answer.
+ * what to read before sending it, and the questions only the owner can answer — each by its gap's `id`,
+ * which stays the same when the app is drafted again, so an answer kept for it still fits.
  */
 export async function draftTheAssessment(
   client: ManifestClient,
   projectId: string,
-): Promise<{ generatedAt: string; forYouToAdd: string[] }> {
+): Promise<{ generatedAt: string; forYouToAdd: { gapId: string; asks: string }[] }> {
   const assessment = unwrap(
     await client.POST(
       '/v1/projects/{projectId}/launch-records/privacy-assessment/draft',
@@ -40,7 +41,7 @@ export async function draftTheAssessment(
   return {
     generatedAt: draft.generatedAt,
     forYouToAdd: draft.sections.flatMap((s) =>
-      s.gaps.map((gap) => `${s.title}: ${gap.text}`),
+      s.gaps.map((gap) => ({ gapId: gap.id, asks: `${s.title}: ${gap.text}` })),
     ),
   }
 }
@@ -75,43 +76,90 @@ export async function draftARegistration(
 }
 
 /**
- * *"I've sent it"* — the person says the draft went, on a day and with the ticket they were given.
- * BROWSER CODE: only the person who sent it can say so, in their own session, so `page` is the page's
- * own client — `createManifestClient({ origin: location.origin })` — which carries no credential,
- * because the person's browser sends their cookie and `Origin` itself. **Always name the draft read**
- * (`draftGeneratedAt`): a draft made again since is refused, never recorded as what was sent.
+ * Send it to the Manifest team — who submit it to UBC, or hand it back with what to change. BROWSER CODE:
+ * only a person sends it, in their own session, so `page` is the page's own client —
+ * `createManifestClient({ origin: location.origin })` — which carries no credential, because the person's
+ * browser sends their cookie and `Origin` itself. **Always name the draft read** (`draftGeneratedAt`): a
+ * draft made again since is refused, never sent. **The privacy assessment carries an answer to every gap**,
+ * by its id — *"does not apply"* is an answer; a gap left out is refused, naming it.
  */
-export async function sayItWasSent(
+export async function sendIt(
   page: ManifestClient,
   projectId: string,
   record: 'privacy-assessment' | 'staging' | 'production',
-  sent: { draftGeneratedAt: string; sentAt?: string; reference?: string },
-): Promise<{ done: true; submittedAt: string } | Refused> {
+  sent: { draftGeneratedAt: string; answers?: { gapId: string; answer: string }[] },
+): Promise<{ done: true; sentAt: string } | Refused> {
   const params = { header: { 'Idempotency-Key': idempotencyKey() } }
   try {
     const answer =
       record === 'privacy-assessment'
         ? unwrap(
             await page.POST(
+              '/v1/projects/{projectId}/launch-records/privacy-assessment/send',
+              {
+                params: { ...params, path: { projectId } },
+                body: {
+                  draftGeneratedAt: sent.draftGeneratedAt,
+                  answers: sent.answers ?? [],
+                },
+              },
+            ),
+            'sendPrivacyAssessment',
+          )
+        : unwrap(
+            await page.POST(
+              '/v1/projects/{projectId}/launch-records/iam-registration/{environment}/send',
+              {
+                params: { ...params, path: { projectId, environment: record } },
+                body: { draftGeneratedAt: sent.draftGeneratedAt },
+              },
+            ),
+            'sendIamRegistration',
+          )
+    return { done: true, sentAt: answer.sentAt! }
+  } catch (error) {
+    // UBC's order is held here: `LAUNCH_PIA_NOT_APPROVED`, `LAUNCH_STAGING_NOT_REGISTERED` — each
+    // with what to send first — and every gap answered: `LAUNCH_GAP_ANSWERS_INVALID`.
+    return refusedBy(error)
+  }
+}
+
+/**
+ * The Manifest team submitted it to UBC — an administrator's record, in their own session, of the day
+ * the team sent it (today when absent) and UBC's reference: IAM's ticket, or the PIA number. BROWSER CODE,
+ * the administrator's page. Only what its owner sent the team is submitted.
+ */
+export async function teamSubmitted(
+  admin: ManifestClient,
+  projectId: string,
+  record: 'privacy-assessment' | 'staging' | 'production',
+  submitted: { reference: string; sentAt?: string },
+): Promise<{ done: true; submittedAt: string } | Refused> {
+  const params = { header: { 'Idempotency-Key': idempotencyKey() } }
+  try {
+    const answer =
+      record === 'privacy-assessment'
+        ? unwrap(
+            await admin.POST(
               '/v1/projects/{projectId}/launch-records/privacy-assessment/submission',
-              { params: { ...params, path: { projectId } }, body: sent },
+              { params: { ...params, path: { projectId } }, body: submitted },
             ),
             'submitPrivacyAssessment',
           )
         : unwrap(
-            await page.POST(
+            await admin.POST(
               '/v1/projects/{projectId}/launch-records/iam-registration/{environment}/submission',
               {
                 params: { ...params, path: { projectId, environment: record } },
-                body: sent,
+                body: submitted,
               },
             ),
             'submitIamRegistration',
           )
     return { done: true, submittedAt: answer.submittedAt! }
   } catch (error) {
-    // UBC's order is held here: `LAUNCH_PIA_NOT_APPROVED`, `LAUNCH_STAGING_NOT_REGISTERED` — each
-    // with what to send first.
+    // `LAUNCH_TRANSITION_INVALID` when the team does not hold it; `LAUNCH_SENT_AT_INVALID` for a day
+    // that cannot be true.
     return refusedBy(error)
   }
 }

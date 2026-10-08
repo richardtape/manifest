@@ -11,6 +11,7 @@ import {
   users,
   type Db,
 } from '../db/index.js'
+import type { Mailer } from '../mail/index.js'
 import { makeRedactor, publishEvent, type EventBus } from '../observability/index.js'
 import { personName, repositoryOf } from '../projects/index.js'
 import { SourceError, type RepoRef, type SourceDriver } from '../source/index.js'
@@ -19,13 +20,22 @@ import { deriveSpEntity, type Contact, type SsoCertificates } from '../sso/index
 import { candidateFor } from './candidate.js'
 import type { ModelCatalogue, ModelEntry } from '../ai/index.js'
 import type { Driver } from '../runtime/index.js'
-import { assembleAssessment, readAssessmentDraft } from './assessment.js'
+import {
+  assembleAssessment,
+  checkGapAnswers,
+  readAssessmentDraft,
+  type GapAnswer,
+} from './assessment.js'
 import { assemblePackage, readPackage, SEARCH_BOUND } from './package.js'
 import {
+  iamReturnTo,
+  iamSendableFrom,
   iamTransition,
+  LaunchTransitionError,
+  PIA_SENDABLE,
   piaTransition,
-  refuseSubmission,
-  SUBMIT_ARROWS,
+  refuseRecordAroundTheTeam,
+  refuseSend,
   type IamState,
   type PiaState,
 } from './transitions.js'
@@ -170,6 +180,13 @@ export async function recordIamRegistration(
    * edit, and the machine has no self-arrows (`transitions.test.ts` asserts that).
    */
   const from: IamState = existing?.state ?? 'draft'
+  // THE MANIFEST TEAM'S STEP IS NOT RECORDED HERE (the FE-46/47/5 plan's Decision 4): into `sent` is the
+  // owner's send, out of it the team's submission or hand-back — refused first, naming them.
+  refuseRecordAroundTheTeam('the IAM registration', from, input.state, {
+    send: 'sendIamRegistration',
+    submit: 'submitIamRegistration',
+    handBack: 'returnIamRegistration',
+  })
   const state = input.state === from ? from : iamTransition(from, input.state)
 
   /**
@@ -355,6 +372,11 @@ export async function recordPrivacyAssessment(
 ): Promise<PrivacyAssessmentRow> {
   const existing = await getPrivacyAssessment(db, input.projectId)
   const from: PiaState = existing?.state ?? 'draft'
+  refuseRecordAroundTheTeam('the privacy assessment', from, input.state, {
+    send: 'sendPrivacyAssessment',
+    submit: 'submitPrivacyAssessment',
+    handBack: 'returnPrivacyAssessment',
+  })
   const state = input.state === from ? from : piaTransition(from, input.state)
 
   /**
@@ -457,17 +479,20 @@ export function vancouverDayInWords(at: Date): string {
   }).format(at)
 }
 
-export interface SubmitInput {
+/** What a send needs: the database, the bus and the mailer that tells the Manifest team. */
+export interface SendDeps {
+  db: Db
+  bus: EventBus
+  mailer: Mailer
+}
+
+export interface SendInput {
   projectId: string
   actor: { id: string; puid: string }
-  /** The day it was sent, `YYYY-MM-DD`; today in Vancouver when absent. */
-  sentAt?: string | undefined
-  /** UBC's reference for the request, when the person has one yet. */
-  reference?: string | undefined
   /**
    * The `generatedAt` of the draft the person sent, as they read it (Task 10's review, I3). When the
-   * draft has been made again since, the submission is refused rather than recording a draft they never
-   * saw. Absent, the draft on the record is taken as the one sent.
+   * draft has been made again since, the send is refused rather than sending a draft they never saw.
+   * Absent, the draft on the record is taken as the one sent.
    */
   draftGeneratedAt?: string | undefined
 }
@@ -480,8 +505,8 @@ function draftedAtOf(draft: unknown): string | undefined {
 
 /**
  * THE DRAFT SENT IS THE DRAFT HELD (Task 10's whole-branch review, I3): `launch:draft` is mintable and a
- * collaborator holds it, so the draft can be made again between a person reading it and saying they sent
- * it — and the record would then keep a document they never saw. Compared as instants.
+ * collaborator holds it, so the draft can be made again between a person reading it and sending it — and
+ * the record would then keep a document they never saw. Compared as instants.
  */
 function assertDraftRead(what: string, stored: unknown, read: string | undefined): void {
   if (read === undefined) return
@@ -489,40 +514,43 @@ function assertDraftRead(what: string, stored: unknown, read: string | undefined
   if (held !== undefined && Date.parse(held) === Date.parse(read)) return
   throw new LaunchRecordError(
     'LAUNCH_DRAFT_CHANGED',
-    `${what} was drafted again (${held ?? 'at an unknown time'}) after the draft you read (${read}): what Manifest holds is not what you sent, so nothing was recorded`,
-    'Read the current draft. If it is what you sent, say so again with its generatedAt; if you sent the earlier one, send the current draft instead and say so.',
+    `${what} was drafted again (${held ?? 'at an unknown time'}) after the draft you read (${read}): what Manifest holds is not what you read, so nothing was sent`,
+    'Read the current draft, then send it, naming its generatedAt.',
   )
 }
 
 /**
- * WHEN A PERSON MAY SAY THEY SENT IT: on a day that has happened, and not before the draft they
- * sent existed — the package IS what is sent. Both bounds are days in Vancouver, compared as
- * `YYYY-MM-DD` strings, which order as dates.
+ * THE DAY THE MANIFEST TEAM SAYS IT SENT SOMETHING TO UBC: a day that has happened, and not before its
+ * owner sent it to the team (the FE-46/47/5 plan's Decision 3) — the team cannot have sent what it did not
+ * yet hold. Both bounds are days in Vancouver, compared as `YYYY-MM-DD` strings, which order as dates.
  */
-function sentDay(sentAt: string | undefined, draftedAt: Date): string {
+function sentDay(
+  sentAt: string | undefined,
+  notBefore: { at: Date; what: string },
+): string {
   const today = vancouverDay(new Date())
   const day = sentAt ?? today
   // A DAY THAT EXISTS (the whole-branch review's I2): `2026-02-30` would roll over to March 2, and
-  // compare as a string on the wrong side of the draft's day. The route's schema refuses it first;
-  // this is the module's own refusal, for any other caller.
+  // compare as a string on the wrong side of the bound. The route's schema refuses it first; this is
+  // the module's own refusal, for any other caller.
   if (!/^\d{4}-\d{2}-\d{2}$/.test(day) || vancouverDay(vancouverNoon(day)) !== day)
     throw new LaunchRecordError(
       'LAUNCH_SENT_AT_INVALID',
       `sentAt ${day} is not a day: give it as YYYY-MM-DD`,
-      'Give the day you sent it, as YYYY-MM-DD — or leave it out for today.',
+      'Give the day it was sent to UBC, as YYYY-MM-DD — or leave it out for today.',
     )
   if (day > today)
     throw new LaunchRecordError(
       'LAUNCH_SENT_AT_INVALID',
       `sentAt ${day} is after today (${today} in Vancouver): say the day it was sent, once it has been`,
-      'Send it first, then say so — with the day you sent it, or no day for today.',
+      'Send it to UBC first, then record it — with the day it was sent, or no day for today.',
     )
-  const drafted = vancouverDay(draftedAt)
-  if (day < drafted)
+  const earliest = vancouverDay(notBefore.at)
+  if (day < earliest)
     throw new LaunchRecordError(
       'LAUNCH_SENT_AT_INVALID',
-      `sentAt ${day} is before the draft was made (${drafted}): what was sent is the draft, so it cannot have gone earlier`,
-      'Give the day you sent this draft — on or after the day it was made.',
+      `sentAt ${day} is before ${notBefore.what} (${earliest}): it cannot have gone to UBC earlier`,
+      `Give the day it was sent to UBC — on or after the day ${notBefore.what}.`,
     )
   return day
 }
@@ -530,44 +558,58 @@ function sentDay(sentAt: string | undefined, draftedAt: Date): string {
 const noDraft = (what: string) =>
   new LaunchRecordError(
     'LAUNCH_DRAFT_REQUIRED',
-    `there is no draft of ${what} to have sent: Manifest drafts it first, and what is sent is that draft`,
-    'Draft it, send the draft, then say it was sent.',
+    `there is no draft of ${what} to send: Manifest drafts it first, and what is sent is that draft`,
+    'Draft it, read the draft, then send it to the Manifest team.',
   )
 
+/** Which record a notice names — the mailer's words for it. */
+const NOTICE_RECORD = {
+  staging: 'staging-registration',
+  production: 'production-registration',
+} as const satisfies Record<RegistrationEnvironment, string>
+
+/** The project, as the Manifest team's email names it: its id, slug and name. */
+async function projectNamed(
+  db: Db,
+  projectId: string,
+): Promise<{ id: string; slug: string; name: string } | undefined> {
+  const [project] = await db
+    .select({ id: projects.id, slug: projects.slug, name: projects.name })
+    .from(projects)
+    .where(eq(projects.id, projectId))
+  return project
+}
+
 /**
- * AN OWNER'S *"I'VE SENT IT"* FOR A REGISTRATION (§9, Spec actions 3 and 9; the launch path plan's
- * Task 9). The record moves to `submitted`, stamped with the day the person names and with them —
- * which is how Manifest can say how long it has waited — and UBC's answer stays an administrator's
- * record (`recordIamRegistration`). In this order, each refusal before anything is written:
+ * THE OWNER SENDS A REGISTRATION TO THE MANIFEST TEAM (§9, Spec actions 3 and 9 as `8def435` amended them;
+ * the FE-46/47/5 plan's Task 5, Decisions 2, 3, 5, 6 and 11). The record moves to `sent` — with the team,
+ * who submit it to UBC IAM or hand it back — stamped with the moment and the person, and `sent_from` says
+ * where it was sent from. UBC's submission (`submitted_at`, `submitted_by`, the reference) is untouched:
+ * that is the team's to record. In this order, each refusal before anything is written:
  *
  *  1. **A draft must exist** (`409 LAUNCH_DRAFT_REQUIRED`): the package is what the person sends.
- *  2. **Along `SUBMIT_ARROWS`** (`409 LAUNCH_TRANSITION_INVALID`): from a draft, after UBC asked for
- *     changes, or once it lapsed — never from what UBC has decided, never twice.
+ *  2. **From where a send may go** (`iamSendableFrom`, `409 LAUNCH_TRANSITION_INVALID`): a draft, UBC's
+ *     questions to the owner, or a lapse — never twice, never what UBC holds or decided.
  *  3. **In UBC's order** (Spec action 9, Rich's *"Gate each step"*): EITHER registration only once the
- *     privacy assessment is approved AND carries its reference, the PIA number UBC IAM asks for
- *     (`409 LAUNCH_PIA_NOT_APPROVED` — §9: *"neither of an app's registrations is sent until the
- *     assessment is approved"*, so production's checks it too, and staging recorded `active` by an
- *     administrator cannot carry it past; the whole-branch review's I3); production's only once
- *     staging's is `active` as well (`409 LAUNCH_STAGING_NOT_REGISTERED` — *"tested"* is the owner's
- *     judgement, not measured).
- *  4. **On a day that can be true** (`400 LAUNCH_SENT_AT_INVALID`).
+ *     privacy assessment is approved AND carries its reference (`409 LAUNCH_PIA_NOT_APPROVED`);
+ *     production's only once staging's is `active` as well (`409 LAUNCH_STAGING_NOT_REGISTERED`).
+ *  4. **The draft read is the draft held** (`409 LAUNCH_DRAFT_CHANGED`), and it carries the assessment's PIA
+ *     number (`409 LAUNCH_DRAFT_STALE`).
  *
- * **ONE TRANSACTION, AND WHAT IT DECIDES BY IS HELD** (the whole-branch review's I1): the record
- * `FOR UPDATE`, the assessment and staging's registration `FOR SHARE`. An administrator's record —
- * one upsert, one row lock — then lands wholly before this reads or wholly after it commits: never a
- * second *"I've sent it"* over a submission they recorded in the meantime, never a submission
- * through a gate that closed while it was being read. The locks are taken registration → assessment
- * → staging, and no writer holds two, so they cannot deadlock.
- *
- * The caller is `submitIamRegistration`'s route, in a person's own session (`launch:submit`,
+ * **ONE TRANSACTION, AND WHAT IT DECIDES BY IS HELD** (the whole-branch review's I1): the record `FOR
+ * UPDATE`, the assessment and staging's registration `FOR SHARE`, taken registration → assessment →
+ * staging; no writer holds two, so they cannot deadlock. Then `iam_registration.sent`, after the commit,
+ * and the team TOLD after the event (`mailer.tellTeam` — in the background, never awaited, never undoing
+ * the send). The caller is `sendIamRegistration`'s route, in a person's own session (`launch:submit`,
  * person-only).
  */
-export async function submitIamRegistration(
-  db: Db,
-  bus: EventBus,
-  input: SubmitInput & { environment: RegistrationEnvironment },
+export async function sendIamRegistration(
+  deps: SendDeps,
+  input: SendInput & { environment: RegistrationEnvironment },
 ): Promise<IamRegistrationRow> {
-  const { row, day } = await db.transaction(async (tx) => {
+  const { db, bus, mailer } = deps
+  const what = `this app's ${input.environment} registration`
+  const row = await db.transaction(async (tx) => {
     const [existing] = await tx
       .select()
       .from(iamRegistrations)
@@ -579,10 +621,16 @@ export async function submitIamRegistration(
       )
       .for('update')
     const sent = readPackage(existing?.generatedPackage)
-    if (existing === undefined || sent === null)
-      throw noDraft(`this app's ${input.environment} registration`)
-    if (!SUBMIT_ARROWS.iam.has(existing.state))
-      refuseSubmission('an IAM registration', existing.state, SUBMIT_ARROWS.iam)
+    if (existing === undefined || sent === null) throw noDraft(what)
+    const sentFrom = iamSendableFrom(existing)
+    if (sentFrom === null)
+      refuseSend(
+        'an IAM registration',
+        existing.state === 'change_requested'
+          ? "'change_requested' with a change request the Manifest team filed with UBC IAM"
+          : `'${existing.state}'`,
+        "'draft', 'expired', or 'change_requested' once UBC IAM has asked its owner for changes",
+      )
 
     const [pia] = await tx
       .select()
@@ -596,8 +644,8 @@ export async function submitIamRegistration(
           ? `the privacy assessment is approved but carries no reference: UBC IAM asks for the PIA number, so the ${input.environment} registration waits for it`
           : `the privacy assessment is ${pia === undefined ? 'not yet recorded' : `'${pia.state}'`}: UBC's order is the assessment first, and neither registration is sent until it is approved`,
         pia?.state === 'approved'
-          ? 'Ask an administrator to record the assessment’s PIA number, then send the registration and say so again.'
-          : 'Send the privacy assessment first; once an administrator records it approved, with its PIA number, send the registration.',
+          ? 'Ask an administrator to record the assessment’s PIA number, then send the registration again.'
+          : 'Send the privacy assessment to the Manifest team first; once it is recorded approved, with its PIA number, send the registration.',
       )
     if (input.environment === 'production') {
       const [staging] = await tx
@@ -614,14 +662,10 @@ export async function submitIamRegistration(
         throw new LaunchRecordError(
           'LAUNCH_STAGING_NOT_REGISTERED',
           `the staging registration is ${staging === undefined ? 'not yet recorded' : `'${staging.state}'`}: UBC's order is staging first, and the production registration is sent once staging is registered and tested`,
-          'Send the staging registration first; once an administrator records it active and the app is tested at staging, send production’s.',
+          'Send the staging registration first; once it is recorded active and the app is tested at staging, send production’s.',
         )
     }
-    assertDraftRead(
-      `this app's ${input.environment} registration`,
-      existing.generatedPackage,
-      input.draftGeneratedAt,
-    )
+    assertDraftRead(what, existing.generatedPackage, input.draftGeneratedAt)
     // WHAT UBC IAM ASKS FOR IS IN WHAT IS SENT (§9: the request *"is sent only once the privacy
     // assessment is approved, and its package carries the assessment's reference"*; Task 10's review,
     // I2): a package drafted in week one, before the Privacy Office answered, carries no PIA number —
@@ -630,28 +674,191 @@ export async function submitIamRegistration(
       throw new LaunchRecordError(
         'LAUNCH_DRAFT_STALE',
         sent.privacyAssessmentReference === null
-          ? `the draft of this app's ${input.environment} registration was made before the privacy assessment was approved, so it does not carry the PIA number UBC IAM asks for (${pia.externalTicketRef})`
-          : `the draft of this app's ${input.environment} registration carries PIA number ${sent.privacyAssessmentReference}, and the approved assessment's is ${pia.externalTicketRef}`,
-        'Draft it again — the new draft carries the PIA number — send that one, then say it was sent.',
+          ? `the draft of ${what} was made before the privacy assessment was approved, so it does not carry the PIA number UBC IAM asks for (${pia.externalTicketRef})`
+          : `the draft of ${what} carries PIA number ${sent.privacyAssessmentReference}, and the approved assessment's is ${pia.externalTicketRef}`,
+        'Draft it again — the new draft carries the PIA number — and send that one.',
       )
 
-    // THE DRAFT THAT WAS SENT is the newest (the whole-branch review's M4): after a re-draft the
-    // row's `created_at` is the FIRST draft's day, and the package carries its own.
-    const day = sentDay(input.sentAt, new Date(sent.generatedAt))
-    const [row] = await tx
+    const [updated] = await tx
       .update(iamRegistrations)
       .set({
-        state: 'submitted',
-        // Out of `change_requested`, when it was there (Task 12): the origin goes with the state.
+        state: 'sent',
+        sentFrom,
+        sentAt: new Date(),
+        sentBy: input.actor.id,
+        // Out of `change_requested`, when it was there (Task 12): the origin goes with the state, and
+        // `sent_from` keeps where it was for the hand-back.
         changeRequestedFrom: null,
-        submittedAt: vancouverNoon(day),
-        submittedBy: input.actor.id,
-        ...(input.reference === undefined ? {} : { externalTicketRef: input.reference }),
         updatedAt: new Date(),
       })
       .where(eq(iamRegistrations.id, existing.id))
       .returning()
-    return { row: row!, day }
+    return updated!
+  })
+
+  const name = await personName(db, input.actor.id)
+  await publishEvent(
+    db,
+    bus,
+    {
+      projectId: input.projectId,
+      subject: `iam-registration:${row.id}`,
+      type: 'iam_registration.sent',
+      machineDetail: { environment: input.environment, sentFrom: row.sentFrom! },
+      humanMessage: `${name} sent this app's ${input.environment} registration to the Manifest team, to submit to UBC IAM.`,
+    },
+    makeRedactor([]),
+  )
+  // AFTER THE EVENT, IN THE BACKGROUND — told, never awaited (Decision 11).
+  const project = await projectNamed(db, input.projectId)
+  if (project !== undefined)
+    mailer.tellTeam({
+      kind: 'record-sent',
+      record: NOTICE_RECORD[input.environment],
+      change: false,
+      project,
+      by: name,
+      at: row.sentAt!,
+    })
+  return row
+}
+
+/**
+ * THE SAME FOR THE PRIVACY ASSESSMENT, WITH AN ANSWER TO EVERY GAP (§9; Rich's (ii); Decision 9). It comes
+ * first in UBC's order, so nothing gates it but its draft, where it is sent from, the draft read, and the
+ * answers (`checkGapAnswers`, `400 LAUNCH_GAP_ANSWERS_INVALID`) — kept on the record in the draft's order,
+ * replacing an earlier send's. The caller is `sendPrivacyAssessment`'s route.
+ */
+export async function sendPrivacyAssessment(
+  deps: SendDeps,
+  input: SendInput & { answers: readonly GapAnswer[] },
+): Promise<PrivacyAssessmentRow> {
+  const { db, bus, mailer } = deps
+  const row = await db.transaction(async (tx) => {
+    const [existing] = await tx
+      .select()
+      .from(privacyAssessments)
+      .where(eq(privacyAssessments.projectId, input.projectId))
+      .for('update')
+    const draft = readAssessmentDraft(existing?.generatedDraft)
+    if (existing === undefined || draft === null)
+      throw noDraft("this app's privacy assessment")
+    if (!PIA_SENDABLE.has(existing.state))
+      refuseSend('a privacy assessment', `'${existing.state}'`, "'draft'")
+    assertDraftRead(
+      "this app's privacy assessment",
+      existing.generatedDraft,
+      input.draftGeneratedAt,
+    )
+    const gapAnswers = checkGapAnswers(draft, input.answers)
+    const [updated] = await tx
+      .update(privacyAssessments)
+      .set({
+        state: 'sent',
+        sentAt: new Date(),
+        sentBy: input.actor.id,
+        gapAnswers,
+        updatedAt: new Date(),
+      })
+      .where(eq(privacyAssessments.id, existing.id))
+      .returning()
+    return updated!
+  })
+
+  const gapCount = row.gapAnswers?.length ?? 0
+  const name = await personName(db, input.actor.id)
+  await publishEvent(
+    db,
+    bus,
+    {
+      projectId: input.projectId,
+      subject: `privacy-assessment:${row.id}`,
+      type: 'privacy_assessment.sent',
+      machineDetail: { gapCount },
+      humanMessage:
+        `${name} sent this app's privacy assessment to the Manifest team` +
+        (gapCount === 0
+          ? ''
+          : gapCount === 1
+            ? ', with an answer to its one gap'
+            : `, with an answer to each of its ${gapCount} gaps`) +
+        ', to submit to the Privacy Office.',
+    },
+    makeRedactor([]),
+  )
+  const project = await projectNamed(db, input.projectId)
+  if (project !== undefined)
+    mailer.tellTeam({
+      kind: 'record-sent',
+      record: 'privacy-assessment',
+      change: false,
+      project,
+      by: name,
+      at: row.sentAt!,
+    })
+  return row
+}
+
+/** What the Manifest team's submission carries: the day it sent the record to UBC, and UBC's reference. */
+export interface TeamSubmissionInput {
+  projectId: string
+  actor: { id: string; puid: string }
+  /** The day the team sent it to UBC, `YYYY-MM-DD`; today in Vancouver when absent. */
+  sentAt?: string | undefined
+  /** UBC's reference: IAM's ticket, or the Privacy Office's PIA number. */
+  reference: string
+}
+
+/** A record the Manifest team does not hold — its own words, the machines' code. */
+const notWithTeam = (what: string, state: string | undefined): LaunchTransitionError =>
+  new LaunchTransitionError(
+    'LAUNCH_TRANSITION_INVALID',
+    `${what} is ${state === undefined ? 'not yet drafted' : `'${state}'`}: the Manifest team submits, or hands back, only what its owner sent it ('sent')`,
+  )
+
+/**
+ * THE MANIFEST TEAM SUBMITTED A REGISTRATION TO UBC IAM (§9; the FE-46/47/5 plan's Task 5, Decisions 2 and
+ * 3) — an administrator's record (`launch:record`): `sent → submitted`, stamped with the day the team sent
+ * it (noon in Vancouver; not after today, not before the owner sent it) and UBC's reference, by the
+ * administrator. **Never refused for UBC's order**: that was held when the owner sent it. In one
+ * transaction, the row `FOR UPDATE`; `iam_registration.submitted` after the commit. The caller is
+ * `submitIamRegistration`'s route.
+ */
+export async function recordIamSubmission(
+  db: Db,
+  bus: EventBus,
+  input: TeamSubmissionInput & { environment: RegistrationEnvironment },
+): Promise<IamRegistrationRow> {
+  const { row, day } = await db.transaction(async (tx) => {
+    const [existing] = await tx
+      .select()
+      .from(iamRegistrations)
+      .where(
+        and(
+          eq(iamRegistrations.projectId, input.projectId),
+          eq(iamRegistrations.environmentKind, input.environment),
+        ),
+      )
+      .for('update')
+    if (existing?.state !== 'sent' || existing.sentAt === null)
+      throw notWithTeam(`this app's ${input.environment} registration`, existing?.state)
+    const day = sentDay(input.sentAt, {
+      at: existing.sentAt,
+      what: 'the owner sent it to the Manifest team',
+    })
+    const [updated] = await tx
+      .update(iamRegistrations)
+      .set({
+        state: 'submitted',
+        sentFrom: null,
+        submittedAt: vancouverNoon(day),
+        submittedBy: input.actor.id,
+        externalTicketRef: input.reference,
+        updatedAt: new Date(),
+      })
+      .where(eq(iamRegistrations.id, existing.id))
+      .returning()
+    return { row: updated!, day }
   })
 
   await publishEvent(
@@ -665,58 +872,45 @@ export async function submitIamRegistration(
         environment: input.environment,
         sentAt: day,
         externalTicketRef: row.externalTicketRef ?? null,
+        changeRequest: false,
       },
-      humanMessage:
-        `${await personName(db, input.actor.id)} said this app's ${input.environment} registration was sent to UBC IAM on ${vancouverDayInWords(vancouverNoon(day))}` +
-        `${row.externalTicketRef === null ? '' : ` (ticket ${row.externalTicketRef})`}.`,
+      humanMessage: `${await personName(db, input.actor.id)} recorded that the Manifest team submitted this app's ${input.environment} registration to UBC IAM on ${vancouverDayInWords(vancouverNoon(day))} (ticket ${input.reference}).`,
     },
     makeRedactor([]),
   )
   return row
 }
 
-/**
- * THE SAME FOR THE PRIVACY ASSESSMENT (Task 9). It comes first in UBC's order, so nothing gates it
- * but its draft and its arrows.
- */
-export async function submitPrivacyAssessment(
+/** THE SAME FOR THE PRIVACY ASSESSMENT, submitted to the Privacy Office with its PIA number. */
+export async function recordAssessmentSubmission(
   db: Db,
   bus: EventBus,
-  input: SubmitInput,
+  input: TeamSubmissionInput,
 ): Promise<PrivacyAssessmentRow> {
-  // The registration's rule (the whole-branch review's I1): the record held while it is decided.
   const { row, day } = await db.transaction(async (tx) => {
     const [existing] = await tx
       .select()
       .from(privacyAssessments)
       .where(eq(privacyAssessments.projectId, input.projectId))
       .for('update')
-    const sent = readAssessmentDraft(existing?.generatedDraft)
-    if (existing === undefined || sent === null)
-      throw noDraft("this app's privacy assessment")
-    if (!SUBMIT_ARROWS.pia.has(existing.state))
-      refuseSubmission('a privacy assessment', existing.state, SUBMIT_ARROWS.pia)
-    assertDraftRead(
-      "this app's privacy assessment",
-      existing.generatedDraft,
-      input.draftGeneratedAt,
-    )
-
-    // THE DRAFT THAT WAS SENT is the newest (Task 10's review, M4; Task 11): after a re-draft the
-    // row's `created_at` is the FIRST draft's day, and the draft carries its own.
-    const day = sentDay(input.sentAt, new Date(sent.generatedAt))
-    const [row] = await tx
+    if (existing?.state !== 'sent' || existing.sentAt === null)
+      throw notWithTeam("this app's privacy assessment", existing?.state)
+    const day = sentDay(input.sentAt, {
+      at: existing.sentAt,
+      what: 'the owner sent it to the Manifest team',
+    })
+    const [updated] = await tx
       .update(privacyAssessments)
       .set({
         state: 'submitted',
         submittedAt: vancouverNoon(day),
         submittedBy: input.actor.id,
-        ...(input.reference === undefined ? {} : { externalTicketRef: input.reference }),
+        externalTicketRef: input.reference,
         updatedAt: new Date(),
       })
       .where(eq(privacyAssessments.id, existing.id))
       .returning()
-    return { row: row!, day }
+    return { row: updated!, day }
   })
 
   await publishEvent(
@@ -727,9 +921,96 @@ export async function submitPrivacyAssessment(
       subject: `privacy-assessment:${row.id}`,
       type: 'privacy_assessment.submitted',
       machineDetail: { sentAt: day, externalTicketRef: row.externalTicketRef ?? null },
-      humanMessage:
-        `${await personName(db, input.actor.id)} said this app's privacy assessment was sent to the UBC Privacy Office on ${vancouverDayInWords(vancouverNoon(day))}` +
-        `${row.externalTicketRef === null ? '' : ` (ticket ${row.externalTicketRef})`}.`,
+      humanMessage: `${await personName(db, input.actor.id)} recorded that the Manifest team submitted this app's privacy assessment to the UBC Privacy Office on ${vancouverDayInWords(vancouverNoon(day))} (ticket ${input.reference}).`,
+    },
+    makeRedactor([]),
+  )
+  return row
+}
+
+/**
+ * THE MANIFEST TEAM HANDS A REGISTRATION BACK TO ITS OWNER, UNSUBMITTED (§9; Rich's (i); Decisions 2 and
+ * 5): `sent` returns to the state it was sent from (`iamReturnTo`) — a registration sent from UBC's
+ * questions to the owner goes back to them, the owner's move again. The owner's send stays on the record
+ * as history; the next send replaces it. **The reason travels outside the record**, as UBC's questions do.
+ * The caller is `returnIamRegistration`'s route (`launch:record`).
+ */
+export async function returnIamRegistration(
+  db: Db,
+  bus: EventBus,
+  input: {
+    projectId: string
+    environment: RegistrationEnvironment
+    actor: { id: string; puid: string }
+  },
+): Promise<IamRegistrationRow> {
+  const row = await db.transaction(async (tx) => {
+    const [existing] = await tx
+      .select()
+      .from(iamRegistrations)
+      .where(
+        and(
+          eq(iamRegistrations.projectId, input.projectId),
+          eq(iamRegistrations.environmentKind, input.environment),
+        ),
+      )
+      .for('update')
+    if (existing?.state !== 'sent' || existing.sentFrom === null)
+      throw notWithTeam(`this app's ${input.environment} registration`, existing?.state)
+    const [updated] = await tx
+      .update(iamRegistrations)
+      .set({ ...iamReturnTo(existing.sentFrom), sentFrom: null, updatedAt: new Date() })
+      .where(eq(iamRegistrations.id, existing.id))
+      .returning()
+    return { updated: updated!, to: existing.sentFrom }
+  })
+
+  await publishEvent(
+    db,
+    bus,
+    {
+      projectId: input.projectId,
+      subject: `iam-registration:${row.updated.id}`,
+      type: 'iam_registration.returned',
+      machineDetail: { environment: input.environment, to: row.to },
+      humanMessage: `${await personName(db, input.actor.id)} handed this app's ${input.environment} registration back to its owner, unsubmitted.`,
+    },
+    makeRedactor([]),
+  )
+  return row.updated
+}
+
+/** THE SAME FOR THE PRIVACY ASSESSMENT: back to `draft`, the owner's to send again. */
+export async function returnPrivacyAssessment(
+  db: Db,
+  bus: EventBus,
+  input: { projectId: string; actor: { id: string; puid: string } },
+): Promise<PrivacyAssessmentRow> {
+  const row = await db.transaction(async (tx) => {
+    const [existing] = await tx
+      .select()
+      .from(privacyAssessments)
+      .where(eq(privacyAssessments.projectId, input.projectId))
+      .for('update')
+    if (existing?.state !== 'sent')
+      throw notWithTeam("this app's privacy assessment", existing?.state)
+    const [updated] = await tx
+      .update(privacyAssessments)
+      .set({ state: 'draft', updatedAt: new Date() })
+      .where(eq(privacyAssessments.id, existing.id))
+      .returning()
+    return updated!
+  })
+
+  await publishEvent(
+    db,
+    bus,
+    {
+      projectId: input.projectId,
+      subject: `privacy-assessment:${row.id}`,
+      type: 'privacy_assessment.returned',
+      machineDetail: { to: 'draft' },
+      humanMessage: `${await personName(db, input.actor.id)} handed this app's privacy assessment back to its owner, unsubmitted.`,
     },
     makeRedactor([]),
   )
@@ -750,17 +1031,35 @@ export async function submitterOf(
 }
 
 /**
- * A REGISTRATION ONCE SENT IS KEPT AS IT WAS SENT (Decision 9): drafted again only after UBC asked
- * for changes or the registration lapsed, where a new request is the point.
+ * A REGISTRATION ONCE SENT IS KEPT AS IT WAS SENT (Decision 9): drafted again only where it may be sent
+ * from (`iamSendableFrom` — the FE-46/47/5 plan's Decision 5): a draft, UBC's questions to the OWNER, or a
+ * lapse, where a new request is the point. Never while the Manifest team holds it, what UBC holds — a change
+ * request the team filed included — or what UBC decided.
  */
-const DRAFTABLE: ReadonlySet<IamState> = new Set(['draft', 'change_requested', 'expired'])
+const draftable = (row: Pick<IamRegistrationRow, 'state' | 'changeRequestedFrom'>) =>
+  iamSendableFrom(row) !== null
 
-const alreadySent = (environment: RegistrationEnvironment, state: IamState) =>
-  new LaunchRecordError(
-    'LAUNCH_RECORD_SUBMITTED',
-    `the ${environment} registration is '${state}': what was sent to UBC IAM is kept as it was sent, and Manifest drafts it again only once UBC asks for changes or the registration lapses`,
-    'To change what UBC IAM was sent, ask UBC IAM; once an administrator records that it asked for changes, draft it again.',
-  )
+const alreadySent = (
+  environment: RegistrationEnvironment,
+  row: Pick<IamRegistrationRow, 'state' | 'changeRequestedFrom'>,
+) =>
+  row.state === 'sent'
+    ? new LaunchRecordError(
+        'LAUNCH_RECORD_SUBMITTED',
+        `the ${environment} registration is with the Manifest team ('sent'): what its owner sent is kept as it was sent, and Manifest drafts it again only if the team hands it back`,
+        'Ask the Manifest team to hand it back if it needs to change, then draft it again.',
+      )
+    : row.state === 'change_requested'
+      ? new LaunchRecordError(
+          'LAUNCH_RECORD_SUBMITTED',
+          `the ${environment} registration has a change request the Manifest team filed with UBC IAM ('change_requested'): UBC holds it, and Manifest drafts it again only once UBC answers`,
+          'Wait for UBC IAM’s answer, which an administrator records.',
+        )
+      : new LaunchRecordError(
+          'LAUNCH_RECORD_SUBMITTED',
+          `the ${environment} registration is '${row.state}': what was sent to UBC IAM is kept as it was sent, and Manifest drafts it again only once UBC asks for changes or the registration lapses`,
+          'To change what UBC IAM was sent, ask UBC IAM; once an administrator records that it asked for changes, draft it again.',
+        )
 
 /** Extensions an app's own code and served pages are written in (Decision 14, `[M9]`). */
 const SEARCHED = /\.(js|mjs|ts|html)$/
@@ -999,8 +1298,8 @@ export async function draftIamRegistration(
 ): Promise<IamRegistrationRow> {
   const { db } = deps
   const existing = await getIamRegistration(db, input.projectId, input.environment)
-  if (existing !== undefined && !DRAFTABLE.has(existing.state))
-    throw alreadySent(input.environment, existing.state)
+  if (existing !== undefined && !draftable(existing))
+    throw alreadySent(input.environment, existing)
 
   const [project] = await db
     .select({ id: projects.id, slug: projects.slug, blueprintRef: projects.blueprintRef })
@@ -1105,7 +1404,7 @@ export async function draftIamRegistration(
       if (current === undefined)
         throw new Error('the registration vanished while drafting')
     }
-    if (!DRAFTABLE.has(current.state)) throw alreadySent(input.environment, current.state)
+    if (!draftable(current)) throw alreadySent(input.environment, current)
     const [updated] = await tx
       .update(iamRegistrations)
       .set({
@@ -1154,11 +1453,17 @@ export async function draftIamRegistration(
  * `submitted` or `approved`.
  */
 const assessmentAlreadySent = (state: PiaState) =>
-  new LaunchRecordError(
-    'LAUNCH_RECORD_SUBMITTED',
-    `the privacy assessment is '${state}': what was sent to the Privacy Office is kept as it was sent, and Manifest drafts it again only once the Office sends it back`,
-    'To change what the Privacy Office was sent, ask the Office; once an administrator records it back in draft, draft it again.',
-  )
+  state === 'sent'
+    ? new LaunchRecordError(
+        'LAUNCH_RECORD_SUBMITTED',
+        "the privacy assessment is with the Manifest team ('sent'): what its owner sent is kept as it was sent, and Manifest drafts it again only if the team hands it back",
+        'Ask the Manifest team to hand it back if it needs to change, then draft it again.',
+      )
+    : new LaunchRecordError(
+        'LAUNCH_RECORD_SUBMITTED',
+        `the privacy assessment is '${state}': what was sent to the Privacy Office is kept as it was sent, and Manifest drafts it again only once the Office sends it back`,
+        'To change what the Privacy Office was sent, ask the Office; once an administrator records it back in draft, draft it again.',
+      )
 
 export interface AssessmentDraftDeps {
   db: Db

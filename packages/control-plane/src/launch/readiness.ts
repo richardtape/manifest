@@ -371,7 +371,7 @@ async function iamItem(
     return {
       ...IAM_BASE,
       state: 'unmet',
-      why: 'Every production app that signs people in with CWL needs its own registration with UBC IAM, and it takes weeks. Production’s is drafted (draftIamRegistration) and sent (submitIamRegistration) once the privacy assessment is approved and staging’s registration is active. An administrator records UBC IAM’s answer, with its ticket reference.',
+      why: 'Every production app that signs people in with CWL needs its own registration with UBC IAM, and it takes weeks. Production’s is drafted (draftIamRegistration) and sent to the Manifest team (sendIamRegistration) once the privacy assessment is approved and staging’s registration is active; the team submits it to UBC IAM. An administrator records UBC IAM’s answer, with its ticket reference.',
     }
   if (row.state === 'active') {
     /**
@@ -889,7 +889,7 @@ async function piaItem(
     return {
       ...base,
       state: 'unmet',
-      why: 'A Privacy Impact Assessment is required before a production launch, and it takes weeks. Draft it (draftPrivacyAssessment), send it to the UBC Privacy Office, and say it was sent (submitPrivacyAssessment); an administrator records the Office’s answer, with its ticket reference.',
+      why: 'A Privacy Impact Assessment is required before a production launch, and it takes weeks. Draft it (draftPrivacyAssessment), answer each of its gaps and send it to the Manifest team (sendPrivacyAssessment), who submit it to the UBC Privacy Office; an administrator records the Office’s answer, with its ticket reference.',
     }
   if (row.state === 'approved')
     return {

@@ -694,16 +694,36 @@ export function createApi(options: ApiOptions) {
     },
 
     /**
-     * *"I'VE SENT IT"* (Task 9): the person says the draft went to UBC IAM, on a day and with UBC's
-     * ticket. Person-only. **`draftGeneratedAt` is ALWAYS sent** — the draft the person read — so a
-     * draft made again since is refused `409 LAUNCH_DRAFT_CHANGED` rather than recorded as sent. In
-     * UBC's order: `409 LAUNCH_PIA_NOT_APPROVED` until the assessment is approved with its PIA number,
-     * and production's `409 LAUNCH_STAGING_NOT_REGISTERED` until staging is registered.
+     * THE OWNER SENDS IT TO THE MANIFEST TEAM (the FE-46/47/5 plan's Task 5): the record is `sent`, and
+     * the team submits it to UBC IAM or hands it back. Person-only. **`draftGeneratedAt` is ALWAYS
+     * sent** — the draft the person read — so a draft made again since is refused `409
+     * LAUNCH_DRAFT_CHANGED` rather than sent. In UBC's order: `409 LAUNCH_PIA_NOT_APPROVED` until the
+     * assessment is approved with its PIA number, and production's `409 LAUNCH_STAGING_NOT_REGISTERED`
+     * until staging is registered.
+     */
+    async sendIamRegistration(
+      projectId: string,
+      environment: 'staging' | 'production',
+      body: Schemas['SendLaunchRecordRequest'],
+      idempotency: string,
+    ): Promise<Schemas['IamRegistration']> {
+      return unwrap(
+        await client.POST(
+          '/v1/projects/{projectId}/launch-records/iam-registration/{environment}/send',
+          { params: { path: { projectId, environment }, ...key(idempotency) }, body },
+        ),
+        'sendIamRegistration',
+      )
+    },
+
+    /**
+     * THE MANIFEST TEAM SUBMITTED IT TO UBC IAM (Task 5): an administrator's record — the day the team
+     * sent it and UBC's reference. Only a `sent` registration (`409 LAUNCH_TRANSITION_INVALID`).
      */
     async submitIamRegistration(
       projectId: string,
       environment: 'staging' | 'production',
-      body: Schemas['SubmitLaunchRecordRequest'],
+      body: Schemas['RecordSubmissionRequest'],
       idempotency: string,
     ): Promise<Schemas['IamRegistration']> {
       return unwrap(
@@ -712,6 +732,21 @@ export function createApi(options: ApiOptions) {
           { params: { path: { projectId, environment }, ...key(idempotency) }, body },
         ),
         'submitIamRegistration',
+      )
+    },
+
+    /** THE MANIFEST TEAM HANDS IT BACK, UNSUBMITTED (Task 5): to the state it was sent from. BODYLESS. */
+    async returnIamRegistration(
+      projectId: string,
+      environment: 'staging' | 'production',
+      idempotency: string,
+    ): Promise<Schemas['IamRegistration']> {
+      return unwrap(
+        await client.POST(
+          '/v1/projects/{projectId}/launch-records/iam-registration/{environment}/return',
+          { params: { path: { projectId, environment }, ...key(idempotency) } },
+        ),
+        'returnIamRegistration',
       )
     },
 
@@ -733,10 +768,31 @@ export function createApi(options: ApiOptions) {
       )
     },
 
-    /** *"I've sent it"* for the assessment — the registration's rules, with nothing before it. */
+    /**
+     * The owner sends the assessment to the Manifest team — the registration's rules, with nothing
+     * before it — and an answer to EVERY gap of the draft (`400 LAUNCH_GAP_ANSWERS_INVALID` otherwise).
+     */
+    async sendPrivacyAssessment(
+      projectId: string,
+      body: Schemas['SendPrivacyAssessmentRequest'],
+      idempotency: string,
+    ): Promise<Schemas['PrivacyAssessment']> {
+      return unwrap(
+        await client.POST(
+          '/v1/projects/{projectId}/launch-records/privacy-assessment/send',
+          {
+            params: { path: { projectId }, ...key(idempotency) },
+            body,
+          },
+        ),
+        'sendPrivacyAssessment',
+      )
+    },
+
+    /** The Manifest team submitted the assessment to the Privacy Office — an administrator's record. */
     async submitPrivacyAssessment(
       projectId: string,
-      body: Schemas['SubmitLaunchRecordRequest'],
+      body: Schemas['RecordSubmissionRequest'],
       idempotency: string,
     ): Promise<Schemas['PrivacyAssessment']> {
       return unwrap(
@@ -745,6 +801,22 @@ export function createApi(options: ApiOptions) {
           { params: { path: { projectId }, ...key(idempotency) }, body },
         ),
         'submitPrivacyAssessment',
+      )
+    },
+
+    /** The Manifest team hands the assessment back, unsubmitted: a draft again. BODYLESS. */
+    async returnPrivacyAssessment(
+      projectId: string,
+      idempotency: string,
+    ): Promise<Schemas['PrivacyAssessment']> {
+      return unwrap(
+        await client.POST(
+          '/v1/projects/{projectId}/launch-records/privacy-assessment/return',
+          {
+            params: { path: { projectId }, ...key(idempotency) },
+          },
+        ),
+        'returnPrivacyAssessment',
       )
     },
 

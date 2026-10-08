@@ -173,7 +173,12 @@ export const EXAMPLE_DETAILS: { readonly [T in EventType]: Record<string, unknow
     environment: 'staging',
     sentAt: '2026-09-29',
     externalTicketRef: 'IAM-2026-0500',
+    changeRequest: false,
   },
+  'iam_registration.sent': { environment: 'staging', sentFrom: 'draft' },
+  'privacy_assessment.sent': { gapCount: 8 },
+  'iam_registration.returned': { environment: 'staging', to: 'draft' },
+  'privacy_assessment.returned': { to: 'draft' },
   'privacy_assessment.submitted': {
     sentAt: '2026-09-22',
     externalTicketRef: 'PIA-2026-0088',

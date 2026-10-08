@@ -33,7 +33,8 @@ import {
   askForSignOff,
   draftARegistration,
   draftTheAssessment,
-  sayItWasSent,
+  sendIt,
+  teamSubmitted,
   whatWaitsOnUs,
 } from './example-launch-path.js'
 import { whatTheAppPrinted } from './example-output.js'
@@ -674,22 +675,40 @@ describe('the guides’ examples, run against manifest-mock (Decision 16)', () =
       const staging = await draftARegistration(agentThere, PROJECT_ID, 'staging')
       expect(staging.unread).toEqual(['givenName'])
       expect(staging.warnings.some((w) => w.includes('PIA number'))).toBe(true)
-      // The person sends the assessment first; a registration waits for its approval.
+      // The person sends the assessment first, every gap answered; a registration waits for its approval.
+      const answers = assessment.forYouToAdd.map(({ gapId }) => ({
+        gapId,
+        answer: 'does not apply',
+      }))
       expect(
-        await sayItWasSent(asBrowser(at), PROJECT_ID, 'privacy-assessment', {
+        await sendIt(asBrowser(at), PROJECT_ID, 'privacy-assessment', {
           draftGeneratedAt: assessment.generatedAt,
-          reference: 'PRISM-0042',
+          answers: answers.slice(1),
         }),
-      ).toMatchObject({ done: true })
+      ).toMatchObject({ done: false, refused: 'LAUNCH_GAP_ANSWERS_INVALID' })
       expect(
-        await sayItWasSent(asBrowser(at), PROJECT_ID, 'staging', {
+        await sendIt(asBrowser(at), PROJECT_ID, 'privacy-assessment', {
+          draftGeneratedAt: assessment.generatedAt,
+          answers,
+        }),
+      ).toMatchObject({ done: true, sentAt: expect.any(String) })
+      expect(
+        await sendIt(asBrowser(at), PROJECT_ID, 'staging', {
           draftGeneratedAt: staging.generatedAt,
         }),
       ).toMatchObject({
         done: false,
         refused: 'LAUNCH_PIA_NOT_APPROVED',
-        next: expect.stringContaining('Send the privacy assessment first'),
+        next: expect.stringContaining(
+          'Send the privacy assessment to the Manifest team first',
+        ),
       })
+      // The team submits only what it was sent: at this stage nothing is with it.
+      expect(
+        await teamSubmitted(asBrowser(at), PROJECT_ID, 'privacy-assessment', {
+          reference: 'PIA-2026-0101',
+        }),
+      ).toMatchObject({ done: false, refused: 'LAUNCH_TRANSITION_INVALID' })
     })
     // The assessment approved: staging goes; production waits for staging.
     await withMock({ records: 'assessed' }, async (at) => {
@@ -697,14 +716,13 @@ describe('the guides’ examples, run against manifest-mock (Decision 16)', () =
       const staging = await draftARegistration(agentThere, PROJECT_ID, 'staging')
       expect(staging.warnings.some((w) => w.includes('PIA number'))).toBe(false)
       expect(
-        await sayItWasSent(asBrowser(at), PROJECT_ID, 'staging', {
+        await sendIt(asBrowser(at), PROJECT_ID, 'staging', {
           draftGeneratedAt: staging.generatedAt,
-          reference: 'IAM-2026-0500',
         }),
       ).toMatchObject({ done: true })
       const production = await draftARegistration(agentThere, PROJECT_ID, 'production')
       expect(
-        await sayItWasSent(asBrowser(at), PROJECT_ID, 'production', {
+        await sendIt(asBrowser(at), PROJECT_ID, 'production', {
           draftGeneratedAt: production.generatedAt,
         }),
       ).toMatchObject({ done: false, refused: 'LAUNCH_STAGING_NOT_REGISTERED' })

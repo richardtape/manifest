@@ -2,10 +2,10 @@ import { z } from 'zod/v4'
 import {
   approvalDecision,
   environmentKind,
-  iamRegistrationState,
   instanceState,
   memberRole,
-  privacyAssessmentState,
+  RECORDED_IAM_STATES,
+  RECORDED_PIA_STATES,
 } from '../db/index.js'
 import type { EventType } from './events.js'
 
@@ -551,7 +551,7 @@ export const EVENT_DETAIL_SCHEMAS = {
   'iam_registration.recorded': z
     .strictObject({
       state: z
-        .enum(iamRegistrationState.enumValues)
+        .enum(RECORDED_IAM_STATES)
         .describe('The registration’s state, as UBC IAM gave it.'),
       environment: z
         .enum(['staging', 'production'])
@@ -574,7 +574,7 @@ export const EVENT_DETAIL_SCHEMAS = {
   'privacy_assessment.recorded': z
     .strictObject({
       state: z
-        .enum(privacyAssessmentState.enumValues)
+        .enum(RECORDED_PIA_STATES)
         .describe('The assessment’s state, as the Privacy Office gave it.'),
       externalTicketRef: z
         .string()
@@ -585,40 +585,97 @@ export const EVENT_DETAIL_SCHEMAS = {
       'An administrator recorded what UBC’s Privacy Office said of the app’s privacy impact assessment.',
     ),
   /**
-   * AN OWNER'S *"I'VE SENT IT"* (the launch path plan's Task 9). The day, never the moment — a person
-   * says which day they sent it — and never the package: a project's stream carries that a request
-   * went, and `getLaunchRecords` is where a member reads what it said.
+   * THE MANIFEST TEAM'S SUBMISSION (the FE-46/47/5 plan's Task 5, Decision 15; the launch path plan's
+   * Task 9 before it, as an owner's *"I've sent it"*). The day, never the moment — the team says which
+   * day it sent it to UBC — and never the package: a project's stream carries that a request went, and
+   * `getLaunchRecords` is where a member reads what it said.
    */
   'iam_registration.submitted': z
     .strictObject({
       environment: z
         .enum(['staging', 'production'])
-        .describe('Which registration was sent: the staging one, or production’s.'),
+        .describe('Which registration was submitted: the staging one, or production’s.'),
       sentAt: z
         .string()
-        .describe('The day it was sent, `YYYY-MM-DD`, as the person who sent it said.'),
+        .describe('The day the Manifest team sent it to UBC IAM, `YYYY-MM-DD`.'),
       externalTicketRef: z
         .string()
         .nullable()
+        .describe('UBC IAM’s reference for the request.'),
+      changeRequest: z
+        .boolean()
         .describe(
-          'UBC IAM’s reference for the request; null when the person had none yet.',
+          'True when the team filed it as a change to a live registration; false for a registration UBC has yet to make.',
         ),
     })
     .describe(
-      'A person said the app’s staging or production registration request was sent to UBC IAM. It now waits for UBC’s answer, which an administrator records.',
+      'The Manifest team submitted the app’s staging or production registration request to UBC IAM, and an administrator recorded it. It now waits for UBC’s answer, which an administrator records.',
     ),
   'privacy_assessment.submitted': z
     .strictObject({
       sentAt: z
         .string()
-        .describe('The day it was sent, `YYYY-MM-DD`, as the person who sent it said.'),
+        .describe(
+          'The day the Manifest team sent it to the Privacy Office, `YYYY-MM-DD`.',
+        ),
       externalTicketRef: z
         .string()
         .nullable()
-        .describe('The Privacy Office’s reference; null when the person had none yet.'),
+        .describe('The Privacy Office’s reference — the PIA number.'),
     })
     .describe(
-      'A person said the app’s privacy impact assessment was sent to UBC’s Privacy Office. It now waits for the Office’s answer, which an administrator records.',
+      'The Manifest team submitted the app’s privacy impact assessment to UBC’s Privacy Office, and an administrator recorded it. It now waits for the Office’s answer, which an administrator records.',
+    ),
+  /**
+   * THE OWNER'S SEND TO THE MANIFEST TEAM (Decision 15): counts and where it came from, never the
+   * package, the attributes or an answer.
+   */
+  'iam_registration.sent': z
+    .strictObject({
+      environment: z
+        .enum(['staging', 'production'])
+        .describe('Which registration was sent: the staging one, or production’s.'),
+      sentFrom: z
+        .enum(['draft', 'change_requested', 'expired', 'active'])
+        .describe(
+          'Where it was sent from: a draft, UBC’s questions to the owner, a lapsed registration, or a live one to change. A hand-back returns it there.',
+        ),
+    })
+    .describe(
+      'The owner sent the app’s staging or production registration to the Manifest team, who submit it to UBC IAM or hand it back. The team was emailed.',
+    ),
+  'privacy_assessment.sent': z
+    .strictObject({
+      gapCount: z
+        .number()
+        .int()
+        .describe(
+          'How many gaps the owner answered — every gap of the draft sent. The answers are on the record, not here.',
+        ),
+    })
+    .describe(
+      'The owner sent the app’s privacy impact assessment to the Manifest team, with an answer to every gap, for the team to submit to the Privacy Office or hand back. The team was emailed.',
+    ),
+  'iam_registration.returned': z
+    .strictObject({
+      environment: z
+        .enum(['staging', 'production'])
+        .describe(
+          'Which registration was handed back: the staging one, or production’s.',
+        ),
+      to: z
+        .enum(['draft', 'change_requested', 'expired', 'active'])
+        .describe('The state it returned to — the one it was sent from.'),
+    })
+    .describe(
+      'The Manifest team handed the app’s staging or production registration back to its owner, unsubmitted, to the state it was sent from.',
+    ),
+  'privacy_assessment.returned': z
+    .strictObject({
+      to: z.enum(['draft']).describe('The state it returned to: `draft`.'),
+    })
+    .describe(
+      'The Manifest team handed the app’s privacy impact assessment back to its owner, unsubmitted. It is a draft again.',
     ),
   'iam_registration.drafted': z
     .strictObject({

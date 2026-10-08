@@ -14,7 +14,7 @@ import {
 } from '../db/index.js'
 import { manifestSchema } from '../spec/index.js'
 import { mintSpKeypair, publicHalf, type SpCertificate } from '../sso/index.js'
-import { assembleAssessment } from './assessment.js'
+import { assembleAssessment, readAssessmentDraft, type GapAnswer } from './assessment.js'
 import { assemblePackage } from './package.js'
 import type {
   IamRegistrationRow,
@@ -174,6 +174,24 @@ export async function withAssessmentDraft(
     })
     .returning()
   return row!
+}
+
+/**
+ * AN ANSWER FOR EVERY GAP of a stored assessment draft (the FE-46/47/5 plan's Task 5): what the owner's
+ * send carries — *"does not apply"* is an answer. `answer` may be a function, for a test that marks one.
+ */
+export function everyGapAnswered(
+  draft: unknown,
+  answer: string | ((gapId: string) => string) = 'does not apply',
+): GapAnswer[] {
+  const read = readAssessmentDraft(draft)
+  if (read === null) throw new Error('no assessment draft to answer')
+  return read.sections.flatMap((s) =>
+    s.gaps.map((g) => ({
+      gapId: g.id,
+      answer: typeof answer === 'string' ? answer : answer(g.id),
+    })),
+  )
 }
 
 /** Today's date in Vancouver, `YYYY-MM-DD` — the day a person would say they sent something. */

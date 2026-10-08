@@ -486,6 +486,42 @@ async function step4Records(): Promise<void> {
       },
     })
 
+  // A RECORD WITH THE MANIFEST TEAM (the FE-46/47/5 plan's Task 5) — a person's send in the console — is
+  // refused by the record routes (`LAUNCH_TRANSITION_INVALID`): hand each back first, so this demo is
+  // never stranded on one.
+  const held = unwrap(
+    await admin.GET('/v1/projects/{projectId}/launch-records', {
+      params: { path: { projectId } },
+    }),
+    'getLaunchRecords',
+  )
+  if (held.iamRegistration?.state === 'sent')
+    unwrap(
+      await admin.POST(
+        '/v1/projects/{projectId}/launch-records/iam-registration/{environment}/return',
+        {
+          params: {
+            path: { projectId, environment: 'production' },
+            header: { 'Idempotency-Key': idempotencyKey() },
+          },
+        },
+      ),
+      'returnIamRegistration',
+    )
+  if (held.privacyAssessment?.state === 'sent')
+    unwrap(
+      await admin.POST(
+        '/v1/projects/{projectId}/launch-records/privacy-assessment/return',
+        {
+          params: {
+            path: { projectId },
+            header: { 'Idempotency-Key': idempotencyKey() },
+          },
+        },
+      ),
+      'returnPrivacyAssessment',
+    )
+
   // An illegal arrow first, on either path — §9's machines refuse a jump by its CODE.
   const jump = await iam(state.reused ? 'submitted' : 'active')
   checks.ok(

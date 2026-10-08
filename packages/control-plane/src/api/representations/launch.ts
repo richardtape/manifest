@@ -1,5 +1,10 @@
 import { z } from 'zod/v4'
-import { iamRegistrationState, privacyAssessmentState } from '../../db/index.js'
+import {
+  iamRegistrationState,
+  privacyAssessmentState,
+  RECORDED_IAM_STATES,
+  RECORDED_PIA_STATES,
+} from '../../db/index.js'
 import {
   LAUNCH_ITEM_IDS,
   readAssessmentDraft,
@@ -284,7 +289,7 @@ export const IamRegistration = representation(
       state: z
         .enum(iamRegistrationState.enumValues)
         .describe(
-          'Where the registration is: `draft`, `submitted` to UBC IAM, `active` once registered, `change_requested` while a change is with UBC IAM, and `expired`.',
+          'Where the registration is: `draft`; `sent` to the Manifest team, who submit it to UBC IAM or hand it back; `submitted` to UBC IAM; `active` once registered; `change_requested` while a change is with UBC IAM, or UBC IAM has asked its owner for changes; and `expired`.',
         ),
       changeRequestedFrom: z
         .enum(['submitted', 'active'])
@@ -298,11 +303,23 @@ export const IamRegistration = representation(
         .describe(
           'UBC IAM’s own reference for the request; null when none was recorded.',
         ),
+      sentFrom: z
+        .enum(['draft', 'change_requested', 'expired', 'active'])
+        .nullable()
+        .describe(
+          'While `sent`, where its owner sent it from — a draft, UBC IAM’s questions to them, a lapsed registration — which is where the Manifest team’s hand-back returns it. Null in any other state.',
+        ),
+      sentAt: Timestamp.nullable().describe(
+        'When its owner last sent it to the Manifest team. Kept once the team has submitted it or handed it back, and replaced by the next send; null until it is first sent.',
+      ),
+      sentBy: Submitter.nullable().describe(
+        'Who last sent it to the Manifest team; null until it is first sent.',
+      ),
       submittedAt: Timestamp.nullable().describe(
-        'When the request now with UBC IAM was sent — the day a person said it went, at noon in Vancouver, or when an administrator recorded it sent. How long it has waited is measured from here. Null until it is sent.',
+        'When the request now with UBC IAM was sent to UBC — the day the Manifest team sent it, at noon in Vancouver, or when an administrator recorded it sent. How long it has waited for UBC is measured from here. Null until it is submitted.',
       ),
       submittedBy: Submitter.nullable().describe(
-        'Who said it was sent; null until it is.',
+        'The administrator who recorded it submitted to UBC IAM; null until it is.',
       ),
       package: RegistrationPackage.nullable().describe(
         'What Manifest drafted for the person to send (`draftIamRegistration`), kept as it was sent once it is; null until drafted.',
@@ -311,7 +328,7 @@ export const IamRegistration = representation(
       updatedAt: z.iso.datetime().describe('When the record last changed.'),
     })
     .describe(
-      'One of the app’s two UBC IAM registrations, staging’s or production’s: what Manifest drafted, when a person said it was sent, and what UBC IAM registered, as an administrator recorded it.',
+      'One of the app’s two UBC IAM registrations, staging’s or production’s: what Manifest drafted, when its owner sent it to the Manifest team, when the team submitted it to UBC IAM, and what UBC IAM registered, as an administrator recorded it.',
     ),
 )
 
@@ -418,7 +435,7 @@ export const PrivacyAssessment = representation(
       state: z
         .enum(privacyAssessmentState.enumValues)
         .describe(
-          'Where the assessment is: `draft`, `submitted` to the Privacy Office, `approved`. A refused assessment goes back to `draft`.',
+          'Where the assessment is: `draft`; `sent` to the Manifest team, who submit it to the Privacy Office or hand it back; `submitted` to the Privacy Office; `approved`. A refused assessment goes back to `draft`.',
         ),
       reviewer: z
         .string()
@@ -434,11 +451,34 @@ export const PrivacyAssessment = representation(
         .describe(
           'The Privacy Office’s own reference — the PIA number, which the staging registration needs before it is sent; null when none was recorded.',
         ),
+      sentAt: Timestamp.nullable().describe(
+        'When its owner last sent it to the Manifest team. Kept once the team has submitted it or handed it back, and replaced by the next send; null until it is first sent.',
+      ),
+      sentBy: Submitter.nullable().describe(
+        'Who last sent it to the Manifest team; null until it is first sent.',
+      ),
+      gapAnswers: z
+        .array(
+          z
+            .object({
+              gapId: z
+                .string()
+                .describe('The gap answered — a `gaps[].id` of the draft sent.'),
+              answer: z
+                .string()
+                .describe('What the owner answered, as they wrote it, trimmed.'),
+            })
+            .describe('The owner’s answer to one gap.'),
+        )
+        .nullable()
+        .describe(
+          'The owner’s answer to every gap of the draft, in the draft’s order, as last sent to the Manifest team — what the team carries into the Privacy Office’s form. Null until it is first sent.',
+        ),
       submittedAt: Timestamp.nullable().describe(
-        'When the assessment was sent to the Privacy Office — the day a person said it went, at noon in Vancouver, or when an administrator recorded it sent. Null until it is sent.',
+        'When the assessment was sent to the Privacy Office — the day the Manifest team sent it, at noon in Vancouver, or when an administrator recorded it sent. Null until it is submitted.',
       ),
       submittedBy: Submitter.nullable().describe(
-        'Who said it was sent; null until it is.',
+        'The administrator who recorded it submitted to the Privacy Office; null until it is.',
       ),
       draft: PrivacyAssessmentDraft.nullable().describe(
         'What Manifest drafted for the person to complete and send (`draftPrivacyAssessment`), kept as it was sent once it is; null until drafted.',
@@ -447,7 +487,7 @@ export const PrivacyAssessment = representation(
       updatedAt: z.iso.datetime().describe('When the record last changed.'),
     })
     .describe(
-      'The app’s privacy impact assessment: when a person said it was sent, and what UBC’s Privacy Office said, as an administrator recorded it. It comes first: the staging registration waits for its approval.',
+      'The app’s privacy impact assessment: what Manifest drafted, the owner’s answers to its gaps and when they sent it to the Manifest team, when the team submitted it to the Privacy Office, and what the Office said, as an administrator recorded it. It comes first: the staging registration waits for its approval.',
     ),
 )
 
@@ -519,9 +559,9 @@ export const RecordIamRegistrationRequest = request(
           'What a change request asks for; required when a registration goes from `active` to `change_requested`.',
         ),
       state: z
-        .enum(iamRegistrationState.enumValues)
+        .enum(RECORDED_IAM_STATES)
         .describe(
-          'The state this record should now be in: the state it is in, or one step on from it — `draft` to `submitted`; `submitted` to `active` or `change_requested`; `active` to `change_requested` or `expired`; `change_requested` to `submitted` or `expired`; `expired` to `submitted`. Any other move is refused `409 LAUNCH_TRANSITION_INVALID`. A new record starts at `draft`, so a first write into `active` is refused exactly as a later one is.',
+          'The state this record should now be in: the state it is in, or one step on from it — `draft` to `submitted`; `submitted` to `active` or `change_requested`; `active` to `change_requested` or `expired`; `change_requested` to `submitted` or `expired`; `expired` to `submitted`. Any other move is refused `409 LAUNCH_TRANSITION_INVALID`. A new record starts at `draft`, so a first write into `active` is refused exactly as a later one is. A registration with the Manifest team (`sent`) is not recorded here: the team submits it (`submitIamRegistration`) or hands it back (`returnIamRegistration`).',
         ),
       externalTicketRef: z
         .string()
@@ -545,12 +585,59 @@ export const RecordIamRegistrationRequest = request(
     ),
 )
 
-/**
- * AN OWNER'S *"I'VE SENT IT"* (the launch path plan's Task 9). Both fields are optional: a person
- * who sent it today, and has no ticket number yet, says only that.
- */
-export const SubmitLaunchRecordRequest = request(
-  'SubmitLaunchRecordRequest',
+/** The draft the person read — named on a send, so a draft made since is refused rather than sent. */
+const DraftGeneratedAt = Timestamp.optional().describe(
+  'The `generatedAt` of the draft you are sending, as you read it. If it has been drafted again since, the send is refused `409 LAUNCH_DRAFT_CHANGED` rather than sending a draft you never saw. Send it whenever you show a person the draft they send.',
+)
+
+/** THE OWNER'S SEND OF A REGISTRATION TO THE MANIFEST TEAM (the FE-46/47/5 plan's Task 5). */
+export const SendLaunchRecordRequest = request(
+  'SendLaunchRecordRequest',
+  z
+    .strictObject({ draftGeneratedAt: DraftGeneratedAt })
+    .describe(
+      'That the owner sends this registration to the Manifest team, and which draft. It is sent now: the send is made in Manifest.',
+    ),
+)
+
+/** THE OWNER'S SEND OF THE ASSESSMENT, WITH AN ANSWER TO EVERY GAP (Decision 9). */
+export const SendPrivacyAssessmentRequest = request(
+  'SendPrivacyAssessmentRequest',
+  z
+    .strictObject({
+      draftGeneratedAt: DraftGeneratedAt,
+      answers: z
+        .array(
+          z
+            .strictObject({
+              gapId: z
+                .string()
+                .min(1)
+                .max(80)
+                .describe('The gap answered: a `gaps[].id` of the draft you read.'),
+              answer: z
+                .string()
+                .min(1)
+                .max(2_000)
+                .describe(
+                  'The answer, up to 2,000 characters. “Does not apply” is an answer; a blank one is not.',
+                ),
+            })
+            .describe('The owner’s answer to one gap.'),
+        )
+        .max(64)
+        .describe(
+          'An answer to EVERY gap of the draft, once each, by its id — refused `400 LAUNCH_GAP_ANSWERS_INVALID`, naming each gap at fault, when one is missing, blank, repeated, or not the draft’s. Kept on the record in the draft’s order.',
+        ),
+    })
+    .describe(
+      'That the owner sends the privacy assessment to the Manifest team, which draft, and their answer to each of its gaps. It is sent now: the send is made in Manifest.',
+    ),
+)
+
+/** THE MANIFEST TEAM'S RECORD THAT IT SUBMITTED A RECORD TO UBC (Decision 3). */
+export const RecordSubmissionRequest = request(
+  'RecordSubmissionRequest',
   z
     .strictObject({
       // A DAY THAT EXISTS — `z.iso.date()` checks month lengths and leap years (the whole-branch
@@ -559,20 +646,18 @@ export const SubmitLaunchRecordRequest = request(
         .date()
         .optional()
         .describe(
-          'The day it was sent, `YYYY-MM-DD` — today or earlier, and not before the draft was made. Today in Vancouver when absent.',
+          'The day the Manifest team sent it to UBC, `YYYY-MM-DD` — today or earlier, and not before its owner sent it to the team. Today in Vancouver when absent.',
         ),
       reference: z
         .string()
         .min(1)
-        .max(128)
-        .optional()
-        .describe('UBC’s reference for the request, when you have one yet.'),
-      draftGeneratedAt: Timestamp.optional().describe(
-        'The `generatedAt` of the draft you sent, as you read it. If it has been drafted again since, the request is refused `409 LAUNCH_DRAFT_CHANGED` rather than recording a draft you never saw. Send it whenever you show a person the draft they send.',
-      ),
+        .max(100)
+        .describe(
+          'UBC’s reference for it: UBC IAM’s ticket, or the Privacy Office’s PIA number.',
+        ),
     })
     .describe(
-      'That a request to UBC was sent: the day, its reference if there is one, and which draft was sent.',
+      'That the Manifest team submitted the record to UBC: the day it went, and UBC’s reference.',
     ),
 )
 
@@ -581,9 +666,9 @@ export const RecordPrivacyAssessmentRequest = request(
   z
     .strictObject({
       state: z
-        .enum(privacyAssessmentState.enumValues)
+        .enum(RECORDED_PIA_STATES)
         .describe(
-          'The state this record should now be in: the state it is in, or one step on from it — `draft` to `submitted`; `submitted` to `approved`, or back to `draft` when the Privacy Office refuses it; `approved` to `draft`. Any other move is refused `409 LAUNCH_TRANSITION_INVALID`. A new record starts at `draft`.',
+          'The state this record should now be in: the state it is in, or one step on from it — `draft` to `submitted`; `submitted` to `approved`, or back to `draft` when the Privacy Office refuses it; `approved` to `draft`. Any other move is refused `409 LAUNCH_TRANSITION_INVALID`. A new record starts at `draft`. An assessment with the Manifest team (`sent`) is not recorded here: the team submits it (`submitPrivacyAssessment`) or hands it back (`returnPrivacyAssessment`).',
         ),
       reviewer: z
         .string()
@@ -604,6 +689,12 @@ export const RecordPrivacyAssessmentRequest = request(
 /** Who a record says sent it, by name — read by the route, which has the database (Task 9). */
 export type SubmitterOf = z.infer<typeof Submitter> | null
 
+/** Who a record names, by name: who last sent it to the Manifest team, and who recorded it with UBC. */
+export interface RecordPeople {
+  sentBy: SubmitterOf
+  submittedBy: SubmitterOf
+}
+
 /**
  * **TWO SIGNATURES, because the two callers differ in a way `tsc` should hold them to.**
  * The READ may find nothing — an absent record is a state, not an error — while a route
@@ -614,15 +705,15 @@ export type SubmitterOf = z.infer<typeof Submitter> | null
  */
 export function toIamRegistration(
   row: IamRegistrationRow,
-  submittedBy: SubmitterOf,
+  people: RecordPeople,
 ): z.infer<typeof IamRegistration>
 export function toIamRegistration(
   row: IamRegistrationRow | undefined,
-  submittedBy: SubmitterOf,
+  people: RecordPeople,
 ): z.infer<typeof IamRegistration> | null
 export function toIamRegistration(
   row: IamRegistrationRow | undefined,
-  submittedBy: SubmitterOf,
+  people: RecordPeople,
 ): z.infer<typeof IamRegistration> | null {
   if (row === undefined) return null
   return {
@@ -640,8 +731,11 @@ export function toIamRegistration(
     state: row.state,
     changeRequestedFrom: row.changeRequestedFrom,
     externalTicketRef: row.externalTicketRef,
+    sentFrom: row.sentFrom,
+    sentAt: row.sentAt === null ? null : row.sentAt.toISOString(),
+    sentBy: people.sentBy,
     submittedAt: row.submittedAt === null ? null : row.submittedAt.toISOString(),
-    submittedBy,
+    submittedBy: people.submittedBy,
     package: readPackage(row.generatedPackage),
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
@@ -650,15 +744,15 @@ export function toIamRegistration(
 
 export function toPrivacyAssessment(
   row: PrivacyAssessmentRow,
-  submittedBy: SubmitterOf,
+  people: RecordPeople,
 ): z.infer<typeof PrivacyAssessment>
 export function toPrivacyAssessment(
   row: PrivacyAssessmentRow | undefined,
-  submittedBy: SubmitterOf,
+  people: RecordPeople,
 ): z.infer<typeof PrivacyAssessment> | null
 export function toPrivacyAssessment(
   row: PrivacyAssessmentRow | undefined,
-  submittedBy: SubmitterOf,
+  people: RecordPeople,
 ): z.infer<typeof PrivacyAssessment> | null {
   if (row === undefined) return null
   return {
@@ -668,8 +762,11 @@ export function toPrivacyAssessment(
     reviewer: row.reviewer,
     approvedAt: row.approvedAt === null ? null : row.approvedAt.toISOString(),
     externalTicketRef: row.externalTicketRef,
+    sentAt: row.sentAt === null ? null : row.sentAt.toISOString(),
+    sentBy: people.sentBy,
+    gapAnswers: row.gapAnswers,
     submittedAt: row.submittedAt === null ? null : row.submittedAt.toISOString(),
-    submittedBy,
+    submittedBy: people.submittedBy,
     draft: readAssessmentDraft(row.generatedDraft),
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),

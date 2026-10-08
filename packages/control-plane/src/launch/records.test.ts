@@ -1,20 +1,32 @@
 import { and, eq } from 'drizzle-orm'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { events, iamRegistrations, privacyAssessments, type Db } from '../db/index.js'
 import { withProject } from '../db/testing.js'
+import { ensureTestUser } from '../identity/testing.js'
+import { createMailer, teamEmail } from '../mail/index.js'
+import { recordingMailer } from '../mail/testing.js'
 import { createEventBus } from '../observability/index.js'
 import { expectSqlState } from '../observability/testing.js'
+import { readAssessmentDraft } from './assessment.js'
 import {
+  draftIamRegistration,
+  draftPrivacyAssessment,
   getIamRegistration,
   getPrivacyAssessment,
   LaunchRecordError,
+  recordAssessmentSubmission,
   recordIamRegistration,
+  recordIamSubmission,
   recordPrivacyAssessment,
-  submitIamRegistration,
-  submitPrivacyAssessment,
+  returnIamRegistration,
+  returnPrivacyAssessment,
+  sendIamRegistration,
+  sendPrivacyAssessment,
+  vancouverDayInWords,
   vancouverNoon,
 } from './records.js'
 import {
+  everyGapAnswered,
   vancouverDaysAgo,
   vancouverToday,
   withAssessmentDraft,
@@ -631,57 +643,113 @@ describe('the launch records name the person who recorded them, never a PUID (Ta
  * reference) before the staging registration is sent, and staging registered before production's.
  * UBC's answers stay an administrator's record, and are never refused for order.
  */
-describe('the owner’s “I’ve sent it” (Task 9)', () => {
-  /** What an administrator records once the Privacy Office has approved the assessment. */
-  async function piaApproved(
-    db: Db,
-    projectId: string,
-    actor: typeof ACTOR,
-    ref = 'PIA-0001',
-  ) {
-    await recordPrivacyAssessment(db, bus, { projectId, state: 'submitted', actor })
-    await recordPrivacyAssessment(db, bus, {
+/** What an administrator records once the Privacy Office has approved the assessment. */
+async function piaApproved(
+  db: Db,
+  projectId: string,
+  actor: typeof ACTOR,
+  ref = 'PIA-0001',
+) {
+  await recordPrivacyAssessment(db, bus, { projectId, state: 'submitted', actor })
+  await recordPrivacyAssessment(db, bus, {
+    projectId,
+    state: 'approved',
+    externalTicketRef: ref,
+    actor,
+  })
+}
+/** What an administrator records once UBC IAM has registered staging. */
+async function stagingActive(db: Db, projectId: string, actor: typeof ACTOR) {
+  for (const state of ['submitted', 'active'] as const)
+    await recordIamRegistration(db, bus, {
+      ...IAM,
+      environment: 'staging',
       projectId,
-      state: 'approved',
-      externalTicketRef: ref,
+      state,
       actor,
     })
-  }
-  /** What an administrator records once UBC IAM has registered staging. */
-  async function stagingActive(db: Db, projectId: string, actor: typeof ACTOR) {
-    for (const state of ['submitted', 'active'] as const)
-      await recordIamRegistration(db, bus, {
-        ...IAM,
-        environment: 'staging',
-        projectId,
-        state,
-        actor,
-      })
-  }
+}
 
-  it('submits a drafted production registration: submitted, stamped with the day and the person', async () => {
+/**
+ * WHAT A SEND NEEDS (the FE-46/47/5 plan's Task 5): the database, the bus and the mailer — and ONE ORDERED
+ * LOG of what the bus heard and what the team was told, so *"after the event"* is read, not assumed.
+ */
+function sending(db: Db) {
+  const said: string[] = []
+  const local = createEventBus()
+  const publish = local.publish.bind(local)
+  local.publish = (frame) => {
+    said.push(frame.kind === 'event' ? frame.type : frame.kind)
+    publish(frame)
+  }
+  const mailer = recordingMailer()
+  const tellTeam = mailer.tellTeam.bind(mailer)
+  mailer.tellTeam = (notice) => {
+    said.push(`told:${notice.kind}`)
+    tellTeam(notice)
+  }
+  return { deps: { db, bus: local, mailer }, said, told: mailer.told }
+}
+
+/** A platform administrator — the Manifest team's records are theirs. */
+const teamMember = async (db: Db) => {
+  const admin = await ensureTestUser(db, 'platform_admin')
+  return { id: admin.id, puid: admin.ubcCwlPuid }
+}
+
+const eventsOf = (db: Db, projectId: string, type: string) =>
+  db
+    .select()
+    .from(events)
+    .where(and(eq(events.type, type), eq(events.projectId, projectId)))
+
+describe('the owner sends a registration to the Manifest team (FE-46/47/5 plan Task 5)', () => {
+  it('sends a drafted production registration: sent, from its draft, now, by them — UBC’s submission untouched — told after the event', async () => {
     await withProject(async (db, { projectId, ownerId }) => {
       const actor = { ...ACTOR, id: ownerId }
       // UBC's order: the assessment approved, then staging registered (the whole-branch review's I3).
       await piaApproved(db, projectId, actor)
       await stagingActive(db, projectId, actor)
       await withDraft(db, { projectId, environment: 'production' })
-      const today = vancouverToday()
-      const row = await submitIamRegistration(db, bus, {
+      const { deps, said, told } = sending(db)
+      const before = Date.now()
+      const row = await sendIamRegistration(deps, {
         projectId,
         environment: 'production',
         actor,
-        sentAt: today,
-        reference: 'IAM-2026-0500',
       })
       expect(row).toMatchObject({
         environmentKind: 'production',
-        state: 'submitted',
-        submittedBy: ownerId,
-        externalTicketRef: 'IAM-2026-0500',
+        state: 'sent',
+        sentFrom: 'draft',
+        sentBy: ownerId,
+        submittedAt: null,
+        submittedBy: null,
+        externalTicketRef: null,
       })
-      // THE DAY, NOT THE MOMENT: noon in Vancouver, so it is the same day in every zone.
-      expect(row.submittedAt?.toISOString()).toBe(vancouverNoon(today).toISOString())
+      // THE MOMENT, NOT A DAY: the send is made in Manifest.
+      expect(row.sentAt!.getTime()).toBeGreaterThanOrEqual(before - 1_000)
+      expect(row.sentAt!.getTime()).toBeLessThanOrEqual(Date.now() + 1_000)
+      const [event] = await eventsOf(db, projectId, 'iam_registration.sent')
+      expect(event?.machineDetail).toEqual({
+        environment: 'production',
+        sentFrom: 'draft',
+      })
+      expect(event?.humanMessage).toBe(
+        "Test Owner sent this app's production registration to the Manifest team, to submit to UBC IAM.",
+      )
+      // ONE NOTICE, AFTER THE EVENT — which app, which record, by whom, when.
+      expect(said).toEqual(['iam_registration.sent', 'told:record-sent'])
+      expect(told).toEqual([
+        {
+          kind: 'record-sent',
+          record: 'production-registration',
+          change: false,
+          project: { id: projectId, slug: expect.any(String), name: expect.any(String) },
+          by: 'Test Owner',
+          at: row.sentAt,
+        },
+      ])
       // Staging's record is untouched: two rows, one per environment.
       const staging = await getIamRegistration(db, projectId, 'staging')
       expect(staging?.state).toBe('active')
@@ -689,34 +757,14 @@ describe('the owner’s “I’ve sent it” (Task 9)', () => {
     })
   })
 
-  it('defaults the day to today in Vancouver, stored as noon there', async () => {
+  it('refuses a record with no draft — 409 LAUNCH_DRAFT_REQUIRED — writes nothing and tells nobody', async () => {
     await withProject(async (db, { projectId, ownerId }) => {
       const actor = { ...ACTOR, id: ownerId }
       await piaApproved(db, projectId, actor)
-      await withDraft(db, { projectId, environment: 'staging' })
-      const row = await submitIamRegistration(db, bus, {
-        projectId,
-        environment: 'staging',
-        actor,
-      })
-      expect(row.submittedAt?.toISOString()).toBe(
-        vancouverNoon(vancouverToday()).toISOString(),
-      )
-    })
-  })
-
-  it('vancouverNoon is noon in Vancouver on either side of the clock change', () => {
-    expect(vancouverNoon('2026-10-01').toISOString()).toBe('2026-10-01T19:00:00.000Z')
-    expect(vancouverNoon('2026-12-01').toISOString()).toBe('2026-12-01T20:00:00.000Z')
-  })
-
-  it('refuses a record with no draft — 409 LAUNCH_DRAFT_REQUIRED — and writes nothing', async () => {
-    await withProject(async (db, { projectId, ownerId }) => {
-      const actor = { ...ACTOR, id: ownerId }
-      await piaApproved(db, projectId, actor)
-      await expect(
-        submitIamRegistration(db, bus, { projectId, environment: 'staging', actor }),
-      ).rejects.toMatchObject({
+      const { deps, told } = sending(db)
+      const send = () =>
+        sendIamRegistration(deps, { projectId, environment: 'staging', actor })
+      await expect(send()).rejects.toMatchObject({
         name: 'LaunchRecordError',
         code: 'LAUNCH_DRAFT_REQUIRED',
       })
@@ -729,72 +777,80 @@ describe('the owner’s “I’ve sent it” (Task 9)', () => {
         state: 'draft',
         actor,
       })
-      await expect(
-        submitIamRegistration(db, bus, { projectId, environment: 'staging', actor }),
-      ).rejects.toMatchObject({ code: 'LAUNCH_DRAFT_REQUIRED' })
+      await expect(send()).rejects.toMatchObject({ code: 'LAUNCH_DRAFT_REQUIRED' })
       // A package that is not one (`readPackage` reads none) is no draft either.
       await db
         .update(iamRegistrations)
         .set({ generatedPackage: { placeholder: true } })
         .where(eq(iamRegistrations.projectId, projectId))
-      await expect(
-        submitIamRegistration(db, bus, { projectId, environment: 'staging', actor }),
-      ).rejects.toMatchObject({ code: 'LAUNCH_DRAFT_REQUIRED' })
-      // THE POSITIVE CONTROL: the same submission once a draft exists (Task 10's real package).
+      await expect(send()).rejects.toMatchObject({ code: 'LAUNCH_DRAFT_REQUIRED' })
+      expect(told).toEqual([])
+      // THE POSITIVE CONTROL: the same send once a draft exists (Task 10's real package).
       await withDraft(db, { projectId, environment: 'staging' })
-      const sent = await submitIamRegistration(db, bus, {
-        projectId,
-        environment: 'staging',
-        actor,
-      })
-      expect(sent.state).toBe('submitted')
+      expect((await send()).state).toBe('sent')
+      expect(told).toHaveLength(1)
     })
   })
 
-  it('refuses a day after today, or before the draft was made — 400 LAUNCH_SENT_AT_INVALID', async () => {
+  it('refuses a draft made since the one the owner read — 409 LAUNCH_DRAFT_CHANGED — and writes nothing', async () => {
     await withProject(async (db, { projectId, ownerId }) => {
       const actor = { ...ACTOR, id: ownerId }
       await piaApproved(db, projectId, actor)
-      await withDraft(db, {
+      const read = await withDraft(db, {
         projectId,
         environment: 'staging',
-        createdAt: new Date(Date.now() - 3 * 86_400_000),
+        generatedAt: new Date(Date.now() - 60_000),
       })
-      const submit = (sentAt: string) =>
-        submitIamRegistration(db, bus, {
+      const readAt = (read.generatedPackage as { generatedAt: string }).generatedAt
+      const remade = await withDraft(db, { projectId, environment: 'staging' })
+      const { deps } = sending(db)
+      await expect(
+        sendIamRegistration(deps, {
           projectId,
           environment: 'staging',
           actor,
-          sentAt,
-        })
-      await expect(submit(vancouverDaysAgo(-1))).rejects.toMatchObject({
-        code: 'LAUNCH_SENT_AT_INVALID',
-      })
-      await expect(submit(vancouverDaysAgo(5))).rejects.toMatchObject({
-        code: 'LAUNCH_SENT_AT_INVALID',
-      })
+          draftGeneratedAt: readAt,
+        }),
+      ).rejects.toMatchObject({ code: 'LAUNCH_DRAFT_CHANGED' })
       expect((await getIamRegistration(db, projectId, 'staging'))?.state).toBe('draft')
-      // THE POSITIVE CONTROL: a day between the draft and today — "last Tuesday".
-      const row = await submit(vancouverDaysAgo(2))
-      expect(row.submittedAt?.toISOString()).toBe(
-        vancouverNoon(vancouverDaysAgo(2)).toISOString(),
-      )
+      // THE POSITIVE CONTROL: naming the draft held.
+      const sent = await sendIamRegistration(deps, {
+        projectId,
+        environment: 'staging',
+        actor,
+        draftGeneratedAt: (remade.generatedPackage as { generatedAt: string })
+          .generatedAt,
+      })
+      expect(sent.state).toBe('sent')
     })
   })
 
-  it('refuses a second submission of a submitted record — 409 LAUNCH_TRANSITION_INVALID', async () => {
+  it('refuses a second send over a sent record, and a send of what UBC holds or decided — 409 LAUNCH_TRANSITION_INVALID', async () => {
     await withProject(async (db, { projectId, ownerId }) => {
       const actor = { ...ACTOR, id: ownerId }
       await piaApproved(db, projectId, actor)
       await withDraft(db, { projectId, environment: 'staging' })
-      await submitIamRegistration(db, bus, { projectId, environment: 'staging', actor })
-      await expect(
-        submitIamRegistration(db, bus, { projectId, environment: 'staging', actor }),
-      ).rejects.toMatchObject({
+      const { deps, told } = sending(db)
+      const send = () =>
+        sendIamRegistration(deps, { projectId, environment: 'staging', actor })
+      const first = await send()
+      // A SECOND SEND would restart the team's clock.
+      await expect(send()).rejects.toMatchObject({
         name: 'LaunchTransitionError',
         code: 'LAUNCH_TRANSITION_INVALID',
       })
-      // Nor from `active`, which is UBC's answer: an owner cannot send what UBC has registered.
+      const held = await getIamRegistration(db, projectId, 'staging')
+      expect(held?.sentAt?.toISOString()).toBe(first.sentAt?.toISOString())
+      expect(told).toHaveLength(1)
+      // Nor from `submitted` or `active` — UBC holds it, or has answered.
+      const admin = await teamMember(db)
+      await recordIamSubmission(db, bus, {
+        projectId,
+        environment: 'staging',
+        actor: admin,
+        reference: 'IAM-STG-1',
+      })
+      await expect(send()).rejects.toMatchObject({ code: 'LAUNCH_TRANSITION_INVALID' })
       await recordIamRegistration(db, bus, {
         ...IAM,
         environment: 'staging',
@@ -802,20 +858,26 @@ describe('the owner’s “I’ve sent it” (Task 9)', () => {
         state: 'active',
         actor,
       })
-      await expect(
-        submitIamRegistration(db, bus, { projectId, environment: 'staging', actor }),
-      ).rejects.toMatchObject({ code: 'LAUNCH_TRANSITION_INVALID' })
+      await expect(send()).rejects.toMatchObject({ code: 'LAUNCH_TRANSITION_INVALID' })
     })
   })
 
-  it('submits again from change_requested — a new request is the point', async () => {
+  it('sends again once UBC asked the owner for changes — from change_requested, its origin cleared and kept as sentFrom', async () => {
     await withProject(async (db, { projectId, ownerId }) => {
       const actor = { ...ACTOR, id: ownerId }
       await piaApproved(db, projectId, actor)
       const draft = await withDraft(db, { projectId, environment: 'staging' })
-      await submitIamRegistration(db, bus, { projectId, environment: 'staging', actor })
+      const { deps } = sending(db)
+      const admin = await teamMember(db)
+      await sendIamRegistration(deps, { projectId, environment: 'staging', actor })
+      await recordIamSubmission(db, bus, {
+        projectId,
+        environment: 'staging',
+        actor: admin,
+        reference: 'IAM-STG-2',
+      })
       // UBC came back with questions, and an administrator recorded it.
-      await recordIamRegistration(db, bus, {
+      const asked = await recordIamRegistration(db, bus, {
         ...IAM,
         environment: 'staging',
         entityId: draft.entityId,
@@ -825,29 +887,35 @@ describe('the owner’s “I’ve sent it” (Task 9)', () => {
         state: 'change_requested',
         actor,
       })
-      const again = await submitIamRegistration(db, bus, {
+      expect(asked.changeRequestedFrom).toBe('submitted')
+      const again = await sendIamRegistration(deps, {
         projectId,
         environment: 'staging',
         actor,
       })
-      expect(again.state).toBe('submitted')
+      expect(again).toMatchObject({
+        state: 'sent',
+        sentFrom: 'change_requested',
+        changeRequestedFrom: null,
+      })
     })
   })
 
-  it('UBC’s order: a STAGING submission waits for an approved assessment with its reference — 409 LAUNCH_PIA_NOT_APPROVED', async () => {
+  it('UBC’s order: a STAGING send waits for an approved assessment with its reference — 409 LAUNCH_PIA_NOT_APPROVED', async () => {
     await withProject(async (db, { projectId, ownerId }) => {
       const actor = { ...ACTOR, id: ownerId }
       await withDraft(db, { projectId, environment: 'staging' })
-      const submit = () =>
-        submitIamRegistration(db, bus, { projectId, environment: 'staging', actor })
+      const { deps } = sending(db)
+      const send = () =>
+        sendIamRegistration(deps, { projectId, environment: 'staging', actor })
       // No assessment at all.
-      await expect(submit()).rejects.toMatchObject({ code: 'LAUNCH_PIA_NOT_APPROVED' })
+      await expect(send()).rejects.toMatchObject({ code: 'LAUNCH_PIA_NOT_APPROVED' })
       // Submitted, not approved.
       await recordPrivacyAssessment(db, bus, { projectId, state: 'submitted', actor })
-      await expect(submit()).rejects.toMatchObject({ code: 'LAUNCH_PIA_NOT_APPROVED' })
+      await expect(send()).rejects.toMatchObject({ code: 'LAUNCH_PIA_NOT_APPROVED' })
       // Approved, but with no reference — UBC IAM asks for the PIA number.
       await recordPrivacyAssessment(db, bus, { projectId, state: 'approved', actor })
-      await expect(submit()).rejects.toMatchObject({ code: 'LAUNCH_PIA_NOT_APPROVED' })
+      await expect(send()).rejects.toMatchObject({ code: 'LAUNCH_PIA_NOT_APPROVED' })
       expect((await getIamRegistration(db, projectId, 'staging'))?.state).toBe('draft')
       // THE POSITIVE CONTROL: approved, with its reference — and drafted again, so the package carries
       // it (Task 10's review, I2: the week-one draft has none, and is refused LAUNCH_DRAFT_STALE).
@@ -857,20 +925,21 @@ describe('the owner’s “I’ve sent it” (Task 9)', () => {
         externalTicketRef: 'PIA-2026-0088',
         actor,
       })
-      await expect(submit()).rejects.toMatchObject({ code: 'LAUNCH_DRAFT_STALE' })
+      await expect(send()).rejects.toMatchObject({ code: 'LAUNCH_DRAFT_STALE' })
       await withDraft(db, { projectId, environment: 'staging' })
-      expect((await submit()).state).toBe('submitted')
+      expect((await send()).state).toBe('sent')
     })
   })
 
-  it('UBC’s order: a PRODUCTION submission waits for staging to be registered — 409 LAUNCH_STAGING_NOT_REGISTERED', async () => {
+  it('UBC’s order: a PRODUCTION send waits for staging to be registered — 409 LAUNCH_STAGING_NOT_REGISTERED', async () => {
     await withProject(async (db, { projectId, ownerId }) => {
       const actor = { ...ACTOR, id: ownerId }
       await piaApproved(db, projectId, actor)
       await withDraft(db, { projectId, environment: 'production' })
-      const submit = () =>
-        submitIamRegistration(db, bus, { projectId, environment: 'production', actor })
-      await expect(submit()).rejects.toMatchObject({
+      const { deps } = sending(db)
+      const send = () =>
+        sendIamRegistration(deps, { projectId, environment: 'production', actor })
+      await expect(send()).rejects.toMatchObject({
         code: 'LAUNCH_STAGING_NOT_REGISTERED',
       })
       // Staging sent, not yet registered.
@@ -881,7 +950,7 @@ describe('the owner’s “I’ve sent it” (Task 9)', () => {
         state: 'submitted',
         actor,
       })
-      await expect(submit()).rejects.toMatchObject({
+      await expect(send()).rejects.toMatchObject({
         code: 'LAUNCH_STAGING_NOT_REGISTERED',
       })
       // THE POSITIVE CONTROL: staging `active`.
@@ -892,58 +961,26 @@ describe('the owner’s “I’ve sent it” (Task 9)', () => {
         state: 'active',
         actor,
       })
-      expect((await submit()).state).toBe('submitted')
+      expect((await send()).state).toBe('sent')
     })
   })
 
-  it('UBC’s order: a PRODUCTION submission waits for the assessment too, even with staging recorded active — 409 LAUNCH_PIA_NOT_APPROVED', async () => {
+  it('UBC’s order: a PRODUCTION send waits for the assessment too, even with staging recorded active — 409 LAUNCH_PIA_NOT_APPROVED', async () => {
     // The whole-branch review's I3: §9, "neither of an app's registrations is sent until the
-    // assessment is approved". Staging recorded `active` by an administrator — never refused for
-    // order, and the laptop's normal path — must not carry production past the assessment.
+    // assessment is approved".
     await withProject(async (db, { projectId, ownerId }) => {
       const actor = { ...ACTOR, id: ownerId }
       await stagingActive(db, projectId, actor)
       await withDraft(db, { projectId, environment: 'production' })
-      const submit = () =>
-        submitIamRegistration(db, bus, { projectId, environment: 'production', actor })
-      await expect(submit()).rejects.toMatchObject({ code: 'LAUNCH_PIA_NOT_APPROVED' })
+      const { deps } = sending(db)
+      const send = () =>
+        sendIamRegistration(deps, { projectId, environment: 'production', actor })
+      await expect(send()).rejects.toMatchObject({ code: 'LAUNCH_PIA_NOT_APPROVED' })
       expect((await getIamRegistration(db, projectId, 'production'))?.state).toBe('draft')
-      // THE POSITIVE CONTROL: the assessment approved, with its reference — and the draft made again
-      // to carry it (Task 10's review, I2).
+      // THE POSITIVE CONTROL: the assessment approved, with its reference — and the draft made again.
       await piaApproved(db, projectId, actor)
       await withDraft(db, { projectId, environment: 'production' })
-      expect((await submit()).state).toBe('submitted')
-    })
-  })
-
-  it('refuses a day that is not one, whoever calls it — LAUNCH_SENT_AT_INVALID, never rolled over', async () => {
-    // The whole-branch review's I2, below the route: `2026-02-30` would be stored as March 2.
-    await withProject(async (db, { projectId, ownerId }) => {
-      const actor = { ...ACTOR, id: ownerId }
-      await piaApproved(db, projectId, actor)
-      await withDraft(db, {
-        projectId,
-        environment: 'staging',
-        createdAt: new Date('2025-12-01T17:00:00.000Z'),
-      })
-      for (const sentAt of ['2026-02-30', '2026-00-15', '2025-13-01'])
-        await expect(
-          submitIamRegistration(db, bus, {
-            projectId,
-            environment: 'staging',
-            actor,
-            sentAt,
-          }),
-          sentAt,
-        ).rejects.toMatchObject({ code: 'LAUNCH_SENT_AT_INVALID' })
-      // Positive control: a real day in that range.
-      const row = await submitIamRegistration(db, bus, {
-        projectId,
-        environment: 'staging',
-        actor,
-        sentAt: '2026-02-28',
-      })
-      expect(row.submittedAt?.toISOString()).toBe('2026-02-28T20:00:00.000Z')
+      expect((await send()).state).toBe('sent')
     })
   })
 
@@ -960,45 +997,7 @@ describe('the owner’s “I’ve sent it” (Task 9)', () => {
     })
   })
 
-  it('publishes iam_registration.submitted naming the environment, the day and the person — never a PUID', async () => {
-    await withProject(async (db, { projectId, ownerId }) => {
-      const actor = { ...ACTOR, id: ownerId }
-      await piaApproved(db, projectId, actor)
-      // Drafted before the day it was sent, as a real one is.
-      await withDraft(db, {
-        projectId,
-        environment: 'staging',
-        createdAt: new Date('2026-09-20T17:00:00.000Z'),
-      })
-      await submitIamRegistration(db, bus, {
-        projectId,
-        environment: 'staging',
-        actor,
-        sentAt: '2026-09-29',
-        reference: 'IAM-STG-7',
-      })
-      const [event] = await db
-        .select()
-        .from(events)
-        .where(
-          and(
-            eq(events.type, 'iam_registration.submitted'),
-            eq(events.projectId, projectId),
-          ),
-        )
-      expect(event?.machineDetail).toEqual({
-        environment: 'staging',
-        sentAt: '2026-09-29',
-        externalTicketRef: 'IAM-STG-7',
-      })
-      expect(event?.humanMessage).toBe(
-        "Test Owner said this app's staging registration was sent to UBC IAM on September 29, 2026 (ticket IAM-STG-7).",
-      )
-      expect(JSON.stringify(event)).not.toContain(ACTOR.puid)
-    })
-  })
-
-  it('an administrator’s record that MOVES a registration into submitted stamps when and by whom; a ticket correction does not', async () => {
+  it('an administrator’s record that MOVES a registration into submitted stamps when and by whom; a ticket correction does not (a pin: the direct draft → submitted stays)', async () => {
     await withProject(async (db, { projectId, ownerId }) => {
       const actor = { ...ACTOR, id: ownerId }
       const sent = await recordIamRegistration(db, bus, {
@@ -1009,6 +1008,7 @@ describe('the owner’s “I’ve sent it” (Task 9)', () => {
       })
       expect(sent.submittedAt).toBeInstanceOf(Date)
       expect(sent.submittedBy).toBe(ownerId)
+      expect(sent.sentFrom).toBeNull()
       const corrected = await recordIamRegistration(db, bus, {
         ...IAM,
         projectId,
@@ -1054,53 +1054,664 @@ describe('the owner’s “I’ve sent it” (Task 9)', () => {
   })
 })
 
-describe('the owner’s “I’ve sent it” for the privacy assessment (Task 9)', () => {
-  it('submits a drafted assessment: submitted, stamped with the day and the person', async () => {
+describe('the owner sends the privacy assessment, every gap answered (FE-46/47/5 plan Task 5; Review Focus 3)', () => {
+  it('sends a drafted assessment with an answer to every gap: sent, now, by them, the answers kept in the draft’s order — told after the event', async () => {
     await withProject(async (db, { projectId, ownerId }) => {
       const actor = { ...ACTOR, id: ownerId }
-      await withAssessmentDraft(db, { projectId })
-      const row = await submitPrivacyAssessment(db, bus, {
+      const drafted = await withAssessmentDraft(db, { projectId })
+      const answers = everyGapAnswered(drafted.generatedDraft, (id) => `About ${id}.`)
+      const { deps, said, told } = sending(db)
+      const row = await sendPrivacyAssessment(deps, {
         projectId,
         actor,
+        answers: [...answers].reverse(),
+      })
+      expect(row).toMatchObject({
+        state: 'sent',
+        sentBy: ownerId,
+        submittedAt: null,
+        submittedBy: null,
+        gapAnswers: answers,
+      })
+      expect(row.sentAt).toBeInstanceOf(Date)
+      const [event] = await eventsOf(db, projectId, 'privacy_assessment.sent')
+      expect(event?.machineDetail).toEqual({ gapCount: answers.length })
+      expect(event?.humanMessage).toBe(
+        "Test Owner sent this app's privacy assessment to the Manifest team, with an answer to each of its 8 gaps, to submit to the Privacy Office.",
+      )
+      // COUNTS, NEVER THE ANSWERS — on the stream or in the email.
+      expect(JSON.stringify(event)).not.toContain('About ')
+      expect(said).toEqual(['privacy_assessment.sent', 'told:record-sent'])
+      expect(told).toEqual([
+        {
+          kind: 'record-sent',
+          record: 'privacy-assessment',
+          change: false,
+          project: { id: projectId, slug: expect.any(String), name: expect.any(String) },
+          by: 'Test Owner',
+          at: row.sentAt,
+        },
+      ])
+    })
+  })
+
+  it('a missing, unknown, repeated, blank or over-long answer — 400 LAUNCH_GAP_ANSWERS_INVALID — writes nothing and tells nobody; "does not apply" is sent', async () => {
+    await withProject(async (db, { projectId, ownerId }) => {
+      const actor = { ...ACTOR, id: ownerId }
+      const drafted = await withAssessmentDraft(db, { projectId })
+      const answers = everyGapAnswered(drafted.generatedDraft)
+      const { deps, told } = sending(db)
+      const send = (given: { gapId: string; answer: string }[]) =>
+        sendPrivacyAssessment(deps, { projectId, actor, answers: given })
+      const first = answers[0]!
+      for (const [given, atFault] of [
+        [answers.slice(1), first.gapId],
+        [[...answers, { gapId: 'flows.no-such-gap', answer: 'x' }], 'flows.no-such-gap'],
+        [[...answers, first], first.gapId],
+        [[{ ...first, answer: ' \n ' }, ...answers.slice(1)], first.gapId],
+        [[{ ...first, answer: 'x'.repeat(2_001) }, ...answers.slice(1)], first.gapId],
+      ] as const)
+        await expect(send([...given]), atFault).rejects.toMatchObject({
+          name: 'LaunchRecordError',
+          code: 'LAUNCH_GAP_ANSWERS_INVALID',
+          message: expect.stringContaining(atFault),
+        })
+      const held = await getPrivacyAssessment(db, projectId)
+      expect(held).toMatchObject({ state: 'draft', sentAt: null, gapAnswers: null })
+      expect(told).toEqual([])
+      // THE POSITIVE CONTROL: "does not apply" for every gap.
+      expect((await send(answers)).gapAnswers).toEqual(answers)
+    })
+  })
+
+  it('refuses one with no draft — 409 LAUNCH_DRAFT_REQUIRED — and a second send — LAUNCH_TRANSITION_INVALID', async () => {
+    await withProject(async (db, { projectId, ownerId }) => {
+      const actor = { ...ACTOR, id: ownerId }
+      const { deps } = sending(db)
+      await expect(
+        sendPrivacyAssessment(deps, { projectId, actor, answers: [] }),
+      ).rejects.toMatchObject({ code: 'LAUNCH_DRAFT_REQUIRED' })
+      const drafted = await withAssessmentDraft(db, { projectId })
+      const answers = everyGapAnswered(drafted.generatedDraft)
+      expect(
+        (await sendPrivacyAssessment(deps, { projectId, actor, answers })).state,
+      ).toBe('sent')
+      await expect(
+        sendPrivacyAssessment(deps, { projectId, actor, answers }),
+      ).rejects.toMatchObject({ code: 'LAUNCH_TRANSITION_INVALID' })
+    })
+  })
+
+  it('the email names the app and the sender, and carries no answer and no gap’s words (Review Focus 2)', async () => {
+    await withProject(async (db, { projectId, ownerId }) => {
+      const actor = { ...ACTOR, id: ownerId }
+      const drafted = await withAssessmentDraft(db, { projectId })
+      const MARKER = 'MARKER-fe46-answer-7Q'
+      const answers = everyGapAnswered(drafted.generatedDraft, (id) => `${MARKER} ${id}`)
+      const { deps, told } = sending(db)
+      await sendPrivacyAssessment(deps, { projectId, actor, answers })
+      const project = (await getPrivacyAssessment(db, projectId))!
+      const { subject, text } = teamEmail(told[0]!, 'https://console.manifest.internal')
+      const email = `${subject}\n${text}`
+      expect(email).not.toContain(MARKER)
+      for (const gap of (
+        readAssessmentDraft(project.generatedDraft)?.sections ?? []
+      ).flatMap((s) => s.gaps))
+        expect(email).not.toContain(gap.text)
+      expect(email).toContain(told[0]!.project.slug)
+      expect(email).toContain('Test Owner')
+      expect(email).toContain(
+        `https://console.manifest.internal/projects/${projectId}/records`,
+      )
+    })
+  })
+
+  it('an email that cannot be delivered never undoes the send: sent, and ONE operator line (Review Focus 2)', async () => {
+    await withProject(async (db, { projectId, ownerId }) => {
+      const actor = { ...ACTOR, id: ownerId }
+      const drafted = await withAssessmentDraft(db, { projectId })
+      const lines: unknown[] = []
+      const spy = vi.spyOn(console, 'error').mockImplementation((line: unknown) => {
+        lines.push(line)
+      })
+      try {
+        const mailer = createMailer(
+          {
+            mail: {
+              smtp: {
+                host: '127.0.0.1',
+                port: 1,
+                secure: false,
+                requireTLS: false,
+                auth: null,
+              },
+              team: 'team@manifest.internal',
+              from: 'Manifest <manifest@manifest.internal>',
+            },
+            sp: { origin: 'https://console.manifest.internal' },
+          },
+          {
+            sendMail: async () => {
+              throw Object.assign(new Error('refused'), { code: 'ESOCKET' })
+            },
+          } as never,
+        )
+        const row = await sendPrivacyAssessment(
+          { db, bus, mailer },
+          { projectId, actor, answers: everyGapAnswered(drafted.generatedDraft) },
+        )
+        expect(row.state).toBe('sent')
+        await mailer.settled()
+        expect((await getPrivacyAssessment(db, projectId))?.state).toBe('sent')
+        expect(lines.map((l) => JSON.parse(l as string))).toEqual([
+          {
+            level: 'error',
+            msg: 'the Manifest team could not be emailed; the queue still holds the item',
+            notice: 'record-sent',
+            projectId,
+            error: 'ESOCKET',
+          },
+        ])
+      } finally {
+        spy.mockRestore()
+      }
+    })
+  })
+})
+
+describe('the Manifest team submits what it was sent to UBC (FE-46/47/5 plan Task 5)', () => {
+  /** A staging registration the owner sent, the assessment approved first. */
+  async function stagingSent(db: Db, projectId: string, actor: typeof ACTOR) {
+    await piaApproved(db, projectId, actor)
+    await withDraft(db, { projectId, environment: 'staging' })
+    return sendIamRegistration(sending(db).deps, {
+      projectId,
+      environment: 'staging',
+      actor,
+    })
+  }
+
+  it('sent → submitted: the team’s day at noon in Vancouver, the administrator, UBC’s reference — the owner’s send kept', async () => {
+    await withProject(async (db, { projectId, ownerId }) => {
+      const actor = { ...ACTOR, id: ownerId }
+      const sent = await stagingSent(db, projectId, actor)
+      const admin = await teamMember(db)
+      const today = vancouverToday()
+      const row = await recordIamSubmission(db, bus, {
+        projectId,
+        environment: 'staging',
+        actor: admin,
+        sentAt: today,
+        reference: 'IAM-2026-0500',
+      })
+      expect(row).toMatchObject({
+        state: 'submitted',
+        sentFrom: null,
+        sentBy: ownerId,
+        submittedBy: admin.id,
+        externalTicketRef: 'IAM-2026-0500',
+      })
+      expect(row.sentAt?.toISOString()).toBe(sent.sentAt?.toISOString())
+      expect(row.submittedAt?.toISOString()).toBe(vancouverNoon(today).toISOString())
+      const [event] = await eventsOf(db, projectId, 'iam_registration.submitted')
+      expect(event?.machineDetail).toEqual({
+        environment: 'staging',
+        sentAt: today,
+        externalTicketRef: 'IAM-2026-0500',
+        changeRequest: false,
+      })
+      expect(event?.humanMessage).toBe(
+        `Platform Admin recorded that the Manifest team submitted this app's staging registration to UBC IAM on ${vancouverDayInWords(vancouverNoon(today))} (ticket IAM-2026-0500).`,
+      )
+      expect(JSON.stringify(event)).not.toContain(admin.puid)
+    })
+  })
+
+  it('the day: not after today, not before the owner sent it, and a day that is one — 400 LAUNCH_SENT_AT_INVALID; today when absent', async () => {
+    await withProject(async (db, { projectId, ownerId }) => {
+      const actor = { ...ACTOR, id: ownerId }
+      const sent = await stagingSent(db, projectId, actor)
+      // The owner sent it three days ago.
+      await db
+        .update(iamRegistrations)
+        .set({ sentAt: new Date(Date.now() - 3 * 86_400_000) })
+        .where(eq(iamRegistrations.id, sent.id))
+      const admin = await teamMember(db)
+      const submit = (sentAt?: string) =>
+        recordIamSubmission(db, bus, {
+          projectId,
+          environment: 'staging',
+          actor: admin,
+          reference: 'IAM-1',
+          ...(sentAt === undefined ? {} : { sentAt }),
+        })
+      await expect(submit(vancouverDaysAgo(-1))).rejects.toMatchObject({
+        code: 'LAUNCH_SENT_AT_INVALID',
+        message: expect.stringContaining('after today'),
+      })
+      await expect(submit(vancouverDaysAgo(5))).rejects.toMatchObject({
+        code: 'LAUNCH_SENT_AT_INVALID',
+        message: expect.stringContaining('before the owner sent it to the Manifest team'),
+      })
+      for (const impossible of ['2026-02-30', '2026-00-15', '2025-13-01'])
+        await expect(submit(impossible), impossible).rejects.toMatchObject({
+          code: 'LAUNCH_SENT_AT_INVALID',
+        })
+      expect((await getIamRegistration(db, projectId, 'staging'))?.state).toBe('sent')
+      // THE POSITIVE CONTROLS: a day between the owner's send and today — and no day, today.
+      const row = await submit(vancouverDaysAgo(2))
+      expect(row.submittedAt?.toISOString()).toBe(
+        vancouverNoon(vancouverDaysAgo(2)).toISOString(),
+      )
+    })
+  })
+
+  it('is never refused for UBC’s order — staging submitted while the assessment is no longer approved', async () => {
+    await withProject(async (db, { projectId, ownerId }) => {
+      const actor = { ...ACTOR, id: ownerId }
+      await stagingSent(db, projectId, actor)
+      // The Privacy Office reopened the assessment after the owner sent staging's registration.
+      await recordPrivacyAssessment(db, bus, { projectId, state: 'draft', actor })
+      const row = await recordIamSubmission(db, bus, {
+        projectId,
+        environment: 'staging',
+        actor: await teamMember(db),
+        reference: 'IAM-2',
+      })
+      expect(row.state).toBe('submitted')
+    })
+  })
+
+  it('refuses a record that is not with the team — 409 LAUNCH_TRANSITION_INVALID — and writes nothing', async () => {
+    await withProject(async (db, { projectId, ownerId }) => {
+      const actor = { ...ACTOR, id: ownerId }
+      await piaApproved(db, projectId, actor)
+      await withDraft(db, { projectId, environment: 'staging' })
+      const admin = await teamMember(db)
+      const submit = () =>
+        recordIamSubmission(db, bus, {
+          projectId,
+          environment: 'staging',
+          actor: admin,
+          reference: 'IAM-3',
+        })
+      await expect(submit()).rejects.toMatchObject({
+        name: 'LaunchTransitionError',
+        code: 'LAUNCH_TRANSITION_INVALID',
+      })
+      expect(await getIamRegistration(db, projectId, 'staging')).toMatchObject({
+        state: 'draft',
+        submittedAt: null,
+        externalTicketRef: null,
+      })
+      expect(await eventsOf(db, projectId, 'iam_registration.submitted')).toEqual([])
+      // And none at all — no record is with the team.
+      await expect(
+        recordIamSubmission(db, bus, {
+          projectId,
+          environment: 'production',
+          actor: admin,
+          reference: 'IAM-4',
+        }),
+      ).rejects.toMatchObject({ code: 'LAUNCH_TRANSITION_INVALID' })
+      // THE POSITIVE CONTROL: once the owner sent it.
+      await sendIamRegistration(sending(db).deps, {
+        projectId,
+        environment: 'staging',
+        actor,
+      })
+      expect((await submit()).state).toBe('submitted')
+    })
+  })
+
+  it('the assessment: sent → submitted with the Privacy Office’s reference; the owner’s answers kept', async () => {
+    await withProject(async (db, { projectId, ownerId }) => {
+      const actor = { ...ACTOR, id: ownerId }
+      const drafted = await withAssessmentDraft(db, { projectId })
+      const answers = everyGapAnswered(drafted.generatedDraft)
+      await sendPrivacyAssessment(sending(db).deps, { projectId, actor, answers })
+      const admin = await teamMember(db)
+      const row = await recordAssessmentSubmission(db, bus, {
+        projectId,
+        actor: admin,
         reference: 'PIA-2026-0101',
       })
       expect(row).toMatchObject({
         state: 'submitted',
-        submittedBy: ownerId,
+        submittedBy: admin.id,
         externalTicketRef: 'PIA-2026-0101',
+        sentBy: ownerId,
+        gapAnswers: answers,
       })
       expect(row.submittedAt?.toISOString()).toBe(
         vancouverNoon(vancouverToday()).toISOString(),
       )
-      const [event] = await db
-        .select()
-        .from(events)
-        .where(
-          and(
-            eq(events.type, 'privacy_assessment.submitted'),
-            eq(events.projectId, projectId),
-          ),
-        )
+      const [event] = await eventsOf(db, projectId, 'privacy_assessment.submitted')
       expect(event?.machineDetail).toEqual({
         sentAt: vancouverToday(),
         externalTicketRef: 'PIA-2026-0101',
       })
+      expect(event?.humanMessage).toBe(
+        `Platform Admin recorded that the Manifest team submitted this app's privacy assessment to the UBC Privacy Office on ${vancouverDayInWords(vancouverNoon(vancouverToday()))} (ticket PIA-2026-0101).`,
+      )
+      // A second submission: it is no longer with the team.
+      await expect(
+        recordAssessmentSubmission(db, bus, {
+          projectId,
+          actor: admin,
+          reference: 'PIA-2',
+        }),
+      ).rejects.toMatchObject({ code: 'LAUNCH_TRANSITION_INVALID' })
+    })
+  })
+})
+
+describe('the Manifest team hands a record back to its owner (FE-46/47/5 plan Task 5; Review Focus 1)', () => {
+  it('a registration returns to the state it was sent from — draft, a lapse, or UBC’s questions to the owner', async () => {
+    await withProject(async (db, { projectId, ownerId }) => {
+      const actor = { ...ACTOR, id: ownerId }
+      const admin = await teamMember(db)
+      await piaApproved(db, projectId, actor)
+      const draft = await withDraft(db, { projectId, environment: 'staging' })
+      const { deps } = sending(db)
+      const send = () =>
+        sendIamRegistration(deps, { projectId, environment: 'staging', actor })
+      const handBack = () =>
+        returnIamRegistration(db, bus, {
+          projectId,
+          environment: 'staging',
+          actor: admin,
+        })
+
+      // From a draft, back to it.
+      await send()
+      const back = await handBack()
+      expect(back).toMatchObject({
+        state: 'draft',
+        sentFrom: null,
+        changeRequestedFrom: null,
+      })
+      const [returned] = await eventsOf(db, projectId, 'iam_registration.returned')
+      expect(returned?.machineDetail).toEqual({ environment: 'staging', to: 'draft' })
+      expect(returned?.humanMessage).toBe(
+        "Platform Admin handed this app's staging registration back to its owner, unsubmitted.",
+      )
+
+      // From UBC's questions to the owner: back to them, the owner's move again.
+      await send()
+      await recordIamSubmission(db, bus, {
+        projectId,
+        environment: 'staging',
+        actor: admin,
+        reference: 'IAM-5',
+      })
+      await recordIamRegistration(db, bus, {
+        ...IAM,
+        environment: 'staging',
+        entityId: draft.entityId,
+        acsUrl: draft.acsUrl,
+        sloUrl: draft.sloUrl,
+        projectId,
+        state: 'change_requested',
+        actor,
+      })
+      expect((await send()).sentFrom).toBe('change_requested')
+      expect(await handBack()).toMatchObject({
+        state: 'change_requested',
+        changeRequestedFrom: 'submitted',
+        sentFrom: null,
+      })
+
+      // From a lapse: back to `expired`, still not registered.
+      await recordIamRegistration(db, bus, {
+        ...IAM,
+        environment: 'staging',
+        entityId: draft.entityId,
+        acsUrl: draft.acsUrl,
+        sloUrl: draft.sloUrl,
+        projectId,
+        state: 'expired',
+        actor,
+      })
+      expect((await send()).sentFrom).toBe('expired')
+      expect(await handBack()).toMatchObject({
+        state: 'expired',
+        registeredAt: null,
+        sentFrom: null,
+      })
     })
   })
 
-  it('refuses one with no draft — 409 LAUNCH_DRAFT_REQUIRED — and a second submission — LAUNCH_TRANSITION_INVALID', async () => {
+  it('the assessment returns to draft; a second send replaces the first’s day and answers', async () => {
     await withProject(async (db, { projectId, ownerId }) => {
       const actor = { ...ACTOR, id: ownerId }
-      await expect(
-        submitPrivacyAssessment(db, bus, { projectId, actor }),
-      ).rejects.toMatchObject({ code: 'LAUNCH_DRAFT_REQUIRED' })
+      const admin = await teamMember(db)
+      const drafted = await withAssessmentDraft(db, { projectId })
+      const { deps } = sending(db)
+      const first = await sendPrivacyAssessment(deps, {
+        projectId,
+        actor,
+        answers: everyGapAnswered(drafted.generatedDraft, 'first'),
+      })
+      await db
+        .update(privacyAssessments)
+        .set({ sentAt: new Date(Date.now() - 86_400_000) })
+        .where(eq(privacyAssessments.id, first.id))
+      const back = await returnPrivacyAssessment(db, bus, { projectId, actor: admin })
+      expect(back.state).toBe('draft')
+      const [returned] = await eventsOf(db, projectId, 'privacy_assessment.returned')
+      expect(returned?.machineDetail).toEqual({ to: 'draft' })
+      const second = await sendPrivacyAssessment(deps, {
+        projectId,
+        actor,
+        answers: everyGapAnswered(drafted.generatedDraft, 'second'),
+      })
+      expect(second.gapAnswers!.every((a) => a.answer === 'second')).toBe(true)
+      expect(second.sentAt!.getTime()).toBeGreaterThan(Date.now() - 60_000)
+    })
+  })
+
+  it('refuses a hand-back of what the team does not hold — 409 LAUNCH_TRANSITION_INVALID — and writes nothing', async () => {
+    await withProject(async (db, { projectId }) => {
+      const admin = await teamMember(db)
       await withAssessmentDraft(db, { projectId })
-      expect((await submitPrivacyAssessment(db, bus, { projectId, actor })).state).toBe(
-        'submitted',
-      )
       await expect(
-        submitPrivacyAssessment(db, bus, { projectId, actor }),
+        returnPrivacyAssessment(db, bus, { projectId, actor: admin }),
       ).rejects.toMatchObject({ code: 'LAUNCH_TRANSITION_INVALID' })
+      await withDraft(db, { projectId, environment: 'staging' })
+      await expect(
+        returnIamRegistration(db, bus, {
+          projectId,
+          environment: 'staging',
+          actor: admin,
+        }),
+      ).rejects.toMatchObject({ code: 'LAUNCH_TRANSITION_INVALID' })
+      expect(await eventsOf(db, projectId, 'iam_registration.returned')).toEqual([])
+      expect(await eventsOf(db, projectId, 'privacy_assessment.returned')).toEqual([])
+    })
+  })
+})
+
+describe('no way around the team’s step (FE-46/47/5 plan Task 5; Review Focus 5)', () => {
+  it('the administrator’s record never moves a registration into or out of `sent` — 409 LAUNCH_TRANSITION_INVALID naming the team’s operations', async () => {
+    await withProject(async (db, { projectId, ownerId }) => {
+      const actor = { ...ACTOR, id: ownerId }
+      await piaApproved(db, projectId, actor)
+      const draft = await withDraft(db, { projectId, environment: 'staging' })
+      const record = (state: 'sent' | 'active' | 'submitted') =>
+        recordIamRegistration(db, bus, {
+          ...IAM,
+          environment: 'staging',
+          entityId: draft.entityId,
+          acsUrl: draft.acsUrl,
+          sloUrl: draft.sloUrl,
+          projectId,
+          state,
+          actor,
+        })
+      // draft → sent: only the owner sends.
+      await expect(record('sent')).rejects.toMatchObject({
+        code: 'LAUNCH_TRANSITION_INVALID',
+        message: expect.stringMatching(/sendIamRegistration/),
+      })
+      await sendIamRegistration(sending(db).deps, {
+        projectId,
+        environment: 'staging',
+        actor,
+      })
+      const before = await getIamRegistration(db, projectId, 'staging')
+      // sent → active, sent → submitted: only the team's own operations take it out.
+      for (const state of ['active', 'submitted'] as const)
+        await expect(record(state)).rejects.toMatchObject({
+          code: 'LAUNCH_TRANSITION_INVALID',
+          message: expect.stringMatching(/submitIamRegistration.*returnIamRegistration/s),
+        })
+      expect(await getIamRegistration(db, projectId, 'staging')).toEqual(before)
+    })
+  })
+
+  it('the assessment the same — recordPrivacyAssessment never moves one into or out of `sent`', async () => {
+    await withProject(async (db, { projectId, ownerId }) => {
+      const actor = { ...ACTOR, id: ownerId }
+      const drafted = await withAssessmentDraft(db, { projectId })
+      await expect(
+        recordPrivacyAssessment(db, bus, { projectId, state: 'sent', actor }),
+      ).rejects.toMatchObject({ code: 'LAUNCH_TRANSITION_INVALID' })
+      await sendPrivacyAssessment(sending(db).deps, {
+        projectId,
+        actor,
+        answers: everyGapAnswered(drafted.generatedDraft),
+      })
+      const before = await getPrivacyAssessment(db, projectId)
+      for (const state of ['submitted', 'approved', 'draft'] as const)
+        await expect(
+          recordPrivacyAssessment(db, bus, { projectId, state, actor }),
+        ).rejects.toMatchObject({
+          code: 'LAUNCH_TRANSITION_INVALID',
+          message: expect.stringMatching(
+            /submitPrivacyAssessment.*returnPrivacyAssessment/s,
+          ),
+        })
+      expect(await getPrivacyAssessment(db, projectId)).toEqual(before)
+    })
+  })
+
+  it('a record with the team, or a change request the team filed, is not drafted again — 409 LAUNCH_RECORD_SUBMITTED — nor sent over (Decision 5)', async () => {
+    await withProject(async (db, { projectId, ownerId }) => {
+      const actor = { ...ACTOR, id: ownerId }
+      // Drafting refuses before it reads anything else, so these deps are never reached.
+      const draftDeps = { db, bus } as unknown as Parameters<
+        typeof draftIamRegistration
+      >[0]
+      await piaApproved(db, projectId, actor)
+      await withDraft(db, { projectId, environment: 'staging' })
+      await sendIamRegistration(sending(db).deps, {
+        projectId,
+        environment: 'staging',
+        actor,
+      })
+      await expect(
+        draftIamRegistration(draftDeps, { projectId, environment: 'staging', actor }),
+      ).rejects.toMatchObject({
+        code: 'LAUNCH_RECORD_SUBMITTED',
+        message: expect.stringMatching(/with the Manifest team/),
+      })
+      // A change request the team FILED with UBC (from `active`) is UBC's to answer.
+      for (const state of ['submitted', 'active'] as const)
+        await recordIamRegistration(db, bus, { ...IAM, projectId, state, actor })
+      await recordIamRegistration(db, bus, {
+        ...IAM,
+        projectId,
+        state: 'change_requested',
+        requestedAttributes: ['displayName', 'mail', 'sn'],
+        actor,
+      })
+      // A package on it, so the send is refused for where it is, not for having no draft.
+      await withDraft(db, { projectId, environment: 'production' })
+      const filed = await getIamRegistration(db, projectId, 'production')
+      expect(filed?.changeRequestedFrom).toBe('active')
+      await expect(
+        draftIamRegistration(draftDeps, { projectId, environment: 'production', actor }),
+      ).rejects.toMatchObject({ code: 'LAUNCH_RECORD_SUBMITTED' })
+      await expect(
+        sendIamRegistration(sending(db).deps, {
+          projectId,
+          environment: 'production',
+          actor,
+        }),
+      ).rejects.toMatchObject({ code: 'LAUNCH_TRANSITION_INVALID' })
+      expect(await getIamRegistration(db, projectId, 'production')).toEqual(filed)
+    })
+  })
+
+  it('an assessment with the team is not drafted again — 409 LAUNCH_RECORD_SUBMITTED, in its own words', async () => {
+    await withProject(async (db, { projectId, ownerId }) => {
+      const actor = { ...ACTOR, id: ownerId }
+      const drafted = await withAssessmentDraft(db, { projectId })
+      await sendPrivacyAssessment(sending(db).deps, {
+        projectId,
+        actor,
+        answers: everyGapAnswered(drafted.generatedDraft),
+      })
+      const deps = { db, bus } as unknown as Parameters<typeof draftPrivacyAssessment>[0]
+      await expect(
+        draftPrivacyAssessment(deps, { projectId, actor }),
+      ).rejects.toMatchObject({
+        code: 'LAUNCH_RECORD_SUBMITTED',
+        message: expect.stringMatching(/with the Manifest team/),
+      })
+    })
+  })
+
+  it('the database refuses a `sent` row that says nothing of where it came from or who sent it, and an origin on any other row', async () => {
+    await withProject(async (db, { projectId, ownerId }) => {
+      const actor = { ...ACTOR, id: ownerId }
+      await piaApproved(db, projectId, actor)
+      const draft = await withDraft(db, { projectId, environment: 'staging' })
+      const where = eq(iamRegistrations.id, draft.id)
+      // Each in its own SAVEPOINT, so one refusal does not abort the next.
+      await expectSqlState(
+        db.transaction((tx) =>
+          tx.update(iamRegistrations).set({ state: 'sent' }).where(where),
+        ),
+        '23514',
+      )
+      await expectSqlState(
+        db.transaction((tx) =>
+          tx.update(iamRegistrations).set({ sentFrom: 'draft' }).where(where),
+        ),
+        '23514',
+      )
+      await expectSqlState(
+        db.transaction((tx) =>
+          tx
+            .update(iamRegistrations)
+            .set({ state: 'sent', sentFrom: 'draft' })
+            .where(where),
+        ),
+        '23514',
+      )
+      // THE POSITIVE CONTROL: all of it together is a row the database keeps.
+      await db
+        .update(iamRegistrations)
+        .set({ state: 'sent', sentFrom: 'draft', sentAt: new Date(), sentBy: ownerId })
+        .where(where)
+      // The assessment: `sent` with no answers.
+      const piaWhere = eq(privacyAssessments.projectId, projectId)
+      await db.update(privacyAssessments).set({ state: 'draft' }).where(piaWhere)
+      await expectSqlState(
+        db.transaction((tx) =>
+          tx
+            .update(privacyAssessments)
+            .set({ state: 'sent', sentAt: new Date(), sentBy: ownerId })
+            .where(piaWhere),
+        ),
+        '23514',
+      )
+      await db
+        .update(privacyAssessments)
+        .set({ state: 'sent', sentAt: new Date(), sentBy: ownerId, gapAnswers: [] })
+        .where(piaWhere)
     })
   })
 })
@@ -1188,18 +1799,19 @@ describe('where a change request came from (Task 12, Spec action 10)', () => {
     })
   })
 
-  it('the owner’s “I’ve sent it” from change_requested clears it', async () => {
+  it('the owner’s send from change_requested clears it — and keeps where it was sent from', async () => {
     await withProject(async (db, { projectId, ownerId }) => {
       const actor = { ...ACTOR, id: ownerId }
-      await recordPrivacyAssessment(db, bus, { projectId, state: 'submitted', actor })
-      await recordPrivacyAssessment(db, bus, {
-        projectId,
-        state: 'approved',
-        externalTicketRef: 'PIA-0001',
-        actor,
-      })
+      await piaApproved(db, projectId, actor)
       const draft = await withDraft(db, { projectId, environment: 'staging' })
-      await submitIamRegistration(db, bus, { projectId, environment: 'staging', actor })
+      const { deps } = sending(db)
+      await sendIamRegistration(deps, { projectId, environment: 'staging', actor })
+      await recordIamSubmission(db, bus, {
+        projectId,
+        environment: 'staging',
+        actor,
+        reference: 'IAM-STG-9',
+      })
       const asked = await recordIamRegistration(db, bus, {
         ...IAM,
         environment: 'staging',
@@ -1211,13 +1823,16 @@ describe('where a change request came from (Task 12, Spec action 10)', () => {
         actor,
       })
       expect(asked.changeRequestedFrom).toBe('submitted')
-      const again = await submitIamRegistration(db, bus, {
+      const again = await sendIamRegistration(deps, {
         projectId,
         environment: 'staging',
         actor,
       })
-      expect(again.state).toBe('submitted')
-      expect(again.changeRequestedFrom).toBeNull()
+      expect(again).toMatchObject({
+        state: 'sent',
+        sentFrom: 'change_requested',
+        changeRequestedFrom: null,
+      })
     })
   })
 

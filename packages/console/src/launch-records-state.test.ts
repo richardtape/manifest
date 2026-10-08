@@ -151,6 +151,50 @@ describe('what the owner may do with each record', () => {
   })
 })
 
+describe('a record with the Manifest team (the FE-46/47/5 plan’s Task 5)', () => {
+  it('a sent registration: nothing to draft or send, waiting — with the team since the day it was sent', () => {
+    const sent = registration({
+      state: 'sent',
+      sentFrom: 'draft',
+      sentAt: '2026-10-01T16:45:00.000Z',
+      submittedAt: null,
+      submittedBy: null,
+    })
+    const actions = registrationActions(sent)
+    expect(actions).toMatchObject({ draft: null, send: false, waiting: true })
+    expect(actions.status).toBe(
+      'With the Manifest team since 1 October 2026. They submit it to UBC IAM, or hand it back to you.',
+    )
+  })
+
+  it('a sent assessment: the same, for the Privacy Office', () => {
+    const sent = assessment({
+      state: 'sent',
+      sentAt: '2026-10-01T16:45:00.000Z',
+      submittedAt: null,
+      submittedBy: null,
+    })
+    const actions = assessmentActions(sent)
+    expect(actions).toMatchObject({ draft: null, send: false, waiting: true })
+    expect(actions.status).toBe(
+      'With the Manifest team since 1 October 2026. They submit it to the UBC Privacy Office, or hand it back to you.',
+    )
+  })
+
+  it('a drafted record is sent to the Manifest team — never "say you sent it"', () => {
+    const drafted = registration({ state: 'draft', submittedAt: null, submittedBy: null })
+    expect(registrationActions(drafted).status).toMatch(/send it to the Manifest team/)
+    expect(registrationActions(drafted).status).not.toMatch(/say you sent it/)
+    const draftedPia = assessment({
+      state: 'draft',
+      submittedAt: null,
+      submittedBy: null,
+    })
+    expect(assessmentActions(draftedPia).status).toMatch(/send it to the Manifest team/)
+    expect(assessmentActions(draftedPia).status).not.toMatch(/say you sent it/)
+  })
+})
+
 const readiness = (
   approval: Partial<Schemas['LaunchReadinessItem']>,
   over: Partial<Schemas['LaunchReadiness']> = {},

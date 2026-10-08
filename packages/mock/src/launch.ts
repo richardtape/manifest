@@ -4,11 +4,11 @@ import { MockRefusal } from './refusal.js'
 
 /**
  * THE LAUNCH PATH AS THE MOCK PLAYS IT (the launch path plan's Task 13; FE-40). The mock keeps no
- * state (P5c Decision 9), so where a project stands in UBC's order is an OPTION, and every draft and
- * every *"I've sent it"* is answered as the platform answers it FROM that stage — in its words, and in
- * its order of checks (`launch/records.ts`): a draft must exist, the move must be one the record can
- * make, the assessment comes first, staging before production, the draft sent is the draft held, and
- * the day can be true.
+ * state (P5c Decision 9), so where a project stands in UBC's order is an OPTION, and every draft, every
+ * send to the Manifest team and every team step is answered as the platform answers it FROM that stage —
+ * in its words, and in its order of checks (`launch/records.ts`): a draft must exist, the move must be
+ * one the record can make, the assessment comes first, staging before production, the draft sent is the
+ * draft held, every gap is answered once, and the team's day can be true (the FE-46/47/5 plan's Task 5).
  *
  * - `none` — nothing recorded: drafts succeed, nothing can be sent.
  * - `drafted` — all three drafted, nothing sent: the assessment can be sent; a registration waits for
@@ -106,6 +106,9 @@ function draftRegistrationRecord(
     state: 'draft',
     changeRequestedFrom: null,
     externalTicketRef: null,
+    sentFrom: null,
+    sentAt: null,
+    sentBy: null,
     submittedAt: null,
     submittedBy: null,
     package: f.registrationPackage(environment, stage, at),
@@ -122,6 +125,9 @@ function draftAssessmentRecord(now: number): Assessment {
     reviewer: null,
     approvedAt: null,
     externalTicketRef: null,
+    sentAt: null,
+    sentBy: null,
+    gapAnswers: null,
     submittedAt: null,
     submittedBy: null,
     draft: f.assessmentDraft(at),
@@ -186,32 +192,106 @@ const noDraft = (what: string) =>
   new MockRefusal(
     409,
     'LAUNCH_DRAFT_REQUIRED',
-    `there is no draft of ${what} to have sent: Manifest drafts it first, and what is sent is that draft`,
-    'Draft it, send the draft, then say it was sent.',
+    `there is no draft of ${what} to send: Manifest drafts it first, and what is sent is that draft`,
+    'Draft it, read the draft, then send it to the Manifest team.',
   )
 
-const refuseSubmission = (what: string, from: string, allowed: readonly string[]) =>
+const refuseSend = (what: string, from: string, allowed: string) =>
   new MockRefusal(
     409,
     'LAUNCH_TRANSITION_INVALID',
-    `${what} that is '${from}' cannot be sent again — it is sent from ${allowed.map((s) => `'${s}'`).join(' or ')}`,
+    `${what} that is ${from} cannot be sent to the Manifest team — it is sent from ${allowed}`,
   )
 
-const IAM_SUBMIT_FROM = ['draft', 'change_requested', 'expired'] as const
-const PIA_SUBMIT_FROM = ['draft'] as const
+/** The platform's `iamSendableFrom`: a draft, UBC's questions to the owner, or a lapse. */
+function iamSendableFrom(
+  held: Registration,
+): 'draft' | 'change_requested' | 'expired' | null {
+  if (held.state === 'draft' || held.state === 'expired') return held.state
+  if (held.state === 'change_requested' && held.changeRequestedFrom === 'submitted')
+    return 'change_requested'
+  return null
+}
+
+/** A record the Manifest team does not hold — the platform's `notWithTeam`. */
+const notWithTeam = (what: string, state: string | undefined) =>
+  new MockRefusal(
+    409,
+    'LAUNCH_TRANSITION_INVALID',
+    `${what} is ${state === undefined ? 'not yet drafted' : `'${state}'`}: the Manifest team submits, or hands back, only what its owner sent it ('sent')`,
+  )
 
 function assertDraftRead(what: string, held: string, read: string | undefined): void {
   if (read === undefined || Date.parse(held) === Date.parse(read)) return
   throw new MockRefusal(
     409,
     'LAUNCH_DRAFT_CHANGED',
-    `${what} was drafted again (${held}) after the draft you read (${read}): what Manifest holds is not what you sent, so nothing was recorded`,
-    'Read the current draft. If it is what you sent, say so again with its generatedAt; if you sent the earlier one, send the current draft instead and say so.',
+    `${what} was drafted again (${held}) after the draft you read (${read}): what Manifest holds is not what you read, so nothing was sent`,
+    'Read the current draft, then send it, naming its generatedAt.',
   )
 }
 
-/** The platform's `sentDay`: a day that exists, has happened, and is not before the draft. */
-function sentDay(sentAt: string | undefined, drafted: string, now: number): string {
+/** The platform's `ANSWER_MAX` and `checkGapAnswers`: every gap of the draft read, answered once. */
+const ANSWER_MAX = 2_000
+
+export interface GapAnswer {
+  gapId: string
+  answer: string
+}
+
+function checkGapAnswers(
+  draft: Schemas['PrivacyAssessmentDraft'],
+  answers: readonly GapAnswer[],
+): GapAnswer[] {
+  const ids = draft.sections.flatMap((s) => s.gaps.map((g) => g.id))
+  const given = new Map<string, string>()
+  const fault = {
+    unknown: [] as string[],
+    repeated: [] as string[],
+    blank: [] as string[],
+    long: [] as string[],
+  }
+  for (const { gapId, answer } of answers) {
+    const text = answer.trim()
+    if (!ids.includes(gapId)) fault.unknown.push(gapId)
+    else if (
+      given.has(gapId) ||
+      fault.blank.includes(gapId) ||
+      fault.long.includes(gapId)
+    )
+      fault.repeated.push(gapId)
+    else if (text === '') fault.blank.push(gapId)
+    else if (text.length > ANSWER_MAX) fault.long.push(gapId)
+    else given.set(gapId, text)
+  }
+  const missing = ids.filter(
+    (id) => !given.has(id) && !fault.blank.includes(id) && !fault.long.includes(id),
+  )
+  const said = [
+    ...(missing.length === 0 ? [] : [`no answer for ${missing.join(', ')}`]),
+    ...(fault.blank.length === 0 ? [] : [`a blank answer for ${fault.blank.join(', ')}`]),
+    ...(fault.long.length === 0
+      ? []
+      : [`an answer over ${ANSWER_MAX} characters for ${fault.long.join(', ')}`]),
+    ...(fault.repeated.length === 0
+      ? []
+      : [`more than one answer for ${[...new Set(fault.repeated)].join(', ')}`]),
+    ...(fault.unknown.length === 0
+      ? []
+      : [`answers for gaps this draft does not have: ${fault.unknown.join(', ')}`]),
+  ]
+  if (said.length > 0)
+    throw new MockRefusal(
+      400,
+      'LAUNCH_GAP_ANSWERS_INVALID',
+      `the privacy assessment’s gaps were not each answered once: ${said.join('; ')}`,
+      'Answer every gap of the draft you read, once each, by its id — "does not apply" is an answer.',
+    )
+  return ids.map((gapId) => ({ gapId, answer: given.get(gapId)! }))
+}
+
+/** The platform's `sentDay` for the team's record: a day that exists, has happened, and is not before the owner's send. */
+function sentDay(sentAt: string | undefined, ownerSent: string, now: number): string {
   const today = vancouverDay(new Date(now))
   const day = sentAt ?? today
   if (!/^\d{4}-\d{2}-\d{2}$/.test(day) || vancouverDay(vancouverNoon(day)) !== day)
@@ -219,30 +299,40 @@ function sentDay(sentAt: string | undefined, drafted: string, now: number): stri
       400,
       'LAUNCH_SENT_AT_INVALID',
       `sentAt ${day} is not a day: give it as YYYY-MM-DD`,
-      'Give the day you sent it, as YYYY-MM-DD — or leave it out for today.',
+      'Give the day it was sent to UBC, as YYYY-MM-DD — or leave it out for today.',
     )
   if (day > today)
     throw new MockRefusal(
       400,
       'LAUNCH_SENT_AT_INVALID',
       `sentAt ${day} is after today (${today} in Vancouver): say the day it was sent, once it has been`,
-      'Send it first, then say so — with the day you sent it, or no day for today.',
+      'Send it to UBC first, then record it — with the day it was sent, or no day for today.',
     )
-  const draftDay = vancouverDay(new Date(drafted))
-  if (day < draftDay)
+  const earliest = vancouverDay(new Date(ownerSent))
+  if (day < earliest)
     throw new MockRefusal(
       400,
       'LAUNCH_SENT_AT_INVALID',
-      `sentAt ${day} is before the draft was made (${draftDay}): what was sent is the draft, so it cannot have gone earlier`,
-      'Give the day you sent this draft — on or after the day it was made.',
+      `sentAt ${day} is before the owner sent it to the Manifest team (${earliest}): it cannot have gone to UBC earlier`,
+      'Give the day it was sent to UBC — on or after the day the owner sent it to the Manifest team.',
     )
   return day
 }
 
-export interface SubmitBody {
-  sentAt?: string
-  reference?: string
+/** `sendIamRegistration`'s body: the draft the person read. */
+export interface SendBody {
   draftGeneratedAt?: string
+}
+
+/** `sendPrivacyAssessment`'s body: the draft read, and an answer to every gap. */
+export interface SendAssessmentBody extends SendBody {
+  answers: GapAnswer[]
+}
+
+/** The team's record that it submitted a record to UBC: its day, and UBC's reference. */
+export interface TeamSubmissionBody {
+  sentAt?: string
+  reference: string
 }
 
 /** `draftIamRegistration`: a draft at a stage nothing was sent, refused once UBC IAM holds it. */
@@ -278,44 +368,52 @@ export function draftAssessment(o: LaunchOptions, now: number): Assessment {
   )
 }
 
-/** `submitPrivacyAssessment`, in the platform's order of checks. */
-export function submitAssessment(
+/** `sendPrivacyAssessment`, in the platform's order of checks — every gap answered. */
+export function sendAssessment(
   o: LaunchOptions,
-  body: SubmitBody,
+  body: Partial<SendAssessmentBody>,
   now: number,
 ): Assessment {
   const held = records(o, now).privacyAssessment
   if (held === null || held.draft === null) throw noDraft("this app's privacy assessment")
-  if (!(PIA_SUBMIT_FROM as readonly string[]).includes(held.state))
-    throw refuseSubmission('a privacy assessment', held.state, PIA_SUBMIT_FROM)
+  if (held.state !== 'draft')
+    throw refuseSend('a privacy assessment', `'${held.state}'`, "'draft'")
   assertDraftRead(
     "this app's privacy assessment",
     held.draft.generatedAt,
     body.draftGeneratedAt,
   )
-  const day = sentDay(body.sentAt, held.draft.generatedAt, now)
+  const gapAnswers = checkGapAnswers(held.draft, body.answers ?? [])
+  const at = new Date(now).toISOString()
   return {
     ...held,
-    state: 'submitted',
-    submittedAt: vancouverNoon(day).toISOString(),
-    submittedBy: INSTRUCTOR,
-    ...(body.reference === undefined ? {} : { externalTicketRef: body.reference }),
-    updatedAt: new Date(now).toISOString(),
+    state: 'sent',
+    sentAt: at,
+    sentBy: INSTRUCTOR,
+    gapAnswers,
+    updatedAt: at,
   }
 }
 
-/** `submitIamRegistration`, in the platform's order of checks — UBC's order among them. */
-export function submitRegistration(
+/** `sendIamRegistration`, in the platform's order of checks — UBC's order among them. */
+export function sendRegistration(
   o: LaunchOptions,
   environment: Environment,
-  body: SubmitBody,
+  body: Partial<SendBody>,
   now: number,
 ): Registration {
   const held = registrationOf(o, environment, now)
   if (held === null || held.package === null)
     throw noDraft(`this app's ${environment} registration`)
-  if (!(IAM_SUBMIT_FROM as readonly string[]).includes(held.state))
-    throw refuseSubmission('an IAM registration', held.state, IAM_SUBMIT_FROM)
+  const sentFrom = iamSendableFrom(held)
+  if (sentFrom === null)
+    throw refuseSend(
+      'an IAM registration',
+      held.state === 'change_requested'
+        ? "'change_requested' with a change request the Manifest team filed with UBC IAM"
+        : `'${held.state}'`,
+      "'draft', 'expired', or 'change_requested' once UBC IAM has asked its owner for changes",
+    )
   const pia = records(o, now).privacyAssessment
   if (pia?.state !== 'approved' || pia.externalTicketRef === null)
     throw new MockRefusal(
@@ -325,8 +423,8 @@ export function submitRegistration(
         ? `the privacy assessment is approved but carries no reference: UBC IAM asks for the PIA number, so the ${environment} registration waits for it`
         : `the privacy assessment is ${pia === null ? 'not yet recorded' : `'${pia.state}'`}: UBC's order is the assessment first, and neither registration is sent until it is approved`,
       pia?.state === 'approved'
-        ? 'Ask an administrator to record the assessment’s PIA number, then send the registration and say so again.'
-        : 'Send the privacy assessment first; once an administrator records it approved, with its PIA number, send the registration.',
+        ? 'Ask an administrator to record the assessment’s PIA number, then send the registration again.'
+        : 'Send the privacy assessment to the Manifest team first; once it is recorded approved, with its PIA number, send the registration.',
     )
   if (environment === 'production') {
     const staging = registrationOf(o, 'staging', now)
@@ -335,7 +433,7 @@ export function submitRegistration(
         409,
         'LAUNCH_STAGING_NOT_REGISTERED',
         `the staging registration is ${staging === null ? 'not yet recorded' : `'${staging.state}'`}: UBC's order is staging first, and the production registration is sent once staging is registered and tested`,
-        'Send the staging registration first; once an administrator records it active and the app is tested at staging, send production’s.',
+        'Send the staging registration first; once it is recorded active and the app is tested at staging, send production’s.',
       )
   }
   assertDraftRead(
@@ -350,18 +448,87 @@ export function submitRegistration(
       held.package.privacyAssessmentReference === null
         ? `the draft of this app's ${environment} registration was made before the privacy assessment was approved, so it does not carry the PIA number UBC IAM asks for (${pia.externalTicketRef})`
         : `the draft of this app's ${environment} registration carries PIA number ${held.package.privacyAssessmentReference}, and the approved assessment's is ${pia.externalTicketRef}`,
-      'Draft it again — the new draft carries the PIA number — send that one, then say it was sent.',
+      'Draft it again — the new draft carries the PIA number — and send that one.',
     )
-  const day = sentDay(body.sentAt, held.package.generatedAt, now)
+  const at = new Date(now).toISOString()
+  return {
+    ...held,
+    state: 'sent',
+    sentFrom,
+    sentAt: at,
+    sentBy: INSTRUCTOR,
+    changeRequestedFrom: null,
+    updatedAt: at,
+  }
+}
+
+/** Who recorded the team's step: an administrator. */
+const OPERATOR = { id: f.OPERATOR_ID, displayName: 'Operator One' }
+
+/** `submitPrivacyAssessment`: the team's record that it submitted what the stage has with it. */
+export function teamSubmitsAssessment(
+  o: LaunchOptions,
+  body: Partial<TeamSubmissionBody>,
+  now: number,
+): Assessment {
+  const held = records(o, now).privacyAssessment
+  if (held?.state !== 'sent' || held.sentAt === null)
+    throw notWithTeam("this app's privacy assessment", held?.state)
+  const day = sentDay(body.sentAt, held.sentAt, now)
   return {
     ...held,
     state: 'submitted',
-    changeRequestedFrom: null,
     submittedAt: vancouverNoon(day).toISOString(),
-    submittedBy: INSTRUCTOR,
-    ...(body.reference === undefined ? {} : { externalTicketRef: body.reference }),
+    submittedBy: OPERATOR,
+    externalTicketRef: body.reference ?? held.externalTicketRef,
     updatedAt: new Date(now).toISOString(),
   }
+}
+
+/** `submitIamRegistration`: the team's record that it submitted a registration to UBC IAM. */
+export function teamSubmitsRegistration(
+  o: LaunchOptions,
+  environment: Environment,
+  body: Partial<TeamSubmissionBody>,
+  now: number,
+): Registration {
+  const held = registrationOf(o, environment, now)
+  if (held?.state !== 'sent' || held.sentAt === null)
+    throw notWithTeam(`this app's ${environment} registration`, held?.state)
+  const day = sentDay(body.sentAt, held.sentAt, now)
+  return {
+    ...held,
+    state: 'submitted',
+    sentFrom: null,
+    submittedAt: vancouverNoon(day).toISOString(),
+    submittedBy: OPERATOR,
+    externalTicketRef: body.reference ?? held.externalTicketRef,
+    updatedAt: new Date(now).toISOString(),
+  }
+}
+
+/** `returnPrivacyAssessment`: handed back to its owner — a draft again. */
+export function returnAssessment(o: LaunchOptions, now: number): Assessment {
+  const held = records(o, now).privacyAssessment
+  if (held?.state !== 'sent')
+    throw notWithTeam("this app's privacy assessment", held?.state)
+  return { ...held, state: 'draft', updatedAt: new Date(now).toISOString() }
+}
+
+/** `returnIamRegistration`: handed back to the state it was sent from. */
+export function returnRegistration(
+  o: LaunchOptions,
+  environment: Environment,
+  now: number,
+): Registration {
+  const held = registrationOf(o, environment, now)
+  if (held?.state !== 'sent' || held.sentFrom === null)
+    throw notWithTeam(`this app's ${environment} registration`, held?.state)
+  const back =
+    held.sentFrom === 'change_requested'
+      ? { state: 'change_requested' as const, changeRequestedFrom: 'submitted' as const }
+      : { state: held.sentFrom, changeRequestedFrom: null }
+  return { ...held, ...back, sentFrom: null, updatedAt: new Date(now).toISOString() }
 }
 
 // ─── The checklist (`launch/readiness.ts`), composed from the options ───
@@ -376,7 +543,7 @@ function iamItem(o: LaunchOptions, base: Item, now: number): Item {
     return {
       ...base,
       state: 'unmet',
-      why: 'Every production app that signs people in with CWL needs its own registration with UBC IAM, and it takes weeks. Production’s is drafted (draftIamRegistration) and sent (submitIamRegistration) once the privacy assessment is approved and staging’s registration is active. An administrator records UBC IAM’s answer, with its ticket reference.',
+      why: 'Every production app that signs people in with CWL needs its own registration with UBC IAM, and it takes weeks. Production’s is drafted (draftIamRegistration) and sent to the Manifest team (sendIamRegistration) once the privacy assessment is approved and staging’s registration is active; the team submits it to UBC IAM. An administrator records UBC IAM’s answer, with its ticket reference.',
       since: null,
     }
   if (row.state === 'active') return base
@@ -394,7 +561,7 @@ function piaItem(o: LaunchOptions, base: Item, now: number): Item {
     return {
       ...base,
       state: 'unmet',
-      why: 'A Privacy Impact Assessment is required before a production launch, and it takes weeks. Draft it (draftPrivacyAssessment), send it to the UBC Privacy Office, and say it was sent (submitPrivacyAssessment); an administrator records the Office’s answer, with its ticket reference.',
+      why: 'A Privacy Impact Assessment is required before a production launch, and it takes weeks. Draft it (draftPrivacyAssessment), answer each of its gaps and send it to the Manifest team (sendPrivacyAssessment), who submit it to the UBC Privacy Office; an administrator records the Office’s answer, with its ticket reference.',
       since: null,
     }
   if (row.state === 'approved')

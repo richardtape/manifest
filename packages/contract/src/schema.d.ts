@@ -741,7 +741,7 @@ export interface paths {
         };
         /**
          * The privacy assessment and the two IAM registrations
-         * @description The three records a first production launch waits on — the privacy assessment, the staging registration and the production registration — each with when a person said it was sent and what UBC said, as a platform administrator recorded it. Any may be absent: a state, not an error.
+         * @description The three records a first production launch waits on — the privacy assessment, the staging registration and the production registration — each with when its owner sent it to the Manifest team, when the team submitted it to UBC, and what UBC said, as a platform administrator recorded it. Any may be absent: a state, not an error.
          */
         get: operations["getLaunchRecords"];
         put?: never;
@@ -763,7 +763,7 @@ export interface paths {
         put?: never;
         /**
          * Record what UBC IAM registered
-         * @description A platform administrator, in their own session, records the Service Provider registration UBC IAM made — the staging registration or production’s (`environment`, production’s when absent) — with its ticket reference. The state moves only along the allowed transitions from `draft` — any other move, a first write straight into `active` included, is `409 LAUNCH_TRANSITION_INVALID`, naming the moves allowed. A change request is the `change_requested` state, and `requestedAttributes` — required when filing from `active` (`LAUNCH_RECORD_INVALID` otherwise) — says what it asks for. Once UBC has registered the SP, the entity ID never changes, and `registeredAttributes`, `acsUrl` and `sloUrl` change only on a write that reaches `active`. UBC’s answer is recorded whatever order it arrives in: this is never refused for the order the requests are sent in.
+         * @description A platform administrator, in their own session, records the Service Provider registration UBC IAM made — the staging registration or production’s (`environment`, production’s when absent) — with its ticket reference. The state moves only along the allowed transitions from `draft` — any other move, a first write straight into `active` included, is `409 LAUNCH_TRANSITION_INVALID`, naming the moves allowed. A change request is the `change_requested` state, and `requestedAttributes` — required when filing from `active` (`LAUNCH_RECORD_INVALID` otherwise) — says what it asks for. Once UBC has registered the SP, the entity ID never changes, and `registeredAttributes`, `acsUrl` and `sloUrl` change only on a write that reaches `active`. UBC’s answer is recorded whatever order it arrives in: this is never refused for the order the requests are sent in. A registration with the Manifest team (`sent`) is not recorded here — `409 LAUNCH_TRANSITION_INVALID`, naming the team’s own two operations, `submitIamRegistration` and `returnIamRegistration` — and only its owner’s `sendIamRegistration` puts one there.
          */
         post: operations["recordIamRegistration"];
         delete?: never;
@@ -783,9 +783,49 @@ export interface paths {
         put?: never;
         /**
          * Draft a registration request for UBC IAM
-         * @description Manifest generates what the project’s owner sends UBC IAM to register the staging or production environment of an app that signs people in with CWL, and keeps it on the record as `package`: the entity ID and the sign-in and sign-out addresses for that environment; the certificate the app signs with there (never its private key, which stays with Manifest); every attribute the app asks for, with its purpose and the lines of the app’s code that read it; the contacts; the privacy assessment’s PIA number once it is approved; and the SAML metadata, built from the same values. An attribute nothing reads is flagged, so it can be removed before it is asked for. Production’s is drawn from the release serving staging — or, while nothing serves staging, from the newest valid manifest, and the package says so — and staging’s from the newest valid manifest. Drafting again replaces the draft until it is sent: once the registration is `submitted` or `active`, what was sent is kept and drafting is `409 LAUNCH_RECORD_SUBMITTED`, until UBC asks for changes or the registration lapses. An app that signs nobody in with CWL, or asks for no attribute, is `409 LAUNCH_NOT_CWL`. The project’s owner, a collaborator, a platform administrator, or an agent on a token holding `launch:draft`, may draft — a draft sends nothing and decides nothing. Saying it was sent is `submitIamRegistration`.
+         * @description Manifest generates what the project’s owner sends UBC IAM to register the staging or production environment of an app that signs people in with CWL, and keeps it on the record as `package`: the entity ID and the sign-in and sign-out addresses for that environment; the certificate the app signs with there (never its private key, which stays with Manifest); every attribute the app asks for, with its purpose and the lines of the app’s code that read it; the contacts; the privacy assessment’s PIA number once it is approved; and the SAML metadata, built from the same values. An attribute nothing reads is flagged, so it can be removed before it is asked for. Production’s is drawn from the release serving staging — or, while nothing serves staging, from the newest valid manifest, and the package says so — and staging’s from the newest valid manifest. Drafting again replaces the draft until it is sent: once the registration is with the Manifest team (`sent`), `submitted`, `active`, or holds a change request the team filed with UBC IAM, what was sent is kept and drafting is `409 LAUNCH_RECORD_SUBMITTED` — until the team hands it back, UBC IAM asks its owner for changes, or the registration lapses. An app that signs nobody in with CWL, or asks for no attribute, is `409 LAUNCH_NOT_CWL`. The project’s owner, a collaborator, a platform administrator, or an agent on a token holding `launch:draft`, may draft — a draft sends nothing and decides nothing. Sending it to the Manifest team is `sendIamRegistration`.
          */
         post: operations["draftIamRegistration"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/projects/{projectId}/launch-records/iam-registration/{environment}/return": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Hand a registration back to its owner, unsubmitted
+         * @description A platform administrator, in their own session, hands the staging or production registration the Manifest team holds back to its owner, unsubmitted: it returns to the state it was sent from (`sentFrom`) — a draft, UBC IAM’s questions to its owner, or a lapsed registration — for its owner to change and send again. Why it came back travels outside the record, as UBC’s questions do. Only a registration with the Manifest team is handed back: any other is `409 LAUNCH_TRANSITION_INVALID`. A delegated token is refused `403 TOKEN_CREDENTIAL_REFUSED`; a member who is not an administrator `403 FORBIDDEN`; anyone else is answered `404 NOT_FOUND`.
+         */
+        post: operations["returnIamRegistration"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/projects/{projectId}/launch-records/iam-registration/{environment}/send": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Send a registration request to the Manifest team
+         * @description The project’s owner, a collaborator or a platform administrator, in their own session, sends the staging or production registration to the Manifest team, who submit it to UBC IAM (`submitIamRegistration`) or hand it back (`returnIamRegistration`). It is sent now, from Manifest: the record moves to `sent`, with `sentAt`, `sentBy` and `sentFrom`, and the Manifest team is emailed — the app, the record and who sent it, never what the package says. What is sent is Manifest’s draft, so a record with none is `409 LAUNCH_DRAFT_REQUIRED`. UBC works in an order: neither registration is sent until the privacy assessment is approved with its PIA number (`409 LAUNCH_PIA_NOT_APPROVED`), and production’s only once staging’s is active as well (`409 LAUNCH_STAGING_NOT_REGISTERED`). What is sent must be the draft the person read — name it with `draftGeneratedAt`, or a draft made since is `409 LAUNCH_DRAFT_CHANGED` — and it must carry the assessment’s PIA number: a draft made before the assessment was approved is `409 LAUNCH_DRAFT_STALE`, to be drafted again. It is sent from a draft, once UBC IAM has asked its owner for changes, or once it lapsed — a second send, or one while UBC holds it, is `409 LAUNCH_TRANSITION_INVALID`. A delegated token is refused `403 TOKEN_CREDENTIAL_REFUSED`; anyone else is answered `404 NOT_FOUND`.
+         */
+        post: operations["sendIamRegistration"];
         delete?: never;
         options?: never;
         head?: never;
@@ -802,8 +842,8 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Say a registration request was sent to UBC IAM
-         * @description The project’s owner, a collaborator or a platform administrator, in their own session, says the staging or production registration was sent to UBC IAM — on `sentAt` (today in Vancouver when absent), with UBC’s `reference` when they have one. The record moves to `submitted`, and the launch checklist and the record say how long it has waited from that day. What is sent is Manifest’s draft, so a record with none is `409 LAUNCH_DRAFT_REQUIRED`. UBC works in an order: neither registration is sent until the privacy assessment is approved with its PIA number (`409 LAUNCH_PIA_NOT_APPROVED`), and production’s only once staging’s is active as well (`409 LAUNCH_STAGING_NOT_REGISTERED`). What is sent must be the draft the person read — name it with `draftGeneratedAt`, or a draft made since is `409 LAUNCH_DRAFT_CHANGED` — and it must carry the assessment’s PIA number: a draft made before the assessment was approved is `409 LAUNCH_DRAFT_STALE`, to be drafted again. It is sent from a draft, after UBC asked for changes, or once it lapsed — a second submission is `409 LAUNCH_TRANSITION_INVALID`. UBC’s answer is recorded by an administrator (`recordIamRegistration`). A delegated token is refused `403 TOKEN_CREDENTIAL_REFUSED`; anyone else is answered `404 NOT_FOUND`.
+         * Record that the Manifest team submitted a registration to UBC IAM
+         * @description A platform administrator, in their own session, records that the Manifest team submitted the staging or production registration its owner sent them to UBC IAM — on `sentAt` (today in Vancouver when absent; not after today, and not before its owner sent it to the team, or `400 LAUNCH_SENT_AT_INVALID`), with UBC IAM’s `reference`. The record moves from `sent` to `submitted`, and the launch checklist says how long it has waited for UBC from that day. Only a registration with the Manifest team is submitted: any other is `409 LAUNCH_TRANSITION_INVALID`. It is never refused for UBC’s order, which was held when its owner sent it. UBC’s answer is recorded later (`recordIamRegistration`). A delegated token is refused `403 TOKEN_CREDENTIAL_REFUSED`; a member who is not an administrator `403 FORBIDDEN`; anyone else is answered `404 NOT_FOUND`.
          */
         post: operations["submitIamRegistration"];
         delete?: never;
@@ -823,7 +863,7 @@ export interface paths {
         put?: never;
         /**
          * Record what the Privacy Office said
-         * @description A platform administrator, in their own session, records the Privacy Office’s assessment, shaped like the IAM registration, over the states `draft`, `submitted` and `approved` (`409 LAUNCH_TRANSITION_INVALID` for a move they do not allow). A refused assessment goes back to `draft` with the reviewer’s note.
+         * @description A platform administrator, in their own session, records the Privacy Office’s assessment, shaped like the IAM registration, over the states `draft`, `submitted` and `approved` (`409 LAUNCH_TRANSITION_INVALID` for a move they do not allow). A refused assessment goes back to `draft` with the reviewer’s note. An assessment with the Manifest team (`sent`) is not recorded here: the team submits it (`submitPrivacyAssessment`) or hands it back (`returnPrivacyAssessment`).
          */
         post: operations["recordPrivacyAssessment"];
         delete?: never;
@@ -843,9 +883,49 @@ export interface paths {
         put?: never;
         /**
          * Draft the privacy impact assessment for the Privacy Office
-         * @description Manifest generates the privacy impact assessment the project’s owner completes and sends UBC’s Privacy Office, and keeps it on the record as `draft`: six questions — what personal information the app collects, where it is stored, where it flows, how long it is kept, who is accountable, and where it is hosted — each answered with facts and where Manifest read them (`manifest.yaml`, the model catalogue, the project’s members), and the gaps only the owner can fill, such as what the app keeps in its own database; and the whole as plain text to paste. It is drawn from the release serving staging — or, while nothing serves staging, from the newest valid manifest, and the draft says so. Drafting again replaces the draft until it is sent: once the assessment is `submitted` or `approved`, what was sent is kept and drafting is `409 LAUNCH_RECORD_SUBMITTED`, until the Privacy Office sends it back. The project’s owner, a collaborator, a platform administrator, or an agent on a token holding `launch:draft`, may draft — a draft sends nothing and decides nothing. Saying it was sent is `submitPrivacyAssessment`.
+         * @description Manifest generates the privacy impact assessment the project’s owner completes and sends UBC’s Privacy Office, and keeps it on the record as `draft`: six questions — what personal information the app collects, where it is stored, where it flows, how long it is kept, who is accountable, and where it is hosted — each answered with facts and where Manifest read them (`manifest.yaml`, the model catalogue, the project’s members), and the gaps only the owner can fill, such as what the app keeps in its own database; and the whole as plain text to paste. It is drawn from the release serving staging — or, while nothing serves staging, from the newest valid manifest, and the draft says so. Each gap has a stable `id`, kept when the app is drafted again. Drafting again replaces the draft until it is sent: once the assessment is with the Manifest team (`sent`), `submitted` or `approved`, what was sent is kept and drafting is `409 LAUNCH_RECORD_SUBMITTED`, until the team hands it back or the Privacy Office sends it back. The project’s owner, a collaborator, a platform administrator, or an agent on a token holding `launch:draft`, may draft — a draft sends nothing and decides nothing. Sending it to the Manifest team, with an answer to every gap, is `sendPrivacyAssessment`.
          */
         post: operations["draftPrivacyAssessment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/projects/{projectId}/launch-records/privacy-assessment/return": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Hand the privacy assessment back to its owner, unsubmitted
+         * @description A platform administrator, in their own session, hands the privacy impact assessment the Manifest team holds back to its owner, unsubmitted: it is a `draft` again, for its owner to draft again or answer differently and send. Why it came back travels outside the record. Only an assessment with the Manifest team is handed back: any other is `409 LAUNCH_TRANSITION_INVALID`. A delegated token is refused `403 TOKEN_CREDENTIAL_REFUSED`; a member who is not an administrator `403 FORBIDDEN`; anyone else is answered `404 NOT_FOUND`.
+         */
+        post: operations["returnPrivacyAssessment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/projects/{projectId}/launch-records/privacy-assessment/send": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Send the privacy assessment to the Manifest team, every gap answered
+         * @description The project’s owner, a collaborator or a platform administrator, in their own session, sends the privacy impact assessment to the Manifest team, who submit it to UBC’s Privacy Office (`submitPrivacyAssessment`) or hand it back (`returnPrivacyAssessment`) — with an answer to EVERY gap of the draft, once each, by its `id` (`answers`; “does not apply” is an answer). A gap without an answer, a blank one, one over 2,000 characters, a gap answered twice or one the draft does not have is `400 LAUNCH_GAP_ANSWERS_INVALID`, naming each gap at fault. It is sent now, from Manifest: the record moves to `sent`, with `sentAt`, `sentBy` and the answers in `gapAnswers`, and the Manifest team is emailed — the app and who sent it, never an answer. It comes first in UBC’s order, so nothing else gates it. What is sent is Manifest’s draft, so a record with none is `409 LAUNCH_DRAFT_REQUIRED`, one drafted again after the draft `draftGeneratedAt` names is `409 LAUNCH_DRAFT_CHANGED`, and a second send is `409 LAUNCH_TRANSITION_INVALID`. A delegated token is refused `403 TOKEN_CREDENTIAL_REFUSED`; anyone else is answered `404 NOT_FOUND`.
+         */
+        post: operations["sendPrivacyAssessment"];
         delete?: never;
         options?: never;
         head?: never;
@@ -862,8 +942,8 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Say the privacy assessment was sent to the Privacy Office
-         * @description The project’s owner, a collaborator or a platform administrator, in their own session, says the privacy impact assessment was sent to UBC’s Privacy Office — on `sentAt` (today in Vancouver when absent), with the Office’s `reference` when they have one. It comes first in UBC’s order, so nothing else gates it. The record moves to `submitted`, and the launch checklist says how long it has waited from that day. What is sent is Manifest’s draft, so a record with none is `409 LAUNCH_DRAFT_REQUIRED`, one drafted again after the draft `draftGeneratedAt` names is `409 LAUNCH_DRAFT_CHANGED`, and a second submission is `409 LAUNCH_TRANSITION_INVALID`. The Office’s answer is recorded by an administrator (`recordPrivacyAssessment`). A delegated token is refused `403 TOKEN_CREDENTIAL_REFUSED`; anyone else is answered `404 NOT_FOUND`.
+         * Record that the Manifest team submitted the privacy assessment
+         * @description A platform administrator, in their own session, records that the Manifest team submitted the privacy impact assessment its owner sent them to UBC’s Privacy Office — on `sentAt` (today in Vancouver when absent; not after today, and not before its owner sent it to the team, or `400 LAUNCH_SENT_AT_INVALID`), with the Office’s `reference`, the PIA number. The record moves from `sent` to `submitted`; the owner’s answers stay on it. Only an assessment with the Manifest team is submitted: any other is `409 LAUNCH_TRANSITION_INVALID`. The Office’s answer is recorded later (`recordPrivacyAssessment`). A delegated token is refused `403 TOKEN_CREDENTIAL_REFUSED`; a member who is not an administrator `403 FORBIDDEN`; anyone else is answered `404 NOT_FOUND`.
          */
         post: operations["submitPrivacyAssessment"];
         delete?: never;
@@ -2076,7 +2156,7 @@ export interface components {
          * @description Every code the API answers with, in `error.code`. Stable: a client switches on it. `x-enumDescriptions` gives each code’s meaning, and the top-level `x-manifest-errors` its status and remedy.
          * @enum {string}
          */
-        ErrorCode: "ADMIN_REASON_REQUIRED" | "AGENT_BUDGET_EXHAUSTED" | "AGENT_NO_MODEL_FOR_CLASSIFICATION" | "AGENT_SESSION_ALREADY_STARTED" | "AI_BACKEND_UNAVAILABLE" | "AI_CATALOGUE_DISABLED" | "AI_CATALOGUE_EMPTY" | "AI_KEY_EXPIRED" | "AI_KEY_REVOKED" | "AI_MODEL_NOT_PERMITTED" | "AI_MODEL_UNKNOWN" | "AI_PROJECT_BUDGET_EXCEEDED" | "AI_ROUTE_NOT_PERMITTED" | "AI_UNMAPPED" | "AI_USER_BUDGET_EXCEEDED" | "APPROVAL_NOT_NEEDED" | "APPROVAL_PREVIEW_EXPIRED" | "APPROVAL_PREVIEW_REQUIRED" | "APPROVAL_PREVIEW_STALE" | "BLUEPRINT_NOT_FOUND" | "BUILDING_NOT_OPEN" | "CONFIG_BUILD_CREDENTIAL_SECRET_REQUIRED" | "CONFIG_CONTROL_PLANE_ORIGIN_PORT_MISMATCH" | "CONFIG_FRONTEND_ORIGIN_PORT_MISMATCH" | "CONFIG_GITHUB_FAKE_OUTSIDE_DEVELOPMENT" | "CONFIG_GITHUB_INSECURE_URL" | "CONFIG_INVALID" | "CONFIG_LITELLM_MASTER_KEY_REQUIRED" | "CONFIG_MASTER_SECRET_REQUIRED" | "CONFIG_ORIGINS_SHARE_A_HOST" | "CREDENTIAL_AMBIGUOUS" | "CSRF_ORIGIN_REFUSED" | "DOC_NOT_FOUND" | "EVENTS_UPGRADE_REQUIRED" | "FORBIDDEN" | "IDEMPOTENCY_KEY_REQUIRED" | "IDEMPOTENCY_KEY_REUSED" | "INCIDENT_LOG_CONFIDENTIAL" | "INSTANCE_OUTPUT_PRODUCTION" | "INSTANCE_OUTPUT_STAGING" | "INSTANCE_OUTPUT_UNAVAILABLE" | "INTAKE_BUDGET_EXHAUSTED" | "INTAKE_DAILY_LIMIT_REACHED" | "INTAKE_MODEL_UNAVAILABLE" | "INTAKE_SESSION_ALREADY_STARTED" | "INTERNAL" | "LAUNCH_DRAFT_CHANGED" | "LAUNCH_DRAFT_REQUIRED" | "LAUNCH_DRAFT_STALE" | "LAUNCH_NOT_CWL" | "LAUNCH_PIA_NOT_APPROVED" | "LAUNCH_RECORD_INVALID" | "LAUNCH_RECORD_SUBMITTED" | "LAUNCH_SENT_AT_INVALID" | "LAUNCH_STAGING_NOT_REGISTERED" | "LAUNCH_TRANSITION_INVALID" | "MEMBER_MAY_NOT_BUILD" | "MEMBER_USER_AMBIGUOUS" | "MEMBER_USER_NOT_FOUND" | "NOT_FOUND" | "PENDING_ACTION_RESOLVED" | "PROJECT_ARCHIVED" | "PROJECT_LAST_OWNER" | "PROJECT_LAUNCHED_NOT_DELETABLE" | "PROJECT_TEARDOWN_INCOMPLETE" | "RATE_LIMITED" | "REHEARSAL_DEPLOY_FAILED" | "REHEARSAL_LAUNCHED" | "REHEARSAL_NOT_CWL" | "REHEARSAL_NO_CANDIDATE" | "REHEARSAL_RUNNING" | "REHEARSAL_TEARDOWN_FAILED" | "RELEASE_AI_BUDGET_MISSING" | "RELEASE_AI_DISABLED" | "RELEASE_BLUEPRINT_NOT_FOUND" | "RELEASE_BUILD_NOT_DEPLOYABLE" | "RELEASE_BUILD_NOT_FOUND" | "RELEASE_DIGEST_MISSING" | "RELEASE_DIGEST_NOT_APPROVED" | "RELEASE_ENVIRONMENT_NOT_FOUND" | "RELEASE_IMAGE_REPOSITORY_MISSING" | "RELEASE_LOCAL_IMAGE_ON_REMOTE_DRIVER" | "RELEASE_MODEL_CLASSIFICATION_TOO_LOW" | "RELEASE_MODEL_NOT_IN_CATALOGUE" | "RELEASE_MODEL_UNCLASSIFIED" | "RELEASE_NOT_FOUND" | "RELEASE_NOT_STAGED" | "RELEASE_PRODUCTION_GATE_UNAVAILABLE" | "RELEASE_PROJECT_NOT_FOUND" | "RELEASE_REESCALATED" | "RELEASE_REJECTED" | "RELEASE_SECRET_NOT_SET" | "REQUEST_BODY_TOO_LARGE" | "REQUEST_INVALID" | "REQUEST_MEDIA_TYPE_UNSUPPORTED" | "ROUTE_NOT_FOUND" | "SAML_ASSERTION_REJECTED" | "SAML_LOGIN_NOT_BOUND" | "SAML_LOGOUT_REJECTED" | "SAML_NO_PUID" | "SAML_STEP_UP_NO_SESSION" | "SAML_STEP_UP_WRONG_USER" | "SAML_USER_UPSERT_FAILED" | "SECRET_NAME_RESERVED" | "SLUG_INVALID" | "SLUG_RESERVED" | "SLUG_TAKEN" | "SOURCE_COMMIT_NOT_FOUND" | "SOURCE_CONFLICT" | "SOURCE_FILE_NOT_TEXT" | "SOURCE_FILE_TOO_LARGE" | "SOURCE_GITHUB_KEY_UNREADABLE" | "SOURCE_GITHUB_REFUSED" | "SOURCE_GIT_FAILED" | "SOURCE_INVALID_SLUG" | "SOURCE_NOTHING_TO_COMMIT" | "SOURCE_PATH_CONFLICT" | "SOURCE_PATH_ESCAPE" | "SOURCE_PATH_NOT_A_FILE" | "SOURCE_PATH_NOT_FOUND" | "SOURCE_PROVIDER_MISMATCH" | "SOURCE_REF_NOT_FOUND" | "SOURCE_REPOSITORY_EXISTS" | "SOURCE_REPOSITORY_NOT_PRIVATE" | "SOURCE_REPOSITORY_PUBLIC" | "SOURCE_SECRET_DETECTED" | "SOURCE_UNREACHABLE" | "SPEC_INVALID" | "SPEC_NOT_FOUND" | "STARTER_NOT_FOUND" | "STEP_UP_REQUIRED" | "TOKEN_ACTION_PENDING" | "TOKEN_ACTION_REJECTED" | "TOKEN_ALREADY_MINTED" | "TOKEN_CAPABILITY_FORBIDDEN" | "TOKEN_CREDENTIAL_REFUSED" | "TOKEN_PERSON_ONLY" | "UNAUTHENTICATED" | "WEBHOOKS_NOT_CONFIGURED" | "WEBHOOK_PAYLOAD_INVALID" | "WEBHOOK_SIGNATURE_INVALID" | "WEBHOOK_SIGNATURE_MALFORMED" | "WEBHOOK_SIGNATURE_MISSING";
+        ErrorCode: "ADMIN_REASON_REQUIRED" | "AGENT_BUDGET_EXHAUSTED" | "AGENT_NO_MODEL_FOR_CLASSIFICATION" | "AGENT_SESSION_ALREADY_STARTED" | "AI_BACKEND_UNAVAILABLE" | "AI_CATALOGUE_DISABLED" | "AI_CATALOGUE_EMPTY" | "AI_KEY_EXPIRED" | "AI_KEY_REVOKED" | "AI_MODEL_NOT_PERMITTED" | "AI_MODEL_UNKNOWN" | "AI_PROJECT_BUDGET_EXCEEDED" | "AI_ROUTE_NOT_PERMITTED" | "AI_UNMAPPED" | "AI_USER_BUDGET_EXCEEDED" | "APPROVAL_NOT_NEEDED" | "APPROVAL_PREVIEW_EXPIRED" | "APPROVAL_PREVIEW_REQUIRED" | "APPROVAL_PREVIEW_STALE" | "BLUEPRINT_NOT_FOUND" | "BUILDING_NOT_OPEN" | "CONFIG_BUILD_CREDENTIAL_SECRET_REQUIRED" | "CONFIG_CONTROL_PLANE_ORIGIN_PORT_MISMATCH" | "CONFIG_FRONTEND_ORIGIN_PORT_MISMATCH" | "CONFIG_GITHUB_FAKE_OUTSIDE_DEVELOPMENT" | "CONFIG_GITHUB_INSECURE_URL" | "CONFIG_INVALID" | "CONFIG_LITELLM_MASTER_KEY_REQUIRED" | "CONFIG_MASTER_SECRET_REQUIRED" | "CONFIG_ORIGINS_SHARE_A_HOST" | "CREDENTIAL_AMBIGUOUS" | "CSRF_ORIGIN_REFUSED" | "DOC_NOT_FOUND" | "EVENTS_UPGRADE_REQUIRED" | "FORBIDDEN" | "IDEMPOTENCY_KEY_REQUIRED" | "IDEMPOTENCY_KEY_REUSED" | "INCIDENT_LOG_CONFIDENTIAL" | "INSTANCE_OUTPUT_PRODUCTION" | "INSTANCE_OUTPUT_STAGING" | "INSTANCE_OUTPUT_UNAVAILABLE" | "INTAKE_BUDGET_EXHAUSTED" | "INTAKE_DAILY_LIMIT_REACHED" | "INTAKE_MODEL_UNAVAILABLE" | "INTAKE_SESSION_ALREADY_STARTED" | "INTERNAL" | "LAUNCH_DRAFT_CHANGED" | "LAUNCH_DRAFT_REQUIRED" | "LAUNCH_DRAFT_STALE" | "LAUNCH_GAP_ANSWERS_INVALID" | "LAUNCH_NOT_CWL" | "LAUNCH_PIA_NOT_APPROVED" | "LAUNCH_RECORD_INVALID" | "LAUNCH_RECORD_SUBMITTED" | "LAUNCH_SENT_AT_INVALID" | "LAUNCH_STAGING_NOT_REGISTERED" | "LAUNCH_TRANSITION_INVALID" | "MEMBER_MAY_NOT_BUILD" | "MEMBER_USER_AMBIGUOUS" | "MEMBER_USER_NOT_FOUND" | "NOT_FOUND" | "PENDING_ACTION_RESOLVED" | "PROJECT_ARCHIVED" | "PROJECT_LAST_OWNER" | "PROJECT_LAUNCHED_NOT_DELETABLE" | "PROJECT_TEARDOWN_INCOMPLETE" | "RATE_LIMITED" | "REHEARSAL_DEPLOY_FAILED" | "REHEARSAL_LAUNCHED" | "REHEARSAL_NOT_CWL" | "REHEARSAL_NO_CANDIDATE" | "REHEARSAL_RUNNING" | "REHEARSAL_TEARDOWN_FAILED" | "RELEASE_AI_BUDGET_MISSING" | "RELEASE_AI_DISABLED" | "RELEASE_BLUEPRINT_NOT_FOUND" | "RELEASE_BUILD_NOT_DEPLOYABLE" | "RELEASE_BUILD_NOT_FOUND" | "RELEASE_DIGEST_MISSING" | "RELEASE_DIGEST_NOT_APPROVED" | "RELEASE_ENVIRONMENT_NOT_FOUND" | "RELEASE_IMAGE_REPOSITORY_MISSING" | "RELEASE_LOCAL_IMAGE_ON_REMOTE_DRIVER" | "RELEASE_MODEL_CLASSIFICATION_TOO_LOW" | "RELEASE_MODEL_NOT_IN_CATALOGUE" | "RELEASE_MODEL_UNCLASSIFIED" | "RELEASE_NOT_FOUND" | "RELEASE_NOT_STAGED" | "RELEASE_PRODUCTION_GATE_UNAVAILABLE" | "RELEASE_PROJECT_NOT_FOUND" | "RELEASE_REESCALATED" | "RELEASE_REJECTED" | "RELEASE_SECRET_NOT_SET" | "REQUEST_BODY_TOO_LARGE" | "REQUEST_INVALID" | "REQUEST_MEDIA_TYPE_UNSUPPORTED" | "ROUTE_NOT_FOUND" | "SAML_ASSERTION_REJECTED" | "SAML_LOGIN_NOT_BOUND" | "SAML_LOGOUT_REJECTED" | "SAML_NO_PUID" | "SAML_STEP_UP_NO_SESSION" | "SAML_STEP_UP_WRONG_USER" | "SAML_USER_UPSERT_FAILED" | "SECRET_NAME_RESERVED" | "SLUG_INVALID" | "SLUG_RESERVED" | "SLUG_TAKEN" | "SOURCE_COMMIT_NOT_FOUND" | "SOURCE_CONFLICT" | "SOURCE_FILE_NOT_TEXT" | "SOURCE_FILE_TOO_LARGE" | "SOURCE_GITHUB_KEY_UNREADABLE" | "SOURCE_GITHUB_REFUSED" | "SOURCE_GIT_FAILED" | "SOURCE_INVALID_SLUG" | "SOURCE_NOTHING_TO_COMMIT" | "SOURCE_PATH_CONFLICT" | "SOURCE_PATH_ESCAPE" | "SOURCE_PATH_NOT_A_FILE" | "SOURCE_PATH_NOT_FOUND" | "SOURCE_PROVIDER_MISMATCH" | "SOURCE_REF_NOT_FOUND" | "SOURCE_REPOSITORY_EXISTS" | "SOURCE_REPOSITORY_NOT_PRIVATE" | "SOURCE_REPOSITORY_PUBLIC" | "SOURCE_SECRET_DETECTED" | "SOURCE_UNREACHABLE" | "SPEC_INVALID" | "SPEC_NOT_FOUND" | "STARTER_NOT_FOUND" | "STEP_UP_REQUIRED" | "TOKEN_ACTION_PENDING" | "TOKEN_ACTION_REJECTED" | "TOKEN_ALREADY_MINTED" | "TOKEN_CAPABILITY_FORBIDDEN" | "TOKEN_CREDENTIAL_REFUSED" | "TOKEN_PERSON_ONLY" | "UNAUTHENTICATED" | "WEBHOOKS_NOT_CONFIGURED" | "WEBHOOK_PAYLOAD_INVALID" | "WEBHOOK_SIGNATURE_INVALID" | "WEBHOOK_SIGNATURE_MALFORMED" | "WEBHOOK_SIGNATURE_MISSING";
         /** @description Every error the API answers, in one shape: a stable code to switch on, a message for a person, and — where there is one — a hint and the details to act on. */
         ErrorEnvelope: {
             /** @description What went wrong: switch on `code`; `x-manifest-errors` gives its remedy. */
@@ -3407,17 +3487,19 @@ export interface components {
             type: "iam_registration.submitted";
             /** @description What happened, in words for a person. Never parse it. */
             humanMessage: string;
-            /** @description A person said the app’s staging or production registration request was sent to UBC IAM. It now waits for UBC’s answer, which an administrator records. */
+            /** @description The Manifest team submitted the app’s staging or production registration request to UBC IAM, and an administrator recorded it. It now waits for UBC’s answer, which an administrator records. */
             machineDetail: {
                 /**
-                 * @description Which registration was sent: the staging one, or production’s.
+                 * @description Which registration was submitted: the staging one, or production’s.
                  * @enum {string}
                  */
                 environment: "staging" | "production";
-                /** @description The day it was sent, `YYYY-MM-DD`, as the person who sent it said. */
+                /** @description The day the Manifest team sent it to UBC IAM, `YYYY-MM-DD`. */
                 sentAt: string;
-                /** @description UBC IAM’s reference for the request; null when the person had none yet. */
+                /** @description UBC IAM’s reference for the request. */
                 externalTicketRef: string | null;
+                /** @description True when the team filed it as a change to a live registration; false for a registration UBC has yet to make. */
+                changeRequest: boolean;
             };
             /**
              * Format: date-time
@@ -3451,12 +3533,179 @@ export interface components {
             type: "privacy_assessment.submitted";
             /** @description What happened, in words for a person. Never parse it. */
             humanMessage: string;
-            /** @description A person said the app’s privacy impact assessment was sent to UBC’s Privacy Office. It now waits for the Office’s answer, which an administrator records. */
+            /** @description The Manifest team submitted the app’s privacy impact assessment to UBC’s Privacy Office, and an administrator recorded it. It now waits for the Office’s answer, which an administrator records. */
             machineDetail: {
-                /** @description The day it was sent, `YYYY-MM-DD`, as the person who sent it said. */
+                /** @description The day the Manifest team sent it to the Privacy Office, `YYYY-MM-DD`. */
                 sentAt: string;
-                /** @description The Privacy Office’s reference; null when the person had none yet. */
+                /** @description The Privacy Office’s reference — the PIA number. */
                 externalTicketRef: string | null;
+            };
+            /**
+             * Format: date-time
+             * @description When it was recorded.
+             */
+            createdAt: string;
+            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, retiring the instances a deploy replaced, or a push to GitHub (even one that a request’s own sync found). An event that a request’s work publishes later, such as a build ending, names who started it. */
+            actor: components["schemas"]["EventActor"] | null;
+        } | {
+            /**
+             * @description An audit event.
+             * @constant
+             */
+            kind: "event";
+            /**
+             * Format: uuid
+             * @description The event’s id; a replay after a reconnect repeats it, so a client can drop what it has seen.
+             */
+            id: string;
+            /**
+             * Format: uuid
+             * @description The project the event belongs to.
+             */
+            projectId: string;
+            /** @description What the event is about — `build:<id>`, `instance:<id>`. Opaque. */
+            subject: string;
+            /**
+             * @description What happened. Switch on it: each type has one `machineDetail` shape.
+             * @constant
+             */
+            type: "iam_registration.sent";
+            /** @description What happened, in words for a person. Never parse it. */
+            humanMessage: string;
+            /** @description The owner sent the app’s staging or production registration to the Manifest team, who submit it to UBC IAM or hand it back. The team was emailed. */
+            machineDetail: {
+                /**
+                 * @description Which registration was sent: the staging one, or production’s.
+                 * @enum {string}
+                 */
+                environment: "staging" | "production";
+                /**
+                 * @description Where it was sent from: a draft, UBC’s questions to the owner, a lapsed registration, or a live one to change. A hand-back returns it there.
+                 * @enum {string}
+                 */
+                sentFrom: "draft" | "change_requested" | "expired" | "active";
+            };
+            /**
+             * Format: date-time
+             * @description When it was recorded.
+             */
+            createdAt: string;
+            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, retiring the instances a deploy replaced, or a push to GitHub (even one that a request’s own sync found). An event that a request’s work publishes later, such as a build ending, names who started it. */
+            actor: components["schemas"]["EventActor"] | null;
+        } | {
+            /**
+             * @description An audit event.
+             * @constant
+             */
+            kind: "event";
+            /**
+             * Format: uuid
+             * @description The event’s id; a replay after a reconnect repeats it, so a client can drop what it has seen.
+             */
+            id: string;
+            /**
+             * Format: uuid
+             * @description The project the event belongs to.
+             */
+            projectId: string;
+            /** @description What the event is about — `build:<id>`, `instance:<id>`. Opaque. */
+            subject: string;
+            /**
+             * @description What happened. Switch on it: each type has one `machineDetail` shape.
+             * @constant
+             */
+            type: "privacy_assessment.sent";
+            /** @description What happened, in words for a person. Never parse it. */
+            humanMessage: string;
+            /** @description The owner sent the app’s privacy impact assessment to the Manifest team, with an answer to every gap, for the team to submit to the Privacy Office or hand back. The team was emailed. */
+            machineDetail: {
+                /** @description How many gaps the owner answered — every gap of the draft sent. The answers are on the record, not here. */
+                gapCount: number;
+            };
+            /**
+             * Format: date-time
+             * @description When it was recorded.
+             */
+            createdAt: string;
+            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, retiring the instances a deploy replaced, or a push to GitHub (even one that a request’s own sync found). An event that a request’s work publishes later, such as a build ending, names who started it. */
+            actor: components["schemas"]["EventActor"] | null;
+        } | {
+            /**
+             * @description An audit event.
+             * @constant
+             */
+            kind: "event";
+            /**
+             * Format: uuid
+             * @description The event’s id; a replay after a reconnect repeats it, so a client can drop what it has seen.
+             */
+            id: string;
+            /**
+             * Format: uuid
+             * @description The project the event belongs to.
+             */
+            projectId: string;
+            /** @description What the event is about — `build:<id>`, `instance:<id>`. Opaque. */
+            subject: string;
+            /**
+             * @description What happened. Switch on it: each type has one `machineDetail` shape.
+             * @constant
+             */
+            type: "iam_registration.returned";
+            /** @description What happened, in words for a person. Never parse it. */
+            humanMessage: string;
+            /** @description The Manifest team handed the app’s staging or production registration back to its owner, unsubmitted, to the state it was sent from. */
+            machineDetail: {
+                /**
+                 * @description Which registration was handed back: the staging one, or production’s.
+                 * @enum {string}
+                 */
+                environment: "staging" | "production";
+                /**
+                 * @description The state it returned to — the one it was sent from.
+                 * @enum {string}
+                 */
+                to: "draft" | "change_requested" | "expired" | "active";
+            };
+            /**
+             * Format: date-time
+             * @description When it was recorded.
+             */
+            createdAt: string;
+            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, retiring the instances a deploy replaced, or a push to GitHub (even one that a request’s own sync found). An event that a request’s work publishes later, such as a build ending, names who started it. */
+            actor: components["schemas"]["EventActor"] | null;
+        } | {
+            /**
+             * @description An audit event.
+             * @constant
+             */
+            kind: "event";
+            /**
+             * Format: uuid
+             * @description The event’s id; a replay after a reconnect repeats it, so a client can drop what it has seen.
+             */
+            id: string;
+            /**
+             * Format: uuid
+             * @description The project the event belongs to.
+             */
+            projectId: string;
+            /** @description What the event is about — `build:<id>`, `instance:<id>`. Opaque. */
+            subject: string;
+            /**
+             * @description What happened. Switch on it: each type has one `machineDetail` shape.
+             * @constant
+             */
+            type: "privacy_assessment.returned";
+            /** @description What happened, in words for a person. Never parse it. */
+            humanMessage: string;
+            /** @description The Manifest team handed the app’s privacy impact assessment back to its owner, unsubmitted. It is a draft again. */
+            machineDetail: {
+                /**
+                 * @description The state it returned to: `draft`.
+                 * @enum {string}
+                 */
+                to: "draft";
             };
             /**
              * Format: date-time
@@ -4834,7 +5083,7 @@ export interface components {
                 latestIncidentAt: string | null;
             }[];
         }[];
-        /** @description One of the app’s two UBC IAM registrations, staging’s or production’s: what Manifest drafted, when a person said it was sent, and what UBC IAM registered, as an administrator recorded it. */
+        /** @description One of the app’s two UBC IAM registrations, staging’s or production’s: what Manifest drafted, when its owner sent it to the Manifest team, when the team submitted it to UBC IAM, and what UBC IAM registered, as an administrator recorded it. */
         IamRegistration: {
             /**
              * Format: uuid
@@ -4868,17 +5117,31 @@ export interface components {
             /** @description When UBC IAM last registered this Service Provider — set when the record reaches `active`. Null until the first time, and again once the registration lapses (`expired`) until it is recorded `active` again; a launched app’s releases need it. */
             registeredAt: string | null;
             /**
-             * @description Where the registration is: `draft`, `submitted` to UBC IAM, `active` once registered, `change_requested` while a change is with UBC IAM, and `expired`.
+             * @description Where the registration is: `draft`; `sent` to the Manifest team, who submit it to UBC IAM or hand it back; `submitted` to UBC IAM; `active` once registered; `change_requested` while a change is with UBC IAM, or UBC IAM has asked its owner for changes; and `expired`.
              * @enum {string}
              */
-            state: "draft" | "submitted" | "active" | "change_requested" | "expired";
+            state: "draft" | "sent" | "submitted" | "active" | "change_requested" | "expired";
             /** @description While `change_requested`, where it came from: `submitted` — UBC IAM came back with questions, so the next move is the owner’s (answer them, draft again, send it); `active` — an administrator filed a change request with UBC IAM, which UBC now holds. Null in any other state. */
             changeRequestedFrom: ("submitted" | "active") | null;
             /** @description UBC IAM’s own reference for the request; null when none was recorded. */
             externalTicketRef: string | null;
-            /** @description When the request now with UBC IAM was sent — the day a person said it went, at noon in Vancouver, or when an administrator recorded it sent. How long it has waited is measured from here. Null until it is sent. */
+            /** @description While `sent`, where its owner sent it from — a draft, UBC IAM’s questions to them, a lapsed registration — which is where the Manifest team’s hand-back returns it. Null in any other state. */
+            sentFrom: ("draft" | "change_requested" | "expired" | "active") | null;
+            /** @description When its owner last sent it to the Manifest team. Kept once the team has submitted it or handed it back, and replaced by the next send; null until it is first sent. */
+            sentAt: string | null;
+            /** @description Who last sent it to the Manifest team; null until it is first sent. */
+            sentBy: {
+                /**
+                 * Format: uuid
+                 * @description Their user id.
+                 */
+                id: string;
+                /** @description Their name, as CWL gave it. */
+                displayName: string;
+            } | null;
+            /** @description When the request now with UBC IAM was sent to UBC — the day the Manifest team sent it, at noon in Vancouver, or when an administrator recorded it sent. How long it has waited for UBC is measured from here. Null until it is submitted. */
             submittedAt: string | null;
-            /** @description Who said it was sent; null until it is. */
+            /** @description The administrator who recorded it submitted to UBC IAM; null until it is. */
             submittedBy: {
                 /**
                  * Format: uuid
@@ -5704,7 +5967,7 @@ export interface components {
                 kind: "sandbox" | "staging" | "production";
             };
         };
-        /** @description The app’s privacy impact assessment: when a person said it was sent, and what UBC’s Privacy Office said, as an administrator recorded it. It comes first: the staging registration waits for its approval. */
+        /** @description The app’s privacy impact assessment: what Manifest drafted, the owner’s answers to its gaps and when they sent it to the Manifest team, when the team submitted it to the Privacy Office, and what the Office said, as an administrator recorded it. It comes first: the staging registration waits for its approval. */
         PrivacyAssessment: {
             /**
              * Format: uuid
@@ -5717,19 +5980,38 @@ export interface components {
              */
             projectId: string;
             /**
-             * @description Where the assessment is: `draft`, `submitted` to the Privacy Office, `approved`. A refused assessment goes back to `draft`.
+             * @description Where the assessment is: `draft`; `sent` to the Manifest team, who submit it to the Privacy Office or hand it back; `submitted` to the Privacy Office; `approved`. A refused assessment goes back to `draft`.
              * @enum {string}
              */
-            state: "draft" | "submitted" | "approved";
+            state: "draft" | "sent" | "submitted" | "approved";
             /** @description Who at the Privacy Office reviewed it; null until recorded. */
             reviewer: string | null;
             /** @description When it was approved; null until it is. */
             approvedAt: string | null;
             /** @description The Privacy Office’s own reference — the PIA number, which the staging registration needs before it is sent; null when none was recorded. */
             externalTicketRef: string | null;
-            /** @description When the assessment was sent to the Privacy Office — the day a person said it went, at noon in Vancouver, or when an administrator recorded it sent. Null until it is sent. */
+            /** @description When its owner last sent it to the Manifest team. Kept once the team has submitted it or handed it back, and replaced by the next send; null until it is first sent. */
+            sentAt: string | null;
+            /** @description Who last sent it to the Manifest team; null until it is first sent. */
+            sentBy: {
+                /**
+                 * Format: uuid
+                 * @description Their user id.
+                 */
+                id: string;
+                /** @description Their name, as CWL gave it. */
+                displayName: string;
+            } | null;
+            /** @description The owner’s answer to every gap of the draft, in the draft’s order, as last sent to the Manifest team — what the team carries into the Privacy Office’s form. Null until it is first sent. */
+            gapAnswers: {
+                /** @description The gap answered — a `gaps[].id` of the draft sent. */
+                gapId: string;
+                /** @description What the owner answered, as they wrote it, trimmed. */
+                answer: string;
+            }[] | null;
+            /** @description When the assessment was sent to the Privacy Office — the day the Manifest team sent it, at noon in Vancouver, or when an administrator recorded it sent. Null until it is submitted. */
             submittedAt: string | null;
-            /** @description Who said it was sent; null until it is. */
+            /** @description The administrator who recorded it submitted to the Privacy Office; null until it is. */
             submittedBy: {
                 /**
                  * Format: uuid
@@ -5910,7 +6192,7 @@ export interface components {
             /** @description What a change request asks for; required when a registration goes from `active` to `change_requested`. */
             requestedAttributes?: string[];
             /**
-             * @description The state this record should now be in: the state it is in, or one step on from it — `draft` to `submitted`; `submitted` to `active` or `change_requested`; `active` to `change_requested` or `expired`; `change_requested` to `submitted` or `expired`; `expired` to `submitted`. Any other move is refused `409 LAUNCH_TRANSITION_INVALID`. A new record starts at `draft`, so a first write into `active` is refused exactly as a later one is.
+             * @description The state this record should now be in: the state it is in, or one step on from it — `draft` to `submitted`; `submitted` to `active` or `change_requested`; `active` to `change_requested` or `expired`; `change_requested` to `submitted` or `expired`; `expired` to `submitted`. Any other move is refused `409 LAUNCH_TRANSITION_INVALID`. A new record starts at `draft`, so a first write into `active` is refused exactly as a later one is. A registration with the Manifest team (`sent`) is not recorded here: the team submits it (`submitIamRegistration`) or hands it back (`returnIamRegistration`).
              * @enum {string}
              */
             state: "draft" | "submitted" | "active" | "change_requested" | "expired";
@@ -5927,7 +6209,7 @@ export interface components {
         /** @description What the Privacy Office said, as an administrator records it. */
         RecordPrivacyAssessmentRequest: {
             /**
-             * @description The state this record should now be in: the state it is in, or one step on from it — `draft` to `submitted`; `submitted` to `approved`, or back to `draft` when the Privacy Office refuses it; `approved` to `draft`. Any other move is refused `409 LAUNCH_TRANSITION_INVALID`. A new record starts at `draft`.
+             * @description The state this record should now be in: the state it is in, or one step on from it — `draft` to `submitted`; `submitted` to `approved`, or back to `draft` when the Privacy Office refuses it; `approved` to `draft`. Any other move is refused `409 LAUNCH_TRANSITION_INVALID`. A new record starts at `draft`. An assessment with the Manifest team (`sent`) is not recorded here: the team submits it (`submitPrivacyAssessment`) or hands it back (`returnPrivacyAssessment`).
              * @enum {string}
              */
             state: "draft" | "submitted" | "approved";
@@ -5935,6 +6217,16 @@ export interface components {
             reviewer?: string;
             /** @description The Privacy Office’s reference, pasted in. */
             externalTicketRef?: string;
+        };
+        /** @description That the Manifest team submitted the record to UBC: the day it went, and UBC’s reference. */
+        RecordSubmissionRequest: {
+            /**
+             * Format: date
+             * @description The day the Manifest team sent it to UBC, `YYYY-MM-DD` — today or earlier, and not before its owner sent it to the team. Today in Vancouver when absent.
+             */
+            sentAt?: string;
+            /** @description UBC’s reference for it: UBC IAM’s ticket, or the Privacy Office’s PIA number. */
+            reference: string;
         };
         /** @description What a person sends UBC IAM to register one environment of a CWL app: its entity and addresses, the certificate it signs with, every attribute it asks for with why, the contacts and the PIA number — and the metadata, built from the same values. */
         RegistrationPackage: {
@@ -6332,6 +6624,29 @@ export interface components {
                 package: string;
             }[];
         };
+        /** @description That the owner sends this registration to the Manifest team, and which draft. It is sent now: the send is made in Manifest. */
+        SendLaunchRecordRequest: {
+            /**
+             * Format: date-time
+             * @description The `generatedAt` of the draft you are sending, as you read it. If it has been drafted again since, the send is refused `409 LAUNCH_DRAFT_CHANGED` rather than sending a draft you never saw. Send it whenever you show a person the draft they send.
+             */
+            draftGeneratedAt?: string;
+        };
+        /** @description That the owner sends the privacy assessment to the Manifest team, which draft, and their answer to each of its gaps. It is sent now: the send is made in Manifest. */
+        SendPrivacyAssessmentRequest: {
+            /**
+             * Format: date-time
+             * @description The `generatedAt` of the draft you are sending, as you read it. If it has been drafted again since, the send is refused `409 LAUNCH_DRAFT_CHANGED` rather than sending a draft you never saw. Send it whenever you show a person the draft they send.
+             */
+            draftGeneratedAt?: string;
+            /** @description An answer to EVERY gap of the draft, once each, by its id — refused `400 LAUNCH_GAP_ANSWERS_INVALID`, naming each gap at fault, when one is missing, blank, repeated, or not the draft’s. Kept on the record in the draft’s order. */
+            answers: {
+                /** @description The gap answered: a `gaps[].id` of the draft you read. */
+                gapId: string;
+                /** @description The answer, up to 2,000 characters. “Does not apply” is an answer; a blank one is not. */
+                answer: string;
+            }[];
+        };
         /** @description Which sensitive fields this manifest changes against the project’s newest VALID one, commit by commit — so an addition and its own removal are two changes here. Whether a launched app’s production deploy needs an administrator’s approval is `sensitiveSinceApproved`, which compares with the release last approved for production. */
         SensitiveDiff: {
             /** @description Whether any sensitive field changed. */
@@ -6469,21 +6784,6 @@ export interface components {
         };
         /** @description Every message on WS /v1/projects/{projectId}/events is one of these, as JSON. Switch on `kind`, then `type`. */
         StreamFrame: components["schemas"]["EventFrame"] | components["schemas"]["LogFrame"] | components["schemas"]["ControlFrame"];
-        /** @description That a request to UBC was sent: the day, its reference if there is one, and which draft was sent. */
-        SubmitLaunchRecordRequest: {
-            /**
-             * Format: date
-             * @description The day it was sent, `YYYY-MM-DD` — today or earlier, and not before the draft was made. Today in Vancouver when absent.
-             */
-            sentAt?: string;
-            /** @description UBC’s reference for the request, when you have one yet. */
-            reference?: string;
-            /**
-             * Format: date-time
-             * @description The `generatedAt` of the draft you sent, as you read it. If it has been drafted again since, the request is refused `409 LAUNCH_DRAFT_CHANGED` rather than recording a draft you never saw. Send it whenever you show a person the draft they send.
-             */
-            draftGeneratedAt?: string;
-        };
         /** @description A delegated token, scoped to one project and a capability set. Its secret is shown once, when it is minted, and is never readable again. */
         Token: {
             /**
@@ -9212,10 +9512,16 @@ export interface operations {
                      *         "state": "submitted",
                      *         "changeRequestedFrom": null,
                      *         "externalTicketRef": "IAM-2026-0500",
-                     *         "submittedAt": "2026-10-01T19:00:00.000Z",
-                     *         "submittedBy": {
+                     *         "sentFrom": null,
+                     *         "sentAt": "2026-10-01T15:37:23.130Z",
+                     *         "sentBy": {
                      *           "id": "af3dc1c0-722c-469c-8c2a-b6179ca3f327",
                      *           "displayName": "Bio Prof"
+                     *         },
+                     *         "submittedAt": "2026-10-01T19:00:00.000Z",
+                     *         "submittedBy": {
+                     *           "id": "c4113a47-bf3c-4653-9260-ca723416fdc6",
+                     *           "displayName": "Platform Admin"
                      *         },
                      *         "package": {
                      *           "environment": "staging",
@@ -9286,6 +9592,9 @@ export interface operations {
                      *         "reviewer": "K. Privacy",
                      *         "approvedAt": "2026-10-01T15:37:22.363Z",
                      *         "externalTicketRef": "PIA-2026-0088",
+                     *         "sentAt": null,
+                     *         "sentBy": null,
+                     *         "gapAnswers": null,
                      *         "submittedAt": "2026-10-01T15:37:22.354Z",
                      *         "submittedBy": {
                      *           "id": "c4113a47-bf3c-4653-9260-ca723416fdc6",
@@ -9368,6 +9677,9 @@ export interface operations {
                      *       "state": "submitted",
                      *       "changeRequestedFrom": null,
                      *       "externalTicketRef": "IAM-1",
+                     *       "sentFrom": null,
+                     *       "sentAt": null,
+                     *       "sentBy": null,
                      *       "submittedAt": "2026-10-01T06:56:08.961Z",
                      *       "submittedBy": {
                      *         "id": "7cdb83c7-6a58-49e2-a8a8-0f480232ed6d",
@@ -9433,6 +9745,9 @@ export interface operations {
                      *       "state": "draft",
                      *       "changeRequestedFrom": null,
                      *       "externalTicketRef": null,
+                     *       "sentFrom": null,
+                     *       "sentAt": null,
+                     *       "sentBy": null,
                      *       "submittedAt": null,
                      *       "submittedBy": null,
                      *       "package": {
@@ -9512,7 +9827,131 @@ export interface operations {
             };
         };
     };
-    submitIamRegistration: {
+    returnIamRegistration: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description One per user action, and the same key when retrying that action. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                /** @description Which registration to hand back: `staging` or `production`. */
+                environment: "staging" | "production";
+                /** @description The project’s id, from `listProjects` or `createProject`. */
+                projectId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The registration, back with its owner. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "id": "e196ea92-0c4e-4f68-b42f-00ce57e1d92f",
+                     *       "projectId": "72bc6c0a-bf2b-4b4f-8165-bc86227cd46d",
+                     *       "environment": "staging",
+                     *       "entityId": "https://manifest.internal/sp/cwl-6513709a/staging",
+                     *       "acsUrl": "https://cwl-6513709a.staging.manifest.internal/auth/ubcshib/callback",
+                     *       "sloUrl": "https://cwl-6513709a.staging.manifest.internal/auth/logout",
+                     *       "certFingerprint": null,
+                     *       "certExpiresAt": null,
+                     *       "registeredAttributes": [],
+                     *       "requestedAttributes": null,
+                     *       "registeredAt": null,
+                     *       "state": "draft",
+                     *       "changeRequestedFrom": null,
+                     *       "externalTicketRef": null,
+                     *       "sentFrom": null,
+                     *       "sentAt": "2026-10-01T15:37:23.130Z",
+                     *       "sentBy": {
+                     *         "id": "af3dc1c0-722c-469c-8c2a-b6179ca3f327",
+                     *         "displayName": "Bio Prof"
+                     *       },
+                     *       "submittedAt": null,
+                     *       "submittedBy": null,
+                     *       "package": {
+                     *         "environment": "staging",
+                     *         "generatedAt": "2026-10-01T15:37:23.111Z",
+                     *         "fromCommit": "a4080513ab8842356764b34255f511d2d6f5bf43",
+                     *         "entityId": "https://manifest.internal/sp/cwl-6513709a/staging",
+                     *         "acsUrl": "https://cwl-6513709a.staging.manifest.internal/auth/ubcshib/callback",
+                     *         "sloUrl": "https://cwl-6513709a.staging.manifest.internal/auth/logout",
+                     *         "certificate": {
+                     *           "pem": "-----BEGIN CERTIFICATE-----\nMIIFhTCCA22gAwIBAgIUY5NstC0cxVL1dQ1+2Ea0OhUeUq0wDQYJKoZIhvcNAQEL\nBQAwMjEdMBsGA1UEAwwUY3dsLTY1MTM3MDlhLXN0YWdpbmcxETAPBgNVBAoMCE1h\nbmlmZXN0MB4XDTI2MTAwMTE1MzcyMloXDTI4MDkzMDE1MzcyMlowMjEdMBsGA1UE\nAwwUY3dsLTY1MTM3MDlhLXN0YWdpbmcxETAPBgNVBAoMCE1hbmlmZXN0MIICIjAN\nBgkqhkiG9w0BAQEFAAOCAg8AMIICCgKCAgEA2ajxaGxHzkrW8Foe6BqHzHOu1HwG\nvzQMlc1KrecDx+dZFDj6Skf/2Zs/Ii0qZZ+ee7EBdC/JiCGwDt9qgOX5Su0nWzhW\nsVCteMIA+ZS7nLe/q3NFyiOKVlBSHfnCvGJ1Oyk9z4Cned8ISfSoOvVyBco/5yCL\nFwv2lNFeHOUTTb2z4aGbdLWWrSREhzIIpngy95OjVjZDmOJJhzsuLie0yHUyAmRu\nfs8lLmDMeJN9Rw7vkngdqIvLQoGgxS4Mo5oJGAbzffZjJPayt0WhiW5lR7HT9dmN\nie+qIWgcDOVFXApANPm9uYv0yQ6N3LB002Kd4f1mqj8Vc98oLz4cK7UWk1cvo1qq\nfGIPVyBX1rvmDxdX2E7lSQ9cXoH4pNDqmyL8mptSmHJLHuvJVj8Ri0i8HFWXdomA\nfPh+GK9URi1R/PVX1MZk4PmOYgDHC0F7zNQCyIlvr1Zo3UIJ37sOr3qyRmTrSzv4\nauYbn6OlF4vuZdrcApj+mZP8GAJQPnuXfMbgDWnj3Dr/VWZK/J6Th5Lp8Ckax9RS\nWddTsCsvdpnC/rz4/SuxWKkfnHwdpC8JObkApgpVoXHQ/3kLs1Y7eSUo9hfHKZwX\nwMH0LDTejECOqZ+6gBT2JY/xeKLk0y9Zh7tU93EczYLfOrpG8iCBCRxe+qaw/4my\nxwqN4bOAaWdZ2ysCAwEAAaOBkjCBjzAdBgNVHQ4EFgQUXIl3aMeZwi/krWrIsgBJ\n6g6dUIQwHwYDVR0jBBgwFoAUXIl3aMeZwi/krWrIsgBJ6g6dUIQwDwYDVR0TAQH/\nBAUwAwEB/zA8BgNVHREENTAzhjFodHRwczovL21hbmlmZXN0LmludGVybmFsL3Nw\nL2N3bC02NTEzNzA5YS9zdGFnaW5nMA0GCSqGSIb3DQEBCwUAA4ICAQC8iuV6yFcI\nesWiWonWxDdB/ygHxkdXjLm5/RbLfr7N/hsyD4wx1UheFKRflN5c7to/v06nJEUt\np3se+T4BafDkTM92ytsgOm2Iu+R4g5EvRqQmMJF7ayyimArIy98DDjrURzNGSJmA\nbsqlTreK10J8KQtEJK3tF85SnBUrXapvKs66LP6bdXFXSIYy+iYgxkiLx6ya2jmZ\nAx+9pWHC+K8d8+rcEoUq/pgMgxfkChoJBArjiAwOuZbrx6m2AYDtMbL2FK0+njyQ\nrO7I1dSCW/tgiM4td69AFw5M08SCGx3HGrz7xG6r45huL2Nk/cWpxUjzVPyo7X4c\nSkvWPO1oJ/qDTdW3UJtmxH/dM9wySpcvmgGMn7dNt4PjXq+dHdKv52gYSU9XAKBu\nsIfMW82y0QIPszGjayFiB4awNhvQ4kf/5Shgv0p2/Dg6ddlxzvttRXdoWE9z9dGi\nqsIKTXGQNGiQERNbaHe/Z6ImnllIoBmVszw5GUUk7qb+cE7RVSJFbFTOoPeFvcoE\npqPySUQBbLULxZQR7WVQuRvkmsC72UxxDdqLi4FpOE1grsv+ksF1WYbA2eviWpZQ\nyWyLHENez758GdX2LjiNMBOLNF4YCqDaucQ8IZbxq6cgZcPqKjoVe+/ENbSOBdEK\n8Rz3oeLFdUGWGyfqge/5EJld/wslALvlyQ==\n-----END CERTIFICATE-----\n",
+                     *           "fingerprint": "35:9A:6E:22:18:33:8A:8C:8F:B5:F9:E1:53:90:A2:8A:F5:AE:65:4D:D8:B1:B6:66:DB:AE:6D:58:DC:69:97:3D",
+                     *           "expiresAt": "2028-09-30T15:37:22.000Z"
+                     *         },
+                     *         "attributes": [
+                     *           {
+                     *             "name": "ubcEduCwlPuid",
+                     *             "oid": "urn:oid:1.3.6.1.4.1.60.6.1.6",
+                     *             "purpose": "Identifies the person who signs in, so the app can recognise them when they return and keep their work apart from everyone else’s.",
+                     *             "usedAt": [
+                     *               {
+                     *                 "path": "routes/people.js",
+                     *                 "line": 3
+                     *               }
+                     *             ],
+                     *             "justification": "Identifies the person who signs in, so the app can recognise them when they return and keep their work apart from everyone else’s. The app reads it in routes/people.js:3.",
+                     *             "unused": false
+                     *           },
+                     *           {
+                     *             "name": "mail",
+                     *             "oid": "urn:oid:0.9.2342.19200300.100.1.3",
+                     *             "purpose": "The person’s email address, so the app can show it or write to them.",
+                     *             "usedAt": [
+                     *               {
+                     *                 "path": "public/app.js",
+                     *                 "line": 2
+                     *               }
+                     *             ],
+                     *             "justification": "The person’s email address, so the app can show it or write to them. The app shows it to the person in the browser, in public/app.js:2.",
+                     *             "unused": false
+                     *           }
+                     *         ],
+                     *         "usedAtTruncated": false,
+                     *         "contacts": {
+                     *           "technical": [
+                     *             {
+                     *               "name": "Bio Prof",
+                     *               "email": "bio_prof@example.ubc.ca"
+                     *             }
+                     *           ],
+                     *           "support": [
+                     *             {
+                     *               "name": "Platform Admin",
+                     *               "email": "platform_admin@example.ubc.ca"
+                     *             }
+                     *           ]
+                     *         },
+                     *         "privacyAssessmentReference": "PIA-2026-0088",
+                     *         "metadataXml": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<md:EntityDescriptor xmlns:md=\"urn:oasis:names:tc:SAML:2.0:metadata\" xmlns:ds=\"http://www.w3.org/2000/09/xmldsig#\" xmlns:alg=\"urn:oasis:names:tc:SAML:metadata:algsupport\" ID=\"_4abfe24de3c184dee599fbdb8ae1bb19\" entityID=\"https://manifest.internal/sp/cwl-6513709a/staging\">\n\n  <md:Extensions>\n    <alg:DigestMethod Algorithm=\"http://www.w3.org/2001/04/xmlenc#sha256\"/>\n    <alg:DigestMethod Algorithm=\"http://www.w3.org/2001/04/xmldsig-more#sha384\"/>\n    <alg:DigestMethod Algorithm=\"http://www.w3.org/2001/04/xmlenc#sha512\"/>\n    <alg:SigningMethod Algorithm=\"http://www.w3.org/2001/04/xmldsig-more#rsa-sha256\"/>\n    <alg:SigningMethod Algorithm=\"http://www.w3.org/2001/04/xmldsig-more#rsa-sha384\"/>\n    <alg:SigningMethod Algorithm=\"http://www.w3.org/2001/04/xmldsig-more#rsa-sha512\"/>\n    <alg:SigningMethod Algorithm=\"http://www.w3.org/2001/04/xmldsig-more#ecdsa-sha256\"/>\n  </md:Extensions>\n\n  <md:SPSSODescriptor protocolSupportEnumeration=\"urn:oasis:names:tc:SAML:2.0:protocol\">\n    <md:KeyDescriptor use=\"signing\">\n      <ds:KeyInfo>\n        <ds:KeyName>cwl-6513709a.staging.manifest.internal</ds:KeyName>\n        <ds:X509Data>\n          <ds:X509SubjectName>O=Manifest,CN=cwl-6513709a-staging</ds:X509SubjectName>\n          <ds:X509Certificate>MIIFhTCCA22gAwIBAgIUY5NstC0cxVL1dQ1+2Ea0OhUeUq0wDQYJKoZIhvcNAQEL\nBQAwMjEdMBsGA1UEAwwUY3dsLTY1MTM3MDlhLXN0YWdpbmcxETAPBgNVBAoMCE1h\nbmlmZXN0MB4XDTI2MTAwMTE1MzcyMloXDTI4MDkzMDE1MzcyMlowMjEdMBsGA1UE\nAwwUY3dsLTY1MTM3MDlhLXN0YWdpbmcxETAPBgNVBAoMCE1hbmlmZXN0MIICIjAN\nBgkqhkiG9w0BAQEFAAOCAg8AMIICCgKCAgEA2ajxaGxHzkrW8Foe6BqHzHOu1HwG\nvzQMlc1KrecDx+dZFDj6Skf/2Zs/Ii0qZZ+ee7EBdC/JiCGwDt9qgOX5Su0nWzhW\nsVCteMIA+ZS7nLe/q3NFyiOKVlBSHfnCvGJ1Oyk9z4Cned8ISfSoOvVyBco/5yCL\nFwv2lNFeHOUTTb2z4aGbdLWWrSREhzIIpngy95OjVjZDmOJJhzsuLie0yHUyAmRu\nfs8lLmDMeJN9Rw7vkngdqIvLQoGgxS4Mo5oJGAbzffZjJPayt0WhiW5lR7HT9dmN\nie+qIWgcDOVFXApANPm9uYv0yQ6N3LB002Kd4f1mqj8Vc98oLz4cK7UWk1cvo1qq\nfGIPVyBX1rvmDxdX2E7lSQ9cXoH4pNDqmyL8mptSmHJLHuvJVj8Ri0i8HFWXdomA\nfPh+GK9URi1R/PVX1MZk4PmOYgDHC0F7zNQCyIlvr1Zo3UIJ37sOr3qyRmTrSzv4\nauYbn6OlF4vuZdrcApj+mZP8GAJQPnuXfMbgDWnj3Dr/VWZK/J6Th5Lp8Ckax9RS\nWddTsCsvdpnC/rz4/SuxWKkfnHwdpC8JObkApgpVoXHQ/3kLs1Y7eSUo9hfHKZwX\nwMH0LDTejECOqZ+6gBT2JY/xeKLk0y9Zh7tU93EczYLfOrpG8iCBCRxe+qaw/4my\nxwqN4bOAaWdZ2ysCAwEAAaOBkjCBjzAdBgNVHQ4EFgQUXIl3aMeZwi/krWrIsgBJ\n6g6dUIQwHwYDVR0jBBgwFoAUXIl3aMeZwi/krWrIsgBJ6g6dUIQwDwYDVR0TAQH/\nBAUwAwEB/zA8BgNVHREENTAzhjFodHRwczovL21hbmlmZXN0LmludGVybmFsL3Nw\nL2N3bC02NTEzNzA5YS9zdGFnaW5nMA0GCSqGSIb3DQEBCwUAA4ICAQC8iuV6yFcI\nesWiWonWxDdB/ygHxkdXjLm5/RbLfr7N/hsyD4wx1UheFKRflN5c7to/v06nJEUt\np3se+T4BafDkTM92ytsgOm2Iu+R4g5EvRqQmMJF7ayyimArIy98DDjrURzNGSJmA\nbsqlTreK10J8KQtEJK3tF85SnBUrXapvKs66LP6bdXFXSIYy+iYgxkiLx6ya2jmZ\nAx+9pWHC+K8d8+rcEoUq/pgMgxfkChoJBArjiAwOuZbrx6m2AYDtMbL2FK0+njyQ\nrO7I1dSCW/tgiM4td69AFw5M08SCGx3HGrz7xG6r45huL2Nk/cWpxUjzVPyo7X4c\nSkvWPO1oJ/qDTdW3UJtmxH/dM9wySpcvmgGMn7dNt4PjXq+dHdKv52gYSU9XAKBu\nsIfMW82y0QIPszGjayFiB4awNhvQ4kf/5Shgv0p2/Dg6ddlxzvttRXdoWE9z9dGi\nqsIKTXGQNGiQERNbaHe/Z6ImnllIoBmVszw5GUUk7qb+cE7RVSJFbFTOoPeFvcoE\npqPySUQBbLULxZQR7WVQuRvkmsC72UxxDdqLi4FpOE1grsv+ksF1WYbA2eviWpZQ\nyWyLHENez758GdX2LjiNMBOLNF4YCqDaucQ8IZbxq6cgZcPqKjoVe+/ENbSOBdEK\n8Rz3oeLFdUGWGyfqge/5EJld/wslALvlyQ==</ds:X509Certificate>\n        </ds:X509Data>\n      </ds:KeyInfo>\n    </md:KeyDescriptor>\n\n    <md:KeyDescriptor use=\"encryption\">\n      <ds:KeyInfo>\n        <ds:KeyName>cwl-6513709a.staging.manifest.internal</ds:KeyName>\n        <ds:X509Data>\n          <ds:X509SubjectName>O=Manifest,CN=cwl-6513709a-staging</ds:X509SubjectName>\n          <ds:X509Certificate>MIIFhTCCA22gAwIBAgIUY5NstC0cxVL1dQ1+2Ea0OhUeUq0wDQYJKoZIhvcNAQEL\nBQAwMjEdMBsGA1UEAwwUY3dsLTY1MTM3MDlhLXN0YWdpbmcxETAPBgNVBAoMCE1h\nbmlmZXN0MB4XDTI2MTAwMTE1MzcyMloXDTI4MDkzMDE1MzcyMlowMjEdMBsGA1UE\nAwwUY3dsLTY1MTM3MDlhLXN0YWdpbmcxETAPBgNVBAoMCE1hbmlmZXN0MIICIjAN\nBgkqhkiG9w0BAQEFAAOCAg8AMIICCgKCAgEA2ajxaGxHzkrW8Foe6BqHzHOu1HwG\nvzQMlc1KrecDx+dZFDj6Skf/2Zs/Ii0qZZ+ee7EBdC/JiCGwDt9qgOX5Su0nWzhW\nsVCteMIA+ZS7nLe/q3NFyiOKVlBSHfnCvGJ1Oyk9z4Cned8ISfSoOvVyBco/5yCL\nFwv2lNFeHOUTTb2z4aGbdLWWrSREhzIIpngy95OjVjZDmOJJhzsuLie0yHUyAmRu\nfs8lLmDMeJN9Rw7vkngdqIvLQoGgxS4Mo5oJGAbzffZjJPayt0WhiW5lR7HT9dmN\nie+qIWgcDOVFXApANPm9uYv0yQ6N3LB002Kd4f1mqj8Vc98oLz4cK7UWk1cvo1qq\nfGIPVyBX1rvmDxdX2E7lSQ9cXoH4pNDqmyL8mptSmHJLHuvJVj8Ri0i8HFWXdomA\nfPh+GK9URi1R/PVX1MZk4PmOYgDHC0F7zNQCyIlvr1Zo3UIJ37sOr3qyRmTrSzv4\nauYbn6OlF4vuZdrcApj+mZP8GAJQPnuXfMbgDWnj3Dr/VWZK/J6Th5Lp8Ckax9RS\nWddTsCsvdpnC/rz4/SuxWKkfnHwdpC8JObkApgpVoXHQ/3kLs1Y7eSUo9hfHKZwX\nwMH0LDTejECOqZ+6gBT2JY/xeKLk0y9Zh7tU93EczYLfOrpG8iCBCRxe+qaw/4my\nxwqN4bOAaWdZ2ysCAwEAAaOBkjCBjzAdBgNVHQ4EFgQUXIl3aMeZwi/krWrIsgBJ\n6g6dUIQwHwYDVR0jBBgwFoAUXIl3aMeZwi/krWrIsgBJ6g6dUIQwDwYDVR0TAQH/\nBAUwAwEB/zA8BgNVHREENTAzhjFodHRwczovL21hbmlmZXN0LmludGVybmFsL3Nw\nL2N3bC02NTEzNzA5YS9zdGFnaW5nMA0GCSqGSIb3DQEBCwUAA4ICAQC8iuV6yFcI\nesWiWonWxDdB/ygHxkdXjLm5/RbLfr7N/hsyD4wx1UheFKRflN5c7to/v06nJEUt\np3se+T4BafDkTM92ytsgOm2Iu+R4g5EvRqQmMJF7ayyimArIy98DDjrURzNGSJmA\nbsqlTreK10J8KQtEJK3tF85SnBUrXapvKs66LP6bdXFXSIYy+iYgxkiLx6ya2jmZ\nAx+9pWHC+K8d8+rcEoUq/pgMgxfkChoJBArjiAwOuZbrx6m2AYDtMbL2FK0+njyQ\nrO7I1dSCW/tgiM4td69AFw5M08SCGx3HGrz7xG6r45huL2Nk/cWpxUjzVPyo7X4c\nSkvWPO1oJ/qDTdW3UJtmxH/dM9wySpcvmgGMn7dNt4PjXq+dHdKv52gYSU9XAKBu\nsIfMW82y0QIPszGjayFiB4awNhvQ4kf/5Shgv0p2/Dg6ddlxzvttRXdoWE9z9dGi\nqsIKTXGQNGiQERNbaHe/Z6ImnllIoBmVszw5GUUk7qb+cE7RVSJFbFTOoPeFvcoE\npqPySUQBbLULxZQR7WVQuRvkmsC72UxxDdqLi4FpOE1grsv+ksF1WYbA2eviWpZQ\nyWyLHENez758GdX2LjiNMBOLNF4YCqDaucQ8IZbxq6cgZcPqKjoVe+/ENbSOBdEK\n8Rz3oeLFdUGWGyfqge/5EJld/wslALvlyQ==</ds:X509Certificate>\n        </ds:X509Data>\n      </ds:KeyInfo>\n      <md:EncryptionMethod Algorithm=\"http://www.w3.org/2009/xmlenc11#aes128-gcm\"/>\n      <md:EncryptionMethod Algorithm=\"http://www.w3.org/2009/xmlenc11#aes256-gcm\"/>\n      <md:EncryptionMethod Algorithm=\"http://www.w3.org/2001/04/xmlenc#aes256-cbc\"/>\n    </md:KeyDescriptor>\n\n    <md:SingleLogoutService Binding=\"urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect\" Location=\"https://cwl-6513709a.staging.manifest.internal/auth/logout\"/>\n\n    <md:AssertionConsumerService Binding=\"urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST\" Location=\"https://cwl-6513709a.staging.manifest.internal/auth/ubcshib/callback\" index=\"1\" isDefault=\"true\"/>\n  </md:SPSSODescriptor>\n\n  <md:Organization>\n    <md:OrganizationName>University of British Columbia</md:OrganizationName>\n    <md:OrganizationDisplayName>University of British Columbia</md:OrganizationDisplayName>\n    <md:OrganizationURL>https://www.ubc.ca</md:OrganizationURL>\n  </md:Organization>\n\n  <md:ContactPerson contactType=\"technical\">\n    <md:EmailAddress>bio_prof@example.ubc.ca</md:EmailAddress>\n  </md:ContactPerson>\n  <md:ContactPerson contactType=\"support\">\n    <md:EmailAddress>platform_admin@example.ubc.ca</md:EmailAddress>\n  </md:ContactPerson>\n\n</md:EntityDescriptor>\n",
+                     *         "warnings": []
+                     *       },
+                     *       "createdAt": "2026-10-01T15:37:23.114Z",
+                     *       "updatedAt": "2026-10-01T15:37:23.140Z"
+                     *     }
+                     */
+                    "application/json": components["schemas"]["IamRegistration"];
+                };
+            };
+            /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, LAUNCH_TRANSITION_INVALID, NOT_FOUND, PROJECT_ARCHIVED, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    sendIamRegistration: {
         parameters: {
             query?: never;
             header: {
@@ -9522,7 +9961,7 @@ export interface operations {
                 "Manifest-Admin-Reason"?: string;
             };
             path: {
-                /** @description Which registration was sent: `staging` or `production`. */
+                /** @description Which registration to send: `staging` or `production`. */
                 environment: "staging" | "production";
                 /** @description The project’s id, from `listProjects` or `createProject`. */
                 projectId: string;
@@ -9533,15 +9972,148 @@ export interface operations {
             content: {
                 /**
                  * @example {
-                 *       "reference": "IAM-2026-0500",
                  *       "draftGeneratedAt": "2026-10-01T15:37:23.111Z"
                  *     }
                  */
-                "application/json": components["schemas"]["SubmitLaunchRecordRequest"];
+                "application/json": components["schemas"]["SendLaunchRecordRequest"];
             };
         };
         responses: {
-            /** @description The registration, now submitted. */
+            /** @description The registration, now with the Manifest team. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "id": "e196ea92-0c4e-4f68-b42f-00ce57e1d92f",
+                     *       "projectId": "72bc6c0a-bf2b-4b4f-8165-bc86227cd46d",
+                     *       "environment": "staging",
+                     *       "entityId": "https://manifest.internal/sp/cwl-6513709a/staging",
+                     *       "acsUrl": "https://cwl-6513709a.staging.manifest.internal/auth/ubcshib/callback",
+                     *       "sloUrl": "https://cwl-6513709a.staging.manifest.internal/auth/logout",
+                     *       "certFingerprint": null,
+                     *       "certExpiresAt": null,
+                     *       "registeredAttributes": [],
+                     *       "requestedAttributes": null,
+                     *       "registeredAt": null,
+                     *       "state": "sent",
+                     *       "changeRequestedFrom": null,
+                     *       "externalTicketRef": null,
+                     *       "sentFrom": "draft",
+                     *       "sentAt": "2026-10-01T15:37:23.130Z",
+                     *       "sentBy": {
+                     *         "id": "af3dc1c0-722c-469c-8c2a-b6179ca3f327",
+                     *         "displayName": "Bio Prof"
+                     *       },
+                     *       "submittedAt": null,
+                     *       "submittedBy": null,
+                     *       "package": {
+                     *         "environment": "staging",
+                     *         "generatedAt": "2026-10-01T15:37:23.111Z",
+                     *         "fromCommit": "a4080513ab8842356764b34255f511d2d6f5bf43",
+                     *         "entityId": "https://manifest.internal/sp/cwl-6513709a/staging",
+                     *         "acsUrl": "https://cwl-6513709a.staging.manifest.internal/auth/ubcshib/callback",
+                     *         "sloUrl": "https://cwl-6513709a.staging.manifest.internal/auth/logout",
+                     *         "certificate": {
+                     *           "pem": "-----BEGIN CERTIFICATE-----\nMIIFhTCCA22gAwIBAgIUY5NstC0cxVL1dQ1+2Ea0OhUeUq0wDQYJKoZIhvcNAQEL\nBQAwMjEdMBsGA1UEAwwUY3dsLTY1MTM3MDlhLXN0YWdpbmcxETAPBgNVBAoMCE1h\nbmlmZXN0MB4XDTI2MTAwMTE1MzcyMloXDTI4MDkzMDE1MzcyMlowMjEdMBsGA1UE\nAwwUY3dsLTY1MTM3MDlhLXN0YWdpbmcxETAPBgNVBAoMCE1hbmlmZXN0MIICIjAN\nBgkqhkiG9w0BAQEFAAOCAg8AMIICCgKCAgEA2ajxaGxHzkrW8Foe6BqHzHOu1HwG\nvzQMlc1KrecDx+dZFDj6Skf/2Zs/Ii0qZZ+ee7EBdC/JiCGwDt9qgOX5Su0nWzhW\nsVCteMIA+ZS7nLe/q3NFyiOKVlBSHfnCvGJ1Oyk9z4Cned8ISfSoOvVyBco/5yCL\nFwv2lNFeHOUTTb2z4aGbdLWWrSREhzIIpngy95OjVjZDmOJJhzsuLie0yHUyAmRu\nfs8lLmDMeJN9Rw7vkngdqIvLQoGgxS4Mo5oJGAbzffZjJPayt0WhiW5lR7HT9dmN\nie+qIWgcDOVFXApANPm9uYv0yQ6N3LB002Kd4f1mqj8Vc98oLz4cK7UWk1cvo1qq\nfGIPVyBX1rvmDxdX2E7lSQ9cXoH4pNDqmyL8mptSmHJLHuvJVj8Ri0i8HFWXdomA\nfPh+GK9URi1R/PVX1MZk4PmOYgDHC0F7zNQCyIlvr1Zo3UIJ37sOr3qyRmTrSzv4\nauYbn6OlF4vuZdrcApj+mZP8GAJQPnuXfMbgDWnj3Dr/VWZK/J6Th5Lp8Ckax9RS\nWddTsCsvdpnC/rz4/SuxWKkfnHwdpC8JObkApgpVoXHQ/3kLs1Y7eSUo9hfHKZwX\nwMH0LDTejECOqZ+6gBT2JY/xeKLk0y9Zh7tU93EczYLfOrpG8iCBCRxe+qaw/4my\nxwqN4bOAaWdZ2ysCAwEAAaOBkjCBjzAdBgNVHQ4EFgQUXIl3aMeZwi/krWrIsgBJ\n6g6dUIQwHwYDVR0jBBgwFoAUXIl3aMeZwi/krWrIsgBJ6g6dUIQwDwYDVR0TAQH/\nBAUwAwEB/zA8BgNVHREENTAzhjFodHRwczovL21hbmlmZXN0LmludGVybmFsL3Nw\nL2N3bC02NTEzNzA5YS9zdGFnaW5nMA0GCSqGSIb3DQEBCwUAA4ICAQC8iuV6yFcI\nesWiWonWxDdB/ygHxkdXjLm5/RbLfr7N/hsyD4wx1UheFKRflN5c7to/v06nJEUt\np3se+T4BafDkTM92ytsgOm2Iu+R4g5EvRqQmMJF7ayyimArIy98DDjrURzNGSJmA\nbsqlTreK10J8KQtEJK3tF85SnBUrXapvKs66LP6bdXFXSIYy+iYgxkiLx6ya2jmZ\nAx+9pWHC+K8d8+rcEoUq/pgMgxfkChoJBArjiAwOuZbrx6m2AYDtMbL2FK0+njyQ\nrO7I1dSCW/tgiM4td69AFw5M08SCGx3HGrz7xG6r45huL2Nk/cWpxUjzVPyo7X4c\nSkvWPO1oJ/qDTdW3UJtmxH/dM9wySpcvmgGMn7dNt4PjXq+dHdKv52gYSU9XAKBu\nsIfMW82y0QIPszGjayFiB4awNhvQ4kf/5Shgv0p2/Dg6ddlxzvttRXdoWE9z9dGi\nqsIKTXGQNGiQERNbaHe/Z6ImnllIoBmVszw5GUUk7qb+cE7RVSJFbFTOoPeFvcoE\npqPySUQBbLULxZQR7WVQuRvkmsC72UxxDdqLi4FpOE1grsv+ksF1WYbA2eviWpZQ\nyWyLHENez758GdX2LjiNMBOLNF4YCqDaucQ8IZbxq6cgZcPqKjoVe+/ENbSOBdEK\n8Rz3oeLFdUGWGyfqge/5EJld/wslALvlyQ==\n-----END CERTIFICATE-----\n",
+                     *           "fingerprint": "35:9A:6E:22:18:33:8A:8C:8F:B5:F9:E1:53:90:A2:8A:F5:AE:65:4D:D8:B1:B6:66:DB:AE:6D:58:DC:69:97:3D",
+                     *           "expiresAt": "2028-09-30T15:37:22.000Z"
+                     *         },
+                     *         "attributes": [
+                     *           {
+                     *             "name": "ubcEduCwlPuid",
+                     *             "oid": "urn:oid:1.3.6.1.4.1.60.6.1.6",
+                     *             "purpose": "Identifies the person who signs in, so the app can recognise them when they return and keep their work apart from everyone else’s.",
+                     *             "usedAt": [
+                     *               {
+                     *                 "path": "routes/people.js",
+                     *                 "line": 3
+                     *               }
+                     *             ],
+                     *             "justification": "Identifies the person who signs in, so the app can recognise them when they return and keep their work apart from everyone else’s. The app reads it in routes/people.js:3.",
+                     *             "unused": false
+                     *           },
+                     *           {
+                     *             "name": "mail",
+                     *             "oid": "urn:oid:0.9.2342.19200300.100.1.3",
+                     *             "purpose": "The person’s email address, so the app can show it or write to them.",
+                     *             "usedAt": [
+                     *               {
+                     *                 "path": "public/app.js",
+                     *                 "line": 2
+                     *               }
+                     *             ],
+                     *             "justification": "The person’s email address, so the app can show it or write to them. The app shows it to the person in the browser, in public/app.js:2.",
+                     *             "unused": false
+                     *           }
+                     *         ],
+                     *         "usedAtTruncated": false,
+                     *         "contacts": {
+                     *           "technical": [
+                     *             {
+                     *               "name": "Bio Prof",
+                     *               "email": "bio_prof@example.ubc.ca"
+                     *             }
+                     *           ],
+                     *           "support": [
+                     *             {
+                     *               "name": "Platform Admin",
+                     *               "email": "platform_admin@example.ubc.ca"
+                     *             }
+                     *           ]
+                     *         },
+                     *         "privacyAssessmentReference": "PIA-2026-0088",
+                     *         "metadataXml": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<md:EntityDescriptor xmlns:md=\"urn:oasis:names:tc:SAML:2.0:metadata\" xmlns:ds=\"http://www.w3.org/2000/09/xmldsig#\" xmlns:alg=\"urn:oasis:names:tc:SAML:metadata:algsupport\" ID=\"_4abfe24de3c184dee599fbdb8ae1bb19\" entityID=\"https://manifest.internal/sp/cwl-6513709a/staging\">\n\n  <md:Extensions>\n    <alg:DigestMethod Algorithm=\"http://www.w3.org/2001/04/xmlenc#sha256\"/>\n    <alg:DigestMethod Algorithm=\"http://www.w3.org/2001/04/xmldsig-more#sha384\"/>\n    <alg:DigestMethod Algorithm=\"http://www.w3.org/2001/04/xmlenc#sha512\"/>\n    <alg:SigningMethod Algorithm=\"http://www.w3.org/2001/04/xmldsig-more#rsa-sha256\"/>\n    <alg:SigningMethod Algorithm=\"http://www.w3.org/2001/04/xmldsig-more#rsa-sha384\"/>\n    <alg:SigningMethod Algorithm=\"http://www.w3.org/2001/04/xmldsig-more#rsa-sha512\"/>\n    <alg:SigningMethod Algorithm=\"http://www.w3.org/2001/04/xmldsig-more#ecdsa-sha256\"/>\n  </md:Extensions>\n\n  <md:SPSSODescriptor protocolSupportEnumeration=\"urn:oasis:names:tc:SAML:2.0:protocol\">\n    <md:KeyDescriptor use=\"signing\">\n      <ds:KeyInfo>\n        <ds:KeyName>cwl-6513709a.staging.manifest.internal</ds:KeyName>\n        <ds:X509Data>\n          <ds:X509SubjectName>O=Manifest,CN=cwl-6513709a-staging</ds:X509SubjectName>\n          <ds:X509Certificate>MIIFhTCCA22gAwIBAgIUY5NstC0cxVL1dQ1+2Ea0OhUeUq0wDQYJKoZIhvcNAQEL\nBQAwMjEdMBsGA1UEAwwUY3dsLTY1MTM3MDlhLXN0YWdpbmcxETAPBgNVBAoMCE1h\nbmlmZXN0MB4XDTI2MTAwMTE1MzcyMloXDTI4MDkzMDE1MzcyMlowMjEdMBsGA1UE\nAwwUY3dsLTY1MTM3MDlhLXN0YWdpbmcxETAPBgNVBAoMCE1hbmlmZXN0MIICIjAN\nBgkqhkiG9w0BAQEFAAOCAg8AMIICCgKCAgEA2ajxaGxHzkrW8Foe6BqHzHOu1HwG\nvzQMlc1KrecDx+dZFDj6Skf/2Zs/Ii0qZZ+ee7EBdC/JiCGwDt9qgOX5Su0nWzhW\nsVCteMIA+ZS7nLe/q3NFyiOKVlBSHfnCvGJ1Oyk9z4Cned8ISfSoOvVyBco/5yCL\nFwv2lNFeHOUTTb2z4aGbdLWWrSREhzIIpngy95OjVjZDmOJJhzsuLie0yHUyAmRu\nfs8lLmDMeJN9Rw7vkngdqIvLQoGgxS4Mo5oJGAbzffZjJPayt0WhiW5lR7HT9dmN\nie+qIWgcDOVFXApANPm9uYv0yQ6N3LB002Kd4f1mqj8Vc98oLz4cK7UWk1cvo1qq\nfGIPVyBX1rvmDxdX2E7lSQ9cXoH4pNDqmyL8mptSmHJLHuvJVj8Ri0i8HFWXdomA\nfPh+GK9URi1R/PVX1MZk4PmOYgDHC0F7zNQCyIlvr1Zo3UIJ37sOr3qyRmTrSzv4\nauYbn6OlF4vuZdrcApj+mZP8GAJQPnuXfMbgDWnj3Dr/VWZK/J6Th5Lp8Ckax9RS\nWddTsCsvdpnC/rz4/SuxWKkfnHwdpC8JObkApgpVoXHQ/3kLs1Y7eSUo9hfHKZwX\nwMH0LDTejECOqZ+6gBT2JY/xeKLk0y9Zh7tU93EczYLfOrpG8iCBCRxe+qaw/4my\nxwqN4bOAaWdZ2ysCAwEAAaOBkjCBjzAdBgNVHQ4EFgQUXIl3aMeZwi/krWrIsgBJ\n6g6dUIQwHwYDVR0jBBgwFoAUXIl3aMeZwi/krWrIsgBJ6g6dUIQwDwYDVR0TAQH/\nBAUwAwEB/zA8BgNVHREENTAzhjFodHRwczovL21hbmlmZXN0LmludGVybmFsL3Nw\nL2N3bC02NTEzNzA5YS9zdGFnaW5nMA0GCSqGSIb3DQEBCwUAA4ICAQC8iuV6yFcI\nesWiWonWxDdB/ygHxkdXjLm5/RbLfr7N/hsyD4wx1UheFKRflN5c7to/v06nJEUt\np3se+T4BafDkTM92ytsgOm2Iu+R4g5EvRqQmMJF7ayyimArIy98DDjrURzNGSJmA\nbsqlTreK10J8KQtEJK3tF85SnBUrXapvKs66LP6bdXFXSIYy+iYgxkiLx6ya2jmZ\nAx+9pWHC+K8d8+rcEoUq/pgMgxfkChoJBArjiAwOuZbrx6m2AYDtMbL2FK0+njyQ\nrO7I1dSCW/tgiM4td69AFw5M08SCGx3HGrz7xG6r45huL2Nk/cWpxUjzVPyo7X4c\nSkvWPO1oJ/qDTdW3UJtmxH/dM9wySpcvmgGMn7dNt4PjXq+dHdKv52gYSU9XAKBu\nsIfMW82y0QIPszGjayFiB4awNhvQ4kf/5Shgv0p2/Dg6ddlxzvttRXdoWE9z9dGi\nqsIKTXGQNGiQERNbaHe/Z6ImnllIoBmVszw5GUUk7qb+cE7RVSJFbFTOoPeFvcoE\npqPySUQBbLULxZQR7WVQuRvkmsC72UxxDdqLi4FpOE1grsv+ksF1WYbA2eviWpZQ\nyWyLHENez758GdX2LjiNMBOLNF4YCqDaucQ8IZbxq6cgZcPqKjoVe+/ENbSOBdEK\n8Rz3oeLFdUGWGyfqge/5EJld/wslALvlyQ==</ds:X509Certificate>\n        </ds:X509Data>\n      </ds:KeyInfo>\n    </md:KeyDescriptor>\n\n    <md:KeyDescriptor use=\"encryption\">\n      <ds:KeyInfo>\n        <ds:KeyName>cwl-6513709a.staging.manifest.internal</ds:KeyName>\n        <ds:X509Data>\n          <ds:X509SubjectName>O=Manifest,CN=cwl-6513709a-staging</ds:X509SubjectName>\n          <ds:X509Certificate>MIIFhTCCA22gAwIBAgIUY5NstC0cxVL1dQ1+2Ea0OhUeUq0wDQYJKoZIhvcNAQEL\nBQAwMjEdMBsGA1UEAwwUY3dsLTY1MTM3MDlhLXN0YWdpbmcxETAPBgNVBAoMCE1h\nbmlmZXN0MB4XDTI2MTAwMTE1MzcyMloXDTI4MDkzMDE1MzcyMlowMjEdMBsGA1UE\nAwwUY3dsLTY1MTM3MDlhLXN0YWdpbmcxETAPBgNVBAoMCE1hbmlmZXN0MIICIjAN\nBgkqhkiG9w0BAQEFAAOCAg8AMIICCgKCAgEA2ajxaGxHzkrW8Foe6BqHzHOu1HwG\nvzQMlc1KrecDx+dZFDj6Skf/2Zs/Ii0qZZ+ee7EBdC/JiCGwDt9qgOX5Su0nWzhW\nsVCteMIA+ZS7nLe/q3NFyiOKVlBSHfnCvGJ1Oyk9z4Cned8ISfSoOvVyBco/5yCL\nFwv2lNFeHOUTTb2z4aGbdLWWrSREhzIIpngy95OjVjZDmOJJhzsuLie0yHUyAmRu\nfs8lLmDMeJN9Rw7vkngdqIvLQoGgxS4Mo5oJGAbzffZjJPayt0WhiW5lR7HT9dmN\nie+qIWgcDOVFXApANPm9uYv0yQ6N3LB002Kd4f1mqj8Vc98oLz4cK7UWk1cvo1qq\nfGIPVyBX1rvmDxdX2E7lSQ9cXoH4pNDqmyL8mptSmHJLHuvJVj8Ri0i8HFWXdomA\nfPh+GK9URi1R/PVX1MZk4PmOYgDHC0F7zNQCyIlvr1Zo3UIJ37sOr3qyRmTrSzv4\nauYbn6OlF4vuZdrcApj+mZP8GAJQPnuXfMbgDWnj3Dr/VWZK/J6Th5Lp8Ckax9RS\nWddTsCsvdpnC/rz4/SuxWKkfnHwdpC8JObkApgpVoXHQ/3kLs1Y7eSUo9hfHKZwX\nwMH0LDTejECOqZ+6gBT2JY/xeKLk0y9Zh7tU93EczYLfOrpG8iCBCRxe+qaw/4my\nxwqN4bOAaWdZ2ysCAwEAAaOBkjCBjzAdBgNVHQ4EFgQUXIl3aMeZwi/krWrIsgBJ\n6g6dUIQwHwYDVR0jBBgwFoAUXIl3aMeZwi/krWrIsgBJ6g6dUIQwDwYDVR0TAQH/\nBAUwAwEB/zA8BgNVHREENTAzhjFodHRwczovL21hbmlmZXN0LmludGVybmFsL3Nw\nL2N3bC02NTEzNzA5YS9zdGFnaW5nMA0GCSqGSIb3DQEBCwUAA4ICAQC8iuV6yFcI\nesWiWonWxDdB/ygHxkdXjLm5/RbLfr7N/hsyD4wx1UheFKRflN5c7to/v06nJEUt\np3se+T4BafDkTM92ytsgOm2Iu+R4g5EvRqQmMJF7ayyimArIy98DDjrURzNGSJmA\nbsqlTreK10J8KQtEJK3tF85SnBUrXapvKs66LP6bdXFXSIYy+iYgxkiLx6ya2jmZ\nAx+9pWHC+K8d8+rcEoUq/pgMgxfkChoJBArjiAwOuZbrx6m2AYDtMbL2FK0+njyQ\nrO7I1dSCW/tgiM4td69AFw5M08SCGx3HGrz7xG6r45huL2Nk/cWpxUjzVPyo7X4c\nSkvWPO1oJ/qDTdW3UJtmxH/dM9wySpcvmgGMn7dNt4PjXq+dHdKv52gYSU9XAKBu\nsIfMW82y0QIPszGjayFiB4awNhvQ4kf/5Shgv0p2/Dg6ddlxzvttRXdoWE9z9dGi\nqsIKTXGQNGiQERNbaHe/Z6ImnllIoBmVszw5GUUk7qb+cE7RVSJFbFTOoPeFvcoE\npqPySUQBbLULxZQR7WVQuRvkmsC72UxxDdqLi4FpOE1grsv+ksF1WYbA2eviWpZQ\nyWyLHENez758GdX2LjiNMBOLNF4YCqDaucQ8IZbxq6cgZcPqKjoVe+/ENbSOBdEK\n8Rz3oeLFdUGWGyfqge/5EJld/wslALvlyQ==</ds:X509Certificate>\n        </ds:X509Data>\n      </ds:KeyInfo>\n      <md:EncryptionMethod Algorithm=\"http://www.w3.org/2009/xmlenc11#aes128-gcm\"/>\n      <md:EncryptionMethod Algorithm=\"http://www.w3.org/2009/xmlenc11#aes256-gcm\"/>\n      <md:EncryptionMethod Algorithm=\"http://www.w3.org/2001/04/xmlenc#aes256-cbc\"/>\n    </md:KeyDescriptor>\n\n    <md:SingleLogoutService Binding=\"urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect\" Location=\"https://cwl-6513709a.staging.manifest.internal/auth/logout\"/>\n\n    <md:AssertionConsumerService Binding=\"urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST\" Location=\"https://cwl-6513709a.staging.manifest.internal/auth/ubcshib/callback\" index=\"1\" isDefault=\"true\"/>\n  </md:SPSSODescriptor>\n\n  <md:Organization>\n    <md:OrganizationName>University of British Columbia</md:OrganizationName>\n    <md:OrganizationDisplayName>University of British Columbia</md:OrganizationDisplayName>\n    <md:OrganizationURL>https://www.ubc.ca</md:OrganizationURL>\n  </md:Organization>\n\n  <md:ContactPerson contactType=\"technical\">\n    <md:EmailAddress>bio_prof@example.ubc.ca</md:EmailAddress>\n  </md:ContactPerson>\n  <md:ContactPerson contactType=\"support\">\n    <md:EmailAddress>platform_admin@example.ubc.ca</md:EmailAddress>\n  </md:ContactPerson>\n\n</md:EntityDescriptor>\n",
+                     *         "warnings": []
+                     *       },
+                     *       "createdAt": "2026-10-01T15:37:23.114Z",
+                     *       "updatedAt": "2026-10-01T15:37:23.130Z"
+                     *     }
+                     */
+                    "application/json": components["schemas"]["IamRegistration"];
+                };
+            };
+            /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: ADMIN_REASON_REQUIRED, CSRF_ORIGIN_REFUSED, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, LAUNCH_DRAFT_CHANGED, LAUNCH_DRAFT_REQUIRED, LAUNCH_DRAFT_STALE, LAUNCH_PIA_NOT_APPROVED, LAUNCH_STAGING_NOT_REGISTERED, LAUNCH_TRANSITION_INVALID, NOT_FOUND, PROJECT_ARCHIVED, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    submitIamRegistration: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description One per user action, and the same key when retrying that action. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                /** @description Which registration was submitted: `staging` or `production`. */
+                environment: "staging" | "production";
+                /** @description The project’s id, from `listProjects` or `createProject`. */
+                projectId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                /**
+                 * @example {
+                 *       "sentAt": "2026-10-01",
+                 *       "reference": "IAM-2026-0500"
+                 *     }
+                 */
+                "application/json": components["schemas"]["RecordSubmissionRequest"];
+            };
+        };
+        responses: {
+            /** @description The registration, now submitted to UBC IAM. */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -9563,10 +10135,16 @@ export interface operations {
                      *       "state": "submitted",
                      *       "changeRequestedFrom": null,
                      *       "externalTicketRef": "IAM-2026-0500",
-                     *       "submittedAt": "2026-10-01T19:00:00.000Z",
-                     *       "submittedBy": {
+                     *       "sentFrom": null,
+                     *       "sentAt": "2026-10-01T15:37:23.130Z",
+                     *       "sentBy": {
                      *         "id": "af3dc1c0-722c-469c-8c2a-b6179ca3f327",
                      *         "displayName": "Bio Prof"
+                     *       },
+                     *       "submittedAt": "2026-10-01T19:00:00.000Z",
+                     *       "submittedBy": {
+                     *         "id": "c4113a47-bf3c-4653-9260-ca723416fdc6",
+                     *         "displayName": "Platform Admin"
                      *       },
                      *       "package": {
                      *         "environment": "staging",
@@ -9634,7 +10212,7 @@ export interface operations {
                     "application/json": components["schemas"]["IamRegistration"];
                 };
             };
-            /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: ADMIN_REASON_REQUIRED, CSRF_ORIGIN_REFUSED, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, LAUNCH_DRAFT_CHANGED, LAUNCH_DRAFT_REQUIRED, LAUNCH_DRAFT_STALE, LAUNCH_PIA_NOT_APPROVED, LAUNCH_SENT_AT_INVALID, LAUNCH_STAGING_NOT_REGISTERED, LAUNCH_TRANSITION_INVALID, NOT_FOUND, PROJECT_ARCHIVED, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED. */
+            /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, LAUNCH_SENT_AT_INVALID, LAUNCH_TRANSITION_INVALID, NOT_FOUND, PROJECT_ARCHIVED, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -9684,10 +10262,45 @@ export interface operations {
                      *       "reviewer": "K. Privacy",
                      *       "approvedAt": "2026-10-01T18:03:26.544Z",
                      *       "externalTicketRef": "PIA-2026-0101",
-                     *       "submittedAt": "2026-10-01T19:00:00.000Z",
-                     *       "submittedBy": {
+                     *       "sentAt": "2026-10-01T18:03:26.530Z",
+                     *       "sentBy": {
                      *         "id": "7fdf38c3-b751-4bb0-8199-dbec140b0a9e",
                      *         "displayName": "Bio Prof"
+                     *       },
+                     *       "gapAnswers": [
+                     *         {
+                     *           "gapId": "collected.app-data",
+                     *           "answer": "Each student’s check-in times and the course section they chose; nothing else."
+                     *         },
+                     *         {
+                     *           "gapId": "stored.staging-cover",
+                     *           "answer": "Asked the Privacy Office on October 1, 2026: it says this assessment covers staging."
+                     *         },
+                     *         {
+                     *           "gapId": "retention.removal",
+                     *           "answer": "A nightly job deletes check-ins older than 365 days."
+                     *         },
+                     *         {
+                     *           "gapId": "retention.disposal",
+                     *           "answer": "At the end of the course, the instructor exports the records and deletes the app."
+                     *         },
+                     *         {
+                     *           "gapId": "accountable.breach",
+                     *           "answer": "The instructor, Bio Prof, answers for it, with the department’s IT lead."
+                     *         },
+                     *         {
+                     *           "gapId": "hosting.production",
+                     *           "answer": "Does not apply until UBC chooses the infrastructure."
+                     *         },
+                     *         {
+                     *           "gapId": "hosting.offshore-ai",
+                     *           "answer": "The app sends the model only a course code and a question, never a name."
+                     *         }
+                     *       ],
+                     *       "submittedAt": "2026-10-01T19:00:00.000Z",
+                     *       "submittedBy": {
+                     *         "id": "5d0f4a8e-1b2c-4d3e-8f9a-0b1c2d3e4f5a",
+                     *         "displayName": "Platform Admin"
                      *       },
                      *       "draft": {
                      *         "project": {
@@ -9912,6 +10525,9 @@ export interface operations {
                      *       "reviewer": null,
                      *       "approvedAt": null,
                      *       "externalTicketRef": null,
+                     *       "sentAt": null,
+                     *       "sentBy": null,
+                     *       "gapAnswers": null,
                      *       "submittedAt": null,
                      *       "submittedBy": null,
                      *       "draft": {
@@ -10106,7 +10722,265 @@ export interface operations {
             };
         };
     };
-    submitPrivacyAssessment: {
+    returnPrivacyAssessment: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description One per user action, and the same key when retrying that action. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                /** @description The project’s id, from `listProjects` or `createProject`. */
+                projectId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The assessment, a draft again. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "id": "7eb7baa8-5a73-4f0e-a57f-7e776e40419f",
+                     *       "projectId": "0429adab-74d1-45eb-81fe-44de4829ee63",
+                     *       "state": "draft",
+                     *       "reviewer": null,
+                     *       "approvedAt": null,
+                     *       "externalTicketRef": null,
+                     *       "sentAt": "2026-10-01T18:03:26.530Z",
+                     *       "sentBy": {
+                     *         "id": "7fdf38c3-b751-4bb0-8199-dbec140b0a9e",
+                     *         "displayName": "Bio Prof"
+                     *       },
+                     *       "gapAnswers": [
+                     *         {
+                     *           "gapId": "collected.app-data",
+                     *           "answer": "Each student’s check-in times and the course section they chose; nothing else."
+                     *         },
+                     *         {
+                     *           "gapId": "stored.staging-cover",
+                     *           "answer": "Asked the Privacy Office on October 1, 2026: it says this assessment covers staging."
+                     *         },
+                     *         {
+                     *           "gapId": "retention.removal",
+                     *           "answer": "A nightly job deletes check-ins older than 365 days."
+                     *         },
+                     *         {
+                     *           "gapId": "retention.disposal",
+                     *           "answer": "At the end of the course, the instructor exports the records and deletes the app."
+                     *         },
+                     *         {
+                     *           "gapId": "accountable.breach",
+                     *           "answer": "The instructor, Bio Prof, answers for it, with the department’s IT lead."
+                     *         },
+                     *         {
+                     *           "gapId": "hosting.production",
+                     *           "answer": "Does not apply until UBC chooses the infrastructure."
+                     *         },
+                     *         {
+                     *           "gapId": "hosting.offshore-ai",
+                     *           "answer": "The app sends the model only a course code and a question, never a name."
+                     *         }
+                     *       ],
+                     *       "submittedAt": null,
+                     *       "submittedBy": null,
+                     *       "draft": {
+                     *         "project": {
+                     *           "slug": "cwl-0bcfc989",
+                     *           "name": "cwl-0bcfc989"
+                     *         },
+                     *         "generatedAt": "2026-10-01T18:03:26.508Z",
+                     *         "fromCommit": "7d394009ba57cc955f8273581182e1090925a8a6",
+                     *         "sections": [
+                     *           {
+                     *             "id": "collected",
+                     *             "title": "What personal information the app collects",
+                     *             "facts": [
+                     *               {
+                     *                 "label": "ubcEduCwlPuid",
+                     *                 "value": "Identifies the person who signs in, so the app can recognise them when they return and keep their work apart from everyone else’s.",
+                     *                 "source": "manifest.yaml: auth.attributes"
+                     *               },
+                     *               {
+                     *                 "label": "mail",
+                     *                 "value": "The person’s email address, so the app can show it or write to them.",
+                     *                 "source": "manifest.yaml: auth.attributes"
+                     *               }
+                     *             ],
+                     *             "gaps": [
+                     *               {
+                     *                 "id": "collected.app-data",
+                     *                 "text": "What the app keeps in its own database — the records it stores about the people who use it, beyond what CWL releases. Manifest cannot see inside the app’s data: describe it here."
+                     *               }
+                     *             ]
+                     *           },
+                     *           {
+                     *             "id": "stored",
+                     *             "title": "Where it is stored",
+                     *             "facts": [
+                     *               {
+                     *                 "label": "db",
+                     *                 "value": "A mongo database, version 7, which Manifest runs for the app — one in each environment.",
+                     *                 "source": "manifest.yaml: services"
+                     *               },
+                     *               {
+                     *                 "label": "Sandbox",
+                     *                 "value": "Where the app is built and tried: its own copy of each database, never backed up.",
+                     *                 "source": "Manifest’s environments"
+                     *               },
+                     *               {
+                     *                 "label": "Staging",
+                     *                 "value": "Where the app is tested before launch: its own copy of each database, never backed up.",
+                     *                 "source": "Manifest’s environments"
+                     *               },
+                     *               {
+                     *                 "label": "Production",
+                     *                 "value": "Where people use the app: its own copy of each database, not backed up on this platform yet.",
+                     *                 "source": "Manifest’s environments"
+                     *               },
+                     *               {
+                     *                 "label": "Incident logs",
+                     *                 "value": "When a deploy of the app fails, Manifest keeps the last 200 lines of the app’s output with the Incident, with secrets removed. They can include what the app printed about the people using it.",
+                     *                 "source": "the platform"
+                     *               }
+                     *             ],
+                     *             "gaps": [
+                     *               {
+                     *                 "id": "stored.staging-cover",
+                     *                 "text": "Whether this assessment covers the app’s use at staging by real people — colleagues and students signing in to test it — or staging needs cover of its own, is a question for the Privacy Office that is not yet answered: ask it."
+                     *               }
+                     *             ]
+                     *           },
+                     *           {
+                     *             "id": "flows",
+                     *             "title": "Where it flows",
+                     *             "facts": [
+                     *               {
+                     *                 "label": "Classification",
+                     *                 "value": "Medium — every AI model the app uses must be approved for medium data.",
+                     *                 "source": "manifest.yaml: data.classification"
+                     *               },
+                     *               {
+                     *                 "label": "api.ubc.ca",
+                     *                 "value": "The app may send data to api.ubc.ca, outside the platform.",
+                     *                 "source": "manifest.yaml: egress.allow"
+                     *               },
+                     *               {
+                     *                 "label": "default-chat",
+                     *                 "value": "Approved for medium data at most: it may be answered by a provider off-premise, so what the app sends it may leave UBC.",
+                     *                 "source": "manifest.yaml: ai.models; the model catalogue"
+                     *               }
+                     *             ],
+                     *             "gaps": []
+                     *           },
+                     *           {
+                     *             "id": "retention",
+                     *             "title": "How long it is kept, and how it is disposed of",
+                     *             "facts": [
+                     *               {
+                     *                 "label": "How long",
+                     *                 "value": "The manifest says the app keeps its data for 365 days.",
+                     *                 "source": "manifest.yaml: data.retention_days"
+                     *               },
+                     *               {
+                     *                 "label": "Deletion",
+                     *                 "value": "Manifest deletes nothing it keeps for the app on a schedule — neither its databases nor its Incident logs. A project that never launched can be deleted, which destroys its databases; one that has launched cannot be deleted yet.",
+                     *                 "source": "the platform"
+                     *               }
+                     *             ],
+                     *             "gaps": [
+                     *               {
+                     *                 "id": "retention.removal",
+                     *                 "text": "How the app removes its data once it is older than 365 days — Manifest does not remove it for the app."
+                     *               },
+                     *               {
+                     *                 "id": "retention.disposal",
+                     *                 "text": "How the app’s data is disposed of when the app is retired follows UBC’s sunset procedure, which the Privacy Office has not set out yet: say what should happen to it."
+                     *               }
+                     *             ]
+                     *           },
+                     *           {
+                     *             "id": "accountable",
+                     *             "title": "Who is accountable",
+                     *             "facts": [
+                     *               {
+                     *                 "label": "Owner",
+                     *                 "value": "Bio Prof <bio_prof@example.ubc.ca>",
+                     *                 "source": "the project’s members"
+                     *               },
+                     *               {
+                     *                 "label": "Platform contact",
+                     *                 "value": "Platform Admin <platform_admin@example.ubc.ca>",
+                     *                 "source": "the platform’s contacts"
+                     *               }
+                     *             ],
+                     *             "gaps": [
+                     *               {
+                     *                 "id": "accountable.breach",
+                     *                 "text": "Who responds if the app’s data is breached, and how the people affected are told, is not yet set at UBC — the Privacy Office’s procedure is still to come: say who answers for this app meanwhile."
+                     *               }
+                     *             ]
+                     *           },
+                     *           {
+                     *             "id": "hosting",
+                     *             "title": "Hosting and jurisdiction",
+                     *             "facts": [
+                     *               {
+                     *                 "label": "Where the app runs",
+                     *                 "value": "In containers on the machine Manifest runs on, under its Docker driver.",
+                     *                 "source": "the platform’s runtime driver"
+                     *               },
+                     *               {
+                     *                 "label": "Where its code is kept",
+                     *                 "value": "In a repository on the machine Manifest runs on.",
+                     *                 "source": "the project’s repository"
+                     *               },
+                     *               {
+                     *                 "label": "default-chat",
+                     *                 "value": "Approved for medium data at most.",
+                     *                 "source": "the model catalogue"
+                     *               }
+                     *             ],
+                     *             "gaps": [
+                     *               {
+                     *                 "id": "hosting.production",
+                     *                 "text": "Where UBC will host the app in production is not decided yet: UBC has not chosen the infrastructure Manifest runs on there."
+                     *               },
+                     *               {
+                     *                 "id": "hosting.offshore-ai",
+                     *                 "text": "Whether the app’s medium data may reach an AI provider outside Canada is the Privacy Office’s to say: default-chat may be answered off-premise."
+                     *               }
+                     *             ]
+                     *           }
+                     *         ],
+                     *         "warnings": [
+                     *           "Nothing is serving staging yet, so this is drawn from the newest valid manifest. The assessment should describe the release you will launch: once it serves staging, draft this again."
+                     *         ],
+                     *         "text": "Privacy impact assessment — draft\ncwl-0bcfc989 (cwl-0bcfc989)\nDrafted by Manifest on October 1, 2026, from commit 7d394009ba57.\n\nBefore you send this:\n  - Nothing is serving staging yet, so this is drawn from the newest valid manifest. The assessment should describe the release you will launch: once it serves staging, draft this again.\n\n1. What personal information the app collects\n  - ubcEduCwlPuid: Identifies the person who signs in, so the app can recognise them when they return and keep their work apart from everyone else’s. (from manifest.yaml: auth.attributes)\n  - mail: The person’s email address, so the app can show it or write to them. (from manifest.yaml: auth.attributes)\n  For you to add:\n  - What the app keeps in its own database — the records it stores about the people who use it, beyond what CWL releases. Manifest cannot see inside the app’s data: describe it here.\n\n2. Where it is stored\n  - db: A mongo database, version 7, which Manifest runs for the app — one in each environment. (from manifest.yaml: services)\n  - Sandbox: Where the app is built and tried: its own copy of each database, never backed up. (from Manifest’s environments)\n  - Staging: Where the app is tested before launch: its own copy of each database, never backed up. (from Manifest’s environments)\n  - Production: Where people use the app: its own copy of each database, not backed up on this platform yet. (from Manifest’s environments)\n  - Incident logs: When a deploy of the app fails, Manifest keeps the last 200 lines of the app’s output with the Incident, with secrets removed. They can include what the app printed about the people using it. (from the platform)\n  For you to add:\n  - Whether this assessment covers the app’s use at staging by real people — colleagues and students signing in to test it — or staging needs cover of its own, is a question for the Privacy Office that is not yet answered: ask it.\n\n3. Where it flows\n  - Classification: Medium — every AI model the app uses must be approved for medium data. (from manifest.yaml: data.classification)\n  - api.ubc.ca: The app may send data to api.ubc.ca, outside the platform. (from manifest.yaml: egress.allow)\n  - default-chat: Approved for medium data at most: it may be answered by a provider off-premise, so what the app sends it may leave UBC. (from manifest.yaml: ai.models; the model catalogue)\n\n4. How long it is kept, and how it is disposed of\n  - How long: The manifest says the app keeps its data for 365 days. (from manifest.yaml: data.retention_days)\n  - Deletion: Manifest deletes nothing it keeps for the app on a schedule — neither its databases nor its Incident logs. A project that never launched can be deleted, which destroys its databases; one that has launched cannot be deleted yet. (from the platform)\n  For you to add:\n  - How the app removes its data once it is older than 365 days — Manifest does not remove it for the app.\n  - How the app’s data is disposed of when the app is retired follows UBC’s sunset procedure, which the Privacy Office has not set out yet: say what should happen to it.\n\n5. Who is accountable\n  - Owner: Bio Prof <bio_prof@example.ubc.ca> (from the project’s members)\n  - Platform contact: Platform Admin <platform_admin@example.ubc.ca> (from the platform’s contacts)\n  For you to add:\n  - Who responds if the app’s data is breached, and how the people affected are told, is not yet set at UBC — the Privacy Office’s procedure is still to come: say who answers for this app meanwhile.\n\n6. Hosting and jurisdiction\n  - Where the app runs: In containers on the machine Manifest runs on, under its Docker driver. (from the platform’s runtime driver)\n  - Where its code is kept: In a repository on the machine Manifest runs on. (from the project’s repository)\n  - default-chat: Approved for medium data at most. (from the model catalogue)\n  For you to add:\n  - Where UBC will host the app in production is not decided yet: UBC has not chosen the infrastructure Manifest runs on there.\n  - Whether the app’s medium data may reach an AI provider outside Canada is the Privacy Office’s to say: default-chat may be answered off-premise.\n"
+                     *       },
+                     *       "createdAt": "2026-10-01T18:03:26.518Z",
+                     *       "updatedAt": "2026-10-01T18:03:26.533Z"
+                     *     }
+                     */
+                    "application/json": components["schemas"]["PrivacyAssessment"];
+                };
+            };
+            /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, LAUNCH_TRANSITION_INVALID, NOT_FOUND, PROJECT_ARCHIVED, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    sendPrivacyAssessment: {
         parameters: {
             query?: never;
             header: {
@@ -10125,15 +10999,312 @@ export interface operations {
             content: {
                 /**
                  * @example {
-                 *       "reference": "PIA-2026-0101",
-                 *       "draftGeneratedAt": "2026-10-01T18:03:26.508Z"
+                 *       "draftGeneratedAt": "2026-10-01T18:03:26.508Z",
+                 *       "answers": [
+                 *         {
+                 *           "gapId": "collected.app-data",
+                 *           "answer": "Each student’s check-in times and the course section they chose; nothing else."
+                 *         },
+                 *         {
+                 *           "gapId": "stored.staging-cover",
+                 *           "answer": "Asked the Privacy Office on October 1, 2026: it says this assessment covers staging."
+                 *         },
+                 *         {
+                 *           "gapId": "retention.removal",
+                 *           "answer": "A nightly job deletes check-ins older than 365 days."
+                 *         },
+                 *         {
+                 *           "gapId": "retention.disposal",
+                 *           "answer": "At the end of the course, the instructor exports the records and deletes the app."
+                 *         },
+                 *         {
+                 *           "gapId": "accountable.breach",
+                 *           "answer": "The instructor, Bio Prof, answers for it, with the department’s IT lead."
+                 *         },
+                 *         {
+                 *           "gapId": "hosting.production",
+                 *           "answer": "Does not apply until UBC chooses the infrastructure."
+                 *         },
+                 *         {
+                 *           "gapId": "hosting.offshore-ai",
+                 *           "answer": "The app sends the model only a course code and a question, never a name."
+                 *         }
+                 *       ]
                  *     }
                  */
-                "application/json": components["schemas"]["SubmitLaunchRecordRequest"];
+                "application/json": components["schemas"]["SendPrivacyAssessmentRequest"];
             };
         };
         responses: {
-            /** @description The assessment, now submitted. */
+            /** @description The assessment, now with the Manifest team. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "id": "7eb7baa8-5a73-4f0e-a57f-7e776e40419f",
+                     *       "projectId": "0429adab-74d1-45eb-81fe-44de4829ee63",
+                     *       "state": "sent",
+                     *       "reviewer": null,
+                     *       "approvedAt": null,
+                     *       "externalTicketRef": null,
+                     *       "sentAt": "2026-10-01T18:03:26.530Z",
+                     *       "sentBy": {
+                     *         "id": "7fdf38c3-b751-4bb0-8199-dbec140b0a9e",
+                     *         "displayName": "Bio Prof"
+                     *       },
+                     *       "gapAnswers": [
+                     *         {
+                     *           "gapId": "collected.app-data",
+                     *           "answer": "Each student’s check-in times and the course section they chose; nothing else."
+                     *         },
+                     *         {
+                     *           "gapId": "stored.staging-cover",
+                     *           "answer": "Asked the Privacy Office on October 1, 2026: it says this assessment covers staging."
+                     *         },
+                     *         {
+                     *           "gapId": "retention.removal",
+                     *           "answer": "A nightly job deletes check-ins older than 365 days."
+                     *         },
+                     *         {
+                     *           "gapId": "retention.disposal",
+                     *           "answer": "At the end of the course, the instructor exports the records and deletes the app."
+                     *         },
+                     *         {
+                     *           "gapId": "accountable.breach",
+                     *           "answer": "The instructor, Bio Prof, answers for it, with the department’s IT lead."
+                     *         },
+                     *         {
+                     *           "gapId": "hosting.production",
+                     *           "answer": "Does not apply until UBC chooses the infrastructure."
+                     *         },
+                     *         {
+                     *           "gapId": "hosting.offshore-ai",
+                     *           "answer": "The app sends the model only a course code and a question, never a name."
+                     *         }
+                     *       ],
+                     *       "submittedAt": null,
+                     *       "submittedBy": null,
+                     *       "draft": {
+                     *         "project": {
+                     *           "slug": "cwl-0bcfc989",
+                     *           "name": "cwl-0bcfc989"
+                     *         },
+                     *         "generatedAt": "2026-10-01T18:03:26.508Z",
+                     *         "fromCommit": "7d394009ba57cc955f8273581182e1090925a8a6",
+                     *         "sections": [
+                     *           {
+                     *             "id": "collected",
+                     *             "title": "What personal information the app collects",
+                     *             "facts": [
+                     *               {
+                     *                 "label": "ubcEduCwlPuid",
+                     *                 "value": "Identifies the person who signs in, so the app can recognise them when they return and keep their work apart from everyone else’s.",
+                     *                 "source": "manifest.yaml: auth.attributes"
+                     *               },
+                     *               {
+                     *                 "label": "mail",
+                     *                 "value": "The person’s email address, so the app can show it or write to them.",
+                     *                 "source": "manifest.yaml: auth.attributes"
+                     *               }
+                     *             ],
+                     *             "gaps": [
+                     *               {
+                     *                 "id": "collected.app-data",
+                     *                 "text": "What the app keeps in its own database — the records it stores about the people who use it, beyond what CWL releases. Manifest cannot see inside the app’s data: describe it here."
+                     *               }
+                     *             ]
+                     *           },
+                     *           {
+                     *             "id": "stored",
+                     *             "title": "Where it is stored",
+                     *             "facts": [
+                     *               {
+                     *                 "label": "db",
+                     *                 "value": "A mongo database, version 7, which Manifest runs for the app — one in each environment.",
+                     *                 "source": "manifest.yaml: services"
+                     *               },
+                     *               {
+                     *                 "label": "Sandbox",
+                     *                 "value": "Where the app is built and tried: its own copy of each database, never backed up.",
+                     *                 "source": "Manifest’s environments"
+                     *               },
+                     *               {
+                     *                 "label": "Staging",
+                     *                 "value": "Where the app is tested before launch: its own copy of each database, never backed up.",
+                     *                 "source": "Manifest’s environments"
+                     *               },
+                     *               {
+                     *                 "label": "Production",
+                     *                 "value": "Where people use the app: its own copy of each database, not backed up on this platform yet.",
+                     *                 "source": "Manifest’s environments"
+                     *               },
+                     *               {
+                     *                 "label": "Incident logs",
+                     *                 "value": "When a deploy of the app fails, Manifest keeps the last 200 lines of the app’s output with the Incident, with secrets removed. They can include what the app printed about the people using it.",
+                     *                 "source": "the platform"
+                     *               }
+                     *             ],
+                     *             "gaps": [
+                     *               {
+                     *                 "id": "stored.staging-cover",
+                     *                 "text": "Whether this assessment covers the app’s use at staging by real people — colleagues and students signing in to test it — or staging needs cover of its own, is a question for the Privacy Office that is not yet answered: ask it."
+                     *               }
+                     *             ]
+                     *           },
+                     *           {
+                     *             "id": "flows",
+                     *             "title": "Where it flows",
+                     *             "facts": [
+                     *               {
+                     *                 "label": "Classification",
+                     *                 "value": "Medium — every AI model the app uses must be approved for medium data.",
+                     *                 "source": "manifest.yaml: data.classification"
+                     *               },
+                     *               {
+                     *                 "label": "api.ubc.ca",
+                     *                 "value": "The app may send data to api.ubc.ca, outside the platform.",
+                     *                 "source": "manifest.yaml: egress.allow"
+                     *               },
+                     *               {
+                     *                 "label": "default-chat",
+                     *                 "value": "Approved for medium data at most: it may be answered by a provider off-premise, so what the app sends it may leave UBC.",
+                     *                 "source": "manifest.yaml: ai.models; the model catalogue"
+                     *               }
+                     *             ],
+                     *             "gaps": []
+                     *           },
+                     *           {
+                     *             "id": "retention",
+                     *             "title": "How long it is kept, and how it is disposed of",
+                     *             "facts": [
+                     *               {
+                     *                 "label": "How long",
+                     *                 "value": "The manifest says the app keeps its data for 365 days.",
+                     *                 "source": "manifest.yaml: data.retention_days"
+                     *               },
+                     *               {
+                     *                 "label": "Deletion",
+                     *                 "value": "Manifest deletes nothing it keeps for the app on a schedule — neither its databases nor its Incident logs. A project that never launched can be deleted, which destroys its databases; one that has launched cannot be deleted yet.",
+                     *                 "source": "the platform"
+                     *               }
+                     *             ],
+                     *             "gaps": [
+                     *               {
+                     *                 "id": "retention.removal",
+                     *                 "text": "How the app removes its data once it is older than 365 days — Manifest does not remove it for the app."
+                     *               },
+                     *               {
+                     *                 "id": "retention.disposal",
+                     *                 "text": "How the app’s data is disposed of when the app is retired follows UBC’s sunset procedure, which the Privacy Office has not set out yet: say what should happen to it."
+                     *               }
+                     *             ]
+                     *           },
+                     *           {
+                     *             "id": "accountable",
+                     *             "title": "Who is accountable",
+                     *             "facts": [
+                     *               {
+                     *                 "label": "Owner",
+                     *                 "value": "Bio Prof <bio_prof@example.ubc.ca>",
+                     *                 "source": "the project’s members"
+                     *               },
+                     *               {
+                     *                 "label": "Platform contact",
+                     *                 "value": "Platform Admin <platform_admin@example.ubc.ca>",
+                     *                 "source": "the platform’s contacts"
+                     *               }
+                     *             ],
+                     *             "gaps": [
+                     *               {
+                     *                 "id": "accountable.breach",
+                     *                 "text": "Who responds if the app’s data is breached, and how the people affected are told, is not yet set at UBC — the Privacy Office’s procedure is still to come: say who answers for this app meanwhile."
+                     *               }
+                     *             ]
+                     *           },
+                     *           {
+                     *             "id": "hosting",
+                     *             "title": "Hosting and jurisdiction",
+                     *             "facts": [
+                     *               {
+                     *                 "label": "Where the app runs",
+                     *                 "value": "In containers on the machine Manifest runs on, under its Docker driver.",
+                     *                 "source": "the platform’s runtime driver"
+                     *               },
+                     *               {
+                     *                 "label": "Where its code is kept",
+                     *                 "value": "In a repository on the machine Manifest runs on.",
+                     *                 "source": "the project’s repository"
+                     *               },
+                     *               {
+                     *                 "label": "default-chat",
+                     *                 "value": "Approved for medium data at most.",
+                     *                 "source": "the model catalogue"
+                     *               }
+                     *             ],
+                     *             "gaps": [
+                     *               {
+                     *                 "id": "hosting.production",
+                     *                 "text": "Where UBC will host the app in production is not decided yet: UBC has not chosen the infrastructure Manifest runs on there."
+                     *               },
+                     *               {
+                     *                 "id": "hosting.offshore-ai",
+                     *                 "text": "Whether the app’s medium data may reach an AI provider outside Canada is the Privacy Office’s to say: default-chat may be answered off-premise."
+                     *               }
+                     *             ]
+                     *           }
+                     *         ],
+                     *         "warnings": [
+                     *           "Nothing is serving staging yet, so this is drawn from the newest valid manifest. The assessment should describe the release you will launch: once it serves staging, draft this again."
+                     *         ],
+                     *         "text": "Privacy impact assessment — draft\ncwl-0bcfc989 (cwl-0bcfc989)\nDrafted by Manifest on October 1, 2026, from commit 7d394009ba57.\n\nBefore you send this:\n  - Nothing is serving staging yet, so this is drawn from the newest valid manifest. The assessment should describe the release you will launch: once it serves staging, draft this again.\n\n1. What personal information the app collects\n  - ubcEduCwlPuid: Identifies the person who signs in, so the app can recognise them when they return and keep their work apart from everyone else’s. (from manifest.yaml: auth.attributes)\n  - mail: The person’s email address, so the app can show it or write to them. (from manifest.yaml: auth.attributes)\n  For you to add:\n  - What the app keeps in its own database — the records it stores about the people who use it, beyond what CWL releases. Manifest cannot see inside the app’s data: describe it here.\n\n2. Where it is stored\n  - db: A mongo database, version 7, which Manifest runs for the app — one in each environment. (from manifest.yaml: services)\n  - Sandbox: Where the app is built and tried: its own copy of each database, never backed up. (from Manifest’s environments)\n  - Staging: Where the app is tested before launch: its own copy of each database, never backed up. (from Manifest’s environments)\n  - Production: Where people use the app: its own copy of each database, not backed up on this platform yet. (from Manifest’s environments)\n  - Incident logs: When a deploy of the app fails, Manifest keeps the last 200 lines of the app’s output with the Incident, with secrets removed. They can include what the app printed about the people using it. (from the platform)\n  For you to add:\n  - Whether this assessment covers the app’s use at staging by real people — colleagues and students signing in to test it — or staging needs cover of its own, is a question for the Privacy Office that is not yet answered: ask it.\n\n3. Where it flows\n  - Classification: Medium — every AI model the app uses must be approved for medium data. (from manifest.yaml: data.classification)\n  - api.ubc.ca: The app may send data to api.ubc.ca, outside the platform. (from manifest.yaml: egress.allow)\n  - default-chat: Approved for medium data at most: it may be answered by a provider off-premise, so what the app sends it may leave UBC. (from manifest.yaml: ai.models; the model catalogue)\n\n4. How long it is kept, and how it is disposed of\n  - How long: The manifest says the app keeps its data for 365 days. (from manifest.yaml: data.retention_days)\n  - Deletion: Manifest deletes nothing it keeps for the app on a schedule — neither its databases nor its Incident logs. A project that never launched can be deleted, which destroys its databases; one that has launched cannot be deleted yet. (from the platform)\n  For you to add:\n  - How the app removes its data once it is older than 365 days — Manifest does not remove it for the app.\n  - How the app’s data is disposed of when the app is retired follows UBC’s sunset procedure, which the Privacy Office has not set out yet: say what should happen to it.\n\n5. Who is accountable\n  - Owner: Bio Prof <bio_prof@example.ubc.ca> (from the project’s members)\n  - Platform contact: Platform Admin <platform_admin@example.ubc.ca> (from the platform’s contacts)\n  For you to add:\n  - Who responds if the app’s data is breached, and how the people affected are told, is not yet set at UBC — the Privacy Office’s procedure is still to come: say who answers for this app meanwhile.\n\n6. Hosting and jurisdiction\n  - Where the app runs: In containers on the machine Manifest runs on, under its Docker driver. (from the platform’s runtime driver)\n  - Where its code is kept: In a repository on the machine Manifest runs on. (from the project’s repository)\n  - default-chat: Approved for medium data at most. (from the model catalogue)\n  For you to add:\n  - Where UBC will host the app in production is not decided yet: UBC has not chosen the infrastructure Manifest runs on there.\n  - Whether the app’s medium data may reach an AI provider outside Canada is the Privacy Office’s to say: default-chat may be answered off-premise.\n"
+                     *       },
+                     *       "createdAt": "2026-10-01T18:03:26.518Z",
+                     *       "updatedAt": "2026-10-01T18:03:26.530Z"
+                     *     }
+                     */
+                    "application/json": components["schemas"]["PrivacyAssessment"];
+                };
+            };
+            /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: ADMIN_REASON_REQUIRED, CSRF_ORIGIN_REFUSED, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, LAUNCH_DRAFT_CHANGED, LAUNCH_DRAFT_REQUIRED, LAUNCH_GAP_ANSWERS_INVALID, LAUNCH_TRANSITION_INVALID, NOT_FOUND, PROJECT_ARCHIVED, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    submitPrivacyAssessment: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description One per user action, and the same key when retrying that action. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                /** @description The project’s id, from `listProjects` or `createProject`. */
+                projectId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                /**
+                 * @example {
+                 *       "sentAt": "2026-10-01",
+                 *       "reference": "PIA-2026-0101"
+                 *     }
+                 */
+                "application/json": components["schemas"]["RecordSubmissionRequest"];
+            };
+        };
+        responses: {
+            /** @description The assessment, now submitted to the Privacy Office. */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -10147,10 +11318,45 @@ export interface operations {
                      *       "reviewer": null,
                      *       "approvedAt": null,
                      *       "externalTicketRef": "PIA-2026-0101",
-                     *       "submittedAt": "2026-10-01T19:00:00.000Z",
-                     *       "submittedBy": {
+                     *       "sentAt": "2026-10-01T18:03:26.530Z",
+                     *       "sentBy": {
                      *         "id": "7fdf38c3-b751-4bb0-8199-dbec140b0a9e",
                      *         "displayName": "Bio Prof"
+                     *       },
+                     *       "gapAnswers": [
+                     *         {
+                     *           "gapId": "collected.app-data",
+                     *           "answer": "Each student’s check-in times and the course section they chose; nothing else."
+                     *         },
+                     *         {
+                     *           "gapId": "stored.staging-cover",
+                     *           "answer": "Asked the Privacy Office on October 1, 2026: it says this assessment covers staging."
+                     *         },
+                     *         {
+                     *           "gapId": "retention.removal",
+                     *           "answer": "A nightly job deletes check-ins older than 365 days."
+                     *         },
+                     *         {
+                     *           "gapId": "retention.disposal",
+                     *           "answer": "At the end of the course, the instructor exports the records and deletes the app."
+                     *         },
+                     *         {
+                     *           "gapId": "accountable.breach",
+                     *           "answer": "The instructor, Bio Prof, answers for it, with the department’s IT lead."
+                     *         },
+                     *         {
+                     *           "gapId": "hosting.production",
+                     *           "answer": "Does not apply until UBC chooses the infrastructure."
+                     *         },
+                     *         {
+                     *           "gapId": "hosting.offshore-ai",
+                     *           "answer": "The app sends the model only a course code and a question, never a name."
+                     *         }
+                     *       ],
+                     *       "submittedAt": "2026-10-01T19:00:00.000Z",
+                     *       "submittedBy": {
+                     *         "id": "5d0f4a8e-1b2c-4d3e-8f9a-0b1c2d3e4f5a",
+                     *         "displayName": "Platform Admin"
                      *       },
                      *       "draft": {
                      *         "project": {
@@ -10333,7 +11539,7 @@ export interface operations {
                     "application/json": components["schemas"]["PrivacyAssessment"];
                 };
             };
-            /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: ADMIN_REASON_REQUIRED, CSRF_ORIGIN_REFUSED, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, LAUNCH_DRAFT_CHANGED, LAUNCH_DRAFT_REQUIRED, LAUNCH_SENT_AT_INVALID, LAUNCH_TRANSITION_INVALID, NOT_FOUND, PROJECT_ARCHIVED, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED. */
+            /** @description An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, LAUNCH_SENT_AT_INVALID, LAUNCH_TRANSITION_INVALID, NOT_FOUND, PROJECT_ARCHIVED, RATE_LIMITED, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED. */
             default: {
                 headers: {
                     [name: string]: unknown;

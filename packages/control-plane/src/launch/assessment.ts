@@ -7,7 +7,7 @@ import {
 } from '../spec/index.js'
 import type { Contact } from '../sso/index.js'
 import { ATTRIBUTE_PURPOSES } from './package.js'
-import { vancouverDayInWords } from './records.js'
+import { LaunchRecordError, vancouverDayInWords } from './records.js'
 
 /**
  * D19'S PRIVACY-ASSESSMENT DRAFT (§9 as Spec action 4 applied it; the launch path plan's Task 11,
@@ -535,4 +535,70 @@ export function readAssessmentDraft(value: unknown): PrivacyAssessmentDraft | nu
     }),
   )
   return { ...(v as PrivacyAssessmentDraft), sections }
+}
+
+/** The owner's answer to one gap, by its id — what the send carries and the record keeps. */
+export interface GapAnswer {
+  gapId: string
+  answer: string
+}
+
+/** The longest answer a gap takes, after trimming: 2,000 characters. */
+export const ANSWER_MAX = 2_000
+
+/**
+ * EVERY GAP OF THE DRAFT READ, ANSWERED ONCE (§9; Rich's (ii), 2026-10-01; the FE-46/47/5 plan's Decision
+ * 9): trimmed, non-blank, at most `ANSWER_MAX` — *"does not apply"* is an answer. A missing, unknown,
+ * repeated, blank or over-long answer is refused as ONE refusal, `400 LAUNCH_GAP_ANSWERS_INVALID`, naming
+ * every id at fault; otherwise the answers come back in the draft's own order, trimmed — what the record
+ * keeps. The caller is the owner's send (`sendPrivacyAssessment`), after the draft read is checked.
+ */
+export function checkGapAnswers(
+  draft: Pick<PrivacyAssessmentDraft, 'sections'>,
+  answers: readonly GapAnswer[],
+): GapAnswer[] {
+  const ids = draft.sections.flatMap((s) => s.gaps.map((g) => g.id))
+  const given = new Map<string, string>()
+  const fault = {
+    unknown: [] as string[],
+    repeated: [] as string[],
+    blank: [] as string[],
+    long: [] as string[],
+  }
+  for (const { gapId, answer } of answers) {
+    const text = answer.trim()
+    if (!ids.includes(gapId)) fault.unknown.push(gapId)
+    else if (
+      given.has(gapId) ||
+      fault.blank.includes(gapId) ||
+      fault.long.includes(gapId)
+    )
+      fault.repeated.push(gapId)
+    else if (text === '') fault.blank.push(gapId)
+    else if (text.length > ANSWER_MAX) fault.long.push(gapId)
+    else given.set(gapId, text)
+  }
+  const missing = ids.filter(
+    (id) => !given.has(id) && !fault.blank.includes(id) && !fault.long.includes(id),
+  )
+  const said = [
+    ...(missing.length === 0 ? [] : [`no answer for ${missing.join(', ')}`]),
+    ...(fault.blank.length === 0 ? [] : [`a blank answer for ${fault.blank.join(', ')}`]),
+    ...(fault.long.length === 0
+      ? []
+      : [`an answer over ${ANSWER_MAX} characters for ${fault.long.join(', ')}`]),
+    ...(fault.repeated.length === 0
+      ? []
+      : [`more than one answer for ${[...new Set(fault.repeated)].join(', ')}`]),
+    ...(fault.unknown.length === 0
+      ? []
+      : [`answers for gaps this draft does not have: ${fault.unknown.join(', ')}`]),
+  ]
+  if (said.length > 0)
+    throw new LaunchRecordError(
+      'LAUNCH_GAP_ANSWERS_INVALID',
+      `the privacy assessment’s gaps were not each answered once: ${said.join('; ')}`,
+      'Answer every gap of the draft you read, once each, by its id — "does not apply" is an answer.',
+    )
+  return ids.map((gapId) => ({ gapId, answer: given.get(gapId)! }))
 }

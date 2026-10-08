@@ -85,12 +85,24 @@ export const EVENT_TYPES = [
   /** §9 and R1 (P6a Task 6): an administrator recorded what the Privacy Office said. */
   'privacy_assessment.recorded',
   /**
-   * §9 (Spec action 3; the launch path plan's Task 9): a person said a registration's request was
-   * SENT to UBC IAM — the day, the environment and the ticket, never the package.
+   * §9 (Spec action 3; the FE-46/47/5 plan's Task 5): an administrator recorded that the Manifest team
+   * SUBMITTED a registration's request to UBC IAM — the team's day, the environment and UBC's ticket,
+   * and whether it was a change request; never the package.
    */
   'iam_registration.submitted',
-  /** The same for the privacy assessment, sent to the Privacy Office (Task 9). */
+  /** The same for the privacy assessment, submitted to the Privacy Office (Task 5). */
   'privacy_assessment.submitted',
+  /**
+   * §9 (the FE-46/47/5 plan's Task 5, Decision 15): the owner SENT a registration to the Manifest team —
+   * the environment and where it was sent from, never the package.
+   */
+  'iam_registration.sent',
+  /** The owner sent the privacy assessment to the Manifest team — how many gaps it answered, never an answer. */
+  'privacy_assessment.sent',
+  /** The Manifest team handed a registration back to its owner, unsubmitted — and to which state. */
+  'iam_registration.returned',
+  /** The Manifest team handed the privacy assessment back to its owner, unsubmitted. */
+  'privacy_assessment.returned',
   /**
    * §9 (Spec action 4; the launch path plan's Task 10): Manifest drafted a registration's package for
    * a person to send — the environment, the entity and the counts, NEVER the attributes themselves,

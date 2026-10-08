@@ -6,7 +6,6 @@ import {
   dayInWords,
   registrationActions,
   sentLine,
-  vancouverDay,
   type OwnerActions,
 } from '../launch-records-state'
 import { Field, Instant, Panel, Pill, Refusal, useAsync } from '../ui'
@@ -61,8 +60,8 @@ export function Records({
       <p className="hint">
         UBC’s order: the privacy assessment first; once it is approved, the staging
         registration, which carries its PIA number; once staging is registered and tested,
-        the production registration. Manifest drafts each one — you read it, send it, and
-        say here that you sent it.
+        the production registration. Manifest drafts each one — you read it and send it to
+        the Manifest team, who submit it to UBC or hand it back to you.
       </p>
       <Refusal error={records.error} />
       <Panel title="1. Privacy Impact Assessment">
@@ -75,7 +74,9 @@ export function Records({
               record={value.privacyAssessment}
               onChanged={records.reload}
             />
-            {isAdmin && (
+            {/* A RECORD WITH THE MANIFEST TEAM IS NOT RECORDED HERE (the FE-46/47/5 plan's Decision 4):
+                the platform refuses it, and the team's own two actions are what move it on. */}
+            {isAdmin && value.privacyAssessment?.state !== 'sent' && (
               <PiaForm
                 api={api}
                 projectId={projectId}
@@ -108,7 +109,7 @@ export function Records({
                   record={record}
                   onChanged={records.reload}
                 />
-                {isAdmin && (
+                {isAdmin && record?.state !== 'sent' && (
                   <IamForm
                     api={api}
                     projectId={projectId}
@@ -299,7 +300,7 @@ function IamForm({
 }) {
   const [ticket, setTicket] = useState(current?.externalTicketRef ?? '')
   const [state, setState] = useState<Schemas['RecordIamRegistrationRequest']['state']>(
-    current?.state ?? 'draft',
+    current === null || current.state === 'sent' ? 'draft' : current.state,
   )
   const [entityId, setEntityId] = useState(current?.entityId ?? '')
   const [acsUrl, setAcsUrl] = useState(current?.acsUrl ?? '')
@@ -467,7 +468,7 @@ function PiaForm({
 }) {
   const [ticket, setTicket] = useState(current?.externalTicketRef ?? '')
   const [state, setState] = useState<Schemas['RecordPrivacyAssessmentRequest']['state']>(
-    current?.state ?? 'draft',
+    current === null || current.state === 'sent' ? 'draft' : current.state,
   )
   const [reviewer, setReviewer] = useState(current?.reviewer ?? '')
   const [busy, setBusy] = useState(false)
@@ -554,7 +555,7 @@ function SentField({
     <Field label="Sent">
       {sentLine(submittedAt, new Date(), waiting)}
       {submittedBy !== null && (
-        <span className="hint"> — said by {submittedBy.displayName}</span>
+        <span className="hint"> — recorded by {submittedBy.displayName}</span>
       )}
     </Field>
   )
@@ -646,12 +647,10 @@ function RegistrationOwner({
       {actions.send && sent !== null && (
         <SendForm
           to="UBC IAM"
-          reference="UBC IAM’s ticket, e.g. IAM-2026-0412"
           draftGeneratedAt={sent.generatedAt}
+          gaps={null}
           newKey={api.newKey}
-          send={(body, key) =>
-            api.submitIamRegistration(projectId, environment, body, key)
-          }
+          send={(body, key) => api.sendIamRegistration(projectId, environment, body, key)}
           onSent={onChanged}
         />
       )}
@@ -688,10 +687,16 @@ function AssessmentOwner({
       {actions.send && draft !== null && (
         <SendForm
           to="the UBC Privacy Office"
-          reference="the Privacy Office’s reference, if it gave one"
           draftGeneratedAt={draft.generatedAt}
+          gaps={draft.sections.flatMap((section) => section.gaps)}
           newKey={api.newKey}
-          send={(body, key) => api.submitPrivacyAssessment(projectId, body, key)}
+          send={(body, key) =>
+            api.sendPrivacyAssessment(
+              projectId,
+              { ...body, answers: body.answers ?? [] },
+              key,
+            )
+          }
           onSent={onChanged}
         />
       )}
@@ -841,35 +846,35 @@ function CopyBlock({ label, text }: { label: string; text: string }) {
 }
 
 /**
- * *I'VE SENT IT* (Task 9): the day it went — today unless the person says otherwise, never before the
- * draft existed nor after today, in Vancouver — and the ticket they were given. **It always names the
- * draft read** (`draftGeneratedAt`), so a draft made again since is refused rather than recorded as
- * what was sent.
+ * *SEND IT TO THE MANIFEST TEAM* (the FE-46/47/5 plan's Task 5; the launch path plan's Task 9 before it):
+ * the send is made here, now, and the team submits it to UBC or hands it back. **It always names the
+ * draft read** (`draftGeneratedAt`), so a draft made again since is refused rather than sent. For the
+ * assessment it carries an answer to each gap — one box each, labelled with what the gap asks; the
+ * platform refuses a send that leaves one out (`LAUNCH_GAP_ANSWERS_INVALID`).
  */
 function SendForm({
   to,
-  reference,
   draftGeneratedAt,
+  gaps,
   newKey,
   send,
   onSent,
 }: {
   to: string
-  reference: string
   draftGeneratedAt: string
+  /** The assessment's gaps, to answer each; null for a registration, which has none. */
+  gaps: readonly { id: string; text: string }[] | null
   newKey: () => string
   send: (
-    body: Schemas['SubmitLaunchRecordRequest'],
+    body: { draftGeneratedAt: string; answers?: { gapId: string; answer: string }[] },
     key: string,
-  ) => Promise<{ submittedAt: string | null }>
+  ) => Promise<{ sentAt: string | null }>
   onSent: () => void
 }) {
-  const today = vancouverDay(new Date())
-  const [day, setDay] = useState(today)
-  const [ticket, setTicket] = useState('')
-  // WHAT WAS RECORDED, from the answer itself — the screen re-reads the record too, but a reader
+  const [answers, setAnswers] = useState<Record<string, string>>({})
+  // WHAT WAS SENT, from the answer itself — the screen re-reads the record too, but a reader
   // should not have to find the change to know the press took.
-  const [recorded, setRecorded] = useState<string | null>(null)
+  const [sentAt, setSentAt] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<unknown>(undefined)
   const attemptKey = useRef<string | undefined>(undefined)
@@ -882,14 +887,20 @@ function SendForm({
     try {
       const answer = await send(
         {
-          sentAt: day,
           draftGeneratedAt,
-          ...(ticket.trim() === '' ? {} : { reference: ticket.trim() }),
+          ...(gaps === null
+            ? {}
+            : {
+                answers: gaps.map((gap) => ({
+                  gapId: gap.id,
+                  answer: answers[gap.id] ?? '',
+                })),
+              }),
         },
         attemptKey.current,
       )
       attemptKey.current = undefined
-      setRecorded(answer.submittedAt)
+      setSentAt(answer.sentAt)
       onSent()
     } catch (e) {
       setError(e)
@@ -900,35 +911,25 @@ function SendForm({
 
   return (
     <form className="record-form" onSubmit={(e) => void submit(e)}>
-      <h3>I’ve sent it</h3>
+      <h3>Send it to the Manifest team</h3>
       <p className="hint">
-        Once you have sent this draft to {to}, say so — Manifest then shows how long it
-        has waited, and an administrator records the answer here.
+        The Manifest team submits this draft to {to} for you, or hands it back with what
+        to change. It is sent as you read it above.
       </p>
-      <Field label="Sent on">
-        <input
-          type="date"
-          value={day}
-          min={vancouverDay(draftGeneratedAt)}
-          max={today}
-          onChange={(e) => setDay(e.target.value)}
-          required
-        />
-      </Field>
-      <Field label="Ticket">
-        <input
-          value={ticket}
-          maxLength={128}
-          onChange={(e) => setTicket(e.target.value)}
-          placeholder={reference}
-        />
-      </Field>
+      {gaps !== null &&
+        gaps.map((gap) => (
+          <Field key={gap.id} label={gap.text}>
+            <textarea
+              value={answers[gap.id] ?? ''}
+              rows={3}
+              onChange={(e) => setAnswers({ ...answers, [gap.id]: e.target.value })}
+            />
+          </Field>
+        ))}
       <button type="submit" disabled={busy}>
-        {busy ? 'saying so…' : 'I’ve sent it'}
+        {busy ? 'sending…' : 'Send it to the Manifest team'}
       </button>{' '}
-      {recorded !== null && (
-        <span className="ok">Recorded. {sentLine(recorded, new Date())}.</span>
-      )}
+      {sentAt !== null && <span className="ok">Sent on {dayInWords(sentAt)}.</span>}
       <Refusal error={error} />
     </form>
   )

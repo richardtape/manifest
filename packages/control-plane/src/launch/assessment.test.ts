@@ -4,6 +4,7 @@ import type { ModelEntry } from '../ai/index.js'
 import { manifestSchema } from '../spec/index.js'
 import {
   assembleAssessment,
+  checkGapAnswers,
   readAssessmentDraft,
   renderAssessmentText,
   type AssessmentInput,
@@ -656,5 +657,66 @@ describe('the gaps’ stable ids (FE-46/47/5 plan Task 4; Decision 8)', () => {
     )
     // And a draft in today's shape reads back exactly as it was stored.
     expect(readAssessmentDraft(JSON.parse(JSON.stringify(now)))).toEqual(now)
+  })
+})
+
+describe('checkGapAnswers — every gap of the draft read, answered once (FE-46/47/5 plan Task 5; Review Focus 3)', () => {
+  const draft = assembleAssessment(
+    input({ platformContacts: [], declared: { retention: true, classification: false } }),
+  )
+  const ids = draft.sections.flatMap((s) => s.gaps.map((g) => g.id))
+  const all = (answer: string) => ids.map((gapId) => ({ gapId, answer }))
+  const refusedWith = (answers: { gapId: string; answer: string }[]) => {
+    try {
+      checkGapAnswers(draft, answers)
+    } catch (error) {
+      return error as { name: string; code: string; message: string; hint?: string }
+    }
+    throw new Error('expected a refusal')
+  }
+
+  it('"does not apply" is an answer — every gap answered, kept in the draft’s order, trimmed', () => {
+    expect(ids.length).toBeGreaterThan(3)
+    const given = all('  does not apply  ').reverse()
+    expect(checkGapAnswers(draft, given)).toEqual(all('does not apply'))
+  })
+
+  it('a missing, unknown, repeated, blank or over-long answer is refused as ONE refusal naming each id', () => {
+    const [first, second, third, fourth, ...rest] = ids
+    const answers = [
+      // `first` missing altogether.
+      { gapId: second!, answer: '   ' },
+      { gapId: third!, answer: 'x'.repeat(2_001) },
+      { gapId: fourth!, answer: 'once' },
+      { gapId: fourth!, answer: 'twice' },
+      { gapId: 'flows.no-such-gap', answer: 'from a draft made since' },
+      ...rest.map((gapId) => ({ gapId, answer: 'answered' })),
+    ]
+    const refused = refusedWith(answers)
+    expect(refused).toMatchObject({
+      name: 'LaunchRecordError',
+      code: 'LAUNCH_GAP_ANSWERS_INVALID',
+    })
+    expect(refused.message).toContain(`no answer for ${first}`)
+    expect(refused.message).toContain(`a blank answer for ${second}`)
+    expect(refused.message).toContain(`an answer over 2000 characters for ${third}`)
+    expect(refused.message).toContain(`more than one answer for ${fourth}`)
+    expect(refused.message).toContain('this draft does not have: flows.no-such-gap')
+    expect(refused.hint).toMatch(/does not apply/)
+    // Each fault alone, too: none hides behind another.
+    expect(refusedWith(all('ok').slice(1)).message).toContain(`no answer for ${first}`)
+    expect(refusedWith([...all('ok'), { gapId: 'nope', answer: 'x' }]).message).toContain(
+      'does not have: nope',
+    )
+    // 2,000 exactly is an answer.
+    expect(checkGapAnswers(draft, all('y'.repeat(2_000)))).toHaveLength(ids.length)
+  })
+
+  it('a draft with no gap takes no answers, and refuses one', () => {
+    const none = { ...draft, sections: draft.sections.map((s) => ({ ...s, gaps: [] })) }
+    expect(checkGapAnswers(none, [])).toEqual([])
+    expect(() =>
+      checkGapAnswers(none, [{ gapId: 'collected.app-data', answer: 'x' }]),
+    ).toThrow(/does not have: collected\.app-data/)
   })
 })

@@ -5,13 +5,18 @@ import {
   draftPrivacyAssessment,
   getIamRegistration,
   getPrivacyAssessment,
+  recordAssessmentSubmission,
   recordIamRegistration,
+  recordIamSubmission,
   recordPrivacyAssessment,
+  returnIamRegistration,
+  returnPrivacyAssessment,
   runRehearsal,
-  submitIamRegistration,
-  submitPrivacyAssessment,
+  sendIamRegistration,
+  sendPrivacyAssessment,
   submitterOf,
 } from '../../launch/index.js'
+import type { Db } from '../../db/index.js'
 import { assertCapability, assertStepUp } from '../../projects/index.js'
 import { requireSession } from '../actor.js'
 import { withdrawWhatItNoLongerAllows } from '../spec-validation.js'
@@ -20,12 +25,18 @@ import { PATH } from '../contract/schemas.js'
 import {
   ASSESSMENT_APPROVED_EXAMPLE,
   ASSESSMENT_DRAFTED_EXAMPLE,
+  ASSESSMENT_RETURNED_EXAMPLE,
+  ASSESSMENT_SEND_REQUEST_EXAMPLE,
+  ASSESSMENT_SENT_EXAMPLE,
   ASSESSMENT_SUBMIT_REQUEST_EXAMPLE,
   ASSESSMENT_SUBMITTED_EXAMPLE,
   DRAFTED_EXAMPLE,
   RECORDS_EXAMPLE,
-  SUBMIT_REQUEST_EXAMPLE,
+  RETURNED_EXAMPLE,
+  SEND_REQUEST_EXAMPLE,
+  SENT_EXAMPLE,
   SUBMITTED_EXAMPLE,
+  TEAM_SUBMISSION_REQUEST_EXAMPLE,
 } from './launch-examples.js'
 import {
   IamRegistration,
@@ -34,12 +45,32 @@ import {
   PrivacyAssessment,
   RecordIamRegistrationRequest,
   RecordPrivacyAssessmentRequest,
+  RecordSubmissionRequest,
   Rehearsal,
-  SubmitLaunchRecordRequest,
+  SendLaunchRecordRequest,
+  SendPrivacyAssessmentRequest,
   toIamRegistration,
   toPrivacyAssessment,
   toRehearsal,
+  type RecordPeople,
 } from '../representations/launch.js'
+
+/** Who a record names, by name: who last sent it to the Manifest team, and who recorded it with UBC. */
+async function peopleOf(
+  db: Db,
+  row: { sentBy: string | null; submittedBy: string | null } | undefined,
+): Promise<RecordPeople> {
+  return {
+    sentBy: await submitterOf(db, row?.sentBy ?? null),
+    submittedBy: await submitterOf(db, row?.submittedBy ?? null),
+  }
+}
+
+/** Which registration a route acts on: `staging` or `production`, in its path. */
+const ENVIRONMENT = (what: string) =>
+  z
+    .enum(['staging', 'production'])
+    .describe(`Which registration ${what}: \`staging\` or \`production\`.`)
 
 /** §22 step 7 (P5a Task 15): what a first production launch still needs. */
 export const launchRoutes = [
@@ -100,7 +131,7 @@ export const launchRoutes = [
     tag: 'launch',
     summary: 'The privacy assessment and the two IAM registrations',
     description:
-      'The three records a first production launch waits on — the privacy assessment, the staging registration and the production registration — each with when a person said it was sent and what UBC said, as a platform administrator recorded it. Any may be absent: a state, not an error.',
+      'The three records a first production launch waits on — the privacy assessment, the staging registration and the production registration — each with when its owner sent it to the Manifest team, when the team submitted it to UBC, and what UBC said, as a platform administrator recorded it. Any may be absent: a state, not an error.',
     params: z.strictObject({ projectId: PATH.projectId }),
     query: NO_QUERY,
     body: NO_BODY,
@@ -126,16 +157,10 @@ export const launchRoutes = [
         projectId: params.projectId,
         iamRegistration: toIamRegistration(
           production,
-          await submitterOf(deps.db, production?.submittedBy ?? null),
+          await peopleOf(deps.db, production),
         ),
-        stagingRegistration: toIamRegistration(
-          staging,
-          await submitterOf(deps.db, staging?.submittedBy ?? null),
-        ),
-        privacyAssessment: toPrivacyAssessment(
-          pia,
-          await submitterOf(deps.db, pia?.submittedBy ?? null),
-        ),
+        stagingRegistration: toIamRegistration(staging, await peopleOf(deps.db, staging)),
+        privacyAssessment: toPrivacyAssessment(pia, await peopleOf(deps.db, pia)),
       }
     },
   }),
@@ -147,7 +172,7 @@ export const launchRoutes = [
     tag: 'launch',
     summary: 'Record what UBC IAM registered',
     description:
-      'A platform administrator, in their own session, records the Service Provider registration UBC IAM made — the staging registration or production’s (`environment`, production’s when absent) — with its ticket reference. The state moves only along the allowed transitions from `draft` — any other move, a first write straight into `active` included, is `409 LAUNCH_TRANSITION_INVALID`, naming the moves allowed. A change request is the `change_requested` state, and `requestedAttributes` — required when filing from `active` (`LAUNCH_RECORD_INVALID` otherwise) — says what it asks for. Once UBC has registered the SP, the entity ID never changes, and `registeredAttributes`, `acsUrl` and `sloUrl` change only on a write that reaches `active`. UBC’s answer is recorded whatever order it arrives in: this is never refused for the order the requests are sent in.',
+      'A platform administrator, in their own session, records the Service Provider registration UBC IAM made — the staging registration or production’s (`environment`, production’s when absent) — with its ticket reference. The state moves only along the allowed transitions from `draft` — any other move, a first write straight into `active` included, is `409 LAUNCH_TRANSITION_INVALID`, naming the moves allowed. A change request is the `change_requested` state, and `requestedAttributes` — required when filing from `active` (`LAUNCH_RECORD_INVALID` otherwise) — says what it asks for. Once UBC has registered the SP, the entity ID never changes, and `registeredAttributes`, `acsUrl` and `sloUrl` change only on a write that reaches `active`. UBC’s answer is recorded whatever order it arrives in: this is never refused for the order the requests are sent in. A registration with the Manifest team (`sent`) is not recorded here — `409 LAUNCH_TRANSITION_INVALID`, naming the team’s own two operations, `submitIamRegistration` and `returnIamRegistration` — and only its owner’s `sendIamRegistration` puts one there.',
     params: z.strictObject({ projectId: PATH.projectId }),
     query: NO_QUERY,
     body: RecordIamRegistrationRequest,
@@ -188,6 +213,9 @@ export const launchRoutes = [
         state: 'submitted',
         changeRequestedFrom: null,
         externalTicketRef: 'IAM-1',
+        sentFrom: null,
+        sentAt: null,
+        sentBy: null,
         submittedAt: '2026-10-01T06:56:08.961Z',
         submittedBy: {
           id: '7cdb83c7-6a58-49e2-a8a8-0f480232ed6d',
@@ -225,7 +253,7 @@ export const launchRoutes = [
           body.certExpiresAt === undefined ? undefined : new Date(body.certExpiresAt),
         actor: { id: actor.userId, puid: actor.puid },
       })
-      return toIamRegistration(row, await submitterOf(deps.db, row.submittedBy))
+      return toIamRegistration(row, await peopleOf(deps.db, row))
     },
   }),
   defineRoute({
@@ -236,7 +264,7 @@ export const launchRoutes = [
     tag: 'launch',
     summary: 'Record what the Privacy Office said',
     description:
-      'A platform administrator, in their own session, records the Privacy Office’s assessment, shaped like the IAM registration, over the states `draft`, `submitted` and `approved` (`409 LAUNCH_TRANSITION_INVALID` for a move they do not allow). A refused assessment goes back to `draft` with the reviewer’s note.',
+      'A platform administrator, in their own session, records the Privacy Office’s assessment, shaped like the IAM registration, over the states `draft`, `submitted` and `approved` (`409 LAUNCH_TRANSITION_INVALID` for a move they do not allow). A refused assessment goes back to `draft` with the reviewer’s note. An assessment with the Manifest team (`sent`) is not recorded here: the team submits it (`submitPrivacyAssessment`) or hands it back (`returnPrivacyAssessment`).',
     params: z.strictObject({ projectId: PATH.projectId }),
     query: NO_QUERY,
     body: RecordPrivacyAssessmentRequest,
@@ -266,7 +294,7 @@ export const launchRoutes = [
         externalTicketRef: body.externalTicketRef,
         actor: { id: actor.userId, puid: actor.puid },
       })
-      return toPrivacyAssessment(row, await submitterOf(deps.db, row.submittedBy))
+      return toPrivacyAssessment(row, await peopleOf(deps.db, row))
     },
   }),
   defineRoute({
@@ -276,7 +304,7 @@ export const launchRoutes = [
     tag: 'launch',
     summary: 'Draft a registration request for UBC IAM',
     description:
-      'Manifest generates what the project’s owner sends UBC IAM to register the staging or production environment of an app that signs people in with CWL, and keeps it on the record as `package`: the entity ID and the sign-in and sign-out addresses for that environment; the certificate the app signs with there (never its private key, which stays with Manifest); every attribute the app asks for, with its purpose and the lines of the app’s code that read it; the contacts; the privacy assessment’s PIA number once it is approved; and the SAML metadata, built from the same values. An attribute nothing reads is flagged, so it can be removed before it is asked for. Production’s is drawn from the release serving staging — or, while nothing serves staging, from the newest valid manifest, and the package says so — and staging’s from the newest valid manifest. Drafting again replaces the draft until it is sent: once the registration is `submitted` or `active`, what was sent is kept and drafting is `409 LAUNCH_RECORD_SUBMITTED`, until UBC asks for changes or the registration lapses. An app that signs nobody in with CWL, or asks for no attribute, is `409 LAUNCH_NOT_CWL`. The project’s owner, a collaborator, a platform administrator, or an agent on a token holding `launch:draft`, may draft — a draft sends nothing and decides nothing. Saying it was sent is `submitIamRegistration`.',
+      'Manifest generates what the project’s owner sends UBC IAM to register the staging or production environment of an app that signs people in with CWL, and keeps it on the record as `package`: the entity ID and the sign-in and sign-out addresses for that environment; the certificate the app signs with there (never its private key, which stays with Manifest); every attribute the app asks for, with its purpose and the lines of the app’s code that read it; the contacts; the privacy assessment’s PIA number once it is approved; and the SAML metadata, built from the same values. An attribute nothing reads is flagged, so it can be removed before it is asked for. Production’s is drawn from the release serving staging — or, while nothing serves staging, from the newest valid manifest, and the package says so — and staging’s from the newest valid manifest. Drafting again replaces the draft until it is sent: once the registration is with the Manifest team (`sent`), `submitted`, `active`, or holds a change request the team filed with UBC IAM, what was sent is kept and drafting is `409 LAUNCH_RECORD_SUBMITTED` — until the team hands it back, UBC IAM asks its owner for changes, or the registration lapses. An app that signs nobody in with CWL, or asks for no attribute, is `409 LAUNCH_NOT_CWL`. The project’s owner, a collaborator, a platform administrator, or an agent on a token holding `launch:draft`, may draft — a draft sends nothing and decides nothing. Sending it to the Manifest team is `sendIamRegistration`.',
     params: z.strictObject({
       projectId: PATH.projectId,
       environment: z
@@ -312,7 +340,7 @@ export const launchRoutes = [
         environment: params.environment,
         actor: { id: actor.userId },
       })
-      return toIamRegistration(row, await submitterOf(deps.db, row.submittedBy))
+      return toIamRegistration(row, await peopleOf(deps.db, row))
     },
   }),
   defineRoute({
@@ -322,7 +350,7 @@ export const launchRoutes = [
     tag: 'launch',
     summary: 'Draft the privacy impact assessment for the Privacy Office',
     description:
-      'Manifest generates the privacy impact assessment the project’s owner completes and sends UBC’s Privacy Office, and keeps it on the record as `draft`: six questions — what personal information the app collects, where it is stored, where it flows, how long it is kept, who is accountable, and where it is hosted — each answered with facts and where Manifest read them (`manifest.yaml`, the model catalogue, the project’s members), and the gaps only the owner can fill, such as what the app keeps in its own database; and the whole as plain text to paste. It is drawn from the release serving staging — or, while nothing serves staging, from the newest valid manifest, and the draft says so. Drafting again replaces the draft until it is sent: once the assessment is `submitted` or `approved`, what was sent is kept and drafting is `409 LAUNCH_RECORD_SUBMITTED`, until the Privacy Office sends it back. The project’s owner, a collaborator, a platform administrator, or an agent on a token holding `launch:draft`, may draft — a draft sends nothing and decides nothing. Saying it was sent is `submitPrivacyAssessment`.',
+      'Manifest generates the privacy impact assessment the project’s owner completes and sends UBC’s Privacy Office, and keeps it on the record as `draft`: six questions — what personal information the app collects, where it is stored, where it flows, how long it is kept, who is accountable, and where it is hosted — each answered with facts and where Manifest read them (`manifest.yaml`, the model catalogue, the project’s members), and the gaps only the owner can fill, such as what the app keeps in its own database; and the whole as plain text to paste. It is drawn from the release serving staging — or, while nothing serves staging, from the newest valid manifest, and the draft says so. Each gap has a stable `id`, kept when the app is drafted again. Drafting again replaces the draft until it is sent: once the assessment is with the Manifest team (`sent`), `submitted` or `approved`, what was sent is kept and drafting is `409 LAUNCH_RECORD_SUBMITTED`, until the team hands it back or the Privacy Office sends it back. The project’s owner, a collaborator, a platform administrator, or an agent on a token holding `launch:draft`, may draft — a draft sends nothing and decides nothing. Sending it to the Manifest team, with an answer to every gap, is `sendPrivacyAssessment`.',
     params: z.strictObject({ projectId: PATH.projectId }),
     query: NO_QUERY,
     body: NO_BODY,
@@ -354,29 +382,27 @@ export const launchRoutes = [
         projectId: params.projectId,
         actor: { id: actor.userId },
       })
-      return toPrivacyAssessment(row, await submitterOf(deps.db, row.submittedBy))
+      return toPrivacyAssessment(row, await peopleOf(deps.db, row))
     },
   }),
   defineRoute({
-    operationId: 'submitIamRegistration',
+    operationId: 'sendIamRegistration',
     credential: 'session',
     method: 'POST',
-    path: '/v1/projects/{projectId}/launch-records/iam-registration/{environment}/submission',
+    path: '/v1/projects/{projectId}/launch-records/iam-registration/{environment}/send',
     tag: 'launch',
-    summary: 'Say a registration request was sent to UBC IAM',
+    summary: 'Send a registration request to the Manifest team',
     description:
-      'The project’s owner, a collaborator or a platform administrator, in their own session, says the staging or production registration was sent to UBC IAM — on `sentAt` (today in Vancouver when absent), with UBC’s `reference` when they have one. The record moves to `submitted`, and the launch checklist and the record say how long it has waited from that day. What is sent is Manifest’s draft, so a record with none is `409 LAUNCH_DRAFT_REQUIRED`. UBC works in an order: neither registration is sent until the privacy assessment is approved with its PIA number (`409 LAUNCH_PIA_NOT_APPROVED`), and production’s only once staging’s is active as well (`409 LAUNCH_STAGING_NOT_REGISTERED`). What is sent must be the draft the person read — name it with `draftGeneratedAt`, or a draft made since is `409 LAUNCH_DRAFT_CHANGED` — and it must carry the assessment’s PIA number: a draft made before the assessment was approved is `409 LAUNCH_DRAFT_STALE`, to be drafted again. It is sent from a draft, after UBC asked for changes, or once it lapsed — a second submission is `409 LAUNCH_TRANSITION_INVALID`. UBC’s answer is recorded by an administrator (`recordIamRegistration`). A delegated token is refused `403 TOKEN_CREDENTIAL_REFUSED`; anyone else is answered `404 NOT_FOUND`.',
+      'The project’s owner, a collaborator or a platform administrator, in their own session, sends the staging or production registration to the Manifest team, who submit it to UBC IAM (`submitIamRegistration`) or hand it back (`returnIamRegistration`). It is sent now, from Manifest: the record moves to `sent`, with `sentAt`, `sentBy` and `sentFrom`, and the Manifest team is emailed — the app, the record and who sent it, never what the package says. What is sent is Manifest’s draft, so a record with none is `409 LAUNCH_DRAFT_REQUIRED`. UBC works in an order: neither registration is sent until the privacy assessment is approved with its PIA number (`409 LAUNCH_PIA_NOT_APPROVED`), and production’s only once staging’s is active as well (`409 LAUNCH_STAGING_NOT_REGISTERED`). What is sent must be the draft the person read — name it with `draftGeneratedAt`, or a draft made since is `409 LAUNCH_DRAFT_CHANGED` — and it must carry the assessment’s PIA number: a draft made before the assessment was approved is `409 LAUNCH_DRAFT_STALE`, to be drafted again. It is sent from a draft, once UBC IAM has asked its owner for changes, or once it lapsed — a second send, or one while UBC holds it, is `409 LAUNCH_TRANSITION_INVALID`. A delegated token is refused `403 TOKEN_CREDENTIAL_REFUSED`; anyone else is answered `404 NOT_FOUND`.',
     params: z.strictObject({
       projectId: PATH.projectId,
-      environment: z
-        .enum(['staging', 'production'])
-        .describe('Which registration was sent: `staging` or `production`.'),
+      environment: ENVIRONMENT('to send'),
     }),
     query: NO_QUERY,
-    body: SubmitLaunchRecordRequest,
+    body: SendLaunchRecordRequest,
     success: {
       status: 200,
-      description: 'The registration, now submitted.',
+      description: 'The registration, now with the Manifest team.',
       schema: IamRegistration,
     },
     capability: 'launch:submit',
@@ -391,41 +417,41 @@ export const launchRoutes = [
       'LAUNCH_STAGING_NOT_REGISTERED',
       'LAUNCH_DRAFT_CHANGED',
       'LAUNCH_DRAFT_STALE',
-      'LAUNCH_SENT_AT_INVALID',
     ],
-    examples: { request: SUBMIT_REQUEST_EXAMPLE, response: SUBMITTED_EXAMPLE },
+    examples: { request: SEND_REQUEST_EXAMPLE, response: SENT_EXAMPLE },
     handler: async ({ deps, request, params, body }) => {
       // A PERSON, in their own session (D24: *"saying that a request to either was sent"*).
       // `requireSession` first, so a token is answered the same for every project id and learns
       // nothing; the central rule refuses a token holding `launch:submit` whatever this line does.
       const actor = requireSession(request)
       await assertCapability(deps.db, actor, params.projectId, 'launch:submit')
-      const row = await submitIamRegistration(deps.db, deps.bus, {
-        projectId: params.projectId,
-        environment: params.environment,
-        actor: { id: actor.userId, puid: actor.puid },
-        sentAt: body.sentAt,
-        reference: body.reference,
-        draftGeneratedAt: body.draftGeneratedAt,
-      })
-      return toIamRegistration(row, await submitterOf(deps.db, row.submittedBy))
+      const row = await sendIamRegistration(
+        { db: deps.db, bus: deps.bus, mailer: deps.mailer },
+        {
+          projectId: params.projectId,
+          environment: params.environment,
+          actor: { id: actor.userId, puid: actor.puid },
+          draftGeneratedAt: body.draftGeneratedAt,
+        },
+      )
+      return toIamRegistration(row, await peopleOf(deps.db, row))
     },
   }),
   defineRoute({
-    operationId: 'submitPrivacyAssessment',
+    operationId: 'sendPrivacyAssessment',
     credential: 'session',
     method: 'POST',
-    path: '/v1/projects/{projectId}/launch-records/privacy-assessment/submission',
+    path: '/v1/projects/{projectId}/launch-records/privacy-assessment/send',
     tag: 'launch',
-    summary: 'Say the privacy assessment was sent to the Privacy Office',
+    summary: 'Send the privacy assessment to the Manifest team, every gap answered',
     description:
-      'The project’s owner, a collaborator or a platform administrator, in their own session, says the privacy impact assessment was sent to UBC’s Privacy Office — on `sentAt` (today in Vancouver when absent), with the Office’s `reference` when they have one. It comes first in UBC’s order, so nothing else gates it. The record moves to `submitted`, and the launch checklist says how long it has waited from that day. What is sent is Manifest’s draft, so a record with none is `409 LAUNCH_DRAFT_REQUIRED`, one drafted again after the draft `draftGeneratedAt` names is `409 LAUNCH_DRAFT_CHANGED`, and a second submission is `409 LAUNCH_TRANSITION_INVALID`. The Office’s answer is recorded by an administrator (`recordPrivacyAssessment`). A delegated token is refused `403 TOKEN_CREDENTIAL_REFUSED`; anyone else is answered `404 NOT_FOUND`.',
+      'The project’s owner, a collaborator or a platform administrator, in their own session, sends the privacy impact assessment to the Manifest team, who submit it to UBC’s Privacy Office (`submitPrivacyAssessment`) or hand it back (`returnPrivacyAssessment`) — with an answer to EVERY gap of the draft, once each, by its `id` (`answers`; “does not apply” is an answer). A gap without an answer, a blank one, one over 2,000 characters, a gap answered twice or one the draft does not have is `400 LAUNCH_GAP_ANSWERS_INVALID`, naming each gap at fault. It is sent now, from Manifest: the record moves to `sent`, with `sentAt`, `sentBy` and the answers in `gapAnswers`, and the Manifest team is emailed — the app and who sent it, never an answer. It comes first in UBC’s order, so nothing else gates it. What is sent is Manifest’s draft, so a record with none is `409 LAUNCH_DRAFT_REQUIRED`, one drafted again after the draft `draftGeneratedAt` names is `409 LAUNCH_DRAFT_CHANGED`, and a second send is `409 LAUNCH_TRANSITION_INVALID`. A delegated token is refused `403 TOKEN_CREDENTIAL_REFUSED`; anyone else is answered `404 NOT_FOUND`.',
     params: z.strictObject({ projectId: PATH.projectId }),
     query: NO_QUERY,
-    body: SubmitLaunchRecordRequest,
+    body: SendPrivacyAssessmentRequest,
     success: {
       status: 200,
-      description: 'The assessment, now submitted.',
+      description: 'The assessment, now with the Manifest team.',
       schema: PrivacyAssessment,
     },
     capability: 'launch:submit',
@@ -435,6 +461,93 @@ export const launchRoutes = [
       'LAUNCH_DRAFT_REQUIRED',
       'LAUNCH_TRANSITION_INVALID',
       'LAUNCH_DRAFT_CHANGED',
+      'LAUNCH_GAP_ANSWERS_INVALID',
+    ],
+    examples: {
+      request: ASSESSMENT_SEND_REQUEST_EXAMPLE,
+      response: ASSESSMENT_SENT_EXAMPLE,
+    },
+    handler: async ({ deps, request, params, body }) => {
+      const actor = requireSession(request)
+      await assertCapability(deps.db, actor, params.projectId, 'launch:submit')
+      const row = await sendPrivacyAssessment(
+        { db: deps.db, bus: deps.bus, mailer: deps.mailer },
+        {
+          projectId: params.projectId,
+          actor: { id: actor.userId, puid: actor.puid },
+          draftGeneratedAt: body.draftGeneratedAt,
+          answers: body.answers,
+        },
+      )
+      return toPrivacyAssessment(row, await peopleOf(deps.db, row))
+    },
+  }),
+  defineRoute({
+    operationId: 'submitIamRegistration',
+    credential: 'session',
+    method: 'POST',
+    path: '/v1/projects/{projectId}/launch-records/iam-registration/{environment}/submission',
+    tag: 'launch',
+    summary: 'Record that the Manifest team submitted a registration to UBC IAM',
+    description:
+      'A platform administrator, in their own session, records that the Manifest team submitted the staging or production registration its owner sent them to UBC IAM — on `sentAt` (today in Vancouver when absent; not after today, and not before its owner sent it to the team, or `400 LAUNCH_SENT_AT_INVALID`), with UBC IAM’s `reference`. The record moves from `sent` to `submitted`, and the launch checklist says how long it has waited for UBC from that day. Only a registration with the Manifest team is submitted: any other is `409 LAUNCH_TRANSITION_INVALID`. It is never refused for UBC’s order, which was held when its owner sent it. UBC’s answer is recorded later (`recordIamRegistration`). A delegated token is refused `403 TOKEN_CREDENTIAL_REFUSED`; a member who is not an administrator `403 FORBIDDEN`; anyone else is answered `404 NOT_FOUND`.',
+    params: z.strictObject({
+      projectId: PATH.projectId,
+      environment: ENVIRONMENT('was submitted'),
+    }),
+    query: NO_QUERY,
+    body: RecordSubmissionRequest,
+    success: {
+      status: 200,
+      description: 'The registration, now submitted to UBC IAM.',
+      schema: IamRegistration,
+    },
+    capability: 'launch:record',
+    errors: [
+      'NOT_FOUND',
+      'FORBIDDEN',
+      'TOKEN_CREDENTIAL_REFUSED',
+      'LAUNCH_TRANSITION_INVALID',
+      'LAUNCH_SENT_AT_INVALID',
+    ],
+    examples: { request: TEAM_SUBMISSION_REQUEST_EXAMPLE, response: SUBMITTED_EXAMPLE },
+    handler: async ({ deps, request, params, body }) => {
+      // AN ADMINISTRATOR'S RECORD, in their own session: `requireSession` first, as the record routes'.
+      const actor = requireSession(request)
+      await assertCapability(deps.db, actor, params.projectId, 'launch:record')
+      const row = await recordIamSubmission(deps.db, deps.bus, {
+        projectId: params.projectId,
+        environment: params.environment,
+        actor: { id: actor.userId, puid: actor.puid },
+        sentAt: body.sentAt,
+        reference: body.reference,
+      })
+      return toIamRegistration(row, await peopleOf(deps.db, row))
+    },
+  }),
+  defineRoute({
+    operationId: 'submitPrivacyAssessment',
+    credential: 'session',
+    method: 'POST',
+    path: '/v1/projects/{projectId}/launch-records/privacy-assessment/submission',
+    tag: 'launch',
+    summary: 'Record that the Manifest team submitted the privacy assessment',
+    description:
+      'A platform administrator, in their own session, records that the Manifest team submitted the privacy impact assessment its owner sent them to UBC’s Privacy Office — on `sentAt` (today in Vancouver when absent; not after today, and not before its owner sent it to the team, or `400 LAUNCH_SENT_AT_INVALID`), with the Office’s `reference`, the PIA number. The record moves from `sent` to `submitted`; the owner’s answers stay on it. Only an assessment with the Manifest team is submitted: any other is `409 LAUNCH_TRANSITION_INVALID`. The Office’s answer is recorded later (`recordPrivacyAssessment`). A delegated token is refused `403 TOKEN_CREDENTIAL_REFUSED`; a member who is not an administrator `403 FORBIDDEN`; anyone else is answered `404 NOT_FOUND`.',
+    params: z.strictObject({ projectId: PATH.projectId }),
+    query: NO_QUERY,
+    body: RecordSubmissionRequest,
+    success: {
+      status: 200,
+      description: 'The assessment, now submitted to the Privacy Office.',
+      schema: PrivacyAssessment,
+    },
+    capability: 'launch:record',
+    errors: [
+      'NOT_FOUND',
+      'FORBIDDEN',
+      'TOKEN_CREDENTIAL_REFUSED',
+      'LAUNCH_TRANSITION_INVALID',
       'LAUNCH_SENT_AT_INVALID',
     ],
     examples: {
@@ -443,15 +556,88 @@ export const launchRoutes = [
     },
     handler: async ({ deps, request, params, body }) => {
       const actor = requireSession(request)
-      await assertCapability(deps.db, actor, params.projectId, 'launch:submit')
-      const row = await submitPrivacyAssessment(deps.db, deps.bus, {
+      await assertCapability(deps.db, actor, params.projectId, 'launch:record')
+      const row = await recordAssessmentSubmission(deps.db, deps.bus, {
         projectId: params.projectId,
         actor: { id: actor.userId, puid: actor.puid },
         sentAt: body.sentAt,
         reference: body.reference,
-        draftGeneratedAt: body.draftGeneratedAt,
       })
-      return toPrivacyAssessment(row, await submitterOf(deps.db, row.submittedBy))
+      return toPrivacyAssessment(row, await peopleOf(deps.db, row))
+    },
+  }),
+  defineRoute({
+    operationId: 'returnIamRegistration',
+    credential: 'session',
+    method: 'POST',
+    path: '/v1/projects/{projectId}/launch-records/iam-registration/{environment}/return',
+    tag: 'launch',
+    summary: 'Hand a registration back to its owner, unsubmitted',
+    description:
+      'A platform administrator, in their own session, hands the staging or production registration the Manifest team holds back to its owner, unsubmitted: it returns to the state it was sent from (`sentFrom`) — a draft, UBC IAM’s questions to its owner, or a lapsed registration — for its owner to change and send again. Why it came back travels outside the record, as UBC’s questions do. Only a registration with the Manifest team is handed back: any other is `409 LAUNCH_TRANSITION_INVALID`. A delegated token is refused `403 TOKEN_CREDENTIAL_REFUSED`; a member who is not an administrator `403 FORBIDDEN`; anyone else is answered `404 NOT_FOUND`.',
+    params: z.strictObject({
+      projectId: PATH.projectId,
+      environment: ENVIRONMENT('to hand back'),
+    }),
+    query: NO_QUERY,
+    body: NO_BODY,
+    success: {
+      status: 200,
+      description: 'The registration, back with its owner.',
+      schema: IamRegistration,
+    },
+    capability: 'launch:record',
+    errors: [
+      'NOT_FOUND',
+      'FORBIDDEN',
+      'TOKEN_CREDENTIAL_REFUSED',
+      'LAUNCH_TRANSITION_INVALID',
+    ],
+    examples: { response: RETURNED_EXAMPLE },
+    handler: async ({ deps, request, params }) => {
+      const actor = requireSession(request)
+      await assertCapability(deps.db, actor, params.projectId, 'launch:record')
+      const row = await returnIamRegistration(deps.db, deps.bus, {
+        projectId: params.projectId,
+        environment: params.environment,
+        actor: { id: actor.userId, puid: actor.puid },
+      })
+      return toIamRegistration(row, await peopleOf(deps.db, row))
+    },
+  }),
+  defineRoute({
+    operationId: 'returnPrivacyAssessment',
+    credential: 'session',
+    method: 'POST',
+    path: '/v1/projects/{projectId}/launch-records/privacy-assessment/return',
+    tag: 'launch',
+    summary: 'Hand the privacy assessment back to its owner, unsubmitted',
+    description:
+      'A platform administrator, in their own session, hands the privacy impact assessment the Manifest team holds back to its owner, unsubmitted: it is a `draft` again, for its owner to draft again or answer differently and send. Why it came back travels outside the record. Only an assessment with the Manifest team is handed back: any other is `409 LAUNCH_TRANSITION_INVALID`. A delegated token is refused `403 TOKEN_CREDENTIAL_REFUSED`; a member who is not an administrator `403 FORBIDDEN`; anyone else is answered `404 NOT_FOUND`.',
+    params: z.strictObject({ projectId: PATH.projectId }),
+    query: NO_QUERY,
+    body: NO_BODY,
+    success: {
+      status: 200,
+      description: 'The assessment, a draft again.',
+      schema: PrivacyAssessment,
+    },
+    capability: 'launch:record',
+    errors: [
+      'NOT_FOUND',
+      'FORBIDDEN',
+      'TOKEN_CREDENTIAL_REFUSED',
+      'LAUNCH_TRANSITION_INVALID',
+    ],
+    examples: { response: ASSESSMENT_RETURNED_EXAMPLE },
+    handler: async ({ deps, request, params }) => {
+      const actor = requireSession(request)
+      await assertCapability(deps.db, actor, params.projectId, 'launch:record')
+      const row = await returnPrivacyAssessment(deps.db, deps.bus, {
+        projectId: params.projectId,
+        actor: { id: actor.userId, puid: actor.puid },
+      })
+      return toPrivacyAssessment(row, await peopleOf(deps.db, row))
     },
   }),
   defineRoute({

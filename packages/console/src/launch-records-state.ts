@@ -119,7 +119,7 @@ export function registrationActions(
             send: true,
             waiting: false,
             status:
-              'Drafted. Read it, send it to UBC IAM, then say you sent it — with the day and the ticket UBC gives you.',
+              'Drafted. Read it, then send it to the Manifest team, who submit it to UBC IAM.',
           }
         : {
             draft: 'first',
@@ -127,6 +127,14 @@ export function registrationActions(
             waiting: false,
             status: 'Nothing has been drafted yet.',
           }
+    case 'sent':
+      // WITH THE MANIFEST TEAM (the FE-46/47/5 plan's Task 5): theirs to submit or hand back.
+      return {
+        draft: null,
+        send: false,
+        waiting: true,
+        status: `With the Manifest team since ${record.sentAt === null ? 'it was sent' : dayInWords(record.sentAt)}. They submit it to UBC IAM, or hand it back to you.`,
+      }
     case 'submitted':
       return {
         draft: null,
@@ -158,14 +166,15 @@ export function registrationActions(
             send: drafted,
             waiting: false,
             status:
-              'UBC IAM asked for changes. Draft it again, send the new draft, then say you sent it.',
+              'UBC IAM asked for changes. Draft it again, then send the new draft to the Manifest team.',
           }
     case 'expired':
       return {
         draft: 'again',
         send: drafted,
         waiting: false,
-        status: 'The registration lapsed. Draft it again, send it, then say you sent it.',
+        status:
+          'The registration lapsed. Draft it again, then send it to the Manifest team.',
       }
   }
 }
@@ -187,7 +196,14 @@ export function assessmentActions(
         send: true,
         waiting: false,
         status:
-          'Drafted. Fill in what only you can (listed under each question), send it to the UBC Privacy Office, then say you sent it.',
+          'Drafted. Answer what only you can — each gap, under its question — then send it to the Manifest team, who submit it to the UBC Privacy Office.',
+      }
+    case 'sent':
+      return {
+        draft: null,
+        send: false,
+        waiting: true,
+        status: `With the Manifest team since ${record.sentAt === null ? 'it was sent' : dayInWords(record.sentAt)}. They submit it to the UBC Privacy Office, or hand it back to you.`,
       }
     case 'submitted':
       return {

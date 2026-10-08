@@ -1529,10 +1529,14 @@ export const IAM_REGISTRATION: Schemas['IamRegistration'] = {
   // The launch path plan's Task 12: set only while `change_requested`.
   changeRequestedFrom: null,
   externalTicketRef: 'IAM-2026-0412',
-  // The launch path plan's Task 9: when its owner said it was sent, and who — after staging was
-  // registered, IN UBC'S ORDER (see `PRIVACY_ASSESSMENT`).
+  // The FE-46/47/5 plan's Task 5: its owner sent it to the Manifest team the morning of the 10th —
+  // after staging was registered, IN UBC'S ORDER (see `PRIVACY_ASSESSMENT`) — and the team submitted
+  // it to UBC IAM the same day, which an administrator recorded.
+  sentFrom: null,
+  sentAt: '2026-09-10T16:45:00.000Z',
+  sentBy: { id: USER_ID, displayName: 'Instructor One' },
   submittedAt: '2026-09-10T19:00:00.000Z',
-  submittedBy: { id: USER_ID, displayName: 'Instructor One' },
+  submittedBy: { id: OPERATOR_ID, displayName: 'Operator One' },
   // WHAT WAS SENT (the launch path plan's Tasks 10 and 13): the platform keeps the package a person
   // sent, drafted the morning of the day they sent it.
   package: registrationPackage('production', 'sent', '2026-09-10T16:30:00.000Z'),
@@ -1557,13 +1561,55 @@ export const STAGING_REGISTRATION: Schemas['IamRegistration'] = {
   state: 'active',
   changeRequestedFrom: null,
   externalTicketRef: 'IAM-2026-0398',
-  // Sent the day after the assessment was approved — the order the platform gates the owner in.
+  // Sent the day after the assessment was approved — the order the platform gates the owner in — and
+  // submitted by the Manifest team the same day.
+  sentFrom: null,
+  sentAt: '2026-09-06T16:45:00.000Z',
+  sentBy: { id: USER_ID, displayName: 'Instructor One' },
   submittedAt: '2026-09-06T19:00:00.000Z',
-  submittedBy: { id: USER_ID, displayName: 'Instructor One' },
+  submittedBy: { id: OPERATOR_ID, displayName: 'Operator One' },
   package: registrationPackage('staging', 'sent', '2026-09-06T16:30:00.000Z'),
   createdAt: '2026-09-05T00:00:00.000Z',
   updatedAt: '2026-09-09T00:00:00.000Z',
 }
+
+/**
+ * THE OWNER'S ANSWER TO EACH GAP of the draft sent on the 18th, in the draft's order — what the Manifest
+ * team carried into the Privacy Office's form. *"Does not apply"* is an answer.
+ */
+export const ASSESSMENT_ANSWERS_SENT: { gapId: string; answer: string }[] = [
+  {
+    gapId: 'collected.app-data',
+    answer:
+      'Each student’s check-in times and the course section they chose; nothing else.',
+  },
+  {
+    gapId: 'stored.staging-cover',
+    answer:
+      'The Privacy Office said on September 17 that this assessment covers staging.',
+  },
+  {
+    gapId: 'retention.declare',
+    answer:
+      'Does not apply: the course keeps its records for one term, then deletes the app.',
+  },
+  {
+    gapId: 'retention.disposal',
+    answer: 'At the end of term the instructor exports the records and deletes the app.',
+  },
+  {
+    gapId: 'accountable.breach',
+    answer: 'The instructor answers for it, with the department’s IT lead.',
+  },
+  {
+    gapId: 'hosting.production',
+    answer: 'Does not apply until UBC chooses where it runs.',
+  },
+  {
+    gapId: 'hosting.offshore-ai',
+    answer: 'The app sends the model a course code and a question, never a name.',
+  },
+]
 
 /**
  * STILL WITH THE PRIVACY OFFICE — AND SENT AGAIN, IN UBC'S ORDER (the launch path plan's Task 9, the
@@ -1579,8 +1625,13 @@ export const PRIVACY_ASSESSMENT: Schemas['PrivacyAssessment'] = {
   reviewer: 'UBC Privacy Office',
   approvedAt: null,
   externalTicketRef: 'PIA-2026-0088',
+  // Sent to the Manifest team again on the morning of the 18th, with an answer to every gap, and
+  // submitted to the Privacy Office by the team the same day (the FE-46/47/5 plan's Task 5).
+  sentAt: '2026-09-18T16:45:00.000Z',
+  sentBy: { id: USER_ID, displayName: 'Instructor One' },
+  gapAnswers: ASSESSMENT_ANSWERS_SENT,
   submittedAt: '2026-09-18T19:00:00.000Z',
-  submittedBy: { id: USER_ID, displayName: 'Instructor One' },
+  submittedBy: { id: OPERATOR_ID, displayName: 'Operator One' },
   // WHAT WAS SENT AGAIN on the 18th (the launch path plan's Tasks 11 and 13): the platform keeps the
   // draft a person sent.
   draft: ASSESSMENT_DRAFT_SENT,

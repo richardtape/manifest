@@ -1,13 +1,16 @@
 import { randomUUID, X509Certificate } from 'node:crypto'
 import { and, asc, eq } from 'drizzle-orm'
 import pg from 'pg'
-import { describe, expect, it } from 'vitest'
-import { events } from '../db/index.js'
+import { describe, expect, it, vi } from 'vitest'
+import { events, privacyAssessments } from '../db/index.js'
 import { resetDatabase } from '../db/testing.js'
 import { ensureTestUser } from '../identity/testing.js'
+import { createMailer } from '../mail/index.js'
+import { recordingMailer } from '../mail/testing.js'
 import { addMember } from '../projects/index.js'
 import { writeFiles } from '../source/testing.js'
 import {
+  everyGapAnswered,
   vancouverDaysAgo,
   vancouverToday,
   withAssessmentDraft,
@@ -86,20 +89,25 @@ const stagingActive = async (ctx: TestProject) => {
     })
 }
 
-function submit(
+type Credentials = { cookies?: Record<string, string>; bearer?: string }
+type Record3 = 'staging' | 'production' | 'privacy-assessment'
+
+/** One launch record's own path: the assessment's, or a registration's for one environment. */
+const recordPath = (ctx: TestProject, what: Record3) =>
+  what === 'privacy-assessment'
+    ? `/v1/projects/${ctx.projectId}/launch-records/privacy-assessment`
+    : `/v1/projects/${ctx.projectId}/launch-records/iam-registration/${what}`
+
+function postTo(
+  url: string,
   ctx: TestProject,
-  what: 'staging' | 'production' | 'privacy-assessment',
-  body: Json,
-  credentials: { cookies?: Record<string, string>; bearer?: string },
+  body: Json | undefined,
+  credentials: Credentials,
 ) {
-  const url =
-    what === 'privacy-assessment'
-      ? `/v1/projects/${ctx.projectId}/launch-records/privacy-assessment/submission`
-      : `/v1/projects/${ctx.projectId}/launch-records/iam-registration/${what}/submission`
   return ctx.app.inject({
     method: 'POST',
     url,
-    payload: body,
+    ...(body === undefined ? {} : { payload: body }),
     ...(credentials.cookies === undefined ? {} : { cookies: credentials.cookies }),
     headers: {
       ...mutationHeaders(ctx.deps),
@@ -109,6 +117,34 @@ function submit(
     },
   })
 }
+
+/** The owner's send to the Manifest team (`sendIamRegistration`, `sendPrivacyAssessment`). */
+const send = (ctx: TestProject, what: Record3, body: Json, credentials: Credentials) =>
+  postTo(`${recordPath(ctx, what)}/send`, ctx, body, credentials)
+
+/** The team's record that it submitted the record to UBC (`submitIamRegistration`, `submitPrivacyAssessment`). */
+const teamSubmits = (
+  ctx: TestProject,
+  what: Record3,
+  body: Json,
+  credentials: Credentials,
+) => postTo(`${recordPath(ctx, what)}/submission`, ctx, body, credentials)
+
+/** The team's hand-back (`returnIamRegistration`, `returnPrivacyAssessment`). */
+const handsBack = (ctx: TestProject, what: Record3, credentials: Credentials) =>
+  postTo(`${recordPath(ctx, what)}/return`, ctx, undefined, credentials)
+
+/** An answer for every gap of the assessment's stored draft, as the owner's send carries them. */
+async function answersFor(ctx: TestProject, answer = 'does not apply') {
+  return everyGapAnswered(
+    ((await records(ctx)).privacyAssessment as { draft: unknown } | null)?.draft,
+    answer,
+  )
+}
+
+/** What the unit tier's server told the Manifest team (`recordingMailer`). */
+const toldTeam = (ctx: TestProject) =>
+  (ctx.deps.mailer as ReturnType<typeof recordingMailer>).told
 
 async function readiness(ctx: TestProject) {
   const res = await ctx.app.inject({
@@ -135,34 +171,65 @@ async function records(ctx: TestProject) {
   }
 }
 
-describe('an owner says “I’ve sent it” (Task 9)', () => {
-  it('an owner says the production registration was sent; it waits since that day, and the checklist says so', async () => {
+const MAIL_CONFIG = {
+  mail: {
+    smtp: { host: '127.0.0.1', port: 1, secure: false, requireTLS: false, auth: null },
+    team: 'team@manifest.internal',
+    from: 'Manifest <manifest@manifest.internal>',
+  },
+  sp: { origin: 'https://console.manifest.internal' },
+}
+
+describe('the owner sends each record to the Manifest team, which submits it to UBC (FE-46/47/5 plan Task 5)', () => {
+  it('the production registration: the owner sends it, the team submits it, and it waits from the team’s day — the checklist says so', async () => {
     await withProjectServer(async (ctx) => {
       await piaApproved(ctx)
       await stagingActive(ctx)
       await withDraft(ctx.db, { projectId: ctx.projectId, environment: 'production' })
+      const sent = await send(ctx, 'production', {}, { cookies: ctx.ownerCookies })
+      expect(sent.statusCode, sent.body).toBe(200)
+      expect(sent.json()).toMatchObject({
+        environment: 'production',
+        state: 'sent',
+        sentFrom: 'draft',
+        sentAt: expect.any(String),
+        sentBy: { id: ctx.userId, displayName: 'Bio Prof' },
+        submittedAt: null,
+        submittedBy: null,
+      })
+      expect(toldTeam(ctx)).toEqual([
+        expect.objectContaining({
+          kind: 'record-sent',
+          record: 'production-registration',
+          change: false,
+          by: 'Bio Prof',
+        }),
+      ])
       const today = vancouverToday()
-      const res = await submit(
+      const admin = await loginAs(ctx.deps, 'platform_admin')
+      const submitted = await teamSubmits(
         ctx,
         'production',
         { sentAt: today, reference: 'IAM-2026-0500' },
-        { cookies: ctx.ownerCookies },
+        { cookies: admin },
       )
-      expect(res.statusCode, res.body).toBe(200)
-      const sentAt = vancouverNoon(today).toISOString()
-      expect(res.json()).toMatchObject({
-        environment: 'production',
+      expect(submitted.statusCode, submitted.body).toBe(200)
+      const submittedAt = vancouverNoon(today).toISOString()
+      expect(submitted.json()).toMatchObject({
         state: 'submitted',
-        submittedAt: sentAt,
-        submittedBy: { id: ctx.userId, displayName: 'Bio Prof' },
+        sentFrom: null,
+        sentAt: (sent.json() as Json).sentAt,
+        sentBy: { displayName: 'Bio Prof' },
+        submittedAt,
+        submittedBy: { displayName: 'Platform Admin' },
         externalTicketRef: 'IAM-2026-0500',
       })
       const item = (await readiness(ctx)).items.find((i) => i.id === 'iam-registration')!
-      expect(item).toMatchObject({ state: 'unmet', since: sentAt })
+      expect(item).toMatchObject({ state: 'unmet', since: submittedAt })
       const inWords = new Intl.DateTimeFormat('en-CA', {
         dateStyle: 'long',
         timeZone: 'America/Vancouver',
-      }).format(new Date(sentAt))
+      }).format(new Date(submittedAt))
       expect(item.why).toContain(`sent to UBC IAM on ${inWords}`)
       // ONE READ, BOTH REGISTRATIONS: staging is its own record, beside production's.
       const both = await records(ctx)
@@ -175,106 +242,223 @@ describe('an owner says “I’ve sent it” (Task 9)', () => {
         state: 'active',
       })
       expect(both.stagingRegistration?.id).not.toBe(both.iamRegistration?.id)
-      expect(both.iamRegistration?.createdAt).toEqual(expect.any(String))
     })
   })
 
-  it('an owner says the privacy assessment was sent; it waits since that day', async () => {
+  it('the privacy assessment: sent with an answer to every gap, kept on the record; the team submits it with the PIA number', async () => {
     await withProjectServer(async (ctx) => {
       await withAssessmentDraft(ctx.db, { projectId: ctx.projectId })
-      const res = await submit(
+      const answers = await answersFor(ctx)
+      const sent = await send(
+        ctx,
+        'privacy-assessment',
+        { answers },
+        { cookies: ctx.ownerCookies },
+      )
+      expect(sent.statusCode, sent.body).toBe(200)
+      expect(sent.json()).toMatchObject({
+        state: 'sent',
+        sentBy: { displayName: 'Bio Prof' },
+        gapAnswers: answers,
+        submittedAt: null,
+      })
+      const admin = await loginAs(ctx.deps, 'platform_admin')
+      const submitted = await teamSubmits(
         ctx,
         'privacy-assessment',
         { reference: 'PIA-2026-0101' },
-        { cookies: ctx.ownerCookies },
+        { cookies: admin },
       )
-      expect(res.statusCode, res.body).toBe(200)
-      const sentAt = vancouverNoon(vancouverToday()).toISOString()
-      expect(res.json()).toMatchObject({
+      expect(submitted.statusCode, submitted.body).toBe(200)
+      const submittedAt = vancouverNoon(vancouverToday()).toISOString()
+      expect(submitted.json()).toMatchObject({
         state: 'submitted',
-        submittedAt: sentAt,
-        submittedBy: { displayName: 'Bio Prof' },
+        submittedAt,
+        submittedBy: { displayName: 'Platform Admin' },
         externalTicketRef: 'PIA-2026-0101',
+        gapAnswers: answers,
       })
       const item = (await readiness(ctx)).items.find(
         (i) => i.id === 'privacy-assessment',
       )!
-      expect(item).toMatchObject({ state: 'unmet', since: sentAt })
+      expect(item).toMatchObject({ state: 'unmet', since: submittedAt })
     })
   })
 
-  it('refuses a submission with no draft — 409 LAUNCH_DRAFT_REQUIRED', async () => {
+  it('refuses a send with no draft — 409 LAUNCH_DRAFT_REQUIRED', async () => {
     await withProjectServer(async (ctx) => {
       await piaApproved(ctx)
-      const refused = await submit(ctx, 'staging', {}, { cookies: ctx.ownerCookies })
+      const refused = await send(ctx, 'staging', {}, { cookies: ctx.ownerCookies })
       expect(refusal(refused)).toEqual({ status: 409, code: 'LAUNCH_DRAFT_REQUIRED' })
       expect((await records(ctx)).stagingRegistration).toBeNull()
       // THE POSITIVE CONTROL: the same request once the draft exists.
       await withDraft(ctx.db, { projectId: ctx.projectId, environment: 'staging' })
-      const sent = await submit(ctx, 'staging', {}, { cookies: ctx.ownerCookies })
+      const sent = await send(ctx, 'staging', {}, { cookies: ctx.ownerCookies })
       expect(refusal(sent)).toEqual({ status: 200, code: undefined })
     })
   })
 
-  it('refuses a sentAt in the future, or before the draft — 400 LAUNCH_SENT_AT_INVALID — and one not a date — 400 REQUEST_INVALID', async () => {
+  it('the answers: more than 64, or one over 2,000 characters, refused by the schema — 400 REQUEST_INVALID; one gap left out — 400 LAUNCH_GAP_ANSWERS_INVALID; nothing written', async () => {
     await withProjectServer(async (ctx) => {
-      await piaApproved(ctx)
-      await withDraft(ctx.db, { projectId: ctx.projectId, environment: 'staging' })
+      await withAssessmentDraft(ctx.db, { projectId: ctx.projectId })
+      const answers = await answersFor(ctx)
       const as = { cookies: ctx.ownerCookies }
+      const tooMany = Array.from({ length: 65 }, (_, i) => ({
+        gapId: `collected.extra-${i}`,
+        answer: 'x',
+      }))
       expect(
-        refusal(await submit(ctx, 'staging', { sentAt: vancouverDaysAgo(-2) }, as)),
-      ).toEqual({ status: 400, code: 'LAUNCH_SENT_AT_INVALID' })
-      expect(
-        refusal(await submit(ctx, 'staging', { sentAt: vancouverDaysAgo(9) }, as)),
-      ).toEqual({ status: 400, code: 'LAUNCH_SENT_AT_INVALID' })
-      expect(
-        refusal(await submit(ctx, 'staging', { sentAt: 'last Tuesday' }, as)),
+        refusal(await send(ctx, 'privacy-assessment', { answers: tooMany }, as)),
       ).toEqual({
         status: 400,
         code: 'REQUEST_INVALID',
       })
-      // The whole-branch review's I2: shaped like a day and not one — refused, never rolled over to
-      // March 2 (or to a month before the draft).
-      for (const impossible of ['2026-02-30', '2026-00-15', '2025-13-01'])
-        expect(
-          refusal(await submit(ctx, 'staging', { sentAt: impossible }, as)),
-          impossible,
-        ).toEqual({ status: 400, code: 'REQUEST_INVALID' })
-      // Positive control: today.
+      const tooLong = [{ ...answers[0]!, answer: 'x'.repeat(2_001) }, ...answers.slice(1)]
       expect(
-        refusal(await submit(ctx, 'staging', { sentAt: vancouverToday() }, as)),
-      ).toEqual({ status: 200, code: undefined })
+        refusal(await send(ctx, 'privacy-assessment', { answers: tooLong }, as)),
+      ).toEqual({
+        status: 400,
+        code: 'REQUEST_INVALID',
+      })
+      expect(refusal(await send(ctx, 'privacy-assessment', {}, as))).toEqual({
+        status: 400,
+        code: 'REQUEST_INVALID',
+      })
+      const missing = await send(
+        ctx,
+        'privacy-assessment',
+        { answers: answers.slice(1) },
+        as,
+      )
+      expect(refusal(missing)).toEqual({
+        status: 400,
+        code: 'LAUNCH_GAP_ANSWERS_INVALID',
+      })
+      expect((missing.json() as { error: { message: string } }).error.message).toContain(
+        answers[0]!.gapId,
+      )
+      expect((await records(ctx)).privacyAssessment).toMatchObject({
+        state: 'draft',
+        sentAt: null,
+        gapAnswers: null,
+      })
+      expect(toldTeam(ctx)).toEqual([])
+      // THE POSITIVE CONTROL: every gap answered, 2,000 characters at most.
+      const exact = [{ ...answers[0]!, answer: 'y'.repeat(2_000) }, ...answers.slice(1)]
+      expect(
+        refusal(await send(ctx, 'privacy-assessment', { answers: exact }, as)),
+      ).toEqual({
+        status: 200,
+        code: undefined,
+      })
     })
   })
 
-  it('refuses a token outright — TOKEN_CREDENTIAL_REFUSED, before the project is read — and a collaborator may submit', async () => {
+  it('the team’s day: after today, or before the owner sent it — 400 LAUNCH_SENT_AT_INVALID; not a day, or no reference — 400 REQUEST_INVALID', async () => {
     await withProjectServer(async (ctx) => {
       await piaApproved(ctx)
       await withDraft(ctx.db, { projectId: ctx.projectId, environment: 'staging' })
+      expect(
+        (await send(ctx, 'staging', {}, { cookies: ctx.ownerCookies })).statusCode,
+      ).toBe(200)
+      const admin = { cookies: await loginAs(ctx.deps, 'platform_admin') }
+      const submit = (body: Json) => teamSubmits(ctx, 'staging', body, admin)
+      expect(
+        refusal(await submit({ sentAt: vancouverDaysAgo(-2), reference: 'I-1' })),
+      ).toEqual({
+        status: 400,
+        code: 'LAUNCH_SENT_AT_INVALID',
+      })
+      // Sent today, so yesterday is before the owner's send.
+      expect(
+        refusal(await submit({ sentAt: vancouverDaysAgo(1), reference: 'I-1' })),
+      ).toEqual({
+        status: 400,
+        code: 'LAUNCH_SENT_AT_INVALID',
+      })
+      for (const sentAt of ['last Tuesday', '2026-02-30', '2026-00-15'])
+        expect(refusal(await submit({ sentAt, reference: 'I-1' })), sentAt).toEqual({
+          status: 400,
+          code: 'REQUEST_INVALID',
+        })
+      expect(refusal(await submit({}))).toEqual({ status: 400, code: 'REQUEST_INVALID' })
+      expect((await records(ctx)).stagingRegistration).toMatchObject({ state: 'sent' })
+      // Positive control: today, with UBC's reference.
+      expect(
+        refusal(await submit({ sentAt: vancouverToday(), reference: 'I-1' })),
+      ).toEqual({
+        status: 200,
+        code: undefined,
+      })
+    })
+  })
+
+  it('a token is refused all six — 403 TOKEN_CREDENTIAL_REFUSED; a collaborator may send; only an administrator submits or hands back — 403 FORBIDDEN', async () => {
+    await withProjectServer(async (ctx) => {
+      await piaApproved(ctx)
+      await withDraft(ctx.db, { projectId: ctx.projectId, environment: 'staging' })
+      await withAssessmentDraft(ctx.db, { projectId: ctx.projectId })
+      const answers = await answersFor(ctx)
       const owner = await ensureTestUser(ctx.db, 'bio_prof')
-      // A token row HOLDING `launch:submit` — written directly, since the mint route refuses it.
+      // A token row HOLDING both capabilities — written directly, since the mint route refuses them.
       const { plaintext } = await mintTestToken(ctx.db, {
         userId: owner.id,
         projectId: ctx.projectId,
-        capabilities: ['project:read', 'launch:submit'],
+        capabilities: ['project:read', 'launch:submit', 'launch:record'],
       })
-      expect(refusal(await submit(ctx, 'staging', {}, { bearer: plaintext }))).toEqual({
-        status: 403,
-        code: 'TOKEN_CREDENTIAL_REFUSED',
-      })
-      expect((await records(ctx)).stagingRegistration).toMatchObject({ state: 'draft' })
+      const token = { bearer: plaintext }
+      const TOKEN = { status: 403, code: 'TOKEN_CREDENTIAL_REFUSED' }
+      expect(refusal(await send(ctx, 'staging', {}, token))).toEqual(TOKEN)
+      expect(refusal(await send(ctx, 'privacy-assessment', { answers }, token))).toEqual(
+        TOKEN,
+      )
+      for (const what of ['staging', 'privacy-assessment'] as const) {
+        expect(
+          refusal(await teamSubmits(ctx, what, { reference: 'X-1' }, token)),
+        ).toEqual(TOKEN)
+        expect(refusal(await handsBack(ctx, what, token))).toEqual(TOKEN)
+      }
+      const before = await records(ctx)
+      expect(before.stagingRegistration).toMatchObject({ state: 'draft' })
+      expect(before.privacyAssessment).toMatchObject({ state: 'approved' })
+      // A COLLABORATOR may send — `launch:submit` is every member's.
       const collaborator = await sessionFor(ctx, 'bio_colleague', 'collaborator')
-      const sent = await submit(ctx, 'staging', {}, { cookies: collaborator })
+      const sent = await send(ctx, 'staging', {}, { cookies: collaborator })
       expect(sent.statusCode, sent.body).toBe(200)
-      expect(sent.json()).toMatchObject({ submittedBy: { displayName: 'Bio Colleague' } })
+      expect(sent.json()).toMatchObject({ sentBy: { displayName: 'Bio Colleague' } })
+      // THE OWNER AND A COLLABORATOR may not record the team's step: it is an administrator's.
+      for (const who of [ctx.ownerCookies, collaborator]) {
+        expect(
+          refusal(
+            await teamSubmits(ctx, 'staging', { reference: 'X-2' }, { cookies: who }),
+          ),
+        ).toEqual({ status: 403, code: 'FORBIDDEN' })
+        expect(refusal(await handsBack(ctx, 'staging', { cookies: who }))).toEqual({
+          status: 403,
+          code: 'FORBIDDEN',
+        })
+      }
+      expect((await records(ctx)).stagingRegistration).toMatchObject({ state: 'sent' })
+      // THE POSITIVE CONTROL: an administrator hands it back.
+      const admin = { cookies: await loginAs(ctx.deps, 'platform_admin') }
+      expect(refusal(await handsBack(ctx, 'staging', admin))).toEqual({
+        status: 200,
+        code: undefined,
+      })
     })
   })
 
   it('a stranger is answered 404 NOT_FOUND, and learns nothing', async () => {
     await withProjectServer(async (ctx) => {
       await withDraft(ctx.db, { projectId: ctx.projectId, environment: 'staging' })
-      const stranger = await sessionFor(ctx, 'unrelated_user')
-      expect(refusal(await submit(ctx, 'staging', {}, { cookies: stranger }))).toEqual({
+      const stranger = { cookies: await sessionFor(ctx, 'unrelated_user') }
+      expect(refusal(await send(ctx, 'staging', {}, stranger))).toEqual({
+        status: 404,
+        code: 'NOT_FOUND',
+      })
+      expect(
+        refusal(await teamSubmits(ctx, 'staging', { reference: 'X' }, stranger)),
+      ).toEqual({
         status: 404,
         code: 'NOT_FOUND',
       })
@@ -286,60 +470,192 @@ describe('an owner says “I’ve sent it” (Task 9)', () => {
       await withDraft(ctx.db, { projectId: ctx.projectId, environment: 'staging' })
       await withDraft(ctx.db, { projectId: ctx.projectId, environment: 'production' })
       const as = { cookies: ctx.ownerCookies }
-      expect(refusal(await submit(ctx, 'staging', {}, as))).toEqual({
+      expect(refusal(await send(ctx, 'staging', {}, as))).toEqual({
         status: 409,
         code: 'LAUNCH_PIA_NOT_APPROVED',
       })
-      // The whole-branch review's I3: "neither of an app's registrations is sent until the assessment
-      // is approved" — production's waits for it FIRST, before staging's.
-      expect(refusal(await submit(ctx, 'production', {}, as))).toEqual({
+      expect(refusal(await send(ctx, 'production', {}, as))).toEqual({
         status: 409,
         code: 'LAUNCH_PIA_NOT_APPROVED',
       })
       await piaApproved(ctx)
-      expect(refusal(await submit(ctx, 'production', {}, as))).toEqual({
+      expect(refusal(await send(ctx, 'production', {}, as))).toEqual({
         status: 409,
         code: 'LAUNCH_STAGING_NOT_REGISTERED',
       })
-      // Task 10's review, I2: these drafts were made before the assessment was approved, so they do
-      // not carry the PIA number UBC IAM asks for — drafted again, they do.
-      expect(refusal(await submit(ctx, 'staging', {}, as))).toEqual({
+      expect(refusal(await send(ctx, 'staging', {}, as))).toEqual({
         status: 409,
         code: 'LAUNCH_DRAFT_STALE',
       })
       await withDraft(ctx.db, { projectId: ctx.projectId, environment: 'staging' })
       await withDraft(ctx.db, { projectId: ctx.projectId, environment: 'production' })
-      expect(refusal(await submit(ctx, 'staging', {}, as))).toEqual({
+      expect(refusal(await send(ctx, 'staging', {}, as))).toEqual({
         status: 200,
         code: undefined,
       })
       // Sent is not registered: production still waits.
-      expect(refusal(await submit(ctx, 'production', {}, as))).toEqual({
+      expect(refusal(await send(ctx, 'production', {}, as))).toEqual({
         status: 409,
         code: 'LAUNCH_STAGING_NOT_REGISTERED',
       })
+      const admin = { cookies: await loginAs(ctx.deps, 'platform_admin') }
+      await teamSubmits(ctx, 'staging', { reference: 'IAM-S' }, admin)
       await adminRecords(ctx, 'iam-registration', {
         ...IAM_BODY(ctx, 'staging'),
         environment: 'staging',
         state: 'active',
       })
-      expect(refusal(await submit(ctx, 'production', {}, as))).toEqual({
+      expect(refusal(await send(ctx, 'production', {}, as))).toEqual({
         status: 200,
         code: undefined,
       })
     })
   })
 
-  it('refuses a second submission of a submitted record — 409 LAUNCH_TRANSITION_INVALID', async () => {
+  it('a second send, a submission or hand-back of what the team does not hold — 409 LAUNCH_TRANSITION_INVALID', async () => {
     await withProjectServer(async (ctx) => {
       await withAssessmentDraft(ctx.db, { projectId: ctx.projectId })
+      const answers = await answersFor(ctx)
       const as = { cookies: ctx.ownerCookies }
-      expect(refusal(await submit(ctx, 'privacy-assessment', {}, as)).status).toBe(200)
-      expect(refusal(await submit(ctx, 'privacy-assessment', {}, as))).toEqual({
-        status: 409,
-        code: 'LAUNCH_TRANSITION_INVALID',
-      })
+      const admin = { cookies: await loginAs(ctx.deps, 'platform_admin') }
+      const TRANSITION = { status: 409, code: 'LAUNCH_TRANSITION_INVALID' }
+      expect(
+        refusal(await teamSubmits(ctx, 'privacy-assessment', { reference: 'P' }, admin)),
+      ).toEqual(TRANSITION)
+      expect(refusal(await handsBack(ctx, 'privacy-assessment', admin))).toEqual(
+        TRANSITION,
+      )
+      expect(refusal(await send(ctx, 'privacy-assessment', { answers }, as)).status).toBe(
+        200,
+      )
+      expect(refusal(await send(ctx, 'privacy-assessment', { answers }, as))).toEqual(
+        TRANSITION,
+      )
     })
+  })
+
+  it('the administrator’s record never reaches `sent` — the schema refuses it, 400 REQUEST_INVALID — and never leaves it, 409 LAUNCH_TRANSITION_INVALID', async () => {
+    await withProjectServer(async (ctx) => {
+      await piaApproved(ctx)
+      const draft = await withDraft(ctx.db, {
+        projectId: ctx.projectId,
+        environment: 'staging',
+      })
+      const admin = await loginAs(ctx.deps, 'platform_admin')
+      const record = (state: string) =>
+        ctx.app.inject({
+          method: 'POST',
+          url: `/v1/projects/${ctx.projectId}/launch-records/iam-registration`,
+          payload: {
+            environment: 'staging',
+            entityId: draft.entityId,
+            acsUrl: draft.acsUrl,
+            sloUrl: draft.sloUrl,
+            registeredAttributes: ['ubcEduCwlPuid', 'mail'],
+            state,
+          },
+          cookies: admin,
+          headers: mutationHeaders(ctx.deps),
+        })
+      expect(refusal(await record('sent'))).toEqual({
+        status: 400,
+        code: 'REQUEST_INVALID',
+      })
+      expect(
+        (await send(ctx, 'staging', {}, { cookies: ctx.ownerCookies })).statusCode,
+      ).toBe(200)
+      const out = await record('active')
+      expect(refusal(out)).toEqual({ status: 409, code: 'LAUNCH_TRANSITION_INVALID' })
+      expect((out.json() as { error: { message: string } }).error.message).toMatch(
+        /submitIamRegistration/,
+      )
+      expect((await records(ctx)).stagingRegistration).toMatchObject({ state: 'sent' })
+    })
+  })
+
+  it('handed back and sent again: the team’s day is bounded by the SECOND send, and it waits from it (Review Focus 1)', async () => {
+    await withProjectServer(async (ctx) => {
+      await withAssessmentDraft(ctx.db, { projectId: ctx.projectId })
+      const answers = await answersFor(ctx)
+      const as = { cookies: ctx.ownerCookies }
+      const admin = { cookies: await loginAs(ctx.deps, 'platform_admin') }
+      expect((await send(ctx, 'privacy-assessment', { answers }, as)).statusCode).toBe(
+        200,
+      )
+      // The first send was four days ago; handed back; sent again today.
+      await ctx.db
+        .update(privacyAssessments)
+        .set({ sentAt: new Date(Date.now() - 4 * 86_400_000) })
+        .where(eq(privacyAssessments.projectId, ctx.projectId))
+      const back = await handsBack(ctx, 'privacy-assessment', admin)
+      expect(back.statusCode, back.body).toBe(200)
+      expect(back.json()).toMatchObject({ state: 'draft' })
+      const again = await send(
+        ctx,
+        'privacy-assessment',
+        { answers: await answersFor(ctx, 'the second answer') },
+        as,
+      )
+      expect(again.statusCode, again.body).toBe(200)
+      expect(
+        (again.json() as { gapAnswers: { answer: string }[] }).gapAnswers[0]!.answer,
+      ).toBe('the second answer')
+      expect(
+        refusal(
+          await teamSubmits(
+            ctx,
+            'privacy-assessment',
+            { sentAt: vancouverDaysAgo(2), reference: 'P-1' },
+            admin,
+          ),
+        ),
+      ).toEqual({ status: 400, code: 'LAUNCH_SENT_AT_INVALID' })
+      expect(
+        refusal(
+          await teamSubmits(ctx, 'privacy-assessment', { reference: 'P-1' }, admin),
+        ),
+      ).toEqual({ status: 200, code: undefined })
+      // Told twice — once per send — and never of the hand-back.
+      expect(toldTeam(ctx).map((n) => n.kind)).toEqual(['record-sent', 'record-sent'])
+    })
+  })
+
+  it('an email that cannot be delivered never undoes the send — 200, sent, and one operator line', async () => {
+    const lines: unknown[] = []
+    const spy = vi.spyOn(console, 'error').mockImplementation((line: unknown) => {
+      lines.push(line)
+    })
+    try {
+      const mailer = createMailer(MAIL_CONFIG, {
+        sendMail: async () => {
+          throw Object.assign(new Error('refused'), { code: 'ESOCKET' })
+        },
+      } as never)
+      await withProjectServer(
+        async (ctx) => {
+          await piaApproved(ctx)
+          await withDraft(ctx.db, { projectId: ctx.projectId, environment: 'staging' })
+          const sent = await send(ctx, 'staging', {}, { cookies: ctx.ownerCookies })
+          expect(sent.statusCode, sent.body).toBe(200)
+          await mailer.settled()
+          expect((await records(ctx)).stagingRegistration).toMatchObject({
+            state: 'sent',
+          })
+          const mailLines = lines
+            .map((l) => String(l))
+            .filter((l) => l.includes('the Manifest team could not be emailed'))
+          expect(mailLines).toHaveLength(1)
+          expect(JSON.parse(mailLines[0]!)).toMatchObject({
+            notice: 'record-sent',
+            projectId: ctx.projectId,
+            error: 'ESOCKET',
+          })
+        },
+        { mailer },
+      )
+    } finally {
+      spy.mockRestore()
+    }
   })
 })
 
@@ -399,8 +715,8 @@ describe('UBC’s answers stay an administrator’s record (Task 9)', () => {
  * the submission is sent, and the holder changes the row and COMMITS once the submission is seen
  * waiting on it. Each case's positive control is the earlier tests' same submission, unheld.
  */
-describe('a submission and an administrator’s write cannot interleave (the whole-branch review’s I1)', () => {
-  it('a registration moved to submitted while the owner’s submission waits is not submitted again — 409 LAUNCH_TRANSITION_INVALID, the first stamp kept', async () => {
+describe('a send and an administrator’s write cannot interleave (the whole-branch review’s I1)', () => {
+  it('a registration moved to submitted while the owner’s send waits is not sent — 409 LAUNCH_TRANSITION_INVALID, the first stamp kept', async () => {
     await withProjectServer(async (ctx) => {
       await piaApproved(ctx)
       const draft = await withDraft(ctx.db, {
@@ -408,14 +724,14 @@ describe('a submission and an administrator’s write cannot interleave (the who
         environment: 'staging',
       })
       const first = '2026-09-01T19:00:00.000Z'
-      let answered: Awaited<ReturnType<typeof submit>> | undefined
+      let answered: Awaited<ReturnType<typeof send>> | undefined
       await holdingThen(
         'SELECT 1 FROM iam_registrations WHERE id = $1 FOR UPDATE',
         [draft.id],
         // What an administrator's record of the request does in the window.
         `UPDATE iam_registrations SET state = 'submitted', submitted_at = '${first}' WHERE id = '${draft.id}'`,
         async (lock) => {
-          const submitting = submit(ctx, 'staging', {}, { cookies: ctx.ownerCookies })
+          const submitting = send(ctx, 'staging', {}, { cookies: ctx.ownerCookies })
           await until(
             () => lock.waitedOn('%iam_registrations%'),
             'the submission waiting on the held registration',
@@ -430,22 +746,22 @@ describe('a submission and an administrator’s write cannot interleave (the who
       })
       const staging = (await records(ctx)).stagingRegistration
       expect(staging).toMatchObject({ state: 'submitted', submittedAt: first })
-      expect(await submittedEvents(ctx)).toBe(0)
+      expect(await eventCount(ctx, 'iam_registration.sent')).toBe(0)
     })
   })
 
-  it('an assessment moved back to draft while the staging submission waits refuses it — 409 LAUNCH_PIA_NOT_APPROVED', async () => {
+  it('an assessment moved back to draft while the staging send waits refuses it — 409 LAUNCH_PIA_NOT_APPROVED', async () => {
     await withProjectServer(async (ctx) => {
       await piaApproved(ctx)
       await withDraft(ctx.db, { projectId: ctx.projectId, environment: 'staging' })
-      let answered: Awaited<ReturnType<typeof submit>> | undefined
+      let answered: Awaited<ReturnType<typeof send>> | undefined
       await holdingThen(
         'SELECT 1 FROM privacy_assessments WHERE project_id = $1 FOR UPDATE',
         [ctx.projectId],
         // An administrator recording the Privacy Office reopening it (`approved → draft`).
         `UPDATE privacy_assessments SET state = 'draft', approved_at = NULL WHERE project_id = '${ctx.projectId}'`,
         async (lock) => {
-          const submitting = submit(ctx, 'staging', {}, { cookies: ctx.ownerCookies })
+          const submitting = send(ctx, 'staging', {}, { cookies: ctx.ownerCookies })
           await until(
             () => lock.waitedOn('%privacy_assessments%'),
             'the submission’s read of the assessment waiting on the held assessment',
@@ -460,21 +776,30 @@ describe('a submission and an administrator’s write cannot interleave (the who
   })
 })
 
-describe('an administrator’s record keeps the owner’s reference (the whole-branch review’s M2)', () => {
-  it('recording UBC’s answer without a ticket keeps the reference the owner sent; one given replaces it', async () => {
+describe('an administrator’s record keeps the team’s reference (the whole-branch review’s M2)', () => {
+  it('recording UBC’s answer without a ticket keeps the reference the team submitted with; one given replaces it', async () => {
     await withProjectServer(async (ctx) => {
       await withAssessmentDraft(ctx.db, { projectId: ctx.projectId })
-      const sent = await submit(
+      const answers = await answersFor(ctx)
+      const sent = await send(
         ctx,
         'privacy-assessment',
-        { reference: 'PIA-2026-0101' },
+        { answers },
         { cookies: ctx.ownerCookies },
       )
       expect(sent.statusCode, sent.body).toBe(200)
+      const admin = { cookies: await loginAs(ctx.deps, 'platform_admin') }
+      const submitted = await teamSubmits(
+        ctx,
+        'privacy-assessment',
+        { reference: 'PIA-2026-0101' },
+        admin,
+      )
+      expect(submitted.statusCode, submitted.body).toBe(200)
       const approved = await adminRecords(ctx, 'privacy-assessment', {
         state: 'approved',
       })
-      // Kept — so the staging gate still finds the PIA number the owner gave.
+      // Kept — so the staging gate still finds the PIA number the team recorded.
       expect(approved).toMatchObject({
         state: 'approved',
         externalTicketRef: 'PIA-2026-0101',
@@ -666,12 +991,12 @@ async function cwlPiaApproved(ctx: CwlProject): Promise<void> {
     )
 }
 
-/** The owner's *"I've sent it"* for the staging registration, today, with UBC's reference. */
-const cwlSubmitStaging = (ctx: CwlProject, body: Json = {}) =>
+/** The owner's send of the staging registration to the Manifest team. */
+const cwlSendStaging = (ctx: CwlProject, body: Json = {}) =>
   ctx.app.inject({
     method: 'POST',
-    url: `/v1/projects/${ctx.project.id}/launch-records/iam-registration/staging/submission`,
-    payload: { reference: 'IAM-2026-0500', ...body },
+    url: `/v1/projects/${ctx.project.id}/launch-records/iam-registration/staging/send`,
+    payload: body,
     cookies: ctx.ownerCookies,
     headers: mutationHeaders(ctx.deps),
   })
@@ -829,14 +1154,14 @@ describe('D19’s registration package (Task 10)', () => {
     })
   })
 
-  it('a submitted package is never regenerated — LAUNCH_RECORD_SUBMITTED — and a change_requested one is', async () => {
+  it('a sent package is never regenerated — LAUNCH_RECORD_SUBMITTED — nor one UBC holds, and one UBC asked the owner to change is', async () => {
     await withCwlProject(['ubcEduCwlPuid', 'mail'], async (ctx) => {
       // The assessment first, so the draft carries its PIA number (Task 10's review, I2).
       await cwlPiaApproved(ctx)
       const drafted = await draft(ctx, 'staging')
       const first = packageOf(drafted.json())
       // As a client sends it: naming the draft it showed the person (Task 10's review, I3).
-      const sent = await cwlSubmitStaging(ctx, { draftGeneratedAt: first.generatedAt })
+      const sent = await cwlSendStaging(ctx, { draftGeneratedAt: first.generatedAt })
       expect(sent.statusCode, sent.body).toBe(200)
       expect(refusal(await draft(ctx, 'staging'))).toEqual({
         status: 409,
@@ -845,8 +1170,15 @@ describe('D19’s registration package (Task 10)', () => {
       // The package sent is the package kept.
       expect(packageOf((await cwlRecords(ctx)).stagingRegistration)).toEqual(first)
 
-      // UBC registers it — at an ACS path the app has since moved away from — and it is still kept.
+      // The Manifest team submits it; UBC registers it — at an ACS path the app has since moved away
+      // from — and it is still kept.
       const admin = await loginAs(ctx.deps, 'platform_admin')
+      await post(
+        ctx,
+        `/v1/projects/${ctx.project.id}/launch-records/iam-registration/staging/submission`,
+        { reference: 'IAM-2026-0500' },
+        admin,
+      )
       const registered = {
         environment: 'staging',
         entityId: first.entityId,
@@ -861,7 +1193,7 @@ describe('D19’s registration package (Task 10)', () => {
         code: 'LAUNCH_RECORD_SUBMITTED',
       })
 
-      // An administrator files a change request: a new request is the point, so it drafts again.
+      // An administrator files a change request: UBC holds it, so it is not drafted again.
       await post(
         ctx,
         recordUrl,
@@ -872,6 +1204,14 @@ describe('D19’s registration package (Task 10)', () => {
         },
         admin,
       )
+      expect(refusal(await draft(ctx, 'staging'))).toEqual({
+        status: 409,
+        code: 'LAUNCH_RECORD_SUBMITTED',
+      })
+      // UBC takes it up, then comes back to the OWNER with questions: a new request is the point, so
+      // it drafts again.
+      await post(ctx, recordUrl, { ...registered, state: 'submitted' }, admin)
+      await post(ctx, recordUrl, { ...registered, state: 'change_requested' }, admin)
       const again = await draft(ctx, 'staging')
       expect(again.statusCode, again.body).toBe(200)
       // The record still says what UBC REGISTERED; only the package is new.
@@ -898,7 +1238,7 @@ describe('D19’s registration package (Task 10)', () => {
         expect(res.statusCode, res.body).toBe(200)
         bodies.push(res.body)
       }
-      const sent = await cwlSubmitStaging(ctx)
+      const sent = await cwlSendStaging(ctx)
       expect(sent.statusCode, sent.body).toBe(200)
       bodies.push(sent.body)
       await stage(ctx)
@@ -1052,7 +1392,7 @@ describe('D19’s registration package (Task 10)', () => {
       await holdingThen(
         'SELECT 1 FROM iam_registrations WHERE id = $1 FOR UPDATE',
         [record.id],
-        // What an owner's "I've sent it" does in the window.
+        // What a record UBC IAM holds looks like in the window.
         `UPDATE iam_registrations SET state = 'submitted', submitted_at = now() WHERE id = '${record.id}'`,
         async (lock) => {
           const drafting = draft(ctx, 'staging')
@@ -1077,7 +1417,7 @@ describe('what is sent is the draft the person read (Task 10’s whole-branch re
       const early = packageOf((await draft(ctx, 'staging')).json())
       expect(early.privacyAssessmentReference).toBeNull()
       await cwlPiaApproved(ctx)
-      expect(refusal(await cwlSubmitStaging(ctx))).toEqual({
+      expect(refusal(await cwlSendStaging(ctx))).toEqual({
         status: 409,
         code: 'LAUNCH_DRAFT_STALE',
       })
@@ -1088,7 +1428,7 @@ describe('what is sent is the draft the person read (Task 10’s whole-branch re
       // THE POSITIVE CONTROL: drafted again, it carries the number — and is sent.
       const current = packageOf((await draft(ctx, 'staging')).json())
       expect(current.privacyAssessmentReference).toBe('PIA-2026-0088')
-      const sent = await cwlSubmitStaging(ctx)
+      const sent = await cwlSendStaging(ctx)
       expect(sent.statusCode, sent.body).toBe(200)
       expect(packageOf(sent.json()).privacyAssessmentReference).toBe('PIA-2026-0088')
     })
@@ -1102,59 +1442,26 @@ describe('what is sent is the draft the person read (Task 10’s whole-branch re
       const since = packageOf((await draft(ctx, 'staging')).json())
       expect(since.generatedAt > read.generatedAt).toBe(true)
       expect(
-        refusal(await cwlSubmitStaging(ctx, { draftGeneratedAt: read.generatedAt })),
+        refusal(await cwlSendStaging(ctx, { draftGeneratedAt: read.generatedAt })),
       ).toEqual({ status: 409, code: 'LAUNCH_DRAFT_CHANGED' })
       expect((await cwlRecords(ctx)).stagingRegistration).toMatchObject({
         state: 'draft',
       })
       // THE POSITIVE CONTROL: the draft the person read is the one Manifest holds.
-      const sent = await cwlSubmitStaging(ctx, { draftGeneratedAt: since.generatedAt })
+      const sent = await cwlSendStaging(ctx, { draftGeneratedAt: since.generatedAt })
       expect(sent.statusCode, sent.body).toBe(200)
       expect(packageOf(sent.json()).generatedAt).toBe(since.generatedAt)
     })
   })
 })
 
-describe('the day a person may say they sent it is the newest draft’s (Task 10; the whole-branch review’s M4)', () => {
-  it('a re-drafted package moves the earliest day it can have been sent to the day it was made', async () => {
-    await withProjectServer(async (ctx) => {
-      await piaApproved(ctx)
-      // First drafted five days ago, drafted again today.
-      await withDraft(ctx.db, {
-        projectId: ctx.projectId,
-        environment: 'staging',
-        createdAt: new Date(Date.now() - 5 * 86_400_000),
-        generatedAt: new Date(),
-      })
-      expect(
-        refusal(
-          await submit(
-            ctx,
-            'staging',
-            { sentAt: vancouverDaysAgo(3) },
-            { cookies: ctx.ownerCookies },
-          ),
-        ),
-      ).toEqual({ status: 400, code: 'LAUNCH_SENT_AT_INVALID' })
-      // The positive control: today, the draft's own day, is accepted.
-      const sent = await submit(
-        ctx,
-        'staging',
-        { sentAt: vancouverToday() },
-        { cookies: ctx.ownerCookies },
-      )
-      expect(sent.statusCode, sent.body).toBe(200)
-    })
-  })
-})
-
-/** How many `iam_registration.submitted` events the project has, read as the database's owner. */
-async function submittedEvents(ctx: TestProject): Promise<number> {
+/** How many events of one type the project has, read as the database's owner. */
+async function eventCount(ctx: TestProject, type: string): Promise<number> {
   const admin = new pg.Pool({ connectionString: process.env.MANIFEST_ADMIN_DATABASE_URL })
   try {
     const { rows } = await admin.query<{ n: string }>(
-      `SELECT count(*) AS n FROM audit.events WHERE project_id = $1 AND type = 'iam_registration.submitted'`,
-      [ctx.projectId],
+      `SELECT count(*) AS n FROM audit.events WHERE project_id = $1 AND type = $2`,
+      [ctx.projectId, type],
     )
     return Number(rows[0]!.n)
   } finally {
@@ -1426,7 +1733,7 @@ describe('D19’s privacy-assessment draft (Task 11)', () => {
     })
   })
 
-  it('a submitted assessment is never regenerated — LAUNCH_RECORD_SUBMITTED — nor an approved one; one sent back to draft is', async () => {
+  it('a sent assessment is never regenerated — LAUNCH_RECORD_SUBMITTED — nor a submitted or approved one; one sent back to draft is', async () => {
     await withCwlProject(['ubcEduCwlPuid', 'mail'], async (ctx) => {
       const first = assessmentOf(
         (
@@ -1435,8 +1742,11 @@ describe('D19’s privacy-assessment draft (Task 11)', () => {
       )!
       const sent = await ctx.app.inject({
         method: 'POST',
-        url: `/v1/projects/${ctx.project.id}/launch-records/privacy-assessment/submission`,
-        payload: { draftGeneratedAt: first.generatedAt },
+        url: `/v1/projects/${ctx.project.id}/launch-records/privacy-assessment/send`,
+        payload: {
+          draftGeneratedAt: first.generatedAt,
+          answers: everyGapAnswered(first),
+        },
         cookies: ctx.ownerCookies,
         headers: mutationHeaders(ctx.deps),
       })
@@ -1452,6 +1762,12 @@ describe('D19’s privacy-assessment draft (Task 11)', () => {
 
       const admin = await loginAs(ctx.deps, 'platform_admin')
       const recordUrl = `/v1/projects/${ctx.project.id}/launch-records/privacy-assessment`
+      await post(ctx, `${recordUrl}/submission`, { reference: 'PIA-1' }, admin)
+      expect(
+        refusal(
+          await draftAssessment(ctx, ctx.project.id, { cookies: ctx.ownerCookies }),
+        ),
+      ).toEqual({ status: 409, code: 'LAUNCH_RECORD_SUBMITTED' })
       await post(ctx, recordUrl, { state: 'approved', externalTicketRef: 'PIA-1' }, admin)
       expect(
         refusal(
@@ -1513,7 +1829,7 @@ describe('D19’s privacy-assessment draft (Task 11)', () => {
     })
   })
 
-  it('a submission names the draft it sent: one drafted since refuses it — LAUNCH_DRAFT_CHANGED — and the current one is accepted', async () => {
+  it('a send names the draft it sent: one drafted since refuses it — LAUNCH_DRAFT_CHANGED — and the current one is accepted', async () => {
     await withCwlProject(['ubcEduCwlPuid', 'mail'], async (ctx) => {
       const read = assessmentOf(
         (
@@ -1529,8 +1845,8 @@ describe('D19’s privacy-assessment draft (Task 11)', () => {
       const submitWith = (draftGeneratedAt: string) =>
         ctx.app.inject({
           method: 'POST',
-          url: `/v1/projects/${ctx.project.id}/launch-records/privacy-assessment/submission`,
-          payload: { draftGeneratedAt },
+          url: `/v1/projects/${ctx.project.id}/launch-records/privacy-assessment/send`,
+          payload: { draftGeneratedAt, answers: everyGapAnswered(since) },
           cookies: ctx.ownerCookies,
           headers: mutationHeaders(ctx.deps),
         })
@@ -1555,7 +1871,7 @@ describe('D19’s privacy-assessment draft (Task 11)', () => {
       await holdingThen(
         'SELECT 1 FROM privacy_assessments WHERE id = $1 FOR UPDATE',
         [record.id],
-        // What an owner's "I've sent it" does in the window.
+        // What a record the Privacy Office holds looks like in the window.
         `UPDATE privacy_assessments SET state = 'submitted', submitted_at = now() WHERE id = '${record.id}'`,
         async (lock) => {
           const drafting = draftAssessment(ctx, ctx.project.id, {
@@ -1571,37 +1887,6 @@ describe('D19’s privacy-assessment draft (Task 11)', () => {
       )
       expect(refusal(answered!)).toEqual({ status: 409, code: 'LAUNCH_RECORD_SUBMITTED' })
       expect(await eventsOf(ctx, 'privacy_assessment.drafted')).toHaveLength(1)
-    })
-  })
-})
-
-describe('the day a person may say they sent the assessment is its newest draft’s (Task 11; Task 10’s review, M4)', () => {
-  it('a re-drafted assessment moves the earliest day it can have been sent to the day it was made', async () => {
-    await withProjectServer(async (ctx) => {
-      // First drafted five days ago, drafted again today.
-      await withAssessmentDraft(ctx.db, {
-        projectId: ctx.projectId,
-        createdAt: new Date(Date.now() - 5 * 86_400_000),
-        generatedAt: new Date(),
-      })
-      expect(
-        refusal(
-          await submit(
-            ctx,
-            'privacy-assessment',
-            { sentAt: vancouverDaysAgo(3) },
-            { cookies: ctx.ownerCookies },
-          ),
-        ),
-      ).toEqual({ status: 400, code: 'LAUNCH_SENT_AT_INVALID' })
-      // The positive control: today, the draft's own day, is accepted.
-      const sent = await submit(
-        ctx,
-        'privacy-assessment',
-        { sentAt: vancouverToday() },
-        { cookies: ctx.ownerCookies },
-      )
-      expect(sent.statusCode, sent.body).toBe(200)
     })
   })
 })

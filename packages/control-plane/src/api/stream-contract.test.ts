@@ -43,10 +43,15 @@ const PUBLISHED_ELSEWHERE = {
   // never records an external launch object — an administrator does that, out of band.
   'iam_registration.recorded': 'launch/records.test.ts — recordIamRegistration',
   'privacy_assessment.recorded': 'launch/records.test.ts — recordPrivacyAssessment',
-  // The launch path plan's Task 9: an owner's "I've sent it", which needs a draft this lifecycle
-  // never makes (Tasks 10 and 11 generate them).
-  'iam_registration.submitted': 'launch/records.test.ts — submitIamRegistration',
-  'privacy_assessment.submitted': 'launch/records.test.ts — submitPrivacyAssessment',
+  // The FE-46/47/5 plan's Task 5: the owner's send to the Manifest team and the team's submission and
+  // hand-back, which need a draft this lifecycle never makes (the launch path plan's Tasks 10 and 11
+  // generate them).
+  'iam_registration.sent': 'launch/records.test.ts — sendIamRegistration',
+  'privacy_assessment.sent': 'launch/records.test.ts — sendPrivacyAssessment',
+  'iam_registration.submitted': 'launch/records.test.ts — recordIamSubmission',
+  'privacy_assessment.submitted': 'launch/records.test.ts — recordAssessmentSubmission',
+  'iam_registration.returned': 'launch/records.test.ts — returnIamRegistration',
+  'privacy_assessment.returned': 'launch/records.test.ts — returnPrivacyAssessment',
   // Task 10: drafting reads a CWL app's code and mints its certificate; this lifecycle's app is not CWL.
   'iam_registration.drafted': 'api/launch.test.ts — draftIamRegistration',
   'privacy_assessment.drafted': 'api/launch.test.ts — draftPrivacyAssessment',

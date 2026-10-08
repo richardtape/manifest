@@ -497,9 +497,9 @@ export const ERROR_CODES = {
     status: 409,
     families: ['LaunchTransitionError'],
     summary:
-      'An IAM registration or a privacy assessment was asked to move to a state it cannot reach from the one it is in; the message names what that state CAN become.',
+      'An IAM registration or a privacy assessment was asked to move to a state it cannot reach from the one it is in — sent to the Manifest team twice, recorded into or out of `sent` by the record route, or submitted or handed back by the team when it was not sent to them; the message names what the record CAN do.',
     remedy:
-      'Move the record through its states one step at a time, to one of the states the message names.',
+      'Move the record through its states one step at a time, as the message names. A record with the Manifest team (`sent`) moves on only by the team’s own two operations: submitted to UBC (`submitIamRegistration`, `submitPrivacyAssessment`) or handed back (`returnIamRegistration`, `returnPrivacyAssessment`).',
   },
   LAUNCH_RECORD_INVALID: {
     status: 400,
@@ -509,22 +509,30 @@ export const ERROR_CODES = {
     remedy:
       'Correct the fields the message names — a registration lists at least one attribute — and record it again.',
   },
-  // launch/records.ts — an owner's "I've sent it" (the launch path plan's Task 9)
+  // launch/records.ts — the owner's send to the Manifest team (the FE-46/47/5 plan's Task 5)
   LAUNCH_DRAFT_REQUIRED: {
     status: 409,
     families: ['LaunchRecordError'],
     summary:
-      'There is no draft of this registration or privacy assessment to have sent: Manifest drafts it, and what a person sends is that draft.',
+      'There is no draft of this registration or privacy assessment to send: Manifest drafts it, and what a person sends is that draft.',
     remedy:
-      'Draft it first (`draftIamRegistration` for a registration, `draftPrivacyAssessment` for the privacy assessment), send the draft to UBC, then say it was sent. Nothing was recorded.',
+      'Draft it first (`draftIamRegistration` for a registration, `draftPrivacyAssessment` for the privacy assessment), read it, then send it to the Manifest team. Nothing was sent.',
+  },
+  LAUNCH_GAP_ANSWERS_INVALID: {
+    status: 400,
+    families: ['LaunchRecordError'],
+    summary:
+      'The privacy assessment’s gaps were not each answered once: a gap of the draft has no answer, an answer is blank or over 2,000 characters, a gap is answered twice, or an answer names a gap the draft does not have. The message names every gap at fault. Nothing was sent.',
+    remedy:
+      'Answer every gap of the draft you read, once each, by its id — “does not apply” is an answer — and send it again. If the draft was made again since, read it first: its gaps may have changed.',
   },
   LAUNCH_SENT_AT_INVALID: {
     status: 400,
     families: ['LaunchRecordError'],
     summary:
-      'The day given for when it was sent cannot be true: it is after today in Vancouver, or before the draft that was sent was made.',
+      'The day the Manifest team says it sent the record to UBC cannot be true: it is after today in Vancouver, or before its owner sent it to the team.',
     remedy:
-      'Give the day you sent it, as YYYY-MM-DD — today or earlier, and not before the draft’s day — or leave it out for today.',
+      'Give the day the team sent it to UBC, as YYYY-MM-DD — today or earlier, and not before its owner sent it to the team — or leave it out for today.',
   },
   LAUNCH_PIA_NOT_APPROVED: {
     status: 409,
@@ -532,7 +540,7 @@ export const ERROR_CODES = {
     summary:
       'Neither registration is sent until the privacy assessment is approved and carries its reference, the PIA number UBC IAM asks for. UBC’s order is the assessment first.',
     remedy:
-      'Send the privacy assessment first. Once an administrator records it approved, with its PIA number, send the registration and say so again.',
+      'Send the privacy assessment to the Manifest team first. Once it is recorded approved, with its PIA number, send the registration.',
   },
   LAUNCH_STAGING_NOT_REGISTERED: {
     status: 409,
@@ -540,16 +548,16 @@ export const ERROR_CODES = {
     summary:
       'The production registration is sent only once the staging registration is active — registered by UBC IAM, and the app tested at staging. UBC’s order is staging before production.',
     remedy:
-      'Send the staging registration first. Once an administrator records it active and you have tested the app at staging, send the production registration and say so again.',
+      'Send the staging registration first. Once it is recorded active and you have tested the app at staging, send the production registration.',
   },
   // launch/records.ts — D19's registration package (the launch path plan's Task 10)
   LAUNCH_RECORD_SUBMITTED: {
     status: 409,
     families: ['LaunchRecordError'],
     summary:
-      'This record has been sent, and what was sent is kept as it was sent. A registration that is with UBC IAM or registered by it (`submitted` or `active`) is drafted again only once UBC asks for changes or the registration lapses; a privacy assessment that is with the Privacy Office or approved by it (`submitted` or `approved`), only once the Office sends it back.',
+      'This record has been sent, and what was sent is kept as it was sent. A record with the Manifest team (`sent`) is drafted again only if the team hands it back; a registration that is with UBC IAM or registered by it (`submitted`, `active`, or a change request the team filed) only once UBC asks its owner for changes or the registration lapses; a privacy assessment that is with the Privacy Office or approved by it (`submitted` or `approved`), only once the Office sends it back.',
     remedy:
-      'To change what was sent, ask UBC IAM or the Privacy Office. Once an administrator records that UBC asked for changes (`change_requested`), that the registration lapsed (`expired`), or that the assessment came back (`draft`), draft it again.',
+      'To change what was sent, ask the Manifest team to hand it back while they hold it; once UBC holds it, ask UBC IAM or the Privacy Office. Once a record shows UBC asked for changes (`change_requested` from `submitted`), that the registration lapsed (`expired`), or that the assessment came back (`draft`), draft it again.',
   },
   // Task 10's whole-branch review: what is sent is the draft the person read, carrying what UBC asks for.
   LAUNCH_DRAFT_STALE: {
@@ -558,15 +566,15 @@ export const ERROR_CODES = {
     summary:
       'The registration’s draft does not carry the privacy assessment’s PIA number, which UBC IAM asks for: it was drafted before the assessment was approved with it, or the number has changed since. Nothing was recorded.',
     remedy:
-      'Draft the registration again (`draftIamRegistration`) — the new draft carries the PIA number — send that one, then say it was sent.',
+      'Draft the registration again (`draftIamRegistration`) — the new draft carries the PIA number — and send that one.',
   },
   LAUNCH_DRAFT_CHANGED: {
     status: 409,
     families: ['LaunchRecordError'],
     summary:
-      'The draft was made again after the one the request names (`draftGeneratedAt`), so what Manifest holds is not what was sent. Nothing was recorded.',
+      'The draft was made again after the one the request names (`draftGeneratedAt`), so what Manifest holds is not what the person read. Nothing was sent.',
     remedy:
-      'Read the current draft (`getLaunchRecords`). If it is what you sent, say so again with its `generatedAt`; if you sent the earlier one, send the current draft instead and say so.',
+      'Read the current draft (`getLaunchRecords`), then send it, naming its `generatedAt`.',
   },
   LAUNCH_NOT_CWL: {
     status: 409,

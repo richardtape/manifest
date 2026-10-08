@@ -87,10 +87,21 @@ import { STREAM_PATH, streamPathItem } from './websocket.js'
  * event field has been, and a replay sends a stored event as it was written — so a `pending_action.created` recorded before
  * `1.8.0` replays without them (`docs/api/events.md` says so of every event); `PendingAction.object` reads null on a question
  * asked before it. Task 2b adds `SpecValidation.sensitiveSinceApproved` (FE-54). **The breaks the plan's later tasks
- * WILL make ride on this one bump, each stated here by the task that lands it** — the owner's send and the team's
- * submission and hand-back (`submitIamRegistration` and `submitPrivacyAssessment` become the team's, with a new body;
- * `SubmitLaunchRecordRequest` is retired), `PrivacyAssessmentDraft.sections[].gaps` as `{ id, text }[]`, the records' `sent`
- * state and the queue's new kinds — because nothing is published between its tasks.
+ * make ride on this one bump, each stated here by the task that lands it**, because nothing is published between its
+ * tasks:
+ *  - **Task 4 (LANDED, `b3751db`)**: `PrivacyAssessmentDraft.sections[].gaps` is `{ id, text }[]`, each id stable across
+ *    drafts — a stored draft from before it reads back with `<section>.<n>` ids.
+ *  - **Task 5 (LANDED)**: the owner's send to the Manifest team — `sendIamRegistration` and `sendPrivacyAssessment`, new;
+ *    the assessment's carries an answer to every gap (`400 LAUNCH_GAP_ANSWERS_INVALID`, new). `submitIamRegistration` and
+ *    `submitPrivacyAssessment` keep their names and paths and BECOME THE TEAM'S — `launch:record`, an administrator's, with
+ *    a new body, `RecordSubmissionRequest` (`reference` required) — and `returnIamRegistration` and
+ *    `returnPrivacyAssessment` are the team's hand-back; `SubmitLaunchRecordRequest` is retired. Both records' states gain
+ *    `sent`; `IamRegistration` gains `sentFrom`, `sentAt` and `sentBy`, `PrivacyAssessment` `sentAt`, `sentBy` and
+ *    `gapAnswers`; `submittedBy` is now the administrator who recorded the team's submission. The generic record routes'
+ *    `state` never offers `sent`. Four new events — `iam_registration.sent`, `privacy_assessment.sent`,
+ *    `iam_registration.returned`, `privacy_assessment.returned` — and `iam_registration.submitted` gains a REQUIRED
+ *    `changeRequest`; both `…submitted` are now the team's record.
+ *  - Still to land: the queue's new kinds (Task 6) and a change to a live registration (Task 7).
  *
  * Three files carry it and two tests hold them together: this constant,
  * `packages/contract/openapi.json`'s `info.version` (GENERATED — `pnpm contract:write`,

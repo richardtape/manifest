@@ -125,17 +125,18 @@ export const JOURNEY: readonly JourneyStep[] = [
     operations: ['getLaunchReadiness', 'getLaunchRecords'],
   },
   // The launch path plan's Tasks 9 to 12, made steps by its Task 15's `make demo-launch`, which
-  // drives each of them over the edge. Drafting and asking are an agent's too; saying a record was
-  // sent is a person's, in their session; the queue is an administrator's.
+  // drives each of them over the edge. Drafting and asking are an agent's too; sending a record to the
+  // Manifest team is a person's, in their session (the FE-46/47/5 plan's Task 5); the team's submission
+  // and hand-back, and the queue, are an administrator's.
   {
     step: 'Draft the privacy assessment and the registrations UBC asks for, and read them',
     who: 'either',
     operations: ['draftPrivacyAssessment', 'draftIamRegistration'],
   },
   {
-    step: 'Say each was sent — the assessment first, then staging’s registration, then production’s',
+    step: 'Send each to the Manifest team — the assessment first, every gap answered, then staging’s registration, then production’s',
     who: 'person',
-    operations: ['submitPrivacyAssessment', 'submitIamRegistration'],
+    operations: ['sendPrivacyAssessment', 'sendIamRegistration'],
   },
   {
     step: 'Ask an administrator to sign off the release serving staging',
@@ -151,6 +152,16 @@ export const JOURNEY: readonly JourneyStep[] = [
     step: 'Rehearse the CWL sign-in before launch',
     who: 'person',
     operations: ['runRehearsal'],
+  },
+  {
+    step: 'Record that the Manifest team submitted each to UBC — or hand it back to its owner',
+    who: 'administrator',
+    operations: [
+      'submitPrivacyAssessment',
+      'submitIamRegistration',
+      'returnPrivacyAssessment',
+      'returnIamRegistration',
+    ],
   },
   {
     step: 'Record what UBC IAM and the Privacy Office said',

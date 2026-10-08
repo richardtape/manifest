@@ -1,9 +1,9 @@
 import { and, eq } from 'drizzle-orm'
 import { describe, expect, it } from 'vitest'
-import { events } from '../db/index.js'
+import { events, privacyAssessments } from '../db/index.js'
 import { ensureTestUser } from '../identity/testing.js'
 import { vancouverDayInWords } from '../launch/index.js'
-import { withAssessmentDraft } from '../launch/testing.js'
+import { everyGapAnswered, withAssessmentDraft } from '../launch/testing.js'
 import { mintTestToken } from '../tokens/testing.js'
 import {
   loginAs,
@@ -389,11 +389,23 @@ describe('the administrators’ queue (Task 12)', () => {
   it('holds submitted registrations and assessments, oldest first, with the environment', async () => {
     await withProjectServer(async (ctx) => {
       const admin = await loginAs(ctx.deps, 'platform_admin')
-      // The owner says the assessment was sent two days ago…
-      await withAssessmentDraft(ctx.db, {
+      // The owner sent the assessment to the Manifest team three days ago, and the team submitted it
+      // to the Privacy Office two days ago…
+      const drafted = await withAssessmentDraft(ctx.db, {
         projectId: ctx.projectId,
         createdAt: new Date(Date.now() - 5 * 86_400_000),
       })
+      await post(
+        ctx,
+        `/v1/projects/${ctx.projectId}/launch-records/privacy-assessment/send`,
+        { answers: everyGapAnswered(drafted.generatedDraft) },
+        ctx.ownerCookies,
+        200,
+      )
+      await ctx.db
+        .update(privacyAssessments)
+        .set({ sentAt: new Date(Date.now() - 3 * 86_400_000) })
+        .where(eq(privacyAssessments.projectId, ctx.projectId))
       const sent = new Intl.DateTimeFormat('en-CA', {
         timeZone: 'America/Vancouver',
       }).format(new Date(Date.now() - 2 * 86_400_000))
@@ -401,7 +413,7 @@ describe('the administrators’ queue (Task 12)', () => {
         ctx,
         `/v1/projects/${ctx.projectId}/launch-records/privacy-assessment/submission`,
         { sentAt: sent, reference: 'PIA-2026-0088' },
-        ctx.ownerCookies,
+        admin,
         200,
       )
       // …and an administrator records staging's registration sent today.
@@ -424,7 +436,8 @@ describe('the administrators’ queue (Task 12)', () => {
         ['privacy-assessment', null],
         ['iam-registration', 'staging'],
       ])
-      expect(items[0]!.requestedBy).toMatchObject({ displayName: 'Bio Prof' })
+      // Who recorded it with UBC, until the queue names the person who asked (Task 6's `sent_by`).
+      expect(items[0]!.requestedBy).toMatchObject({ displayName: 'Platform Admin' })
       expect(items[1]!.requestedBy).toMatchObject({ displayName: 'Platform Admin' })
       expect(Date.parse(items[0]!.since)).toBeLessThan(Date.parse(items[1]!.since))
 

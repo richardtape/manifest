@@ -621,7 +621,25 @@ async function registerActive(
   admin: ManifestClient,
   attributes: readonly string[],
 ): Promise<Schemas['IamRegistration']> {
-  const { existing, record } = await iamRecorder(admin)
+  let { existing, record } = await iamRecorder(admin)
+  // WITH THE MANIFEST TEAM (the FE-46/47/5 plan's Task 5) — a person's send in the console — the record
+  // route refuses it (`LAUNCH_TRANSITION_INVALID`): hand it back first, so this demo is never stranded.
+  if (existing.state === 'sent') {
+    console.log('  (the registration is with the Manifest team: handed back first)')
+    unwrap(
+      await admin.POST(
+        '/v1/projects/{projectId}/launch-records/iam-registration/{environment}/return',
+        {
+          params: {
+            path: { projectId: state.projectId!, environment: 'production' },
+            header: { 'Idempotency-Key': idempotencyKey() },
+          },
+        },
+      ),
+      'returnIamRegistration',
+    )
+    ;({ existing, record } = await iamRecorder(admin))
+  }
   if (existing.state !== 'active' && existing.state !== 'submitted') {
     console.log(`  (the registration is '${existing.state}': through 'submitted' first)`)
     await record('submitted', existing.registeredAttributes)

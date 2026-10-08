@@ -212,9 +212,12 @@ describe('LaunchReadiness (§13, P5a Task 15; the two external records, P6a Task
       // with nothing recorded, each record's item names the operations that draft and send it.
       const record = (id: string) => view.items.find((i) => i.id === id)!.why
       expect(record('privacy-assessment')).toContain('draftPrivacyAssessment')
-      expect(record('privacy-assessment')).toContain('submitPrivacyAssessment')
+      expect(record('privacy-assessment')).toContain('sendPrivacyAssessment')
       expect(record('iam-registration')).toContain('draftIamRegistration')
-      expect(record('iam-registration')).toContain('submitIamRegistration')
+      expect(record('iam-registration')).toContain('sendIamRegistration')
+      // The team's own operations are not the owner's next step.
+      expect(record('privacy-assessment')).not.toContain('submitPrivacyAssessment')
+      expect(record('iam-registration')).not.toContain('submitIamRegistration')
       // **`admin-approval` JOINED THEM IN P6a TASK 10**: it is now a row an administrator
       // writes, so a project nobody has approved reads `unmet` with no `builtBy` — a
       // `builtBy: 'P6'` back on it is the same regression as on the two above.

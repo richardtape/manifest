@@ -12,7 +12,7 @@ import {
   type StreamFrame,
 } from '@manifest/contract'
 import { Checks, JourneyStop } from './check.js'
-import { askForSignOff, sayItWasSent } from './example-launch-path.js'
+import { askForSignOff, sendIt, teamSubmitted } from './example-launch-path.js'
 import { waitFor } from './wait.js'
 
 /**
@@ -102,6 +102,8 @@ interface LaunchState {
   tokenId?: string
   tokenSecret?: string
   note?: string
+  /** Step 4's answer that no email may carry. */
+  marker?: string
   piaNumber?: string
   productionInstanceId?: string
   stopped?: boolean
@@ -439,6 +441,14 @@ async function findPhase(): Promise<void> {
   const found = unwrap(await owner.GET('/v1/projects'), 'listProjects').find(
     (p) => p.slug === state.slug,
   )
+  // THE TEAM'S INBOX STARTS EMPTY OF THIS APP (the FE-46/47/5 plan's Task 5): every email an earlier
+  // run left that names the slug is deleted, so step 6's count is this run's.
+  const left = await mailpitSearch(state.slug)
+  await mailpitDelete(left.map((m) => m.ID))
+  if (left.length > 0)
+    console.log(
+      `  ${left.length} earlier email(s) naming ${state.slug} deleted from Mailpit`,
+    )
   if (found === undefined) {
     state.existing = 'none'
     console.log(`  ${state.slug} is not here — the FRESH path`)
@@ -780,7 +790,7 @@ async function step2Drafts(): Promise<void> {
  */
 async function step3Token(): Promise<void> {
   checks.step(
-    '3. An agent on the owner’s token drafts again and asks for sign-off — and may not say it was sent',
+    '3. An agent on the owner’s token drafts again and asks for sign-off — and may not send it to the Manifest team',
   )
   const owner = clientFor('MANIFEST_SESSION')
   const id = projectId()
@@ -822,17 +832,17 @@ async function step3Token(): Promise<void> {
   )
 
   const sent = await agent.POST(
-    '/v1/projects/{projectId}/launch-records/privacy-assessment/submission',
+    '/v1/projects/{projectId}/launch-records/privacy-assessment/send',
     {
       params: {
         path: { projectId: id },
         header: { 'Idempotency-Key': idempotencyKey() },
       },
-      body: { draftGeneratedAt: again.draft?.generatedAt ?? '' },
+      body: { draftGeneratedAt: again.draft?.generatedAt ?? '', answers: [] },
     },
   )
   checks.ok(
-    'the token is refused saying it was sent: 403 TOKEN_CREDENTIAL_REFUSED — a person’s session only',
+    'the token is refused sending it to the Manifest team: 403 TOKEN_CREDENTIAL_REFUSED — a person’s session only',
     refusal(sent, 403, 'TOKEN_CREDENTIAL_REFUSED') !== undefined,
     describe(sent),
   )
@@ -870,44 +880,68 @@ async function step3Token(): Promise<void> {
 }
 
 /**
- * Step 4: the owner says the assessment was sent — naming the draft they read, which is the agent's
- * now. UBC's order holds: neither registration may be sent before the assessment is approved.
+ * Step 4: the owner sends the assessment to the Manifest team — naming the draft they read, which is
+ * the agent's now, with an answer to every gap (one carrying the run's marker, which no email may).
+ * UBC's order holds: neither registration may be sent before the assessment is approved.
  */
 async function step4AssessmentSent(): Promise<void> {
   checks.step(
-    '4. The owner says the assessment was sent — and UBC’s order holds the registrations',
+    '4. The owner sends the assessment to the Manifest team, every gap answered — and UBC’s order holds the registrations',
   )
   const owner = clientFor('MANIFEST_SESSION')
   const id = projectId()
-  const current = checks.must(
+  const draft = checks.must(
     'the assessment’s current draft',
-    (await records(owner)).privacyAssessment?.draft?.generatedAt,
+    (await records(owner)).privacyAssessment?.draft,
+  )
+  state.marker = `MARKER-${state.runId}`
+  const answers = answersFor(draft, (gapId, n) =>
+    n === 0
+      ? `${state.marker} what the app keeps: office-hours sign-ups.`
+      : `does not apply (${gapId})`,
   )
 
-  const stale = await sayItWasSent(owner, id, 'privacy-assessment', {
+  const stale = await sendIt(owner, id, 'privacy-assessment', {
     draftGeneratedAt: checks.must('the owner’s first draft', state.assessmentDraftedAt),
+    answers,
   })
   checks.ok(
     'naming the draft the owner read BEFORE the agent drafted again: 409 LAUNCH_DRAFT_CHANGED',
     !stale.done && stale.refused === 'LAUNCH_DRAFT_CHANGED',
     JSON.stringify(stale),
   )
-  const sent = await sayItWasSent(owner, id, 'privacy-assessment', {
-    draftGeneratedAt: current,
-    sentAt: today(),
+  const missing = await sendIt(owner, id, 'privacy-assessment', {
+    draftGeneratedAt: draft.generatedAt,
+    answers: answers.slice(1),
+  })
+  checks.ok(
+    `a gap left unanswered: 400 LAUNCH_GAP_ANSWERS_INVALID, naming it (${answers[0]!.gapId})`,
+    !missing.done &&
+      missing.refused === 'LAUNCH_GAP_ANSWERS_INVALID' &&
+      (await records(owner)).privacyAssessment?.state === 'draft',
+    JSON.stringify(missing),
+  )
+  const sent = await sendIt(owner, id, 'privacy-assessment', {
+    draftGeneratedAt: draft.generatedAt,
+    answers,
   })
   checks.must(
-    'naming the current draft, sent today: recorded',
+    'every gap answered, naming the current draft: sent to the Manifest team',
     sent.done ? sent : undefined,
     JSON.stringify(sent),
   )
-  const r = await readiness(owner)
-  const pia = item(r, 'privacy-assessment')
+  const record = checks.must('the assessment', (await records(owner)).privacyAssessment)
   checks.ok(
-    `the checklist: "It was sent to the UBC Privacy Office on ${todayInWords()}." — and waiting since then`,
-    pia.why.startsWith(`It was sent to the UBC Privacy Office on ${todayInWords()}.`) &&
-      pia.since === (sent.done ? sent.submittedAt : null),
-    `${pia.why} (since ${pia.since})`,
+    'the record is `sent`, by the instructor, its answers kept in the draft’s order',
+    record.state === 'sent' &&
+      record.sentBy?.displayName === 'Test Instructor' &&
+      record.submittedAt === null &&
+      JSON.stringify(record.gapAnswers) === JSON.stringify(answers),
+    `${record.state} ${record.sentBy?.displayName} ${record.gapAnswers?.length} answers`,
+  )
+  checks.ok(
+    'the checklist: the assessment is not yet approved',
+    item(await readiness(owner), 'privacy-assessment').state === 'unmet',
   )
 
   for (const environment of ['staging', 'production'] as const) {
@@ -918,9 +952,7 @@ async function step4AssessmentSent(): Promise<void> {
         : (await records(owner)).iamRegistration
       )?.package?.generatedAt,
     )
-    const early = await sayItWasSent(owner, id, environment, {
-      draftGeneratedAt: generatedAt,
-    })
+    const early = await sendIt(owner, id, environment, { draftGeneratedAt: generatedAt })
     checks.ok(
       `${environment}'s registration may not be sent yet: 409 LAUNCH_PIA_NOT_APPROVED, saying what to do first`,
       !early.done && early.refused === 'LAUNCH_PIA_NOT_APPROVED' && early.next.length > 0,
@@ -933,13 +965,17 @@ async function step4AssessmentSent(): Promise<void> {
 
 // ─── admin: steps 5–6 ──────────────────────────────────────────────────────────────────
 
-/** Step 5: the administrators' queue — the assessment and the sign-off request — and the PIA approved. */
+/**
+ * Step 5: the Manifest team's step for the assessment — handed back once, sent again by the owner,
+ * submitted to the Privacy Office with its PIA number — the administrators' queue, and the approval.
+ */
 async function step5Queue(): Promise<void> {
   checks.step(
-    '5. The administrators’ queue, and the assessment recorded approved with its PIA number',
+    '5. The Manifest team hands the assessment back, the owner sends it again, the team submits it — and it is approved',
   )
   const owner = clientFor('MANIFEST_SESSION')
   const admin = clientFor('MANIFEST_ADMIN_SESSION')
+  const id = projectId()
   const me = unwrap(await admin.GET('/v1/me'), 'getMe')
   checks.ok('the operator is an administrator', me.role === 'admin', me.role)
 
@@ -948,6 +984,64 @@ async function step5Queue(): Promise<void> {
     'the owner may not read the queue: 403 FORBIDDEN',
     refusal(refused, 403, 'FORBIDDEN') !== undefined,
     describe(refused),
+  )
+  const params = {
+    path: { projectId: id },
+    header: { 'Idempotency-Key': idempotencyKey() },
+  }
+  const ownerSubmits = await owner.POST(
+    '/v1/projects/{projectId}/launch-records/privacy-assessment/submission',
+    { params, body: { reference: 'PIA-BY-THE-OWNER' } },
+  )
+  checks.ok(
+    'the owner may not record the team’s submission: 403 FORBIDDEN',
+    refusal(ownerSubmits, 403, 'FORBIDDEN') !== undefined,
+    describe(ownerSubmits),
+  )
+
+  const back = unwrap(
+    await admin.POST(
+      '/v1/projects/{projectId}/launch-records/privacy-assessment/return',
+      {
+        params: {
+          path: { projectId: id },
+          header: { 'Idempotency-Key': idempotencyKey() },
+        },
+      },
+    ),
+    'returnPrivacyAssessment',
+  )
+  checks.ok(
+    'the team hands the assessment back to its owner, unsubmitted: `draft`, the first send kept as history',
+    back.state === 'draft' && back.sentAt !== null && back.submittedAt === null,
+    `${back.state} sentAt ${back.sentAt}`,
+  )
+  const draft = checks.must('the draft handed back', back.draft)
+  const again = await sendIt(owner, id, 'privacy-assessment', {
+    draftGeneratedAt: draft.generatedAt,
+    answers: answersFor(draft, (gapId) => `answered again (${gapId})`),
+  })
+  checks.must(
+    'the owner sends it again, answered again',
+    again.done ? again : undefined,
+    JSON.stringify(again),
+  )
+  checks.ok(
+    'the second send’s answers replace the first’s',
+    (await records(owner)).privacyAssessment?.gapAnswers?.every((a) =>
+      a.answer.startsWith('answered again'),
+    ) === true,
+  )
+
+  state.piaNumber = `PIA-${state.runId}`
+  const submitted = await teamSubmitted(admin, id, 'privacy-assessment', {
+    reference: state.piaNumber,
+    sentAt: today(),
+  })
+  checks.must(
+    `the administrator records that the Manifest team submitted it to the Privacy Office, as ${state.piaNumber}`,
+    submitted.done ? submitted : undefined,
+    JSON.stringify(submitted),
   )
   const queue = await queueFor(admin)
   checkOldestFirst(queue)
@@ -967,25 +1061,27 @@ async function step5Queue(): Promise<void> {
   )
   const assessmentItem = mine.find((i) => i.kind === 'privacy-assessment')
   checks.ok(
-    'the assessment’s item says it was sent, and to record the answer',
+    'the assessment’s item says it was sent to the Privacy Office today, and to record the answer',
     (assessmentItem?.summary ?? '').startsWith(
       `The privacy assessment was sent to the UBC Privacy Office on ${todayInWords()}`,
     ),
     assessmentItem?.summary,
   )
+  const pia = item(await readiness(owner), 'privacy-assessment')
+  checks.ok(
+    `the checklist: "It was sent to the UBC Privacy Office on ${todayInWords()}." — and waiting since the team’s day`,
+    pia.why.startsWith(`It was sent to the UBC Privacy Office on ${todayInWords()}.`) &&
+      pia.since === (submitted.done ? submitted.submittedAt : null),
+    `${pia.why} (since ${pia.since})`,
+  )
 
-  state.piaNumber = `PIA-${state.runId}`
   const approved = unwrap(
     await admin.POST('/v1/projects/{projectId}/launch-records/privacy-assessment', {
       params: {
-        path: { projectId: projectId() },
+        path: { projectId: id },
         header: { 'Idempotency-Key': idempotencyKey() },
       },
-      body: {
-        state: 'approved',
-        reviewer: 'UBC Privacy Office',
-        externalTicketRef: state.piaNumber,
-      },
+      body: { state: 'approved', reviewer: 'UBC Privacy Office' },
     }),
     'recordPrivacyAssessment',
   )
@@ -1006,11 +1102,12 @@ async function step5Queue(): Promise<void> {
 
 /**
  * Step 6: the two registrations, in UBC's order — each drafted again once the PIA number exists, sent
- * by the owner, waiting in the queue, and recorded active by an administrator from the package.
+ * by the owner to the Manifest team, submitted by the team, waiting in the queue, and recorded active by
+ * an administrator from the package. Then the team's emails, read back from Mailpit.
  */
 async function step6Registrations(): Promise<void> {
   checks.step(
-    '6. Staging’s registration, then production’s — sent in UBC’s order, and recorded active',
+    '6. Staging’s registration, then production’s — sent, submitted by the team, and recorded active — and the team’s emails',
   )
   const owner = clientFor('MANIFEST_SESSION')
   const admin = clientFor('MANIFEST_ADMIN_SESSION')
@@ -1020,9 +1117,7 @@ async function step6Registrations(): Promise<void> {
     'staging’s first draft',
     (await records(owner)).stagingRegistration?.package?.generatedAt,
   )
-  const stale = await sayItWasSent(owner, id, 'staging', {
-    draftGeneratedAt: stagingBefore,
-  })
+  const stale = await sendIt(owner, id, 'staging', { draftGeneratedAt: stagingBefore })
   checks.ok(
     'staging’s draft from before the PIA number: 409 LAUNCH_DRAFT_STALE — draft it again',
     !stale.done && stale.refused === 'LAUNCH_DRAFT_STALE',
@@ -1050,7 +1145,7 @@ async function step6Registrations(): Promise<void> {
       `${sent.privacyAssessmentReference}; ${sent.warnings.join(' | ').slice(0, 200)}`,
     )
     if (environment === 'production') {
-      const early = await sayItWasSent(owner, id, 'production', {
+      const early = await sendIt(owner, id, 'production', {
         draftGeneratedAt: sent.generatedAt,
       })
       checks.ok(
@@ -1093,14 +1188,34 @@ async function step6Registrations(): Promise<void> {
         ),
       )
     }
-    const said = await sayItWasSent(owner, id, environment, {
+    const said = await sendIt(owner, id, environment, {
       draftGeneratedAt: sent.generatedAt,
-      sentAt: today(),
     })
     checks.must(
-      `the owner says ${environment}'s was sent today: recorded`,
+      `the owner sends ${environment}'s to the Manifest team`,
       said.done ? said : undefined,
       JSON.stringify(said),
+    )
+    const record = checks.must(
+      `${environment}'s record`,
+      environment === 'staging'
+        ? (await records(owner)).stagingRegistration
+        : (await records(owner)).iamRegistration,
+    )
+    checks.ok(
+      `${environment}'s is \`sent\`, from its draft — with the team, not yet with UBC`,
+      record.state === 'sent' &&
+        record.sentFrom === 'draft' &&
+        record.submittedAt === null,
+      `${record.state} from ${record.sentFrom}`,
+    )
+    const filed = await teamSubmitted(admin, id, environment, {
+      reference: `IAM-${environment === 'staging' ? 'STG' : 'PRD'}-${state.runId}`,
+    })
+    checks.must(
+      `the administrator records that the Manifest team submitted ${environment}'s to UBC IAM`,
+      filed.done ? filed : undefined,
+      JSON.stringify(filed),
     )
     const queue = await queueFor(admin)
     checkOldestFirst(queue)
@@ -1113,9 +1228,9 @@ async function step6Registrations(): Promise<void> {
     if (environment === 'production') {
       const iam = item(await readiness(owner), 'iam-registration')
       checks.ok(
-        `the checklist: "It was sent to UBC IAM on ${todayInWords()}." — and waiting since then`,
+        `the checklist: "It was sent to UBC IAM on ${todayInWords()}." — and waiting since the team’s day`,
         iam.why.startsWith(`It was sent to UBC IAM on ${todayInWords()}.`) &&
-          iam.since === (said.done ? said.submittedAt : null),
+          iam.since === (filed.done ? filed.submittedAt : null),
         `${iam.why} (since ${iam.since})`,
       )
     }
@@ -1162,8 +1277,113 @@ async function step6Registrations(): Promise<void> {
     'and only the sign-off request still waits on the administrators',
     kindsOf(ours(await queueFor(admin))).join(',') === 'release-approval',
   )
+  await theTeamsEmails(id)
   save()
   done(6)
+}
+
+/**
+ * THE MANIFEST TEAM'S EMAILS, READ BACK FROM MAILPIT (the FE-46/47/5 plan's Task 5): ONE per send and
+ * one per sign-off request — the assessment's two sends (step 4's, and step 5's after the hand-back),
+ * staging's and production's, and step 3's request (a second ask about the same release tells nobody):
+ * FIVE, derived from the steps as written. Each names the app and links to the console; none carries
+ * the marker answer or any gap's words. The mailer sends in the background, so this polls up to 10 s;
+ * then deletes them by id.
+ */
+async function theTeamsEmails(projectIdValue: string): Promise<void> {
+  const slug = checks.must('the slug', state.slug)
+  const EXPECTED = 5
+  const deadline = Date.now() + 10_000
+  let found = await mailpitSearch(slug)
+  while (found.length < EXPECTED && Date.now() < deadline) {
+    await new Promise((resolve) => setTimeout(resolve, 250))
+    found = await mailpitSearch(slug)
+  }
+  const emails = await Promise.all(found.map((m) => mailpitMessage(m.ID)))
+  const subjects = emails.map((e) => e.Subject.replace(/^.*?\): /, '')).sort()
+  checks.ok(
+    `the Manifest team was emailed ${EXPECTED} times: the assessment twice, each registration, and the sign-off request`,
+    JSON.stringify(subjects) ===
+      JSON.stringify(
+        [
+          'a release is waiting for sign-off for production',
+          'the privacy assessment was sent to the Manifest team',
+          'the privacy assessment was sent to the Manifest team',
+          'the production IAM registration was sent to the Manifest team',
+          'the staging IAM registration was sent to the Manifest team',
+        ].sort(),
+      ),
+    JSON.stringify(subjects),
+  )
+  checks.ok(
+    'each is to the team, names the app and links to the console — the record or the release, and the queue',
+    emails.every(
+      (e) =>
+        e.To.map((t) => t.Address).join(',') === 'team@manifest.internal' &&
+        e.Subject.includes(`(${slug})`) &&
+        e.Text.includes(`${origin}/queue`) &&
+        (e.Text.includes(`${origin}/projects/${projectIdValue}/records`) ||
+          e.Text.includes(`${origin}/releases/${state.releaseId}/approval`)),
+    ),
+    emails.map((e) => e.Subject).join(' | '),
+  )
+  const draft = (await records(clientFor('MANIFEST_SESSION'))).privacyAssessment?.draft
+  const gapWords = (draft?.sections ?? []).flatMap((s) => s.gaps.map((g) => g.text))
+  const marker = checks.must('the marker answer', state.marker)
+  const note = checks.must('the sign-off note', state.note)
+  checks.ok(
+    'none carries an answer — not the marker — nor any gap’s words, nor the sign-off note',
+    emails.every(
+      (e) =>
+        !`${e.Subject}\n${e.Text}`.includes(marker) &&
+        !`${e.Subject}\n${e.Text}`.includes('answered again') &&
+        !gapWords.some((g) => e.Text.includes(g)) &&
+        !e.Text.includes(note),
+    ),
+  )
+  await mailpitDelete(found.map((m) => m.ID))
+  checks.ok('and they are deleted by id', (await mailpitSearch(slug)).length === 0)
+}
+
+/** Mailpit's API on the laptop — the team's inbox (§21's tenth container). */
+const MAILPIT = process.env.MANIFEST_MAILPIT_API ?? 'http://127.0.0.1:7112/api/v1'
+
+async function mailpitSearch(slug: string): Promise<{ ID: string }[]> {
+  const res = await fetch(
+    `${MAILPIT}/search?limit=100&query=${encodeURIComponent(`subject:"(${slug})"`)}`,
+  )
+  return ((await res.json()) as { messages: { ID: string }[] }).messages
+}
+
+async function mailpitMessage(id: string): Promise<{
+  Subject: string
+  Text: string
+  To: { Address: string }[]
+}> {
+  return (await (await fetch(`${MAILPIT}/message/${id}`)).json()) as {
+    Subject: string
+    Text: string
+    To: { Address: string }[]
+  }
+}
+
+async function mailpitDelete(ids: string[]): Promise<void> {
+  if (ids.length === 0) return
+  await fetch(`${MAILPIT}/messages`, {
+    method: 'DELETE',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ IDs: ids }),
+  })
+}
+
+/** An answer for every gap of an assessment draft, in its order. */
+function answersFor(
+  draft: Schemas['PrivacyAssessmentDraft'],
+  answer: (gapId: string, n: number) => string,
+): { gapId: string; answer: string }[] {
+  return draft.sections
+    .flatMap((s) => s.gaps.map((g) => g.id))
+    .map((gapId, n) => ({ gapId, answer: answer(gapId, n) }))
 }
 
 // ─── launch: steps 7–8 ─────────────────────────────────────────────────────────────────

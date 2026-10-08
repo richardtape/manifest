@@ -667,9 +667,15 @@ export const intakeSessions = pgTable(
   (t) => [index('intake_sessions_user_created_idx').on(t.userId, t.createdAt)],
 )
 
-/** §9: `draft → submitted → active`, plus `change_requested` and `expired` (D19, D20). */
+/**
+ * §9: `draft → sent → submitted → active`, plus `change_requested` and `expired` (D19, D20). `sent` is
+ * with the Manifest team (the FE-46/47/5 plan's Task 5): the owner sent it, and the team has yet to submit
+ * it to UBC or hand it back. Added by `ALTER TYPE … ADD VALUE 'sent' BEFORE 'submitted'`, so every CHECK
+ * that names it compares `state::text` (Decision 7).
+ */
 export const iamRegistrationState = pgEnum('iam_registration_state', [
   'draft',
+  'sent',
   'submitted',
   'active',
   'change_requested',
@@ -677,15 +683,35 @@ export const iamRegistrationState = pgEnum('iam_registration_state', [
 ])
 
 /**
- * §9: `draft → submitted → approved`. Three, and deliberately no rejection state — a
+ * §9: `draft → sent → submitted → approved`, and deliberately no rejection state — a
  * refused PIA goes back to `draft` with the reviewer's note, which is what the Privacy
- * Office actually does.
+ * Office actually does. `sent` is with the Manifest team, as the registration's is.
  */
 export const privacyAssessmentState = pgEnum('privacy_assessment_state', [
   'draft',
+  'sent',
   'submitted',
   'approved',
 ])
+
+/**
+ * THE STATES THE GENERIC RECORD ROUTES WRITE — every state but `sent`, which only the Manifest team's own
+ * operations move a record into or out of (the FE-46/47/5 plan's Decision 4). Their request schemas and the
+ * `…recorded` events read these, so the contract never offers `sent` to them; `satisfies` holds each to its
+ * enum, and `transitions.test.ts` holds each to its enum less `sent`.
+ */
+export const RECORDED_IAM_STATES = [
+  'draft',
+  'submitted',
+  'active',
+  'change_requested',
+  'expired',
+] as const satisfies readonly (typeof iamRegistrationState.enumValues)[number][]
+export const RECORDED_PIA_STATES = [
+  'draft',
+  'submitted',
+  'approved',
+] as const satisfies readonly (typeof privacyAssessmentState.enumValues)[number][]
 
 /**
  * §6's `IamRegistration`. **P6a tracks it; P8 GENERATES what it carries** (R1) — so
@@ -751,17 +777,33 @@ export const iamRegistrations = pgTable(
      * Rich's (a)): `submitted` — UBC IAM came back to the OWNER with questions, so the next move is
      * theirs — or `active` — an administrator FILED a change request with UBC IAM, which UBC now
      * holds. One state with two people to wait on, told apart here: set by the move INTO
-     * `change_requested`, cleared by any move out (`recordIamRegistration`, `submitIamRegistration`),
+     * `change_requested`, cleared by any move out (`recordIamRegistration`, `sendIamRegistration`),
      * and read by the administrators' queue. Text with a CHECK, as `environment_kind` is.
      */
     changeRequestedFrom: text('change_requested_from', { enum: ['submitted', 'active'] }),
+    /**
+     * WHERE A `sent` REGISTRATION CAME FROM (the FE-46/47/5 plan's Decisions 5 and 6): the state the owner
+     * sent it from — a draft, UBC's questions to them, a lapse — which is where the Manifest team's
+     * hand-back returns it. Set on entering `sent`, cleared on leaving it; a CHECK both ways.
+     */
+    sentFrom: text('sent_from', {
+      enum: ['draft', 'change_requested', 'expired', 'active'],
+    }),
+    /**
+     * WHEN THE OWNER LAST SENT IT TO THE MANIFEST TEAM, AND WHO (Decision 6): the moment of the send,
+     * which is made in Manifest. The LAST send's, kept after the record leaves `sent` and replaced by the
+     * next — history, as `submitted_at` is. What the team's submission's day may not precede.
+     */
+    sentAt: timestamp('sent_at', { withTimezone: true }),
+    sentBy: uuid('sent_by').references(() => users.id),
     /** §15's submission-state hook: "a human submits and pastes a ticket reference". */
     externalTicketRef: text('external_ticket_ref'),
     /**
-     * WHEN THE REQUEST NOW WITH UBC WAS SENT, AND WHO SAID SO (§9, Spec action 3; Task 9) — stamped
-     * by the owner's *"I've sent it"* (the day they name, at noon in Vancouver), by an administrator's
-     * record that moves the registration into `submitted`, and by filing a change request; never by
-     * UBC's answer. What the checklist's *waiting since* reads.
+     * WHEN THE REQUEST NOW WITH UBC WAS SENT, AND WHO RECORDED IT (§9, Spec action 3; the FE-46/47/5 plan's
+     * Task 5) — stamped by the Manifest team's submission (the day the team names, at noon in Vancouver),
+     * by an administrator's record that moves the registration into `submitted`, and by filing a change
+     * request; never by UBC's answer, and never by the owner's send. What the checklist's *waiting since*
+     * reads.
      */
     submittedAt: timestamp('submitted_at', { withTimezone: true }),
     submittedBy: uuid('submitted_by').references(() => users.id),
@@ -806,33 +848,65 @@ export const iamRegistrations = pgTable(
       'iam_registrations_change_requested_from',
       sql`(${t.state} = 'change_requested') = (${t.changeRequestedFrom} IS NOT NULL) AND (${t.changeRequestedFrom} IS NULL OR ${t.changeRequestedFrom} IN ('submitted', 'active'))`,
     ),
+    // A `sent` row says where it came from and who sent it, and no other row carries an origin (Decision 6).
+    // `::text` because the migration that adds 'sent' runs in one transaction with this CHECK (Decision 7).
+    check(
+      'iam_registrations_sent_from',
+      sql`((${t.state})::text = 'sent') = (${t.sentFrom} IS NOT NULL) AND (${t.sentFrom} IS NULL OR ${t.sentFrom} IN ('draft', 'change_requested', 'expired', 'active'))`,
+    ),
+    check(
+      'iam_registrations_sent_by',
+      sql`(${t.state})::text <> 'sent' OR (${t.sentAt} IS NOT NULL AND ${t.sentBy} IS NOT NULL)`,
+    ),
   ],
 )
 
 /** §6's `PrivacyAssessment`. P6a tracks it; P8 generates the draft (R1). */
-export const privacyAssessments = pgTable('privacy_assessments', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  projectId: uuid('project_id')
-    .notNull()
-    .unique()
-    .references(() => projects.id, { onDelete: 'cascade' }),
-  /**
-   * D19's draft (the launch path plan's Task 11 renders it). Null until drafted — and a submission
-   * refuses an assessment with none (`LAUNCH_DRAFT_REQUIRED`).
-   */
-  generatedDraft: jsonb('generated_draft'),
-  state: privacyAssessmentState('state').notNull().default('draft'),
-  reviewer: text('reviewer'),
-  approvedAt: timestamp('approved_at', { withTimezone: true }),
-  /** The Privacy Office's reference — the PIA number, which UBC IAM asks for (§9). */
-  externalTicketRef: text('external_ticket_ref'),
-  /** When the owner said it was sent, and who (Task 9) — the registration's columns, the same rule. */
-  submittedAt: timestamp('submitted_at', { withTimezone: true }),
-  submittedBy: uuid('submitted_by').references(() => users.id),
-  recordedBy: uuid('recorded_by').references(() => users.id),
-  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
-})
+export const privacyAssessments = pgTable(
+  'privacy_assessments',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    projectId: uuid('project_id')
+      .notNull()
+      .unique()
+      .references(() => projects.id, { onDelete: 'cascade' }),
+    /**
+     * D19's draft (the launch path plan's Task 11 renders it). Null until drafted — and a submission
+     * refuses an assessment with none (`LAUNCH_DRAFT_REQUIRED`).
+     */
+    generatedDraft: jsonb('generated_draft'),
+    state: privacyAssessmentState('state').notNull().default('draft'),
+    reviewer: text('reviewer'),
+    approvedAt: timestamp('approved_at', { withTimezone: true }),
+    /** The Privacy Office's reference — the PIA number, which UBC IAM asks for (§9). */
+    externalTicketRef: text('external_ticket_ref'),
+    /**
+     * When it was submitted to the Privacy Office, and who recorded it — the Manifest team's submission
+     * (the FE-46/47/5 plan's Task 5) or an administrator's record — the registration's columns, the same rule.
+     */
+    submittedAt: timestamp('submitted_at', { withTimezone: true }),
+    submittedBy: uuid('submitted_by').references(() => users.id),
+    /**
+     * WHEN THE OWNER LAST SENT IT TO THE MANIFEST TEAM, WHO, AND WITH WHAT ANSWERS (Decisions 6 and 9): an
+     * answer to every gap of the draft sent, in the draft's order — what the team carries into the Privacy
+     * Office's form. The LAST send's, kept after the record leaves `sent` and replaced by the next.
+     */
+    sentAt: timestamp('sent_at', { withTimezone: true }),
+    sentBy: uuid('sent_by').references(() => users.id),
+    gapAnswers: jsonb('gap_answers').$type<{ gapId: string; answer: string }[]>(),
+    recordedBy: uuid('recorded_by').references(() => users.id),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    // A `sent` assessment says when, who, and what the owner answered (Decision 6); `::text` as the
+    // registration's (Decision 7).
+    check(
+      'privacy_assessments_sent',
+      sql`(${t.state})::text <> 'sent' OR (${t.sentAt} IS NOT NULL AND ${t.sentBy} IS NOT NULL AND ${t.gapAnswers} IS NOT NULL)`,
+    ),
+  ],
+)
 
 /**
  * WHO A QUESTION'S REQUEST NAMED (FE-5): as the request named them, and by name only when they
@@ -1225,7 +1299,7 @@ export const events = audit.table(
      */
     check(
       'events_type_known',
-      sql`${t.type} IN ('sso.registered', 'sso.acs_changed', 'build.started', 'build.succeeded', 'build.failed', 'instance.provisioning', 'instance.starting', 'instance.healthy', 'instance.failed', 'incident.opened', 'ai.key_rotated', 'ai.models_withdrawn', 'instance.retiring', 'instance.retired', 'instance.retire_failed', 'project.created', 'repository.seeded', 'spec.validated', 'token.minted', 'pending_action.created', 'pending_action.confirmed', 'pending_action.rejected', 'pending_action.expired', 'iam_registration.recorded', 'privacy_assessment.recorded', 'iam_registration.submitted', 'privacy_assessment.submitted', 'iam_registration.drafted', 'privacy_assessment.drafted', 'rehearsal.completed', 'release.approved', 'release.approval_rejected', 'approval.requested', 'project.launched', 'repository.pushed', 'repository.history_rewritten', 'repository.visibility_enforced', 'repository.secret_detected', 'repository.scan_incomplete', 'repository.protection_unavailable', 'repository.committed', 'repository.secret_refused', 'app_secret.set', 'app_secret.cleared', 'project.renamed', 'member.added', 'member.removed', 'agent_session.started', 'agent_session.narrowed', 'agent_session.ended', 'sso.deregistered', 'project.archived', 'project.restored', 'project.deleted')`,
+      sql`${t.type} IN ('sso.registered', 'sso.acs_changed', 'build.started', 'build.succeeded', 'build.failed', 'instance.provisioning', 'instance.starting', 'instance.healthy', 'instance.failed', 'incident.opened', 'ai.key_rotated', 'ai.models_withdrawn', 'instance.retiring', 'instance.retired', 'instance.retire_failed', 'project.created', 'repository.seeded', 'spec.validated', 'token.minted', 'pending_action.created', 'pending_action.confirmed', 'pending_action.rejected', 'pending_action.expired', 'iam_registration.recorded', 'privacy_assessment.recorded', 'iam_registration.submitted', 'privacy_assessment.submitted', 'iam_registration.sent', 'privacy_assessment.sent', 'iam_registration.returned', 'privacy_assessment.returned', 'iam_registration.drafted', 'privacy_assessment.drafted', 'rehearsal.completed', 'release.approved', 'release.approval_rejected', 'approval.requested', 'project.launched', 'repository.pushed', 'repository.history_rewritten', 'repository.visibility_enforced', 'repository.secret_detected', 'repository.scan_incomplete', 'repository.protection_unavailable', 'repository.committed', 'repository.secret_refused', 'app_secret.set', 'app_secret.cleared', 'project.renamed', 'member.added', 'member.removed', 'agent_session.started', 'agent_session.narrowed', 'agent_session.ended', 'sso.deregistered', 'project.archived', 'project.restored', 'project.deleted')`,
     ),
     /**
      * §26, held by the database as well as by `assertCapability` (the faculty-ready plan's Task 10):

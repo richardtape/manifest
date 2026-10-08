@@ -737,17 +737,20 @@ describe('the launch path plan’s Task 13 — the records by stage, the sign-of
   const draftIam = (at: string, env: string) =>
     post(at, `${records_}/iam-registration/${env}/draft`)
   const sendIam = (at: string, env: string, body: unknown = {}) =>
-    post(at, `${records_}/iam-registration/${env}/submission`, body)
+    post(at, `${records_}/iam-registration/${env}/send`, body)
   const draftPia = (at: string) => post(at, `${records_}/privacy-assessment/draft`)
-  const sendPia = (at: string, body: unknown = {}) =>
-    post(at, `${records_}/privacy-assessment/submission`, body)
-  const today = () =>
-    new Intl.DateTimeFormat('en-CA', {
-      timeZone: 'America/Vancouver',
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-    }).format(new Date())
+  const sendPia = (at: string, body: unknown = { answers: [] }) =>
+    post(at, `${records_}/privacy-assessment/send`, body)
+  /** The Manifest team's submission and hand-back (the FE-46/47/5 plan's Task 5). */
+  const teamSubmits = (
+    at: string,
+    record: string,
+    body: unknown = { reference: 'X-1' },
+  ) => post(at, `${records_}/${record}/submission`, body)
+  const handsBack = (at: string, record: string) =>
+    post(at, `${records_}/${record}/return`)
+  const everyGap = (a: Assessment, answer = 'does not apply') =>
+    a.draft!.sections.flatMap((s) => s.gaps.map((g) => ({ gapId: g.id, answer })))
 
   it('carries what was sent by default — a real package for each registration and a real draft for the assessment — and refuses to draft or send them again', async () => {
     const r = await records(origin)
@@ -788,6 +791,17 @@ describe('the launch path plan’s Task 13 — the records by stage, the sign-of
       [await draftPia(origin), 'LAUNCH_RECORD_SUBMITTED'],
       [await sendPia(origin), 'LAUNCH_TRANSITION_INVALID'],
       [await sendIam(origin, 'staging'), 'LAUNCH_TRANSITION_INVALID'],
+      // NOTHING IS WITH THE MANIFEST TEAM at this stage: its submission and hand-back are refused.
+      [await teamSubmits(origin, 'privacy-assessment'), 'LAUNCH_TRANSITION_INVALID'],
+      [
+        await teamSubmits(origin, 'iam-registration/staging'),
+        'LAUNCH_TRANSITION_INVALID',
+      ],
+      [await handsBack(origin, 'privacy-assessment'), 'LAUNCH_TRANSITION_INVALID'],
+      [
+        await handsBack(origin, 'iam-registration/production'),
+        'LAUNCH_TRANSITION_INVALID',
+      ],
     ] as const) {
       expect(refused.status, code).toBe(409)
       expect(await codeOf(refused)).toBe(code)
@@ -852,34 +866,36 @@ describe('the launch path plan’s Task 13 — the records by stage, the sign-of
     expect(await codeOf(early)).toBe('LAUNCH_PIA_NOT_APPROVED')
 
     const draftGeneratedAt = r.privacyAssessment!.draft!.generatedAt
-    // A draft other than the one held, a day still to come: each refused by its code.
-    const changed = await sendPia(at, { draftGeneratedAt: new Date().toISOString() })
+    const answers = everyGap(r.privacyAssessment!)
+    // A draft other than the one held, a gap left unanswered: each refused by its code.
+    const changed = await sendPia(at, {
+      draftGeneratedAt: new Date().toISOString(),
+      answers,
+    })
     expect(changed.status).toBe(409)
     expect(await codeOf(changed)).toBe('LAUNCH_DRAFT_CHANGED')
-    const future = await sendPia(at, { sentAt: '2999-01-01', draftGeneratedAt })
-    expect(future.status).toBe(400)
-    expect(await codeOf(future)).toBe('LAUNCH_SENT_AT_INVALID')
+    const missing = await sendPia(at, { draftGeneratedAt, answers: answers.slice(1) })
+    expect(missing.status).toBe(400)
+    expect(await codeOf(missing)).toBe('LAUNCH_GAP_ANSWERS_INVALID')
 
-    const sent = await sendPia(at, {
-      sentAt: today(),
-      reference: 'PRISM-0042',
-      draftGeneratedAt,
-    })
+    const sent = await sendPia(at, { draftGeneratedAt, answers })
     expect(sent.status).toBe(200)
-    const assessment = (await sent.json()) as Assessment
+    const assessment = (await sent.json()) as Assessment & {
+      sentAt: string | null
+      sentBy: { displayName: string } | null
+      gapAnswers: { gapId: string; answer: string }[] | null
+    }
+    // SENT TO THE MANIFEST TEAM — now, by the instructor, its answers kept — not yet with UBC.
     expect(assessment).toMatchObject({
-      state: 'submitted',
-      externalTicketRef: 'PRISM-0042',
+      state: 'sent',
+      submittedAt: null,
+      sentBy: { displayName: 'Instructor One' },
+      gapAnswers: answers,
     })
-    // Stamped at noon in Vancouver on the day named — the platform's rule.
-    expect(
-      new Intl.DateTimeFormat('en-CA', {
-        timeZone: 'America/Vancouver',
-        hour: '2-digit',
-        hourCycle: 'h23',
-      }).format(new Date(assessment.submittedAt!)),
-    ).toBe('12')
+    expect(Date.now() - Date.parse(assessment.sentAt!)).toBeLessThan(60_000)
     expect(assessment.draft!.generatedAt).toBe(draftGeneratedAt)
+    // The mock remembers nothing: the next read is the stage again, and nothing is with the team.
+    expect((await teamSubmits(at, 'privacy-assessment')).status).toBe(409)
   })
 
   it('MANIFEST_MOCK_RECORDS=assessed — the assessment approved; staging is sent; production waits for staging', async () => {
@@ -900,14 +916,14 @@ describe('the launch path plan’s Task 13 — the records by stage, the sign-of
     expect(await codeOf(production)).toBe('LAUNCH_STAGING_NOT_REGISTERED')
 
     const sent = await sendIam(at, 'staging', {
-      reference: 'IAM-2026-0500',
       draftGeneratedAt: staging.package!.generatedAt,
     })
     expect(sent.status).toBe(200)
     expect((await sent.json()) as Registration).toMatchObject({
-      state: 'submitted',
+      state: 'sent',
+      sentFrom: 'draft',
       environment: 'staging',
-      externalTicketRef: 'IAM-2026-0500',
+      submittedAt: null,
     })
   })
 

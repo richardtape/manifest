@@ -24,10 +24,11 @@ Every step from an idea to a launched app, who takes it, and the operations that
 | Answer an agent’s question | person | `confirmPendingAction`, `rejectPendingAction` |
 | See what a first launch needs | either | `getLaunchReadiness`, `getLaunchRecords` |
 | Draft the privacy assessment and the registrations UBC asks for, and read them | either | `draftPrivacyAssessment`, `draftIamRegistration` |
-| Say each was sent — the assessment first, then staging’s registration, then production’s | person | `submitPrivacyAssessment`, `submitIamRegistration` |
+| Send each to the Manifest team — the assessment first, every gap answered, then staging’s registration, then production’s | person | `sendPrivacyAssessment`, `sendIamRegistration` |
 | Ask an administrator to sign off the release serving staging | either | `requestApproval` |
 | See everything waiting on the administrators, oldest first | administrator | `listQueue` |
 | Rehearse the CWL sign-in before launch | person | `runRehearsal` |
+| Record that the Manifest team submitted each to UBC — or hand it back to its owner | administrator | `submitPrivacyAssessment`, `submitIamRegistration`, `returnPrivacyAssessment`, `returnIamRegistration` |
 | Record what UBC IAM and the Privacy Office said | administrator | `recordIamRegistration`, `recordPrivacyAssessment` |
 | Approve a release from a stored preview | administrator | `createApprovalPreview`, `getApprovalPreview`, `approveRelease`, `rejectRelease`, `getApproval` |
 | Manage who works on the project | person | `listMembers`, `addMember`, `removeMember`, `listProjects`, `getProject` |
