@@ -209,6 +209,7 @@ export async function commitManifest(
   commitSha: string
   valid: boolean
   sensitiveDiff: { sensitive: boolean; fields: string[] }
+  sensitiveSinceApproved: string[] | null
 }> {
   await writeFiles(
     ctx.deps.source,

@@ -836,6 +836,7 @@ export const projectReadRoutes = [
           },
         ],
         sensitiveDiff: { sensitive: false, fields: [] },
+        sensitiveSinceApproved: null,
       },
     },
     handler: async ({ deps, actor, params, body }) => {

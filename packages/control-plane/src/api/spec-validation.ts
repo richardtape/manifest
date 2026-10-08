@@ -3,6 +3,7 @@ import { narrowSessionsHoldingMore } from '../ai/index.js'
 import { appSpecs, projects, type Db } from '../db/index.js'
 import { makeRedactor, publishEvent, withActor } from '../observability/index.js'
 import { repositoryOf } from '../projects/index.js'
+import { sensitiveSinceApprovedOf } from '../releases/index.js'
 import {
   isSensitiveDiff,
   validateSpec,
@@ -61,6 +62,29 @@ export async function sensitiveAgainstNewestValid(
 }
 
 /**
+ * FE-54: `spec` against the last release approved for production, as the gate will compare a release
+ * built from it (`sensitiveSinceApprovedOf`) — THE ONE CALL both a recorded validation and a commit's
+ * check make. Null when nothing has been approved; null too for an invalid manifest, which no release
+ * is made from, and for a project whose pinned blueprint has left the registry, which no release can
+ * be made for either (`createRelease` refuses it `BLUEPRINT_NOT_FOUND`).
+ */
+export async function sensitiveSinceApprovedFor(
+  deps: Pick<ServerDeps, 'db' | 'blueprints'>,
+  project: { id: string; blueprintRef: string },
+  spec: ManifestSpec | null,
+): Promise<string[] | null> {
+  if (spec === null) return null
+  const descriptor = deps.blueprints.resolve(project.blueprintRef)
+  if (descriptor === undefined) return null
+  return sensitiveSinceApprovedOf(
+    deps.db,
+    project.id,
+    spec,
+    descriptor.defaults.resources,
+  )
+}
+
+/**
  * The project's NEWEST VALID `manifest.yaml`, parsed — never the newest row, which may be an
  * invalid commit's. THE ONE QUERY: the sensitive diff above, and the names an environment's
  * secrets list calls declared (the authoring API plan's Task 8). `undefined` before any.
@@ -113,6 +137,11 @@ export async function validateAndRecord(
     project.id,
     result.valid ? result.spec : null,
   )
+  const sensitiveSinceApproved = await sensitiveSinceApprovedFor(
+    deps,
+    project,
+    result.valid ? result.spec : null,
+  )
   const [appSpec] = await deps.db
     .insert(appSpecs)
     .values({
@@ -156,6 +185,7 @@ export async function validateAndRecord(
     errors: result.valid ? [] : result.errors,
     warnings: result.warnings,
     sensitiveDiff,
+    sensitiveSinceApproved,
   }
 }
 

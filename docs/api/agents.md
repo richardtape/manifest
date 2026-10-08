@@ -32,7 +32,7 @@ If you need a model, ask for a key with `startAgentSession` — your token must 
 **Read → change → check → commit → build → deploy → read the result.**
 
 1. **Read.** `getTree` lists the project’s files at `main` and answers the commit it read (`commitSha`). Keep it: every change you make is computed from it. Read a file with `getFile` at that commit (`ref`).
-2. **Change and check.** Send the change as `createCommit` with `dryRun: true`. Nothing is written; you are told what the commit would change, whether manifest.yaml is valid, and whether it changes a field an administrator reviews at production (`spec.sensitiveDiff` — it changes nothing about committing, building, or deploying to sandbox and staging).
+2. **Change and check.** Send the change as `createCommit` with `dryRun: true`. Nothing is written; you are told what the commit would change, whether manifest.yaml is valid, and whether an administrator reviews it before production (`spec.sensitiveSinceApproved`, against the release last approved for production; null before the first launch — it changes nothing about committing, building, or deploying to sandbox and staging).
 3. **Commit.** Send the same body without `dryRun`. The answer is the new commit.
 4. **Build.** `startBuild` naming the commit you wrote. It answers `202` and the build `running`; watch the project’s event stream for `build.succeeded` or `build.failed`, then read the build.
 5. **Deploy.** `createRelease` from a build that succeeded, then `deploy` it to staging (or sandbox). A deploy that never becomes ready is a `200` whose instance is `failed`; `listIncidents` says why.

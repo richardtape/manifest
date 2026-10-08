@@ -3807,7 +3807,8 @@ Answer, `201`:
     "sensitiveDiff": {
       "sensitive": false,
       "fields": []
-    }
+    },
+    "sensitiveSinceApproved": null
   }
 }
 ```
@@ -4449,7 +4450,8 @@ Answer, `201`:
   "sensitiveDiff": {
     "sensitive": false,
     "fields": []
-  }
+  },
+  "sensitiveSinceApproved": null
 }
 ```
 
@@ -4763,6 +4765,7 @@ Answer, `201`:
       "sensitive": false,
       "fields": []
     },
+    "sensitiveSinceApproved": null,
     "warnings": [
       {
         "code": "SPEC_FIELD_NOT_ENFORCED",

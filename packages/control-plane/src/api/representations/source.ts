@@ -14,7 +14,7 @@ import {
   Timestamp,
   Uuid,
 } from '../contract/schemas.js'
-import { SensitiveDiff } from './specs.js'
+import { SensitiveDiff, SensitiveSinceApproved } from './specs.js'
 
 /**
  * A PROJECT'S SOURCE, READ (the authoring API plan's Task 5): a tree, a file, a page of history
@@ -411,6 +411,7 @@ export const CommitOutcome = representation(
             'The recorded validation of the new commit; null for a dry run — and for a commit that landed when its validation could not be recorded, which a build of it then makes first.',
           ),
           sensitiveDiff: SensitiveDiff,
+          sensitiveSinceApproved: SensitiveSinceApproved,
           warnings: z
             .array(ManifestErrorSchema)
             .describe(

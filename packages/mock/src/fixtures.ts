@@ -297,6 +297,9 @@ export const SPEC_VALIDATION: Schemas['SpecValidation'] = {
     },
   ],
   sensitiveDiff: { sensitive: false, fields: [] },
+  // Nothing approved for production yet in this fixture's story (FE-54): every change then goes through
+  // the first launch's approval, which is what null says.
+  sensitiveSinceApproved: null,
 }
 
 export const CREATED_PROJECT: Schemas['CreatedProject'] = {

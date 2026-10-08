@@ -17,10 +17,12 @@ import { personName, repositoryOf } from '../projects/index.js'
 import type { SourceDriver } from '../source/index.js'
 import {
   describeDiff,
+  resolveConfig,
   securityNotesFor,
   sensitiveFieldsBetween,
   sensitiveViewOfRelease,
   type ManifestSpec,
+  type ResourceDefaults,
   type SensitiveField,
   type SensitiveView,
   type SpecChange,
@@ -166,7 +168,8 @@ export function approvalCoversDigest(
 export async function lastApprovedReleaseFor(
   db: Db,
   projectId: string,
-  excludeReleaseId: string,
+  /** The release in hand — or null when there is none, as for a commit not yet released (FE-54). */
+  excludeReleaseId: string | null,
 ): Promise<ReleaseRow | undefined> {
   const rows = await db
     .select({ decision: approvals.decision, release: releases })
@@ -228,13 +231,60 @@ export async function sensitiveChangeOf(
   db: Db,
   release: ReleaseRow,
 ): Promise<SensitiveChange> {
-  const baseline = await lastApprovedReleaseFor(db, release.projectId, release.id)
+  return sinceLastApproved(
+    db,
+    release.projectId,
+    release.id,
+    await sensitiveViewOf(db, release),
+  )
+}
+
+/**
+ * THE GATE'S QUESTION, ONCE: the last approved release (excluding the one in hand), and the
+ * sensitive fields in which `after` differs from its view. `sensitiveChangeOf` asks it of a
+ * release; `sensitiveSinceApprovedOf` asks it of a commit (FE-54) — one rule, never a second
+ * statement of it.
+ */
+async function sinceLastApproved(
+  db: Db,
+  projectId: string,
+  excludeReleaseId: string | null,
+  after: SensitiveView,
+): Promise<SensitiveChange> {
+  const baseline = await lastApprovedReleaseFor(db, projectId, excludeReleaseId)
   if (baseline === undefined) return { baseline, fields: [] }
-  const [before, after] = await Promise.all([
-    sensitiveViewOf(db, baseline),
-    sensitiveViewOf(db, release),
-  ])
-  return { baseline, fields: sensitiveFieldsBetween(before, after) }
+  return {
+    baseline,
+    fields: sensitiveFieldsBetween(await sensitiveViewOf(db, baseline), after),
+  }
+}
+
+/**
+ * FE-54: A COMMIT'S SENSITIVE CHANGE SINCE THE LAST APPROVED RELEASE — what the production gate
+ * would hold a release built from it to, asked before any release exists. The commit's manifest
+ * is resolved exactly as `createRelease` resolves a release's production config (the project's
+ * blueprint defaults, the top level, the production override), so the view is the gate's own —
+ * never `sensitiveViewOfSpec`'s, which reads the manifest's resources alone and would see a rise
+ * in a value the blueprint already supplied. **Null when nothing has been approved**: before a
+ * launch every change goes through the first launch's approval, and "no fields" there must not
+ * read as "nothing to review".
+ *
+ * **Callers:** `api/spec-validation.ts`'s `validateAndRecord` (every recorded validation) and
+ * `createCommit`'s check before a commit is written (`api/routes/source.ts`).
+ */
+export async function sensitiveSinceApprovedOf(
+  db: Db,
+  projectId: string,
+  spec: ManifestSpec,
+  defaults: ResourceDefaults,
+): Promise<SensitiveField[] | null> {
+  const change = await sinceLastApproved(
+    db,
+    projectId,
+    null,
+    sensitiveViewOfRelease(resolveConfig(spec, 'production', defaults), spec.blueprint),
+  )
+  return change.baseline === undefined ? null : change.fields
 }
 
 /**

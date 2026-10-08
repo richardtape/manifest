@@ -26,6 +26,7 @@ import { SpecInvalidError } from '../errors.js'
 import type { ServerDeps } from '../server.js'
 import {
   sensitiveAgainstNewestValid,
+  sensitiveSinceApprovedFor,
   validateAndRecord,
   validateManifestText,
   type SpecValidationResult,
@@ -245,6 +246,7 @@ const COMMIT_EXAMPLES = {
     spec: {
       appSpecId: 'f0f11f7a-f7e5-4358-bace-3619589b5114',
       sensitiveDiff: { sensitive: false, fields: [] },
+      sensitiveSinceApproved: null,
       // The example project's manifest sets `ai.budget.per_user_monthly_usd: 2` (Spec action 4)
       // — held to the route's real answer by source-commit.test.ts.
       warnings: [
@@ -579,6 +581,11 @@ export const sourceRoutes = [
           project.id,
           verdict.spec,
         ),
+        sensitiveSinceApproved: await sensitiveSinceApprovedFor(
+          deps,
+          project,
+          verdict.spec,
+        ),
         warnings: verdict.warnings,
       }
       if (dryRun) {
@@ -626,6 +633,7 @@ export const sourceRoutes = [
         spec: {
           appSpecId: spec.appSpecId,
           sensitiveDiff: spec.sensitiveDiff,
+          sensitiveSinceApproved: spec.sensitiveSinceApproved,
           warnings: spec.warnings,
         },
       }

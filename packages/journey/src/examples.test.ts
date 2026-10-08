@@ -195,6 +195,8 @@ describe('the guides’ examples, run against manifest-mock (Decision 16)', () =
     ran.add('example-check')
     expect(await checkManifest(origin, TOKEN, PROJECT_ID, MANIFEST)).toEqual({
       valid: true,
+      // The mock's project has nothing approved for production: null, as the platform answers it.
+      sinceApproved: null,
       sensitiveFields: expect.any(Array),
     })
     const emptied = await checkManifest(origin, TOKEN, PROJECT_ID, '')

@@ -59,7 +59,7 @@ import {
 } from '@manifest/contract'
 
 export type ManifestCheck =
-  | { valid: true; sensitiveFields: string[] }
+  | { valid: true; sinceApproved: string[] | null; sensitiveFields: string[] }
   | { valid: false; problems: Schemas['ManifestError'][] }
 
 /**
@@ -95,8 +95,16 @@ export async function checkManifest(
       }),
       'createCommit',
     )
-    // Valid — and whether it changes a field an administrator reviews before production.
-    return { valid: true, sensitiveFields: outcome.spec.sensitiveDiff.fields }
+    // Valid — and whether an administrator reviews it before production: `sensitiveSinceApproved` is
+    // what a release of it would change against the release last approved for production, as the
+    // production deploy compares — an addition and its own removal cancel — and null before the first
+    // launch, whose approval reviews everything. `sensitiveDiff` is the change since the newest valid
+    // manifest, commit by commit.
+    return {
+      valid: true,
+      sinceApproved: outcome.spec.sensitiveSinceApproved,
+      sensitiveFields: outcome.spec.sensitiveDiff.fields,
+    }
   } catch (error) {
     // Switch on the CODE, never the message: `details` is there to act on.
     if (error instanceof ManifestApiError && error.code === 'SPEC_INVALID') {

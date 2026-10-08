@@ -413,6 +413,8 @@ describe('createCommit — changes checked before anything is written (Task 6)',
         spec: {
           appSpecId: null,
           sensitiveDiff: { sensitive: false, fields: [] },
+          // Nothing approved for production on this project (FE-54).
+          sensitiveSinceApproved: null,
           warnings: [],
         },
       })

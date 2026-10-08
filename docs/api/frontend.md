@@ -605,6 +605,10 @@ export async function deleteForGood(
 
 <!-- /example -->
 
+## Whether a change needs an administrator
+
+A launched app’s release goes to production with no administrator unless it changes a sensitive field against the release last approved for production (*Launching*). To tell a person whether a change will need an administrator’s look, read **`spec.sensitiveSinceApproved`** on a commit’s answer — its dry run too — or on `validateSpec`’s: the fields a release of that commit would change, compared as the production deploy compares them, so an addition and its own removal cancel. An empty list means no administrator; null means nothing has been approved yet, and the first launch’s approval reviews everything. Never add up `sensitiveDiff` across commits: it compares each manifest with the one before it.
+
 ## Showing a person what an agent asked
 
 When your agent asks for a privileged action, it is answered `403 TOKEN_ACTION_PENDING` with the question a person answers, and the question carries `bodySha256` — the SHA-256 of the request’s body in a canonical form: object keys sorted at every depth, properties whose value is `undefined` left out, arrays in their order, every other value as `JSON.stringify` writes it, and no body at all as `null`. Your server knows the requests it sent, so hash each the same way and you can show the person exactly what they are being asked to confirm (`listPendingActions`, then `confirmPendingAction` or `rejectPendingAction` in their session).
@@ -661,6 +665,8 @@ export function questionAbout(
 ```
 
 <!-- /example -->
+
+**Say what the question would do**: its `object` is what the request would act on, taken from the request — `member` (a person and the role asked for), `member-removal` (a person), or `deploy` (the release, its commit, and the environment). A person is named by `member.displayName` only when they are already a member of the project; anyone else exactly as the request named them (`namedBy`, `value`), and a person who has signed in and one who never has read alike. `object` is null on a question asked before the platform recorded it.
 
 ## Using the generated client from your own repository
 

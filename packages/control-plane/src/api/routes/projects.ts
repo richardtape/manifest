@@ -222,6 +222,7 @@ export const projectWriteRoutes = [
           errors: [],
           warnings: [],
           sensitiveDiff: { sensitive: false, fields: [] },
+          sensitiveSinceApproved: null,
         },
       },
     },
@@ -463,6 +464,8 @@ export const projectWriteRoutes = [
           errors: result.valid ? [] : result.errors,
           warnings: result.warnings,
           sensitiveDiff: { sensitive: false, fields: [] },
+          // A project just created has nothing approved for production (FE-54).
+          sensitiveSinceApproved: null,
         },
       }
     },
