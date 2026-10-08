@@ -251,6 +251,14 @@ with CWL will do — `proof-app` does. **On driver 2 (Rich's `.env`) the project
 `operator` must be an administrator: after its first sign-in, `bash scripts/admin-grant.sh grant opr000001 "<reason>"`,
 then sign in again (`MANIFEST_ADMIN_PUIDS` is not set in `.env`).
 
+> **SINCE 2026-10-08 (the FE-46/47/5 plan's Task 5) THE OWNER SENDS EACH RECORD TO THE MANIFEST TEAM**, so these rows read with three
+> changes. **I've sent it** is now **Send it to the Manifest team** — no day, no reference; the assessment's send asks for an answer to EVERY
+> gap (a box each; *Does not apply* is one) and is held until each has one — and the record reads *With the Manifest team since <day>*. As
+> `operator`, the record then shows **The Manifest team's step**: the owner's answers, **Record that the team submitted it** (the day and
+> UBC's reference) or **Hand it back to the owner** — record the submission BEFORE recording UBC's answer, because *Record what … said* is
+> not offered while the team holds a record. The queue lists the record once the team has submitted it (the team's own queue kinds come with
+> the plan's Task 6). The plan's sitting 5 clicks the new path whole.
+
 | # | As | Click | What must be true |
 |---|---|---|---|
 | 1 | instructor | create a project from `node-ts-mongo@1` / `proof-app`; **Build**, **Release**, **Deploy to staging** | staging **healthy**; **Request production** lists every blocking item, *Privacy Impact Assessment approved* saying to **draft it (draftPrivacyAssessment)** and send it |
@@ -272,6 +280,14 @@ then sign in again (`MANIFEST_ADMIN_PUIDS` is not set in `.env`).
 ordinary window; `operator` is the administrator in a PRIVATE window (one origin, one cookie jar per window). `operator` is made an
 administrator by `scripts/admin-grant.sh grant opr000001 "<reason>"` and a second sign-in. A step-up asks each of you for the password
 again, and lasts ten minutes.
+
+> **SINCE 2026-10-08 (the FE-46/47/5 plan's Task 5) THE OWNER SENDS EACH RECORD TO THE MANIFEST TEAM**, so these rows read with three
+> changes. **I've sent it** is now **Send it to the Manifest team** — no day, no reference; the assessment's send asks for an answer to EVERY
+> gap (a box each; *Does not apply* is one) and is held until each has one — and the record reads *With the Manifest team since <day>*. As
+> `operator`, the record then shows **The Manifest team's step**: the owner's answers, **Record that the team submitted it** (the day and
+> UBC's reference) or **Hand it back to the owner** — record the submission BEFORE recording UBC's answer, because *Record what … said* is
+> not offered while the team holds a record. The queue lists the record once the team has submitted it (the team's own queue kinds come with
+> the plan's Task 6). The plan's sitting 5 clicks the new path whole.
 
 | # | As | Click | What must be true |
 |---|---|---|---|

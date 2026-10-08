@@ -2755,5 +2755,6 @@ written (a call's arguments one per line, a `.where(and(…))` split), so a `pyt
 NOTHING: a `grep … &&` guard fails silently, or a replace of zero occurrences changes nothing, and the test run that follows is GREEN for the
 wrong reason. Twice in one sitting (the FE-46/47/5 plan's sitting 2, F16 — Task 2's control (a), Task 2b's control (a), whose restore said
 *"Updated 0 paths from the index"*). **Check the edit landed — `git diff --stat` must show the file — BEFORE reading the control's run**, and
-assert the replacement count in the script (`assert s.count(old) == 1`).
+assert the replacement count in the script (`assert s.count(old) == 1`). **And chain the run with `&&`, never `;`** — a THIRD time in the
+plan's sitting 3 (F6): the script's assert DID fire, and the `;` after it ran the suite on the unchanged code anyway (95 green, voided).
 

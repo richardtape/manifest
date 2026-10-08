@@ -254,7 +254,16 @@ red() { printf '\033[31m%s\033[0m' "$1"; }
 # retry pin) and `packages/console/src/question-words.test.ts` (3, new); Task 2b +4: `api/sensitive-since-approved.test.ts` (4,
 # new); Task 3 +17: `mail/team.test.ts` (5, new), `mail/mailer.test.ts` (4, new), `config.test.ts` (7: the mail settings) and
 # `launch/requests.test.ts` (1: the team told once, after the event). Measured 3437/212, 0 failed, 1052 s.
-EXPECT_TESTS=3437
+# Then the FE-46/47/5 plan's sitting 3 (2026-10-08, the coordinated run's P3 — Tasks 4, 5, 8a): +69, no new file — Task 4 +6:
+# `launch/assessment.test.ts` (6: the gaps' stable ids); Task 5 +59: `launch/assessment.test.ts` (3: checkGapAnswers),
+# `launch/records.test.ts` (+12: the sends, the team's submission and hand-back, the ways around it, the CHECKs, the email),
+# `launch/transitions.test.ts` (+3: no arrow into or out of `sent`, where a send may go and a hand-back return, the recorded
+# states; SUBMIT_ARROWS' two retired), `api/launch.test.ts` (+2 net: the sends and the team's step through the routes, two M4
+# describes retired), `packages/console/src/launch-records-state.test.ts` (3: a `sent` record's actions) and
+# `api/authz-contract.test.ts` (+36: four net new routes — two sends, two returns; the submissions changed hands — nine actors
+# each); Task 8a +4: `packages/console/src/launch-records-state.test.ts` (3: answersReady, teamActions, holderLine) and
+# `packages/mock/src/scripted.test.ts` (1: the with-team stage). Measured 3506/212, 0 failed, twice.
+EXPECT_TESTS=3506
 EXPECT_FILES=212
 # EXPECT_DOCTOR 21 -> 22 (2026-10-03, the UBC AI Gateway plan's sitting 2, Task 2): the gateway key's expiry, a
 # check_warn — counted, never failing — from 14 days ahead (its Decision 11). Measured: 22 checks, 0 failed, 0 warnings.
