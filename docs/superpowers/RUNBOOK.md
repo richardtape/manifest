@@ -370,8 +370,8 @@ ps eww -p "$(lsof -nP -iTCP:7105 -sTCP:LISTEN -t)" | tr ' ' '\n' | grep '^MANIFE
 ```
 
 Stop the old one first by its whole process tree — `tsx watch` outlives a killed child and takes 7105 back (the front-end's ORIENTATION,
-*Our own server is left running*). The setting is a stop-gap: the fix — the plan model chosen from `session.models` — is the front-end's
-(the roadmap's *Tracked defects found in use*).
+*Our own server is left running*). The setting is a stop-gap: the fix — the plan model chosen from `session.models` — is the front-end's,
+taken 2026-10-08 by its A1 job in the coordinated run; once it is on manifest-app's `main` the `.env` line may go (Rich's edit).
 
 **A session never holds more than its project now allows** (FE-36; since the launch path plan's Task 7, Spec action 1, it is
 NARROWED IN PLACE). Every valid `manifest.yaml` the platform records — a commit through the API, a push, a validation — and every

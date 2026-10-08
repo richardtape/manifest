@@ -2730,7 +2730,10 @@ count the lines; prove it against saved logs both ways (correct predictions matc
 the IdP: `curl -s -o /dev/null -w '%{http_code}' https://<slug>.sandbox.manifest.internal/api/me` signed out must read `401`; then read the
 app's own log, `docker logs -t mf-<slug>-sandbox-<…>-app` — a stack that passes the app's `signedIn` and throws beyond it means the
 person WAS signed in. Measured on `ask-my-notes`: `COURSE_CODE is required and was not injected`, the `proof-app` starter's demo variable
-kept in `/api/me` after the agent dropped its `env:` declaration. The roadmap's *Tracked defects found in use*.
+kept in `/api/me` after the agent dropped its `env:` declaration. **Since `1e96502` (2026-10-08) the starter reads `COURSE_CODE` at
+startup**, so an app seeded from it now fails its FIRST BOOT instead, the sentence in the deploy's output — but an app seeded BEFORE keeps
+the per-request read, and so does any app whose own code reads a variable inside a handler; and the knowledge pack now says both rules (the
+roadmap's *Tracked defects found in use*).
 
 **THE FACULTY FRONT-END REFUSES ITS OWN PLANS AND SAYS AN ADMINISTRATOR IS TO BLAME.** *"Writing plans is waiting on a Manifest
 administrator"* is the front-end's `MODEL_NOT_AVAILABLE`, raised by the front-end ITSELF when the agent session does not offer its ONE plan

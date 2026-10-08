@@ -105,7 +105,7 @@ sitting's own measurements — times, loads, what was owed — are in its plan's
 | `make demo-faculty-ready` | **The faculty-ready plan's acceptance — EITHER driver** (`facultyready-local` on driver 1, `facultyready-github` on driver 2, the fake): `__Host-` cookies on both origins and a tossed plain one ignored; a refusal's reference as header, body and ONE operator line (read from 7100's stderr file, or `DEMO_FACULTY_READY_CP_LOG`); the test blueprint unlisted; a model session's replayed start; PID 1 `docker-init`; an administrator's reason as no member and as a collaborator beyond the role; an agent's question ending with its token; a removal recorded once; the app's single-logout answer `Success`. **~45 s**; nothing launches, so no vulnerability-database dependency; `DEMO_FACULTY_READY_STOP_AFTER=<0–8>` for a control's short run. Step 17 of the offline acceptance; a step of `make ci-acceptance`. Green 2026-10-03 three times on EACH driver (fresh, re-use, from `make reset`); eight negative controls seen red |
 | `make demo-gateway` | **The UBC AI Gateway plan's acceptance — driver 1 or the fake, NEVER real GitHub, and it NEEDS THE NETWORK AND THE KEY** (in no offline or CI step; `NOT RUN`, exit `2`, on a control plane whose catalogue does not put `default-chat-large` at the gateway): the catalogue at the gateway; an `internal` and a `confidential` project's agent sessions answered BY the gateway (`x-litellm-attempted-fallbacks: 0`, its `api_base`, not the on-premise model) and charged exactly; the gateway's own spend for its key compared with Manifest's charge; the key 0 times in every log and LiteLLM's database, every gateway row decrypting to the reference. `DEMO_GATEWAY_STOP_AFTER=<0–6>`; `scripts/gateway-controls.sh` runs its five controls and restores 7100. ~65–100 s; every call on the gateway key's budget, a fraction of a cent a run. Green 2026-10-04 three times on driver 1 (fresh, then re-use twice) on LiteLLM 1.102.0, its gateway-side ratio exactly 1 each run; its five controls seen red (on 1.98.0); not run on the fake |
 | `make demo-levels` | **The U1 plan's acceptance — EITHER driver, offline** (`levels-local`/`levels-vh-local` on driver 1, the `-github` pair on the fake): D17's refusal hint in U1's words and no law; `confidential` never wider than `very-high`; the level stored and answered by its U1 name, a rename not a sensitive change; the agents' models by rank at `high` and by the builder exception at `very-high`; a token refused a `high` project's staging Incidents; the privacy assessment's level, on-premise and zero-retention lines. It reads the capable model's level from LiteLLM and `.env` once — every half needing it at `high` reads NOT RUN otherwise. **~9–16 s**; `DEMO_LEVELS_STOP_AFTER=<0–6>`; `scripts/levels-controls.sh` runs its eleven controls (`LEVELS_CONTROLS_DRY=1` shows each edit). Step 18 of the offline acceptance; a step of `make ci-acceptance`. Green 2026-10-04 three times on EACH driver (fresh, re-use twice) and from a `make reset` machine on each; its eleven controls red or green exactly as predicted |
-| `make demo-journey` | P5a's acceptance: all eight steps, ~51 s, over the contract; last green 2026-09-29 in `make ci-acceptance` (the front-end enablement plan's sitting 12) |
+| `make demo-journey` | P5a's acceptance: all eight steps, ~51–83 s, over the contract, driver 1 only; last green 2026-10-08 (`manifest-p0`, 83 s, on the starter that reads `COURSE_CODE` at startup); before it 2026-09-29 in `make ci-acceptance` (the front-end enablement plan's sitting 12) |
 | `make ci-acceptance` | The headless half of 1c's acceptance, ~13 min — run it in the background: `make doctor`, `make verify`, the three fast gates, `pnpm test` with its count asserted, the three package builds, then — **after asking which source driver answers** — `make demo-journey`, `make demo-token`, `make demo-production` and `make demo-releases` on driver 1, and `make demo-github` on driver 2 — and `make demo-authoring` on EITHER; the other driver's steps read `NOT RUN`, which is not a pass. Every step REPORTS rather than exits, so a red run is a measurement; a count that has moved reads `MOVED`, not `FAIL`. **Its four `EXPECT_` lines ARE the unit suite's, doctor's and verify's numbers — their one statement — and a sitting that moves a number changes them there** (§6). Last run 2026-10-04 on driver 1, on LiteLLM 1.102.0 (the UBC AI Gateway plan's sitting 3, ~27 min): every step PASS but `pnpm test` MOVED (+3, the sitting's own cases — `EXPECT_TESTS` moved with it), `demo-github` NOT RUN |
 
 **A different number on a clean checkout is signal, not noise** — it means something moved, and finding out what is
@@ -158,12 +158,12 @@ keeps the number as that sitting left it, dated.
   for exactly that reason). **Its offline-failure branch has never run** — it prints that the refresh needs the
   network and exits 1. Refreshing it from the CONSOLE is a plan of its own, placed after the GitHub plan (§8
   *Decided*).
-- **Two defects for the faculty front-end, found 2026-10-05 in Rich's own testing (`ask-my-notes`) — to RELAY to its next live
-  session** (none was running): *Ask for a change* is refused for every `high` or `very-high` app, because the front-end plans on
-  `default-chat` alone; and a change asked for a fault never sees the app's output. The roadmap's *Tracked defects found in use* has both,
-  measured, with the fix for each, and two the platform owns (§8 *Open*). **Stop-gap in force since 2026-10-05:**
-  `MANIFEST_APP_PLAN_MODEL=default-chat-large` in `.env`, passed to the front-end at its start (RUNBOOK, *The building agent's models*) —
-  **a front-end started without it plans on `default-chat` again.**
+- **The faculty front-end's two defects from `ask-my-notes` (2026-10-05) — RELAYED, and TAKEN 2026-10-08** by `manifest-app-w1` (the
+  coordinated run's A1): *Ask for a change* refused for every `high` or `very-high` app, because the front-end plans on `default-chat`
+  alone; and a change asked for a fault never seeing the app's output (the platform's two were fixed in `1e96502` — the roadmap's *Tracked
+  defects found in use*). **The stop-gap stays until A1's fix is on manifest-app's `main`:** `MANIFEST_APP_PLAN_MODEL=default-chat-large`
+  in `.env`, passed to the front-end at its start (RUNBOOK, *The building agent's models*) — **a front-end started without it plans on
+  `default-chat` again**; removing the `.env` line is Rich's.
 - **The UBC external track — DEFERRED by Rich, 2026-09-30**: *"We can defer this. I have to get all of this working first
   locally. And then show demos. I've already been given approval to work about it. The people who need to know about it at UBC know
   about it. This isn't a blocked in any way to our work."* **Do not raise it as urgent.** [`docs/external-track.md`](../external-track.md)
@@ -1988,8 +1988,8 @@ told to `manifest-coord` BEFORE it lands and lands only on its *"land it"*** (ga
 them `manifest-app-w4`, whose A4 adopts this sitting's landings after your close); report each commit's sha; ask it for *"manifest's docs turn"*
 before editing this file, the roadmap or `CLAUDE.md`. **If no coordinator is live**, everything goes to Rich directly (the question tool at the
 sitting's open) and you run the flag yourself — `ListAgents` first, and message any live `manifest-app-*` session before a contract or mock
-commit. **The U1 NOTICE is DELIVERED** (read by `manifest-app-2e` 2026-10-06 ~12:15; adopted in this run by `manifest-app-w2`); `manifest-p0`'s
-close-out records it in the roadmap.
+commit. **The U1 NOTICE is DELIVERED** (read by `manifest-app-2e` 2026-10-06 ~12:15; adopted in this run by `manifest-app-w2`); the roadmap's U1
+section records it (`manifest-p0`, 2026-10-08).
 
 **FE-55 IS PLACED** (Rich, 2026-10-08 09:07): Task 7 (sitting 4) fixes it — `validateSpec` refuses `cwl` with no attribute at
 `auth.attributes`, and the deploy's `SpEntityError` is answered typed rather than `500 INTERNAL`. Sitting 1 measured both halves; Task 7's note
@@ -2036,12 +2036,6 @@ reasoning is recorded.**
 
 ### Open
 
-- **WHERE THE TWO PLATFORM FIXES FROM `ask-my-notes` GO — RAISED 2026-10-05 (`manifest-fd`).** The roadmap's *Tracked defects found in
-  use*: the `proof-app` starter reads `COURSE_CODE` at module load, so a dropped `env:` declaration fails an app's first boot rather than
-  every signed-in `/api/me`; and two sentences in the knowledge pack (a variable read is injected or declared; `/api/me`'s `401` is signed
-  out and anything else is an error to show). Small, but `blueprints/` owes the Docker tier and the proof app's demos. *Recommended:* out of
-  plan, before FE-46/47/5's sitting 1 — every app built until then can meet the first — rather than folded into a plan that never touches
-  `blueprints/`.
 - **FE-24'S OPEN QUESTIONS, for the external track and the Privacy Office** (carried from Spec action 6's draft — APPLIED
   2026-09-27, `25e7445`, so the first three are now §19's rows and `docs/external-track.md`'s items 12–14): whether D21's
   rehearsal keeps a purpose once staging signs people in against UBC's staging IdP every day; **whether a privacy assessment
@@ -2092,6 +2086,12 @@ reasoning is recorded.**
 
 ### Decided
 
+- **THE TWO PLATFORM FIXES FROM `ask-my-notes` — NOW, OUT OF PLAN — RICH, 2026-10-08 09:07** (the coordinated run's opening, answer 1:
+  *"Approved; P0 now (Recommended)"*; raised 2026-10-05 by `manifest-fd`): run by `manifest-p0` beside FE-46/47/5's sitting 1, and FIXED in
+  `1e96502` — the `proof-app` starter reads `COURSE_CODE` at startup, so a dropped `env:` declaration fails an app's first boot rather than
+  every signed-in `/api/me`; and `AGENTS.md` says a variable the code reads is injected or declared, and that only `/api/me`'s `401` is
+  signed out. Rejected: after FE-46/47/5; not in this run. [`2026-09-30-decisions.md`](2026-09-30-decisions.md), its 2026-10-08 09:07
+  entry (`4abbbc8`); the roadmap's *Tracked defects found in use* has the record.
 - **FE-46/47/5 EXECUTED INLINE, AND FE-55 PLACED IN ITS TASK 7 — RICH, 2026-10-08 09:07** (the coordinated run's opening, asked by
   `manifest-coord` through the question tool): inline, one sitting per session; sitting 1's `pnpm test` skipped (it changed no code); FE-55 —
   a `cwl` app asking no attribute validates, builds and releases, then its deploy answers `500 INTERNAL` — measured by sitting 1 (both halves,
