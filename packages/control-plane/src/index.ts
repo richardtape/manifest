@@ -8,6 +8,7 @@ import {
 } from './api/index.js'
 import { loadBlueprints } from './blueprints/index.js'
 import { loadConfig } from './config.js'
+import { createMailer } from './mail/index.js'
 import { db } from './db/index.js'
 import { createCaddyClient } from './routing/index.js'
 import { createDockerDriver, createEngineClient } from './runtime/index.js'
@@ -379,6 +380,9 @@ const app = await buildServer({
   sourceSync,
   reservedLabels,
   docs,
+  // The Manifest team's email (the FE-46/47/5 plan's Decision 13), over MANIFEST_SMTP_URL — Mailpit
+  // on the laptop. Told after the work, never awaited: a relay that is down slows nobody.
+  mailer: createMailer(config),
   // §23: the slug check is asked while a person types (P5a Decision 26).
   limits: {
     slugCheck: createRateLimiter({ limit: 60, windowMs: 60_000 }),

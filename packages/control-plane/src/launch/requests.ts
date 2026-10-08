@@ -1,5 +1,6 @@
 import { eq } from 'drizzle-orm'
-import { approvalRequests, releases, type Db } from '../db/index.js'
+import { approvalRequests, projects, releases, type Db } from '../db/index.js'
+import type { Mailer } from '../mail/index.js'
 import { makeRedactor, publishEvent, type EventBus } from '../observability/index.js'
 import { personName } from '../projects/index.js'
 import { latestApprovalFor } from '../releases/index.js'
@@ -42,14 +43,18 @@ export interface RequestedApproval {
  * **ONE REQUEST PER RELEASE** (`release_id` UNIQUE, `ON CONFLICT DO NOTHING`): a second ask — two at
  * once included — answers the first, unchanged, and announces nothing. The note is never in the event.
  *
+ * **THE MANIFEST TEAM IS TOLD** (§26, *"The Manifest team is told, not left to look"*; the FE-46/47/5
+ * plan's Task 3) — by email, after the event and only when the request was inserted, so a second ask
+ * tells nobody: which app, who asked (or that their agent did) and the release's page. Never the note.
+ *
  * The caller is `requestApproval`'s route, after `approval:request` (owner, collaborator,
  * administrator; mintable — a request grants nothing and decides nothing).
  */
 export async function requestApproval(
-  db: Db,
-  bus: EventBus,
+  deps: { db: Db; bus: EventBus; mailer: Mailer },
   input: RequestApprovalInput,
 ): Promise<RequestedApproval> {
+  const { db, bus, mailer } = deps
   const [release] = await db
     .select()
     .from(releases)
@@ -121,6 +126,21 @@ export async function requestApproval(
       },
       makeRedactor([]),
     )
+    // AFTER THE EVENT, IN THE BACKGROUND — told, never awaited (Decision 11): the request is recorded
+    // and announced whatever the relay does, and an undelivered email is an operator line.
+    const [project] = await db
+      .select({ id: projects.id, slug: projects.slug, name: projects.name })
+      .from(projects)
+      .where(eq(projects.id, release.projectId))
+    if (project !== undefined)
+      mailer.tellTeam({
+        kind: 'sign-off-asked',
+        project,
+        releaseId: release.id,
+        by: name,
+        viaToken: input.actor.tokenId !== null,
+        at: inserted.createdAt,
+      })
   }
   const open = (await openRequestFor(db, release.projectId))?.id === request.id
   return { request, created: inserted !== undefined, open }

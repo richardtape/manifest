@@ -15,6 +15,7 @@ import Fastify, {
 } from 'fastify'
 import type { Db } from '../db/index.js'
 import type { Config } from '../config.js'
+import type { Mailer } from '../mail/index.js'
 import type { Driver } from '../runtime/index.js'
 import {
   loadWebhookSecret,
@@ -160,6 +161,12 @@ export interface ServerDeps {
   sourceSync: SerialQueue
   /** §23's reserved labels, loaded once at boot (P5a Task 9). */
   reservedLabels: ReservedLabels
+  /**
+   * The platform's outbound email (the FE-46/47/5 plan's Decisions 10–14): the Manifest team told
+   * when a sign-off is asked for — and, from that plan's Task 5, when a launch record is sent to it.
+   * Built at boot over the configured relay; the unit tier's servers record instead (`recordingMailer`).
+   */
+  mailer: Mailer
   /**
    * The API's documentation and its OpenAPI document, built once at boot (the authoring API
    * plan's Task 11, Decision 18) — what `listDocs`, `getDoc` and `getOpenApiDocument` answer.

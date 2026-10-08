@@ -448,6 +448,19 @@ const envSchema = z.object({
    */
   MANIFEST_LAUNCH_CONTACTS: z.string().default(''),
   /**
+   * THE PLATFORM'S OUTBOUND EMAIL (the FE-46/47/5 plan's Decision 13) — the Manifest team told when a
+   * sign-off is asked for, or a launch record is sent to it. `smtp://` or `smtps://`, a host and an
+   * explicit port, and `user:password@` when a relay asks for AUTH — a secret, so a refusal never
+   * repeats it. The laptop's default is Mailpit, which offers neither TLS nor AUTH.
+   */
+  MANIFEST_SMTP_URL: z.string().default('smtp://127.0.0.1:7111'),
+  /** `1`: STARTTLS or refuse to send (nodemailer's `requireTLS`). `0` on the laptop, whose Mailpit has none. */
+  MANIFEST_SMTP_REQUIRE_TLS: z.enum(['0', '1']).default('0'),
+  /** Where the Manifest team is emailed: ONE address. At UBC it is Rich's to give. */
+  MANIFEST_TEAM_EMAIL: z.string().default('team@manifest.internal'),
+  /** Who the platform's email is from: `Name <address>`, or an address. */
+  MANIFEST_MAIL_FROM: z.string().default('Manifest <manifest@manifest.internal>'),
+  /**
    * Where a session's key is USED — the gateway's OpenAI-compatible base, as the agent reaches it.
    * The faculty front-end's server is a host process on the laptop, so the published port; at UBC
    * it is the gateway's own address. Answered in `startAgentSession`, never called by this process.
@@ -534,6 +547,21 @@ export interface Config {
    * names, or null — then the oldest administrator, read when a package is drafted.
    */
   launchContacts: readonly { name: string; email: string }[] | null
+  /** The four `MANIFEST_SMTP_*`/`MANIFEST_*_EMAIL` settings (the FE-46/47/5 plan's Decision 13), for `mail/`. */
+  mail: {
+    smtp: {
+      host: string
+      port: number
+      /** `smtps:` — TLS from the first byte. */
+      secure: boolean
+      requireTLS: boolean
+      auth: { user: string; pass: string } | null
+    }
+    /** The Manifest team's one address. */
+    team: string
+    /** `Name <address>` or an address. */
+    from: string
+  }
   /** §9: Manifest is its own SP. Everything that registration is built from. */
   sp: {
     /**
@@ -714,6 +742,14 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     )
   }
   const launchContacts = parseLaunchContacts(raw.MANIFEST_LAUNCH_CONTACTS)
+  const mail = {
+    smtp: {
+      ...parseSmtpUrl(raw.MANIFEST_SMTP_URL),
+      requireTLS: raw.MANIFEST_SMTP_REQUIRE_TLS === '1',
+    },
+    team: parseOneAddress('MANIFEST_TEAM_EMAIL', raw.MANIFEST_TEAM_EMAIL, false),
+    from: parseOneAddress('MANIFEST_MAIL_FROM', raw.MANIFEST_MAIL_FROM, true),
+  }
   // A request names its origin by its HOST (`api/origins.ts`), so two origins on one host would
   // be one origin with two answers — refused here rather than resolved silently to the first.
   // The FORMAT of each (a bare origin) is `controlPlaneSpEntity`'s check, at boot.
@@ -868,6 +904,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     origins,
     adminPuids,
     launchContacts,
+    mail,
     sp: {
       origin: spOrigin,
       privateKeyPath: fromRepoRoot(raw.MANIFEST_SP_PRIVATE_KEY),
@@ -955,10 +992,13 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
  * `Name <email>, Name <email>` — each contact a name AND an address, because UBC IAM is sent them: a
  * typo must not boot as a package that names nobody, or an address with no person. Blank is null.
  */
+/** One email address, as `MANIFEST_LAUNCH_CONTACTS` checks one — and `MANIFEST_TEAM_EMAIL`, `MANIFEST_MAIL_FROM`. */
+const ADDRESS = '[^<>\\s@,]+@[^<>\\s@,]+\\.[^<>\\s@,]+'
+
 function parseLaunchContacts(value: string): { name: string; email: string }[] | null {
   if (value.trim() === '') return null
   return value.split(',').map((entry) => {
-    const match = /^(\S.*?)\s*<([^<>\s@]+@[^<>\s@]+\.[^<>\s@]+)>$/.exec(entry.trim())
+    const match = new RegExp(`^(\\S.*?)\\s*<(${ADDRESS})>$`).exec(entry.trim())
     if (match === null)
       throw new ConfigError(
         'CONFIG_INVALID',
@@ -966,6 +1006,59 @@ function parseLaunchContacts(value: string): { name: string; email: string }[] |
       )
     return { name: match[1]!, email: match[2]! }
   })
+}
+
+/**
+ * ONE ADDRESS — and, for a sender, `Name <address>` too. The team's is a bare address, because it is
+ * where the platform sends and a display name there would be text nobody reads.
+ */
+function parseOneAddress(name: string, value: string, named: boolean): string {
+  const trimmed = value.trim()
+  if (new RegExp(`^${ADDRESS}$`).test(trimmed)) return trimmed
+  if (named && new RegExp(`^[^<>,]*\\S\\s*<${ADDRESS}>$`).test(trimmed)) return trimmed
+  throw new ConfigError(
+    'CONFIG_INVALID',
+    named
+      ? `invalid configuration — ${name} is not 'Name <address>' or an address; give the one sender email comes from`
+      : `invalid configuration — ${name} is not one email address; give the one address the Manifest team reads`,
+  )
+}
+
+/**
+ * `MANIFEST_SMTP_URL`: `smtp://` or `smtps://`, a host, an EXPLICIT port, and optional credentials,
+ * decoded. **A refusal never repeats the URL** — it may hold a relay's password.
+ */
+function parseSmtpUrl(value: string): Omit<Config['mail']['smtp'], 'requireTLS'> {
+  const refuse = (why: string): never => {
+    throw new ConfigError(
+      'CONFIG_INVALID',
+      `invalid configuration — MANIFEST_SMTP_URL ${why}; give smtp://host:port or smtps://host:port, with user:password@ before the host when the relay asks for them`,
+    )
+  }
+  let url: URL
+  try {
+    url = new URL(value.trim())
+  } catch {
+    return refuse('is not a URL')
+  }
+  if (url.protocol !== 'smtp:' && url.protocol !== 'smtps:')
+    refuse('names a scheme other than smtp or smtps')
+  if (url.hostname === '') refuse('names no host')
+  if (url.port === '') refuse('names no port')
+  if (
+    (url.pathname !== '' && url.pathname !== '/') ||
+    url.search !== '' ||
+    url.hash !== ''
+  )
+    refuse('carries a path, a query or a fragment')
+  const user = decodeURIComponent(url.username)
+  const pass = decodeURIComponent(url.password)
+  return {
+    host: url.hostname,
+    port: Number(url.port),
+    secure: url.protocol === 'smtps:',
+    auth: user === '' && pass === '' ? null : { user, pass },
+  }
 }
 
 export function zoneFor(

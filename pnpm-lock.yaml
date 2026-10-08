@@ -88,6 +88,9 @@ importers:
       libsodium-wrappers:
         specifier: 0.8.4
         version: 0.8.4
+      nodemailer:
+        specifier: 10.0.13
+        version: 10.0.13
       pg:
         specifier: ^8.23.0
         version: 8.23.0
@@ -2724,6 +2727,10 @@ packages:
     peerDependenciesMeta:
       encoding:
         optional: true
+
+  nodemailer@10.0.13:
+    resolution: {integrity: sha512-SzG86OlvcW/NNhUFC6uROMwRTL4n7MswfQqC/T8mhkmnY1YVa23zUEMYi4ijSeXSl9GLz9ZeTJDUatEDuY5FeQ==}
+    engines: {node: '>=20.0.0'}
 
   ollama@0.5.18:
     resolution: {integrity: sha512-lTFqTf9bo7Cd3hpF6CviBe/DEhewjoZYd9N/uCe7O20qYTvGqrNOFOBDj3lbZgFWHUgDv5EeyusYxsZSLS8nvg==}
@@ -6293,6 +6300,8 @@ snapshots:
   node-fetch@2.7.0:
     dependencies:
       whatwg-url: 5.0.0
+
+  nodemailer@10.0.13: {}
 
   ollama@0.5.18:
     dependencies:

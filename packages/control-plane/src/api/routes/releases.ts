@@ -1039,7 +1039,7 @@ export const releaseRoutes = [
       // MINTABLE: no `requireSession` — an agent on its person's token, or a front-end's server acting
       // for them, may ask. The capability first, so a stranger is `404` and learns nothing.
       await assertCapability(deps.db, actor, release.projectId, 'approval:request')
-      const asked = await requestApproval(deps.db, deps.bus, {
+      const asked = await requestApproval(deps, {
         releaseId: release.id,
         actor: {
           userId: actor.userId,

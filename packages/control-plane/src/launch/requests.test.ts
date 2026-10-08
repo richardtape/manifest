@@ -11,6 +11,8 @@ import {
   type DiffSnapshotColumn,
 } from '../db/index.js'
 import { withProject } from '../db/testing.js'
+import { teamEmail, type Mailer } from '../mail/index.js'
+import { recordingMailer } from '../mail/testing.js'
 import { createEventBus } from '../observability/index.js'
 import { openRequestFor } from './candidate.js'
 import { computeLaunchReadiness } from './readiness.js'
@@ -68,12 +70,21 @@ async function decide(
   })
 }
 
-const ask = (db: Db, releaseId: string, userId: string, note?: string) =>
-  requestApproval(db, bus, {
-    releaseId,
-    actor: { userId, tokenId: null },
-    ...(note === undefined ? {} : { note }),
-  })
+const ask = (
+  db: Db,
+  releaseId: string,
+  userId: string,
+  note?: string,
+  mailer: Mailer = recordingMailer(),
+) =>
+  requestApproval(
+    { db, bus, mailer },
+    {
+      releaseId,
+      actor: { userId, tokenId: null },
+      ...(note === undefined ? {} : { note }),
+    },
+  )
 
 describe('a sign-off request (Task 12, Spec action 5)', () => {
   it('asks for sign-off on the release serving staging: one request, open, announced with who and which release — never the note', async () => {
@@ -108,6 +119,56 @@ describe('a sign-off request (Task 12, Spec action 5)', () => {
       )
       // THE NOTE IS FOR ADMINISTRATORS ALONE — in no event, by any field.
       expect(JSON.stringify(published)).not.toContain('Week 3')
+    })
+  })
+
+  it('tells the Manifest team ONCE, after the event — the app, who asked and the release, never the note', async () => {
+    await withProject(async (db, { projectId, ownerId }) => {
+      const { releaseId } = await stagedRelease(db, { projectId, ownerId })
+      // ONE ORDERED LOG of what the bus heard and what the team was told, so "after the event" is read.
+      const said: string[] = []
+      const local = createEventBus()
+      const publish = local.publish.bind(local)
+      local.publish = (frame) => {
+        said.push(frame.kind === 'event' ? frame.type : frame.kind)
+        publish(frame)
+      }
+      const mailer = recordingMailer()
+      const tellTeam = mailer.tellTeam.bind(mailer)
+      mailer.tellTeam = (notice) => {
+        said.push(`told:${notice.kind}`)
+        tellTeam(notice)
+      }
+      const asked = await requestApproval(
+        { db, bus: local, mailer },
+        { releaseId, actor: { userId: ownerId, tokenId: null }, note: NOTE },
+      )
+      expect(said).toEqual(['approval.requested', 'told:sign-off-asked'])
+      expect(mailer.told).toEqual([
+        {
+          kind: 'sign-off-asked',
+          project: { id: projectId, slug: expect.any(String), name: expect.any(String) },
+          releaseId,
+          by: 'Test Owner',
+          viaToken: false,
+          at: asked.request.createdAt,
+        },
+      ])
+      // THE NOTE IS NEVER IN AN EMAIL — the notice has no field for it, and its words do not carry it.
+      const { subject, text } = teamEmail(
+        mailer.told[0]!,
+        'https://console.manifest.internal',
+      )
+      expect(`${subject}\n${text}`).not.toContain('Week 3')
+      expect(JSON.stringify(mailer.told)).not.toContain('Week 3')
+
+      // A second ask answers the first, announces nothing — and tells nobody.
+      await requestApproval(
+        { db, bus: local, mailer },
+        { releaseId, actor: { userId: ownerId, tokenId: null }, note: NOTE },
+      )
+      expect(mailer.told).toHaveLength(1)
+      expect(said).toEqual(['approval.requested', 'told:sign-off-asked'])
     })
   })
 

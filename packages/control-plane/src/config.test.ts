@@ -885,3 +885,84 @@ describe('MANIFEST_GATEWAY_MODELS in U1’s names (U1 plan Task 4)', () => {
     }
   })
 })
+
+/**
+ * THE PLATFORM'S OUTBOUND EMAIL (the FE-46/47/5 plan's Decision 13): the laptop's defaults are
+ * Mailpit's and need nothing set; UBC's relay is a URL with credentials, so a refusal NEVER repeats it.
+ */
+describe('the mail settings', () => {
+  it('defaults to the laptop’s Mailpit, the team’s address and Manifest as the sender', () => {
+    expect(loadConfig({ ...base }).mail).toEqual({
+      smtp: {
+        host: '127.0.0.1',
+        port: 7111,
+        secure: false,
+        requireTLS: false,
+        auth: null,
+      },
+      team: 'team@manifest.internal',
+      from: 'Manifest <manifest@manifest.internal>',
+    })
+  })
+
+  it('reads a relay over TLS with credentials, decoded, and STARTTLS required', () => {
+    const config = loadConfig({
+      ...base,
+      MANIFEST_SMTP_URL: 'smtps://relay%2Buser:p%40ss@smtp.ubc.ca:465',
+      MANIFEST_SMTP_REQUIRE_TLS: '1',
+      MANIFEST_TEAM_EMAIL: 'ltic.manifest@ubc.ca',
+      MANIFEST_MAIL_FROM: 'Manifest at UBC <manifest@ubc.ca>',
+    })
+    expect(config.mail).toEqual({
+      smtp: {
+        host: 'smtp.ubc.ca',
+        port: 465,
+        secure: true,
+        requireTLS: true,
+        auth: { user: 'relay+user', pass: 'p@ss' },
+      },
+      team: 'ltic.manifest@ubc.ca',
+      from: 'Manifest at UBC <manifest@ubc.ca>',
+    })
+  })
+
+  it.each([
+    ['not a URL', 'mail.example.org'],
+    ['another scheme', 'http://user:hunter2@smtp.ubc.ca:587'],
+    ['no port', 'smtp://user:hunter2@smtp.ubc.ca'],
+    ['a path', 'smtp://user:hunter2@smtp.ubc.ca:587/relay'],
+  ])(
+    'refuses MANIFEST_SMTP_URL with %s — CONFIG_INVALID, and never repeats it',
+    (_why, url) => {
+      let refused: unknown
+      try {
+        loadConfig({ ...base, MANIFEST_SMTP_URL: url })
+      } catch (error) {
+        refused = error
+      }
+      expect(refused).toBeInstanceOf(ConfigError)
+      expect((refused as ConfigError).code).toBe('CONFIG_INVALID')
+      expect((refused as Error).message).toContain('MANIFEST_SMTP_URL')
+      expect((refused as Error).message).not.toContain('hunter2')
+      expect((refused as Error).message).not.toContain(url)
+    },
+  )
+
+  it('refuses a REQUIRE_TLS that is not 0 or 1, a team address that is not one address, and a sender that is not one', () => {
+    expect(() => loadConfig({ ...base, MANIFEST_SMTP_REQUIRE_TLS: 'yes' })).toThrow(
+      ConfigError,
+    )
+    for (const team of ['team', 'a@ubc.ca, b@ubc.ca', 'Team <team@ubc.ca>'])
+      expect(() => loadConfig({ ...base, MANIFEST_TEAM_EMAIL: team })).toThrow(
+        /MANIFEST_TEAM_EMAIL/,
+      )
+    for (const from of ['manifest', 'Manifest <manifest>', 'A <a@ubc.ca>, B <b@ubc.ca>'])
+      expect(() => loadConfig({ ...base, MANIFEST_MAIL_FROM: from })).toThrow(
+        /MANIFEST_MAIL_FROM/,
+      )
+    // The positive control: a bare address is a sender too.
+    expect(loadConfig({ ...base, MANIFEST_MAIL_FROM: 'manifest@ubc.ca' }).mail.from).toBe(
+      'manifest@ubc.ca',
+    )
+  })
+})

@@ -39,7 +39,8 @@ make down      # stops everything, including the profiled builder
 
 *Every setting the control plane reads is listed and explained in `.env.example`'s section 2, commented out with its
 default (added 2026-09-25); `packages/control-plane/src/config.ts` is the authority. The block below exports the few that
-are required, derived from the secrets in section 1.*
+are required, derived from the secrets in section 1.* *Its email — the Manifest team's — goes to Mailpit with no setting at
+all; *Mailpit — the laptop's mail sink*, below, has its four settings (since 2026-10-08).*
 
 *Moved here from `README.md` on 2026-09-24, word for word, when the README became a short description of what Manifest is.*
 
@@ -659,7 +660,23 @@ platform (the P5 brief's §8). Specifically:
 
 `make up` starts it — `manifest-mailpit`, always on, no profile. It is **this laptop's only mail server, and it sends
 nothing on**: a message to anyone, at any address, lands here and stays here. On UBC infrastructure UBC's SMTP relay takes
-its place. The faculty front-end's server sends to it; the platform's own notices will later.
+its place. The faculty front-end's server sends to it, and so does the control plane.
+
+**The control plane's own email** (since the FE-46/47/5 plan's Task 3, 2026-10-08): the Manifest team is emailed when an owner
+asks for a release's sign-off — after the request is recorded and announced, in the background, so a relay that is down slows
+nobody and costs one operator line (`"the Manifest team could not be emailed; the queue still holds the item"`, with the
+transport's code). Four settings, all defaulted for the laptop, so nothing needs setting here (`.env.example` 2c):
+
+| Setting | Default | |
+|---|---|---|
+| `MANIFEST_SMTP_URL` | `smtp://127.0.0.1:7111` | `smtp://` or `smtps://`, a host and an explicit port; UBC's relay with `user:password@` — a secret, so a refusal never repeats it |
+| `MANIFEST_SMTP_REQUIRE_TLS` | `0` | `1`: STARTTLS or refuse. **Mailpit offers no STARTTLS, so `1` fails every send here** (`ETLS`) |
+| `MANIFEST_TEAM_EMAIL` | `team@manifest.internal` | the team's one address — at UBC, Rich's to give |
+| `MANIFEST_MAIL_FROM` | `Manifest <manifest@manifest.internal>` | `Name <address>` or an address |
+
+Read one back: `curl -s "http://127.0.0.1:7112/api/v1/search?query=subject:%22<slug>%22"`. The sender is **nodemailer**
+(`packages/control-plane`'s one mail dependency, pinned exactly); a clean clone's `pnpm install` fetches it like every other
+dependency.
 
 | | |
 |---|---|

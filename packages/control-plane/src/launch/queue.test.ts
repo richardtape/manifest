@@ -14,6 +14,7 @@ import { createEventBus } from '../observability/index.js'
 import { listQueue, QUEUE_LIMIT, type QueueItem } from './queue.js'
 import { vancouverNoon } from './records.js'
 import { requestApproval } from './requests.js'
+import { recordingMailer } from '../mail/testing.js'
 import { stagedRelease } from './testing.js'
 
 /**
@@ -221,18 +222,24 @@ describe('the administrators’ queue (Task 12, Spec action 5)', () => {
   it('an open sign-off request is an item, with its note — an answered one is not, nor one whose release stopped being the candidate', async () => {
     await withProject(async (db, { projectId, ownerId }) => {
       const { releaseId } = await stagedRelease(db, { projectId, ownerId })
-      const asked = await requestApproval(db, bus, {
-        releaseId,
-        actor: { userId: ownerId, tokenId: null },
-        note: 'Week 3 — students start Monday',
-      })
+      const asked = await requestApproval(
+        { db, bus, mailer: recordingMailer() },
+        {
+          releaseId,
+          actor: { userId: ownerId, tokenId: null },
+          note: 'Week 3 — students start Monday',
+        },
+      )
       // ANSWERED: decided since it was asked.
       const answered = await anotherProject(db, ownerId)
       const a = await stagedRelease(db, { projectId: answered, ownerId })
-      await requestApproval(db, bus, {
-        releaseId: a.releaseId,
-        actor: { userId: ownerId, tokenId: null },
-      })
+      await requestApproval(
+        { db, bus, mailer: recordingMailer() },
+        {
+          releaseId: a.releaseId,
+          actor: { userId: ownerId, tokenId: null },
+        },
+      )
       await db.insert(approvals).values({
         releaseId: a.releaseId,
         projectId: answered,
@@ -244,10 +251,13 @@ describe('the administrators’ queue (Task 12, Spec action 5)', () => {
       // MOVED ON: another release serves staging now.
       const moved = await anotherProject(db, ownerId)
       const m = await stagedRelease(db, { projectId: moved, ownerId })
-      await requestApproval(db, bus, {
-        releaseId: m.releaseId,
-        actor: { userId: ownerId, tokenId: null },
-      })
+      await requestApproval(
+        { db, bus, mailer: recordingMailer() },
+        {
+          releaseId: m.releaseId,
+          actor: { userId: ownerId, tokenId: null },
+        },
+      )
       await stagedRelease(db, { projectId: moved, ownerId })
 
       const items = mine((await listQueue(db)).items, [projectId, answered, moved])
@@ -297,10 +307,13 @@ describe('the administrators’ queue (Task 12, Spec action 5)', () => {
         })
         .returning()
       const { releaseId } = await stagedRelease(db, { projectId, ownerId })
-      await requestApproval(db, bus, {
-        releaseId,
-        actor: { userId: nameless!.id, tokenId: null },
-      })
+      await requestApproval(
+        { db, bus, mailer: recordingMailer() },
+        {
+          releaseId,
+          actor: { userId: nameless!.id, tokenId: null },
+        },
+      )
       const other = await anotherProject(db, ownerId)
       await assessment(db, {
         projectId: other,

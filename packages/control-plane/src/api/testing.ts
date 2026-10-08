@@ -1,5 +1,6 @@
 import { db, type Db } from '../db/index.js'
 import { loadConfig } from '../config.js'
+import { recordingMailer } from '../mail/testing.js'
 import { testIssuer } from '../runtime/testing.js'
 import { createFakeDriver } from '../runtime/index.js'
 import {
@@ -884,6 +885,9 @@ export async function testDeps(): Promise<ServerDeps> {
     // reads what a webhook caused awaits `sourceSync.idle()`.
     sourceSync,
     reservedLabels: await testReservedLabels(),
+    // RECORDED, never sent (the FE-46/47/5 plan's Decision 14): the unit tier opens no socket, and a
+    // test reads who was told what from `told` (`(deps.mailer as …).told`).
+    mailer: recordingMailer(),
     // The REAL `docs/api/` and the REAL document, built once per run: both are the repository's.
     docs: await servedDocsOnce(config.apiDocsRoot),
     // The production limit, so a test of the limit tests the number the boot uses.
