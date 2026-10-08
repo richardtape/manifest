@@ -13,7 +13,7 @@ export const QueueItem = representation(
       kind: z
         .enum(QUEUE_KINDS)
         .describe(
-          'What waits: `release-approval` — someone asked for the release serving staging to be approved (`requestApproval`); `iam-registration` — a registration sent to UBC IAM, whose answer an administrator records; `iam-change-request` — a change request an administrator filed with UBC IAM; `privacy-assessment` — an assessment sent to the Privacy Office, whose answer an administrator records.',
+          'What waits, in this order among items of the same moment: `release-approval` — someone asked for the release serving staging to be approved (`requestApproval`); `iam-registration-to-submit` — a registration its owner sent to the Manifest team, which submits it to UBC IAM and records that it has (`submitIamRegistration`), or hands it back (`returnIamRegistration`); `privacy-assessment-to-submit` — the privacy assessment its owner sent to the Manifest team, which submits it to the Privacy Office (`submitPrivacyAssessment`), or hands it back (`returnPrivacyAssessment`); `iam-registration` — a registration sent to UBC IAM, whose answer an administrator records; `iam-change-request` — a change request filed with UBC IAM; `privacy-assessment` — an assessment sent to the Privacy Office, whose answer an administrator records. A client switches on this, never on `summary`.',
         ),
       project: z
         .object({
@@ -36,10 +36,10 @@ export const QueueItem = representation(
         })
         .nullable()
         .describe(
-          'Who asked, or who said it was sent; null when nobody was recorded doing so.',
+          'Who asked: who asked for sign-off, or who sent the record to the Manifest team — or, for a record with UBC that nobody sent from Manifest, the administrator who recorded it sent. Null when nobody was recorded doing so.',
         ),
       since: Timestamp.describe(
-        'Since when it has waited: when it was asked for, or when it was sent to UBC.',
+        'Since when it has waited: when it was asked for, when its owner sent it to the Manifest team, or when it was sent to UBC.',
       ),
       summary: z.string().describe('What waits, in one sentence for a person.'),
       note: z

@@ -590,11 +590,13 @@ function iamItem(o: LaunchOptions, base: Item, now: number): Item {
       since: null,
     }
   if (row.state === 'active') return base
+  // WITH THE MANIFEST TEAM SINCE THE SEND (the FE-46/47/5 plan's Task 6) — who has it, and since when.
+  const withTeam = row.state === 'sent' && row.sentAt !== null
   return {
     ...base,
     state: 'unmet',
-    why: `The registration is '${row.state}'${ticket(row.externalTicketRef)} and must be 'active' before a first production launch.`,
-    since: null,
+    why: `${withTeam ? `It was sent to the Manifest team on ${dayInWords(new Date(row.sentAt!))}, to submit to UBC IAM. ` : ''}The registration is '${row.state}'${ticket(row.externalTicketRef)} and must be 'active' before a first production launch.`,
+    since: withTeam ? row.sentAt : null,
   }
 }
 
@@ -615,11 +617,13 @@ function piaItem(o: LaunchOptions, base: Item, now: number): Item {
       since: row.approvedAt,
     }
   if (row.state === 'submitted') return base
+  // WITH THE MANIFEST TEAM SINCE THE SEND (Task 6).
+  const withTeam = row.state === 'sent' && row.sentAt !== null
   return {
     ...base,
     state: 'unmet',
-    why: `The assessment is '${row.state}'${ticket(row.externalTicketRef)} and must be 'approved' before anything goes to production.`,
-    since: null,
+    why: `${withTeam ? `It was sent to the Manifest team on ${dayInWords(new Date(row.sentAt!))}, with an answer to each of its gaps, to submit to the UBC Privacy Office. ` : ''}The assessment is '${row.state}'${ticket(row.externalTicketRef)} and must be 'approved' before anything goes to production.`,
+    since: withTeam ? row.sentAt : null,
   }
 }
 
@@ -769,6 +773,20 @@ function otherProjectsItems(now: number): Schemas['QueueItem'][] {
     vancouverNoon(vancouverDay(new Date(now - n * 86_400_000))).toISOString()
   return [
     {
+      kind: 'iam-registration-to-submit',
+      project: {
+        id: '18181818-1818-4818-8818-181818181818',
+        slug: 'quiz-builder',
+        name: 'Quiz builder',
+      },
+      subjectId: '19191919-1919-4919-8919-191919191919',
+      environment: 'staging',
+      requestedBy: { id: f.COLLEAGUE_ID, displayName: 'Colleague One' },
+      since: daysAgo(2),
+      summary: `Colleague One sent the staging registration to the Manifest team on ${dayInWords(new Date(daysAgo(2)))}: submit it to UBC IAM and record that you have, or hand it back.`,
+      note: null,
+    },
+    {
       kind: 'iam-change-request',
       project: {
         id: '12121212-1212-4212-8212-121212121212',
@@ -814,7 +832,10 @@ function otherProjectsItems(now: number): Schemas['QueueItem'][] {
   ]
 }
 
-/** `listQueue`: an administrator's read — what the stage leaves with UBC, oldest first. */
+/**
+ * `listQueue`: an administrator's read — what the stage leaves with the Manifest team or with UBC, oldest
+ * first. A record with UBC names who SENT it (`sentBy ?? submittedBy`, the FE-46/47/5 plan's Task 6).
+ */
 export function queueOf(
   o: LaunchOptions,
   role: 'admin' | 'member',
@@ -828,14 +849,39 @@ export function queueOf(
     )
   const r = records(o, now)
   const own: Schemas['QueueItem'][] = []
+  const project = { id: f.PROJECT_ID, slug: f.PROJECT.slug, name: f.PROJECT.name }
+  const sender = (by: { displayName: string } | null) => by?.displayName ?? 'Its owner'
+  for (const reg of [r.stagingRegistration, r.iamRegistration])
+    if (reg?.state === 'sent' && reg.sentAt !== null)
+      own.push({
+        kind: 'iam-registration-to-submit',
+        project,
+        subjectId: reg.id,
+        environment: reg.environment,
+        requestedBy: reg.sentBy,
+        since: reg.sentAt,
+        summary: `${sender(reg.sentBy)} sent the ${reg.environment} registration to the Manifest team on ${dayInWords(new Date(reg.sentAt))}: submit it to UBC IAM and record that you have, or hand it back.`,
+        note: null,
+      })
   const pia = r.privacyAssessment
+  if (pia?.state === 'sent' && pia.sentAt !== null)
+    own.push({
+      kind: 'privacy-assessment-to-submit',
+      project,
+      subjectId: pia.id,
+      environment: null,
+      requestedBy: pia.sentBy,
+      since: pia.sentAt,
+      summary: `${sender(pia.sentBy)} sent the privacy assessment to the Manifest team on ${dayInWords(new Date(pia.sentAt))}: submit it to the UBC Privacy Office and record that you have, or hand it back.`,
+      note: null,
+    })
   if (pia?.state === 'submitted' && pia.submittedAt !== null)
     own.push({
       kind: 'privacy-assessment',
-      project: { id: f.PROJECT_ID, slug: f.PROJECT.slug, name: f.PROJECT.name },
+      project,
       subjectId: pia.id,
       environment: null,
-      requestedBy: pia.submittedBy,
+      requestedBy: pia.sentBy ?? pia.submittedBy,
       since: pia.submittedAt,
       summary: `The privacy assessment was sent to the UBC Privacy Office on ${dayInWords(new Date(pia.submittedAt))}${ticket(pia.externalTicketRef)}: record its answer, with the PIA number, when it comes.`,
       note: null,

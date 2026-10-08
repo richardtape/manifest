@@ -396,6 +396,8 @@ describe('the administrators’ queue', () => {
       queueLink(queueItem({ kind: 'release-approval', subjectId: fixtures.RELEASE_ID })),
     ).toBe(`/releases/${fixtures.RELEASE_ID}/approval`)
     for (const kind of [
+      'iam-registration-to-submit',
+      'privacy-assessment-to-submit',
       'iam-registration',
       'iam-change-request',
       'privacy-assessment',
@@ -419,6 +421,15 @@ describe('the administrators’ queue', () => {
     ).toBe('Production change request with UBC IAM')
     expect(queueKindWords(queueItem({ kind: 'privacy-assessment' }))).toBe(
       'Privacy assessment with the Privacy Office',
+    )
+    // WHAT THE MANIFEST TEAM HOLDS (the FE-46/47/5 plan's Task 6): the team's to submit.
+    expect(
+      queueKindWords(
+        queueItem({ kind: 'iam-registration-to-submit', environment: 'staging' }),
+      ),
+    ).toBe('Staging registration to submit to UBC IAM')
+    expect(queueKindWords(queueItem({ kind: 'privacy-assessment-to-submit' }))).toBe(
+      'Privacy assessment to submit to the Privacy Office',
     )
   })
 })

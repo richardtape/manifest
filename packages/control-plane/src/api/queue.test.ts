@@ -402,10 +402,18 @@ describe('the administrators’ queue (Task 12)', () => {
         ctx.ownerCookies,
         200,
       )
+      const ownerSent = new Date(Date.now() - 3 * 86_400_000)
       await ctx.db
         .update(privacyAssessments)
-        .set({ sentAt: new Date(Date.now() - 3 * 86_400_000) })
+        .set({ sentAt: ownerSent })
         .where(eq(privacyAssessments.projectId, ctx.projectId))
+      // THE MANIFEST TEAM HOLDS IT (Task 6): its own kind, since the send, naming the sender.
+      const withTeam = await waiting(ctx)
+      expect(withTeam.map((i) => [i.kind, i.environment])).toEqual([
+        ['privacy-assessment-to-submit', null],
+      ])
+      expect(withTeam[0]!.requestedBy).toMatchObject({ displayName: 'Bio Prof' })
+      expect(withTeam[0]!.since).toBe(ownerSent.toISOString())
       const sent = new Intl.DateTimeFormat('en-CA', {
         timeZone: 'America/Vancouver',
       }).format(new Date(Date.now() - 2 * 86_400_000))
@@ -436,8 +444,10 @@ describe('the administrators’ queue (Task 12)', () => {
         ['privacy-assessment', null],
         ['iam-registration', 'staging'],
       ])
-      // Who recorded it with UBC, until the queue names the person who asked (Task 6's `sent_by`).
-      expect(items[0]!.requestedBy).toMatchObject({ displayName: 'Platform Admin' })
+      // WHO ASKED (Task 6's `sent_by ?? submitted_by`): the owner who sent the assessment to the team, not
+      // the administrator who recorded the team's submission — and, for the registration nobody sent in
+      // Manifest, the administrator who recorded it sent.
+      expect(items[0]!.requestedBy).toMatchObject({ displayName: 'Bio Prof' })
       expect(items[1]!.requestedBy).toMatchObject({ displayName: 'Platform Admin' })
       expect(Date.parse(items[0]!.since)).toBeLessThan(Date.parse(items[1]!.since))
 

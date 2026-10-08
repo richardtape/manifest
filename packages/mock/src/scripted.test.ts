@@ -960,10 +960,36 @@ describe('the launch path plan’s Task 13 — the records by stage, the sign-of
     expect(pia.gapAnswers!.every((a) => a.answer.trim() !== '')).toBe(true)
     expect(r.stagingRegistration!.state).toBe('draft')
     expect(r.iamRegistration!.state).toBe('draft')
-    // The checklist, as the platform reads a `sent` assessment.
+    // The checklist, as the platform reads a `sent` assessment: who has it, and since when — the
+    // Manifest team, from the owner's send (the FE-46/47/5 plan's Task 6).
     const item_ = await item(at, 'privacy-assessment')
     expect(item_.state).toBe('unmet')
-    expect(item_.why).toMatch(/^The assessment is 'sent'/)
+    expect(item_.why).toMatch(
+      /^It was sent to the Manifest team on [A-Z][a-z]+ \d{1,2}, \d{4}, with an answer to each of its gaps, to submit to the UBC Privacy Office\. The assessment is 'sent' and must be 'approved'/,
+    )
+    expect(item_.since).toBe(pia.sentAt)
+    expect(item_.owner).toBe('UBC Privacy Office, through the Manifest team')
+    // The administrators' queue holds it, the team's to submit or hand back, naming the sender.
+    const queued = (await (
+      await fetch(`${await serve({ role: 'admin', records: 'with-team' })}/v1/queue`, {
+        headers: SESSION,
+      })
+    ).json()) as {
+      items: {
+        kind: string
+        since: string
+        requestedBy: { displayName: string } | null
+        summary: string
+      }[]
+    }
+    expect(queued.items.map((i) => i.kind)).toEqual(['privacy-assessment-to-submit'])
+    expect(queued.items[0]).toMatchObject({
+      since: pia.sentAt,
+      requestedBy: { displayName: 'Instructor One' },
+    })
+    expect(queued.items[0]!.summary).toMatch(
+      /^Instructor One sent the privacy assessment to the Manifest team on [A-Z][a-z]+ \d{1,2}, \d{4}: submit it to the UBC Privacy Office and record that you have, or hand it back\.$/,
+    )
 
     // The owner may not draft or send it again while the team holds it.
     for (const [refused, code] of [
@@ -1067,7 +1093,7 @@ describe('the launch path plan’s Task 13 — the records by stage, the sign-of
     expect(decision.reason).not.toBeNull()
   })
 
-  it('lists the queue for an administrator only — what the fixtures hold by default, four kinds oldest first when MANIFEST_MOCK_QUEUE=full', async () => {
+  it('lists the queue for an administrator only — what the fixtures hold by default, five kinds oldest first when MANIFEST_MOCK_QUEUE=full', async () => {
     const queue = (at: string) => fetch(`${at}/v1/queue`, { headers: SESSION })
     const member = await queue(origin)
     expect(member.status).toBe(403)
@@ -1079,6 +1105,7 @@ describe('the launch path plan’s Task 13 — the records by stage, the sign-of
         since: string
         note: string | null
         project: { slug: string }
+        requestedBy: { displayName: string } | null
       }[]
       oldestSince: string | null
       truncated: boolean
@@ -1086,6 +1113,8 @@ describe('the launch path plan’s Task 13 — the records by stage, the sign-of
     const admin = (await (await queue(await serve({ role: 'admin' }))).json()) as Queue
     expect(admin.items.map((i) => i.kind)).toEqual(['privacy-assessment'])
     expect(admin.items[0]!.project.slug).toBe('mock-app')
+    // WHO ASKED: the instructor who sent it to the team, not the operator who recorded its submission.
+    expect(admin.items[0]!.requestedBy).toMatchObject({ displayName: 'Instructor One' })
     expect(admin.oldestSince).toBe(admin.items[0]!.since)
 
     const full = (await (
@@ -1094,12 +1123,13 @@ describe('the launch path plan’s Task 13 — the records by stage, the sign-of
     expect(new Set(full.items.map((i) => i.kind))).toEqual(
       new Set([
         'release-approval',
+        'iam-registration-to-submit',
         'iam-registration',
         'iam-change-request',
         'privacy-assessment',
       ]),
     )
-    expect(full.items.length).toBe(4)
+    expect(full.items.length).toBe(5)
     const sinces = full.items.map((i) => Date.parse(i.since))
     expect(sinces).toEqual([...sinces].sort((a, b) => a - b))
     expect(full.oldestSince).toBe(full.items[0]!.since)

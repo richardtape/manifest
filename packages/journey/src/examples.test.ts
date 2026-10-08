@@ -744,7 +744,8 @@ describe('the guides’ examples, run against manifest-mock (Decision 16)', () =
     // The administrators' queue, oldest first.
     await withMock({ role: 'admin', queue: 'full' }, async (at) => {
       const queue = await whatWaitsOnUs(asBrowser(at))
-      expect(queue.items.length).toBe(4)
+      // The fixtures' own item and one of each other kind — the Manifest team's among them.
+      expect(queue.items.length).toBe(5)
       expect(queue.oldestSince).not.toBeNull()
     })
   })

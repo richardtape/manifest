@@ -57,8 +57,9 @@ export interface LaunchItem {
   builtBy?: string
   /**
    * *WAITING SINCE* (the launch path plan's Task 9, Decision 10): when the item's current state
-   * began, as an ISO instant, when Manifest knows it — the day a record was said to be sent while
-   * it waits on UBC, the day UBC registered it or the Privacy Office approved it once met. An item
+   * began, as an ISO instant, when Manifest knows it — the moment its owner sent a record while the
+   * Manifest team holds it, the day it went to UBC while UBC does (the FE-46/47/5 plan's Task 6), the
+   * day UBC registered it or the Privacy Office approved it once met. An item
    * that does not date itself leaves it out; the VIEW always carries it, null when unknown.
    */
   since?: string | null
@@ -404,7 +405,7 @@ async function iamItem(
     why:
       `${sentToIam(row)}The registration is '${row.state}'${ticket(row.externalTicketRef)} and must be 'active' before a first production launch.` +
       draftDrift(row, would),
-    since: waitingOnUbc(row),
+    since: waitingSince(row),
   }
 }
 
@@ -422,7 +423,9 @@ function draftDrift(
 ): string {
   const drafted = readPackage(row.generatedPackage)
   if (would === undefined || drafted === null) return ''
-  const sent = row.state === 'submitted'
+  // A REQUEST once its owner sent it — to the Manifest team (`sent`, the FE-46/47/5 plan's Task 6) or on
+  // to UBC (`submitted`); a draft otherwise, the owner's to draft again.
+  const sent = row.state === 'sent' || row.state === 'submitted'
   const noun = sent ? 'request' : 'draft'
   const asked = drafted.attributes.map((a) => a.name)
   const missing = would.attributes.filter((a) => !asked.includes(a))
@@ -446,29 +449,44 @@ function draftDrift(
         ]),
   ]
   if (gaps.length === 0) return ''
-  return sent
-    ? ` The request sent to UBC IAM no longer matches the release serving staging: ${gaps.join('; ')}. Tell UBC IAM; once it asks for changes, draft it again.`
-    : ` The draft no longer matches the release serving staging: ${gaps.join('; ')}. Draft it again before you send it.`
+  return row.state === 'sent'
+    ? ` The request sent to the Manifest team no longer matches the release serving staging: ${gaps.join('; ')}. Ask the Manifest team to hand it back, then draft it again.`
+    : sent
+      ? ` The request sent to UBC IAM no longer matches the release serving staging: ${gaps.join('; ')}. Tell UBC IAM; once it asks for changes, draft it again.`
+      : ` The draft no longer matches the release serving staging: ${gaps.join('; ')}. Draft it again before you send it.`
 }
 
 /**
- * WAITING ON UBC SINCE WHEN (Task 9): the day the request now with UBC was sent, while the record
- * is `submitted` or `change_requested` — `submitted_at`, which the owner's *"I've sent it"*, an
- * administrator's move into `submitted` and a filed change request stamp. Null otherwise.
+ * WAITING SINCE WHEN, ON WHOM (the launch path plan's Task 9; the FE-46/47/5 plan's Task 6, Decision 17):
+ * while the Manifest team holds it (`sent`), since its owner sent it — `sent_at`; while UBC holds it
+ * (`submitted`, or a change request filed — `change_requested`), since the day it went to UBC —
+ * `submitted_at`, which the team's submission, an administrator's move into `submitted` and a filed change
+ * request stamp. Null otherwise: a draft, or a hand-back, waits on nobody but its owner. The record's
+ * `state` is how a client tells who has it; `why` says so in words.
  */
-function waitingOnUbc(row: { state: string; submittedAt: Date | null }): string | null {
+function waitingSince(row: {
+  state: string
+  sentAt: Date | null
+  submittedAt: Date | null
+}): string | null {
+  if (row.state === 'sent') return isoOrNull(row.sentAt)
   return (row.state === 'submitted' || row.state === 'change_requested') &&
     row.submittedAt !== null
     ? row.submittedAt.toISOString()
     : null
 }
 
-/** *"It was sent to UBC IAM on September 22, 2026. "* — when it went, while it still waits. */
+/**
+ * *"It was sent to the Manifest team on September 22, 2026, to submit to UBC IAM. "* while the team
+ * holds it; *"It was sent to UBC IAM on September 25, 2026. "* while UBC does — who has it, and since.
+ */
 function sentToIam(row: IamRegistrationRow): string {
-  const since = waitingOnUbc(row)
-  return since === null
-    ? ''
-    : `It was sent to UBC IAM on ${vancouverDayInWords(new Date(since))}. `
+  const since = waitingSince(row)
+  if (since === null) return ''
+  const day = vancouverDayInWords(new Date(since))
+  return row.state === 'sent'
+    ? `It was sent to the Manifest team on ${day}, to submit to UBC IAM. `
+    : `It was sent to UBC IAM on ${day}. `
 }
 
 const isoOrNull = (at: Date | null) => (at === null ? null : at.toISOString())
@@ -520,7 +538,7 @@ async function liveRegistrationItem(
       ...IAM_BASE,
       state: 'unmet',
       why: `${sentToIam(row)}UBC IAM has no registration of this app in force: the registration is '${row.state}'${ticket(row.externalTicketRef)}. Nothing reaches production until UBC IAM registers it and an administrator records it 'active'.`,
-      since: waitingOnUbc(row),
+      since: waitingSince(row),
     }
   const since = `since ${row.registeredAt.toISOString().slice(0, 10)}`
   if (would === undefined)
@@ -536,8 +554,8 @@ async function liveRegistrationItem(
       ...IAM_BASE,
       state: 'unmet',
       why: coverageGap(row, would, coverage, 'This release'),
-      // A change request on file waits on UBC since it was filed; a gap with none waits on nobody.
-      since: waitingOnUbc(row),
+      // A change request on file waits on its holder since it was sent; a gap with none waits on nobody.
+      since: waitingSince(row),
     }
   return {
     ...IAM_BASE,
@@ -635,7 +653,7 @@ const ticket = (ref: string | null) => (ref === null ? '' : ` (ticket ${ref})`)
 const IAM_BASE = {
   id: 'iam-registration' as const,
   title: 'Registered with UBC IAM',
-  owner: 'UBC IAM, recorded by a platform administrator',
+  owner: 'UBC IAM, through the Manifest team',
   blocking: true,
 }
 
@@ -881,7 +899,7 @@ async function piaItem(
   const base = {
     id: 'privacy-assessment' as const,
     title: 'Privacy Impact Assessment approved',
-    owner: 'UBC Privacy Office, recorded by a platform administrator',
+    owner: 'UBC Privacy Office, through the Manifest team',
     blocking: true,
   }
   const row = await getPrivacyAssessment(db, projectId)
@@ -901,17 +919,27 @@ async function piaItem(
         `${ticket(row.externalTicketRef)}.`,
       since: isoOrNull(row.approvedAt),
     }
-  // Waiting on the Privacy Office since the day it was sent (Task 9).
-  const since = row.state === 'submitted' ? isoOrNull(row.submittedAt) : null
+  // WAITING ON ITS HOLDER SINCE (Task 9; the FE-46/47/5 plan's Task 6): the Manifest team from the
+  // owner's send, the Privacy Office from the team's day. A draft — or one handed back — on nobody.
+  const since =
+    row.state === 'sent'
+      ? isoOrNull(row.sentAt)
+      : row.state === 'submitted'
+        ? isoOrNull(row.submittedAt)
+        : null
+  const holder =
+    since === null
+      ? ''
+      : row.state === 'sent'
+        ? `It was sent to the Manifest team on ${vancouverDayInWords(new Date(since))}, with an answer to each of its gaps, to submit to the UBC Privacy Office. `
+        : `It was sent to the UBC Privacy Office on ${vancouverDayInWords(new Date(since))}. `
   return {
     ...base,
     state: 'unmet',
     // BOTH CLAUSES (P6b sitting 4, F14): §9 blocks production until the PIA is approved, so
     // a launched app whose PIA went back to `draft` stops shipping too — not only a first launch.
     why:
-      (since === null
-        ? `The assessment is '${row.state}'${ticket(row.externalTicketRef)} and must be 'approved' before anything goes to production.`
-        : `It was sent to the UBC Privacy Office on ${vancouverDayInWords(new Date(since))}. The assessment is '${row.state}'${ticket(row.externalTicketRef)} and must be 'approved' before anything goes to production.`) +
+      `${holder}The assessment is '${row.state}'${ticket(row.externalTicketRef)} and must be 'approved' before anything goes to production.` +
       assessmentDrift(row, candidateCommit),
     since,
   }

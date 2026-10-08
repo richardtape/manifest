@@ -677,7 +677,7 @@ export const LAUNCH_READINESS: Schemas['LaunchReadiness'] = {
     {
       id: 'iam-registration',
       title: 'Registered with UBC IAM',
-      owner: 'UBC IAM, recorded by a platform administrator',
+      owner: 'UBC IAM, through the Manifest team',
       blocking: true,
       state: 'met',
       why: 'Registered as https://manifest.internal/sp/mock-app/production, active (ticket IAM-2026-0412), releasing 4 attribute(s).',
@@ -687,7 +687,7 @@ export const LAUNCH_READINESS: Schemas['LaunchReadiness'] = {
     {
       id: 'privacy-assessment',
       title: 'Privacy Impact Assessment approved',
-      owner: 'UBC Privacy Office, recorded by a platform administrator',
+      owner: 'UBC Privacy Office, through the Manifest team',
       blocking: true,
       state: 'unmet',
       // Waiting on the Privacy Office since the day it was RE-sent — `PRIVACY_ASSESSMENT.submittedAt` —

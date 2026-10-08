@@ -332,6 +332,11 @@ export function queueKindWords(item: Schemas['QueueItem']): string {
   switch (item.kind) {
     case 'release-approval':
       return 'Sign-off requested'
+    // WHAT THE MANIFEST TEAM HOLDS (the FE-46/47/5 plan's Task 6): sent to it, the team's to submit.
+    case 'iam-registration-to-submit':
+      return `${environment} registration to submit to UBC IAM`.trim()
+    case 'privacy-assessment-to-submit':
+      return 'Privacy assessment to submit to the Privacy Office'
     case 'iam-registration':
       return `${environment} registration with UBC IAM`.trim()
     case 'iam-change-request':

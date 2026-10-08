@@ -634,7 +634,8 @@ describe('the console’s data layer against manifest-mock', () => {
     await withMock(
       async (origin) => {
         const queue = await api(origin).listQueue()
-        expect(queue.items.length).toBe(4)
+        // The fixtures' own item and one of each other kind — the Manifest team's among them.
+        expect(queue.items.length).toBe(5)
         expect(queue.oldestSince).toBe(queue.items[0]!.since)
       },
       { role: 'admin', queue: 'full' },

@@ -1157,7 +1157,7 @@ export interface paths {
         };
         /**
          * Everything waiting on an administrator
-         * @description Everything waiting on a platform administrator, oldest first, each item saying since when it has waited: a release someone asked them to sign off (`requestApproval`), with the asker’s note; the staging and production registrations sent to UBC IAM, and the change requests filed with it, whose answers an administrator records; and the privacy assessments sent to the Privacy Office. A registration UBC IAM sent back to its owner with questions is the owner’s to answer, and is not here; nor is anything of an archived project, which cannot be acted on until it is restored. `oldestSince` is the age of the oldest item. For platform administrators: anyone else is refused `403 FORBIDDEN`, and a delegated token `403 TOKEN_CREDENTIAL_REFUSED` however it was minted.
+         * @description Everything waiting on a platform administrator, oldest first, each item saying since when it has waited: a release someone asked them to sign off (`requestApproval`), with the asker’s note; a registration or privacy assessment its owner sent to the Manifest team, which the team submits to UBC and records that it has, or hands back to its owner, waiting since the send and naming the sender; the staging and production registrations sent to UBC IAM, and the change requests filed with it, whose answers an administrator records; and the privacy assessments sent to the Privacy Office. A registration UBC IAM sent back to its owner with questions is the owner’s to answer, and is not here; nor is anything of an archived project, which cannot be acted on until it is restored. `oldestSince` is the age of the oldest item. For platform administrators: anyone else is refused `403 FORBIDDEN`, and a delegated token `403 TOKEN_CREDENTIAL_REFUSED` however it was minted.
          */
         get: operations["listQueue"];
         put?: never;
@@ -6131,10 +6131,10 @@ export interface components {
         /** @description One thing waiting on a platform administrator. */
         QueueItem: {
             /**
-             * @description What waits: `release-approval` — someone asked for the release serving staging to be approved (`requestApproval`); `iam-registration` — a registration sent to UBC IAM, whose answer an administrator records; `iam-change-request` — a change request an administrator filed with UBC IAM; `privacy-assessment` — an assessment sent to the Privacy Office, whose answer an administrator records.
+             * @description What waits, in this order among items of the same moment: `release-approval` — someone asked for the release serving staging to be approved (`requestApproval`); `iam-registration-to-submit` — a registration its owner sent to the Manifest team, which submits it to UBC IAM and records that it has (`submitIamRegistration`), or hands it back (`returnIamRegistration`); `privacy-assessment-to-submit` — the privacy assessment its owner sent to the Manifest team, which submits it to the Privacy Office (`submitPrivacyAssessment`), or hands it back (`returnPrivacyAssessment`); `iam-registration` — a registration sent to UBC IAM, whose answer an administrator records; `iam-change-request` — a change request filed with UBC IAM; `privacy-assessment` — an assessment sent to the Privacy Office, whose answer an administrator records. A client switches on this, never on `summary`.
              * @enum {string}
              */
-            kind: "release-approval" | "iam-registration" | "iam-change-request" | "privacy-assessment";
+            kind: "release-approval" | "iam-registration-to-submit" | "privacy-assessment-to-submit" | "iam-registration" | "iam-change-request" | "privacy-assessment";
             /** @description The app it is about. */
             project: {
                 /**
@@ -6154,7 +6154,7 @@ export interface components {
             subjectId: string;
             /** @description Which registration, for a registration’s item; null otherwise. */
             environment: ("staging" | "production") | null;
-            /** @description Who asked, or who said it was sent; null when nobody was recorded doing so. */
+            /** @description Who asked: who asked for sign-off, or who sent the record to the Manifest team — or, for a record with UBC that nobody sent from Manifest, the administrator who recorded it sent. Null when nobody was recorded doing so. */
             requestedBy: {
                 /**
                  * Format: uuid
@@ -6166,7 +6166,7 @@ export interface components {
             } | null;
             /**
              * Format: date-time
-             * @description Since when it has waited: when it was asked for, or when it was sent to UBC.
+             * @description Since when it has waited: when it was asked for, when its owner sent it to the Manifest team, or when it was sent to UBC.
              */
             since: string;
             /** @description What waits, in one sentence for a person. */
@@ -9452,7 +9452,7 @@ export interface operations {
                      *         {
                      *           "id": "iam-registration",
                      *           "title": "Registered with UBC IAM",
-                     *           "owner": "UBC IAM, recorded by a platform administrator",
+                     *           "owner": "UBC IAM, through the Manifest team",
                      *           "blocking": true,
                      *           "state": "unmet",
                      *           "why": "It was sent to UBC IAM on September 30, 2026. The registration is 'submitted' (ticket IAM-2026-0500) and must be 'active' before a first production launch.",
@@ -12704,6 +12704,23 @@ export interface operations {
                      *           },
                      *           "since": "2026-09-29T19:00:00.000Z",
                      *           "summary": "The privacy assessment was sent to the UBC Privacy Office on September 29, 2026 (ticket PIA-2026-0088): record its answer, with the PIA number, when it comes.",
+                     *           "note": null
+                     *         },
+                     *         {
+                     *           "kind": "iam-registration-to-submit",
+                     *           "project": {
+                     *             "id": "50215560-1c3d-4ba3-b10d-051cf9c4c8ba",
+                     *             "slug": "fixture-ad799ea7",
+                     *             "name": "fixture-ad799ea7"
+                     *           },
+                     *           "subjectId": "7d0f3a52-9c1e-4b8e-a2f4-3c5d6e7f8a91",
+                     *           "environment": "staging",
+                     *           "requestedBy": {
+                     *             "id": "338713d6-02c6-411c-8816-c30821e69e07",
+                     *             "displayName": "Bio Prof"
+                     *           },
+                     *           "since": "2026-10-01T16:42:10.000Z",
+                     *           "summary": "Bio Prof sent the staging registration to the Manifest team on October 1, 2026: submit it to UBC IAM and record that you have, or hand it back.",
                      *           "note": null
                      *         },
                      *         {

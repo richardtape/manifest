@@ -11,9 +11,15 @@ import { nameOrNobody } from '../projects/index.js'
 import { openRequestFor, undecidedSince } from './candidate.js'
 import { vancouverDayInWords } from './records.js'
 
-/** What an item asks of an administrator — stable, for a client to switch on. */
+/**
+ * What an item asks of an administrator — stable, for a client to switch on. **ITS PLACE HERE IS ITS
+ * ORDER** among items of the same moment (`listQueue`'s sort): what the Manifest team does next before
+ * what waits on UBC (the FE-46/47/5 plan's Decision 16).
+ */
 export const QUEUE_KINDS = [
   'release-approval',
+  'iam-registration-to-submit',
+  'privacy-assessment-to-submit',
   'iam-registration',
   'iam-change-request',
   'privacy-assessment',
@@ -30,7 +36,11 @@ export interface QueueItem {
   subjectId: string
   /** Which registration, for a registration's item; null for anything else. */
   environment: 'staging' | 'production' | null
-  /** Who asked, or who said it was sent; null when nobody was recorded. */
+  /**
+   * Who asked: who asked for sign-off, or who sent the record to the Manifest team — and, for a record
+   * with UBC that nobody sent in Manifest, the administrator who recorded it sent. Null when nobody was
+   * recorded.
+   */
   requestedBy: { id: string; displayName: string } | null
   /** Since when it has waited on an administrator. */
   since: Date
@@ -54,12 +64,19 @@ export interface Queue {
  *
  *  - **`release-approval`** — an OPEN sign-off request (`openRequestFor`): a person asked an
  *    administrator to approve the release serving staging, and nobody has decided since.
+ *  - **`iam-registration-to-submit`**, **`privacy-assessment-to-submit`** — a record its owner SENT to
+ *    the Manifest team (`sent`; the FE-46/47/5 plan's Task 6, Decision 16): the team submits it to UBC
+ *    and records that it has, or hands it back. Since the send, naming the sender.
  *  - **`iam-registration`** — a registration `submitted` to UBC IAM, staging's or production's: the
  *    administrator records UBC's answer when it comes.
  *  - **`iam-change-request`** — a registration `change_requested` FROM `active`: a change request an
  *    administrator filed with UBC IAM, waiting on UBC since it was filed. One UBC sent back to the
  *    owner (FROM `submitted`) is the owner's move, and not here (Rich's (a), Spec action 10).
  *  - **`privacy-assessment`** — an assessment `submitted` to the Privacy Office.
+ *
+ * **A RECORD WITH UBC NAMES WHO SENT IT** (`sent_by ?? submitted_by`, Decision 16): the person who asked,
+ * not the administrator who recorded the team's submission — and, for one nobody sent in Manifest (an
+ * administrator's own `draft → submitted`), that administrator.
  *
  * **ACTIVE PROJECTS ONLY** (the sitting's whole-branch review, I2): an archived project refuses every
  * administrator's write but reading it — `launch:record`, `release:approve` — so its items could not be
@@ -72,6 +89,7 @@ export interface Queue {
 export async function listQueue(db: Db): Promise<Queue> {
   const all = [
     ...(await signOffRequests(db)),
+    ...(await recordsWithTheTeam(db)),
     ...(await registrationsWithUbc(db)),
     ...(await assessmentsWithUbc(db)),
   ].sort(
@@ -151,8 +169,74 @@ async function signOffRequests(db: Db): Promise<QueueItem[]> {
 }
 
 /**
- * WHEN IT WENT TO UBC: `submitted_at`, which the owner's *"I've sent it"*, an administrator's move into
- * `submitted` and a filed change request stamp (Task 9). A record an administrator moved before Task 9
+ * WHAT THE MANIFEST TEAM HOLDS (the FE-46/47/5 plan's Task 6, Decision 16): every record `sent` on an
+ * active project, oldest send first — each select bounded as the others. `sent_at` and `sent_by` are set
+ * on entering `sent` (a CHECK holds both), so the wait is dated from the send and names the sender.
+ */
+async function recordsWithTheTeam(db: Db): Promise<QueueItem[]> {
+  const registrations = await db
+    .select({
+      record: iamRegistrations,
+      project: projects,
+      sender: { id: users.id, displayName: users.displayName },
+    })
+    .from(iamRegistrations)
+    .innerJoin(projects, eq(iamRegistrations.projectId, projects.id))
+    .leftJoin(users, eq(iamRegistrations.sentBy, users.id))
+    .where(and(isActive, sql`${iamRegistrations.state}::text = 'sent'`))
+    .orderBy(asc(iamRegistrations.sentAt), asc(iamRegistrations.id))
+    .limit(QUEUE_LIMIT + 1)
+  const assessments = await db
+    .select({
+      record: privacyAssessments,
+      project: projects,
+      sender: { id: users.id, displayName: users.displayName },
+    })
+    .from(privacyAssessments)
+    .innerJoin(projects, eq(privacyAssessments.projectId, projects.id))
+    .leftJoin(users, eq(privacyAssessments.sentBy, users.id))
+    .where(and(isActive, sql`${privacyAssessments.state}::text = 'sent'`))
+    .orderBy(asc(privacyAssessments.sentAt), asc(privacyAssessments.id))
+    .limit(QUEUE_LIMIT + 1)
+  const sender = (u: { id: string | null; displayName: string | null } | null) =>
+    personOf(u)?.displayName ?? 'Its owner'
+  return [
+    ...registrations.map(({ record, project, sender: by }) => {
+      const since = record.sentAt ?? record.updatedAt
+      return {
+        kind: 'iam-registration-to-submit' as const,
+        project: projectOf(project),
+        subjectId: record.id,
+        environment: record.environmentKind,
+        requestedBy: personOf(by),
+        since,
+        summary: `${sender(by)} sent the ${record.environmentKind} registration to the Manifest team on ${vancouverDayInWords(since)}: submit it to UBC IAM and record that you have, or hand it back.`,
+        note: null,
+      }
+    }),
+    ...assessments.map(({ record, project, sender: by }) => {
+      const since = record.sentAt ?? record.updatedAt
+      return {
+        kind: 'privacy-assessment-to-submit' as const,
+        project: projectOf(project),
+        subjectId: record.id,
+        environment: null,
+        requestedBy: personOf(by),
+        since,
+        summary: `${sender(by)} sent the privacy assessment to the Manifest team on ${vancouverDayInWords(since)}: submit it to the UBC Privacy Office and record that you have, or hand it back.`,
+        note: null,
+      }
+    }),
+  ]
+}
+
+/** Who asked for a record with UBC: who SENT it to the team, else who recorded it sent (Decision 16). */
+const askerOf = (t: typeof iamRegistrations | typeof privacyAssessments) =>
+  eq(users.id, sql`coalesce(${t.sentBy}, ${t.submittedBy})`)
+
+/**
+ * WHEN IT WENT TO UBC: `submitted_at`, which the Manifest team's submission, an administrator's move
+ * into `submitted` and a filed change request stamp (Task 9). A record an administrator moved before Task 9
  * kept no such day, and its last change is the nearest thing Manifest knows.
  */
 const sentAt = (t: typeof iamRegistrations | typeof privacyAssessments) =>
@@ -167,7 +251,7 @@ async function registrationsWithUbc(db: Db): Promise<QueueItem[]> {
     })
     .from(iamRegistrations)
     .innerJoin(projects, eq(iamRegistrations.projectId, projects.id))
-    .leftJoin(users, eq(iamRegistrations.submittedBy, users.id))
+    .leftJoin(users, askerOf(iamRegistrations))
     .where(
       and(
         isActive,
@@ -223,7 +307,7 @@ async function assessmentsWithUbc(db: Db): Promise<QueueItem[]> {
     })
     .from(privacyAssessments)
     .innerJoin(projects, eq(privacyAssessments.projectId, projects.id))
-    .leftJoin(users, eq(privacyAssessments.submittedBy, users.id))
+    .leftJoin(users, askerOf(privacyAssessments))
     .where(and(isActive, eq(privacyAssessments.state, 'submitted')))
     .orderBy(asc(sentAt(privacyAssessments)), asc(privacyAssessments.id))
     .limit(QUEUE_LIMIT + 1)

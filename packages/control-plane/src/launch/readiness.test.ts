@@ -16,10 +16,18 @@ import {
 } from '../db/index.js'
 import { withProject } from '../db/testing.js'
 import { createEventBus } from '../observability/index.js'
+import { recordingMailer } from '../mail/testing.js'
 import { assertLaunchable, ProductionGateError } from './gate.js'
 import { computeLaunchReadiness, readyOf, type LaunchItem } from './readiness.js'
-import { recordIamRegistration } from './records.js'
-import { withDraft } from './testing.js'
+import {
+  recordAssessmentSubmission,
+  recordIamRegistration,
+  recordIamSubmission,
+  returnPrivacyAssessment,
+  sendPrivacyAssessment,
+  vancouverNoon,
+} from './records.js'
+import { everyGapAnswered, withAssessmentDraft, withDraft } from './testing.js'
 
 /**
  * §12 classifies Critical and High and nothing else (P5a Task 13), so a `SeverityCounts`
@@ -645,6 +653,158 @@ describe('waiting since (Task 9)', () => {
 })
 
 /**
+ * WHO HAS IT, AND SINCE WHEN (the FE-46/47/5 plan's Task 6, Decision 17; Review Focus 1 and 4): `since`
+ * dates the wait — the owner's send while the Manifest team holds a record (`sent`), the team's day once
+ * it is with UBC — and `why` names the holder. A hand-back is the owner's move again, waiting on nobody;
+ * a second send dates from the SECOND. Driven through the team's real operations where they are cheap.
+ */
+describe('who has it, and since when (Task 6)', () => {
+  const bus = createEventBus()
+  const FIRST = new Date('2026-09-22T19:00:00.000Z') // noon in Vancouver, 22 September
+  const SECOND = new Date('2026-09-24T19:00:00.000Z')
+  const item = async (tx: Db, projectId: string, id: string) =>
+    (await computeLaunchReadiness(tx, projectId)).items.find((i) => i.id === id)!
+
+  it('the assessment: with the Manifest team since the send, with UBC since the team’s day — and a hand-back and second send date the SECOND', async () => {
+    await withProject(async (tx, { projectId, ownerId }) => {
+      const actor = { id: ownerId, puid: 'own000001' }
+      const deps = { db: tx, bus, mailer: recordingMailer() }
+      const drafted = await withAssessmentDraft(tx, {
+        projectId,
+        createdAt: new Date('2026-09-20T19:00:00.000Z'),
+      })
+      const answers = everyGapAnswered(drafted.generatedDraft)
+      const sentOn = (at: Date) =>
+        tx
+          .update(privacyAssessments)
+          .set({ sentAt: at })
+          .where(eq(privacyAssessments.projectId, projectId))
+
+      await sendPrivacyAssessment(deps, { projectId, actor, answers })
+      await sentOn(FIRST)
+      const sent = await item(tx, projectId, 'privacy-assessment')
+      expect(sent).toMatchObject({
+        state: 'unmet',
+        since: FIRST.toISOString(),
+        owner: 'UBC Privacy Office, through the Manifest team',
+      })
+      expect(sent.why).toContain(
+        'It was sent to the Manifest team on September 22, 2026, with an answer to each of its gaps, to submit to the UBC Privacy Office.',
+      )
+      expect(sent.why).toContain("must be 'approved'")
+
+      // HANDED BACK: the owner's move again — it waits on nobody, and says nothing of a send.
+      await returnPrivacyAssessment(tx, bus, { projectId, actor })
+      const back = await item(tx, projectId, 'privacy-assessment')
+      expect(back.since).toBeNull()
+      expect(back.why).not.toMatch(/sent to/)
+
+      // SENT AGAIN: the SECOND send dates the wait.
+      await sendPrivacyAssessment(deps, { projectId, actor, answers })
+      await sentOn(SECOND)
+      const again = await item(tx, projectId, 'privacy-assessment')
+      expect(again.since).toBe(SECOND.toISOString())
+      expect(again.why).toContain('on September 24, 2026')
+
+      // THE TEAM SUBMITS IT: UBC has it, from the team's day — never the owner's send.
+      await recordAssessmentSubmission(tx, bus, {
+        projectId,
+        actor,
+        sentAt: '2026-09-25',
+        reference: 'PIA-2026-0042',
+      })
+      const withUbc = await item(tx, projectId, 'privacy-assessment')
+      expect(withUbc.since).toBe(vancouverNoon('2026-09-25').toISOString())
+      expect(withUbc.why).toContain(
+        'It was sent to the UBC Privacy Office on September 25, 2026.',
+      )
+      expect(withUbc.why).not.toContain('Manifest team')
+    })
+  })
+
+  it('a registration: with the Manifest team since the send, with UBC IAM since the team’s day', async () => {
+    await withProject(async (tx, { projectId, ownerId }) => {
+      await withDraft(tx, { projectId, environment: 'production' })
+      // SENT, as the owner's send leaves it (this file reads rows; `records.test.ts` writes them).
+      await tx
+        .update(iamRegistrations)
+        .set({ state: 'sent', sentFrom: 'draft', sentAt: FIRST, sentBy: ownerId })
+        .where(eq(iamRegistrations.projectId, projectId))
+      const sent = await item(tx, projectId, 'iam-registration')
+      expect(sent).toMatchObject({
+        state: 'unmet',
+        since: FIRST.toISOString(),
+        owner: 'UBC IAM, through the Manifest team',
+      })
+      expect(sent.why).toContain(
+        'It was sent to the Manifest team on September 22, 2026, to submit to UBC IAM.',
+      )
+      expect(sent.why).toContain("must be 'active'")
+
+      await recordIamSubmission(tx, bus, {
+        projectId,
+        environment: 'production',
+        actor: { id: ownerId, puid: 'opr000001' },
+        sentAt: '2026-09-25',
+        reference: 'IAM-4471',
+      })
+      const withUbc = await item(tx, projectId, 'iam-registration')
+      expect(withUbc.since).toBe(vancouverNoon('2026-09-25').toISOString())
+      expect(withUbc.why).toContain('It was sent to UBC IAM on September 25, 2026.')
+      expect(withUbc.why).toContain('IAM-4471')
+      expect(withUbc.why).not.toContain('Manifest team')
+    })
+  })
+
+  it('a launched app’s lapsed registration, sent again: unmet since the send, still unmet with UBC, met once recorded active (Review Focus 4)', async () => {
+    await withProject(async (tx, { projectId, ownerId }) => {
+      const actor = { id: ownerId, puid: 'opr000001' }
+      const IAM = {
+        entityId: 'https://manifest.internal/sp/chem-labs/production',
+        acsUrl: 'https://chem-labs.manifest.internal/auth/ubcshib/callback',
+        sloUrl: 'https://chem-labs.manifest.internal/auth/logout',
+        registeredAttributes: ['ubcEduCwlPuid', 'mail'],
+      }
+      await tx
+        .update(projects)
+        .set({ launchedAt: new Date() })
+        .where(eq(projects.id, projectId))
+      for (const state of ['submitted', 'active'] as const)
+        await recordIamRegistration(tx, bus, { ...IAM, projectId, state, actor })
+      // THE POSITIVE CONTROL: before the lapse, the live registration is met.
+      expect((await item(tx, projectId, 'iam-registration')).state).toBe('met')
+      await recordIamRegistration(tx, bus, { ...IAM, projectId, state: 'expired', actor })
+
+      await tx
+        .update(iamRegistrations)
+        .set({ state: 'sent', sentFrom: 'expired', sentAt: FIRST, sentBy: ownerId })
+        .where(eq(iamRegistrations.projectId, projectId))
+      const sent = await item(tx, projectId, 'iam-registration')
+      expect(sent).toMatchObject({ state: 'unmet', since: FIRST.toISOString() })
+      expect(sent.why).toContain(
+        'It was sent to the Manifest team on September 22, 2026, to submit to UBC IAM.',
+      )
+
+      await recordIamSubmission(tx, bus, {
+        projectId,
+        environment: 'production',
+        actor,
+        sentAt: '2026-09-25',
+        reference: 'IAM-4471-R',
+      })
+      const withUbc = await item(tx, projectId, 'iam-registration')
+      expect(withUbc).toMatchObject({
+        state: 'unmet',
+        since: vancouverNoon('2026-09-25').toISOString(),
+      })
+
+      await recordIamRegistration(tx, bus, { ...IAM, projectId, state: 'active', actor })
+      expect((await item(tx, projectId, 'iam-registration')).state).toBe('met')
+    })
+  })
+})
+
+/**
  * R4's item, `code-review` (D33, §15, P6a Task 12) — and DECISION 13's control, which is the
  * one that keeps production reachable for ever.
  *
@@ -1079,6 +1239,34 @@ describe('a draft that no longer covers the app (Task 10)', () => {
       expect((await item(tx, projectId)).why).toContain(
         'The request sent to UBC IAM no longer matches the release serving staging: it asks for sn, which the request does not. Tell UBC IAM; once it asks for changes, draft it again.',
       )
+    })
+  })
+
+  it('a request with the Manifest team that no longer matches is a request, not a draft: ask the team to hand it back (Task 6)', async () => {
+    await withProject(async (tx, { projectId, ownerId }) => {
+      await serving(
+        tx,
+        projectId,
+        ownerId,
+        scan(1, false),
+        ['ubcEduCwlPuid', 'mail', 'sn'],
+        PRODUCTION,
+      )
+      await withDraft(tx, {
+        projectId,
+        environment: 'production',
+        attributes: ['ubcEduCwlPuid', 'mail'],
+        ...at,
+      })
+      await tx
+        .update(iamRegistrations)
+        .set({ state: 'sent', sentFrom: 'draft', sentAt: new Date(), sentBy: ownerId })
+        .where(eq(iamRegistrations.projectId, projectId))
+      const why = (await item(tx, projectId)).why
+      expect(why).toContain(
+        'The request sent to the Manifest team no longer matches the release serving staging: it asks for sn, which the request does not. Ask the Manifest team to hand it back, then draft it again.',
+      )
+      expect(why).not.toContain('Draft it again before you send it')
     })
   })
 

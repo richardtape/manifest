@@ -110,7 +110,7 @@ export const launchRoutes = [
           {
             id: 'iam-registration',
             title: 'Registered with UBC IAM',
-            owner: 'UBC IAM, recorded by a platform administrator',
+            owner: 'UBC IAM, through the Manifest team',
             blocking: true,
             state: 'unmet',
             why: "It was sent to UBC IAM on September 30, 2026. The registration is 'submitted' (ticket IAM-2026-0500) and must be 'active' before a first production launch.",

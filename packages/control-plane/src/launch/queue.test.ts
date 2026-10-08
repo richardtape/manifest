@@ -12,10 +12,16 @@ import {
 import { withProject } from '../db/testing.js'
 import { createEventBus } from '../observability/index.js'
 import { listQueue, QUEUE_LIMIT, type QueueItem } from './queue.js'
-import { vancouverNoon } from './records.js'
+import {
+  recordAssessmentSubmission,
+  returnIamRegistration,
+  returnPrivacyAssessment,
+  sendPrivacyAssessment,
+  vancouverNoon,
+} from './records.js'
 import { requestApproval } from './requests.js'
 import { recordingMailer } from '../mail/testing.js'
-import { stagedRelease } from './testing.js'
+import { everyGapAnswered, stagedRelease, withAssessmentDraft } from './testing.js'
 
 /**
  * THE ADMINISTRATORS' QUEUE (the launch path plan's Task 12; Spec action 5): everything waiting on an
@@ -54,11 +60,13 @@ async function registration(
   input: {
     projectId: string
     environment: 'staging' | 'production'
-    state: 'draft' | 'submitted' | 'active' | 'change_requested'
+    state: 'draft' | 'sent' | 'submitted' | 'active' | 'change_requested'
     from?: 'submitted' | 'active'
     day?: string
     by?: string
     ticket?: string
+    /** The owner's send to the Manifest team (Task 6): the day, by whom, and from where. */
+    sent?: { day: string; by: string; from?: 'draft' | 'expired' | 'change_requested' }
   },
 ): Promise<string> {
   const [row] = await db
@@ -83,6 +91,13 @@ async function registration(
       ...(input.day === undefined ? {} : { submittedAt: vancouverNoon(input.day) }),
       ...(input.by === undefined ? {} : { submittedBy: input.by }),
       ...(input.ticket === undefined ? {} : { externalTicketRef: input.ticket }),
+      ...(input.sent === undefined
+        ? {}
+        : {
+            sentAt: vancouverNoon(input.sent.day),
+            sentBy: input.sent.by,
+            ...(input.state === 'sent' ? { sentFrom: input.sent.from ?? 'draft' } : {}),
+          }),
     })
     .returning()
   return row!.id
@@ -92,9 +107,11 @@ async function assessment(
   db: Db,
   input: {
     projectId: string
-    state: 'draft' | 'submitted' | 'approved'
+    state: 'draft' | 'sent' | 'submitted' | 'approved'
     day?: string
     by?: string
+    /** The owner's send to the Manifest team (Task 6). */
+    sent?: { day: string; by: string }
   },
 ): Promise<string> {
   const [row] = await db
@@ -104,6 +121,13 @@ async function assessment(
       state: input.state,
       ...(input.day === undefined ? {} : { submittedAt: vancouverNoon(input.day) }),
       ...(input.by === undefined ? {} : { submittedBy: input.by }),
+      ...(input.sent === undefined
+        ? {}
+        : {
+            sentAt: vancouverNoon(input.sent.day),
+            sentBy: input.sent.by,
+            gapAnswers: [],
+          }),
     })
     .returning()
   return row!.id
@@ -353,6 +377,164 @@ describe('the administrators’ queue (Task 12, Spec action 5)', () => {
       // The newest of them is the one left out.
       expect(queue.items.map((i) => i.project.id)).not.toContain(ids[QUEUE_LIMIT])
       expectOldestFirst(queue.items)
+    })
+  })
+})
+
+/**
+ * WHAT THE MANIFEST TEAM HOLDS (the FE-46/47/5 plan's Task 6, Decision 16; Review Focus 1): a record its
+ * owner SENT is the team's to submit to UBC, or hand back — an item of its own kind, waiting since the
+ * send and naming the sender. Once the team has submitted it, it is the with-UBC kind, and still names the
+ * person who sent it (`sent_by ?? submitted_by`), never the administrator who recorded the submission.
+ */
+describe('what the Manifest team holds (Task 6)', () => {
+  async function administrator(db: Db): Promise<string> {
+    const unique = randomUUID().slice(0, 8)
+    const [admin] = await db
+      .insert(users)
+      .values({
+        ubcCwlPuid: `puid-${unique}`,
+        email: `admin-${unique}@example.ubc.ca`,
+        displayName: 'Queue Admin',
+      })
+      .returning()
+    return admin!.id
+  }
+
+  it('one item per record sent to the team, of its kind, since the send, naming the sender — oldest first among every kind', async () => {
+    await withProject(async (db, { projectId, ownerId }) => {
+      const admin = await administrator(db)
+      const staging = await registration(db, {
+        projectId,
+        environment: 'staging',
+        state: 'sent',
+        sent: { day: '2001-06-01', by: ownerId },
+      })
+      const pia = await assessment(db, {
+        projectId,
+        state: 'sent',
+        sent: { day: '2001-06-03', by: ownerId },
+      })
+      const other = await anotherProject(db, ownerId)
+      const production = await registration(db, {
+        projectId: other,
+        environment: 'production',
+        state: 'sent',
+        sent: { day: '2001-06-02', by: ownerId, from: 'expired' },
+      })
+      // WITH UBC, AFTER THE TEAM'S SUBMISSION: the with-UBC kind, naming who SENT it, not who recorded it.
+      const third = await anotherProject(db, ownerId)
+      const withUbc = await registration(db, {
+        projectId: third,
+        environment: 'production',
+        state: 'submitted',
+        day: '2001-06-04',
+        by: admin,
+        ticket: 'IAM-2001-0042',
+        sent: { day: '2001-06-01', by: ownerId },
+      })
+
+      const queue = await listQueue(db)
+      const items = mine(queue.items, [projectId, other, third])
+      expect(items.map((i) => [i.kind, i.subjectId, i.environment])).toEqual([
+        ['iam-registration-to-submit', staging, 'staging'],
+        ['iam-registration-to-submit', production, 'production'],
+        ['privacy-assessment-to-submit', pia, null],
+        ['iam-registration', withUbc, 'production'],
+      ])
+      expect(items[0]).toMatchObject({
+        requestedBy: { id: ownerId, displayName: 'Test Owner' },
+        since: vancouverNoon('2001-06-01'),
+        note: null,
+        summary:
+          'Test Owner sent the staging registration to the Manifest team on June 1, 2001: submit it to UBC IAM and record that you have, or hand it back.',
+      })
+      expect(items[2]).toMatchObject({
+        requestedBy: { id: ownerId, displayName: 'Test Owner' },
+        since: vancouverNoon('2001-06-03'),
+        summary:
+          'Test Owner sent the privacy assessment to the Manifest team on June 3, 2001: submit it to the UBC Privacy Office and record that you have, or hand it back.',
+      })
+      expect(items[3]).toMatchObject({
+        requestedBy: { id: ownerId, displayName: 'Test Owner' },
+        since: vancouverNoon('2001-06-04'),
+      })
+      expectOldestFirst(queue.items)
+    })
+  })
+
+  it('through the team’s step: submitted, it is the with-UBC kind and still names the sender; handed back, it is gone', async () => {
+    await withProject(async (db, { projectId, ownerId }) => {
+      const admin = { id: await administrator(db), puid: 'opr000042' }
+      const owner = { id: ownerId, puid: 'own000001' }
+      const drafted = await withAssessmentDraft(db, {
+        projectId,
+        createdAt: new Date(Date.now() - 3 * 86_400_000),
+      })
+      await sendPrivacyAssessment(
+        { db, bus, mailer: recordingMailer() },
+        { projectId, actor: owner, answers: everyGapAnswered(drafted.generatedDraft) },
+      )
+      await registration(db, {
+        projectId,
+        environment: 'staging',
+        state: 'sent',
+        sent: { day: '2001-07-01', by: ownerId },
+      })
+      const kinds = async () =>
+        mine((await listQueue(db)).items, [projectId]).map((i) => [
+          i.kind,
+          i.requestedBy?.displayName,
+        ])
+      expect(await kinds()).toEqual([
+        ['iam-registration-to-submit', 'Test Owner'],
+        ['privacy-assessment-to-submit', 'Test Owner'],
+      ])
+
+      // THE TEAM SUBMITS THE ASSESSMENT; HANDS THE REGISTRATION BACK.
+      await recordAssessmentSubmission(db, bus, {
+        projectId,
+        actor: admin,
+        reference: 'PIA-2026-0099',
+      })
+      await returnIamRegistration(db, bus, {
+        projectId,
+        environment: 'staging',
+        actor: admin,
+      })
+      expect(await kinds()).toEqual([['privacy-assessment', 'Test Owner']])
+    })
+  })
+
+  it('a hand-back of the assessment takes it off; an archived project’s sent records are never listed', async () => {
+    await withProject(async (db, { projectId, ownerId }) => {
+      const owner = { id: ownerId, puid: 'own000001' }
+      const archived = await anotherProject(db, ownerId, 'archived')
+      await registration(db, {
+        projectId: archived,
+        environment: 'production',
+        state: 'sent',
+        sent: { day: '2001-08-01', by: ownerId },
+      })
+      await assessment(db, {
+        projectId: archived,
+        state: 'sent',
+        sent: { day: '2001-08-01', by: ownerId },
+      })
+      // THE POSITIVE CONTROL: the same on an active project is an item.
+      await assessment(db, {
+        projectId,
+        state: 'sent',
+        sent: { day: '2001-08-02', by: ownerId },
+      })
+      const listed = async () =>
+        mine((await listQueue(db)).items, [archived, projectId]).map((i) => [
+          i.kind,
+          i.project.id,
+        ])
+      expect(await listed()).toEqual([['privacy-assessment-to-submit', projectId]])
+      await returnPrivacyAssessment(db, bus, { projectId, actor: owner })
+      expect(await listed()).toEqual([])
     })
   })
 })

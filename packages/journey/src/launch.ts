@@ -939,9 +939,15 @@ async function step4AssessmentSent(): Promise<void> {
       JSON.stringify(record.gapAnswers) === JSON.stringify(answers),
     `${record.state} ${record.sentBy?.displayName} ${record.gapAnswers?.length} answers`,
   )
+  const withTeam = item(await readiness(owner), 'privacy-assessment')
   checks.ok(
-    'the checklist: the assessment is not yet approved',
-    item(await readiness(owner), 'privacy-assessment').state === 'unmet',
+    `the checklist: not yet approved — "It was sent to the Manifest team on ${todayInWords()}, …", waiting since the send`,
+    withTeam.state === 'unmet' &&
+      withTeam.why.startsWith(
+        `It was sent to the Manifest team on ${todayInWords()}, with an answer to each of its gaps, to submit to the UBC Privacy Office.`,
+      ) &&
+      withTeam.since === record.sentAt,
+    `${withTeam.why} (since ${withTeam.since})`,
   )
 
   for (const environment of ['staging', 'production'] as const) {
@@ -1026,11 +1032,25 @@ async function step5Queue(): Promise<void> {
     again.done ? again : undefined,
     JSON.stringify(again),
   )
+  const sentAgain = checks.must(
+    'the assessment, sent again',
+    (await records(owner)).privacyAssessment,
+  )
   checks.ok(
     'the second send’s answers replace the first’s',
-    (await records(owner)).privacyAssessment?.gapAnswers?.every((a) =>
-      a.answer.startsWith('answered again'),
-    ) === true,
+    sentAgain.gapAnswers?.every((a) => a.answer.startsWith('answered again')) === true,
+  )
+  const withTeam = ours(await queueFor(admin))
+  const toSubmit = withTeam.find((i) => i.kind === 'privacy-assessment-to-submit')
+  checks.ok(
+    'the Manifest team holds it: the queue’s privacy-assessment-to-submit, since the SECOND send, naming the sender',
+    kindsOf(withTeam).join(',') === 'privacy-assessment-to-submit,release-approval' &&
+      toSubmit?.since === sentAgain.sentAt &&
+      toSubmit?.requestedBy?.displayName === 'Test Instructor' &&
+      toSubmit.summary.startsWith(
+        `Test Instructor sent the privacy assessment to the Manifest team on ${todayInWords()}`,
+      ),
+    `${kindsOf(withTeam).join(',')} — ${toSubmit?.since} vs ${sentAgain.sentAt}: ${toSubmit?.summary}`,
   )
 
   state.piaNumber = `PIA-${state.runId}`
@@ -1061,11 +1081,11 @@ async function step5Queue(): Promise<void> {
   )
   const assessmentItem = mine.find((i) => i.kind === 'privacy-assessment')
   checks.ok(
-    'the assessment’s item says it was sent to the Privacy Office today, and to record the answer',
+    'the assessment’s item says it was sent to the Privacy Office today, to record the answer — and names who SENT it, not who recorded it',
     (assessmentItem?.summary ?? '').startsWith(
       `The privacy assessment was sent to the UBC Privacy Office on ${todayInWords()}`,
-    ),
-    assessmentItem?.summary,
+    ) && assessmentItem?.requestedBy?.displayName === 'Test Instructor',
+    `${assessmentItem?.summary} — ${assessmentItem?.requestedBy?.displayName}`,
   )
   const pia = item(await readiness(owner), 'privacy-assessment')
   checks.ok(
@@ -1209,6 +1229,26 @@ async function step6Registrations(): Promise<void> {
         record.submittedAt === null,
       `${record.state} from ${record.sentFrom}`,
     )
+    const toSubmit = ours(await queueFor(admin))
+    const held = toSubmit.find((i) => i.kind === 'iam-registration-to-submit')
+    checks.ok(
+      `the Manifest team holds it: the queue’s iam-registration-to-submit:${environment}, since the send, naming the sender`,
+      kindsOf(toSubmit).join(',') ===
+        `iam-registration-to-submit:${environment},release-approval` &&
+        held?.since === record.sentAt &&
+        held?.requestedBy?.displayName === 'Test Instructor',
+      `${kindsOf(toSubmit).join(',')} — ${held?.since} vs ${record.sentAt}`,
+    )
+    if (environment === 'production') {
+      const iam = item(await readiness(owner), 'iam-registration')
+      checks.ok(
+        `the checklist: "It was sent to the Manifest team on ${todayInWords()}, to submit to UBC IAM." — waiting since the send`,
+        iam.why.startsWith(
+          `It was sent to the Manifest team on ${todayInWords()}, to submit to UBC IAM.`,
+        ) && iam.since === record.sentAt,
+        `${iam.why} (since ${iam.since})`,
+      )
+    }
     const filed = await teamSubmitted(admin, id, environment, {
       reference: `IAM-${environment === 'staging' ? 'STG' : 'PRD'}-${state.runId}`,
     })

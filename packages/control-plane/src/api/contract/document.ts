@@ -101,7 +101,11 @@ import { STREAM_PATH, streamPathItem } from './websocket.js'
  *    `state` never offers `sent`. Four new events — `iam_registration.sent`, `privacy_assessment.sent`,
  *    `iam_registration.returned`, `privacy_assessment.returned` — and `iam_registration.submitted` gains a REQUIRED
  *    `changeRequest`; both `…submitted` are now the team's record.
- *  - Still to land: the queue's new kinds (Task 6) and a change to a live registration (Task 7).
+ *  - **Task 6 (LANDED)**: `QueueItem.kind` gains `iam-registration-to-submit` and `privacy-assessment-to-submit` — what
+ *    the Manifest team holds, since the owner's send, naming the sender — ordered after `release-approval`; a record with
+ *    UBC's `requestedBy` is the person who SENT it, not the administrator who recorded the team's submission. A
+ *    checklist item's `since` is the send while the team holds a record (`sent`), and its `why` names the holder.
+ *  - Still to land: a change to a live registration (Task 7).
  *
  * Three files carry it and two tests hold them together: this constant,
  * `packages/contract/openapi.json`'s `info.version` (GENERATED — `pnpm contract:write`,
