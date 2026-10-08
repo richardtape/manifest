@@ -540,6 +540,46 @@ describe('starters and the knowledge pack, read at load (§25, D25 — P5a Task 
     )
   })
 
+  it('tells an agent that every variable its code reads is injected or declared, and read at startup', async () => {
+    // `ask-my-notes` (2026-10-05): an agent rewrote manifest.yaml without its `env:` block
+    // and kept the starter's read of COURSE_CODE, and every signed-in /api/me answered 500
+    // behind a healthy deploy. The starter now reads it at startup
+    // (`proof-app-boot.test.ts`); this is the rule, said.
+    const pack = (await loadBlueprints(BLUEPRINTS_ROOT)).knowledgePack('node-ts-mongo@1')!
+    const agents = pack.find((f) => f.path === 'AGENTS.md')!.content
+    expect(agents).toMatch(
+      /Every\s+variable\s+your\s+code\s+reads\s+is\s+in\s+the\s+table\s+above\s+or\s+declared\s+in\s+your\s+`env:`\s+block/,
+    )
+    expect(agents).toMatch(
+      /removing\s+an\s+`env:`\s+entry\s+means\s+removing\s+every\s+read\s+of\s+it/,
+    )
+    // Not "fails the first boot" alone: the AI section already said that of ITS variables.
+    expect(agents).toMatch(/Read\s+each\s+of\s+your\s+own\s+at\s+startup/)
+  })
+
+  it('tells an agent that only a 401 from /api/me means signed out — and the starter’s page tells the two apart', async () => {
+    // The same app's page said *Not signed in* for ANY failure of /api/me, so its 500 read
+    // as a sign-in that did not take. The starter's own page tells a 401 from anything else;
+    // the rewrite lost that, and nothing in the pack said why it matters.
+    const pack = (await loadBlueprints(BLUEPRINTS_ROOT)).knowledgePack('node-ts-mongo@1')!
+    const agents = pack.find((f) => f.path === 'AGENTS.md')!.content
+    expect(agents).toMatch(/`\/api\/me`\s+answering\s+`401`\s+means\s+signed\s+out/)
+    expect(agents).toMatch(
+      /any\s+other\s+failure\s+is\s+the\s+app's\s+own\s+error\s+—\s+show\s+it/,
+    )
+    expect(agents).toMatch(/never\s+\*Not\s+signed\s+in\*/)
+    const page = await readFile(
+      join(BLUEPRINTS_ROOT, 'node-ts-mongo/starters/proof-app/public/app.js'),
+      'utf8',
+    )
+    expect(page).toMatch(
+      /if \(res\.status === 401\) return show\('out', 'Not signed in\.'\)/,
+    )
+    expect(page).toMatch(
+      /if \(!res\.ok\) return show\('unknown', `Could not tell whether you are signed in \(\$\{res\.status\}\)\.`\)/,
+    )
+  })
+
   it('refuses to load a starter whose manifest.yaml is not a valid manifest', async () => {
     const root = await blueprintsCopy()
     await edit(

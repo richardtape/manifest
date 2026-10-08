@@ -63,6 +63,15 @@ function required(name, hint) {
 
 const CWL_ENABLED = RAW.SAML_ISSUER !== undefined
 
+// Read HERE, at startup, like the platform's rows: a manifest.yaml that loses the `env:`
+// declaration then fails this app's FIRST BOOT, and the deploy's output carries this
+// sentence. Read inside a request, the deploy reports healthy and every signed-in
+// /api/me answers 500 — which the app's page shows a person as a sign-in that did not take.
+const COURSE_CODE = required(
+  'COURSE_CODE',
+  'Declare it in manifest.yaml under `env:`, or remove every read of it',
+)
+
 const client = new MongoClient(
   required(
     'MONGODB_URI',
@@ -147,7 +156,7 @@ app.get('/api/me', signedIn, (req, res) => {
     // questions are charged to (§10). Returned so the acceptances can assert that
     // two people are two different keys, without either ever seeing the other's.
     endUserId: endUserId(user.ubcEduCwlPuid),
-    course: required('COURSE_CODE'),
+    course: COURSE_CODE,
   })
 })
 

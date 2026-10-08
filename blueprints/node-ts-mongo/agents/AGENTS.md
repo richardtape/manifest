@@ -97,6 +97,12 @@ routes — without it every sign-in fails silently: the callback finds no
 `SAMLResponse`, and every person lands on the sign-in failure page with nothing in
 any log.
 
+**`/api/me` answering `401` means signed out; any other failure is the app's own
+error — show it, never *Not signed in*.** That is how a page learns who is signed in
+(`/api/me` in the `proof-app` starter; the skeleton's `/me` answers the same way), and
+the starter's `public/app.js` tells the two apart. A crash shown as *Not signed in*
+looks like a sign-in that did not take, and nobody reads the error that explains it.
+
 ---
 
 ## The environment you are given
@@ -125,6 +131,13 @@ fallback writes to one they do not cover.
 refused at validation — the platform's binding is applied after yours, so the
 variable would do nothing, and being told at deploy time is worse than being told
 now.
+
+**Every variable your code reads is in the table above or declared in your `env:`
+block** (as `COURSE_CODE` is in *`manifest.yaml`, minimally*, below) — so removing an
+`env:` entry means removing every read of it. Read each of your own at startup, as the
+skeleton reads the platform's: a missing one then fails the first boot, with its name in
+the deploy's output, instead of failing a person's first request behind a deploy that
+reported healthy.
 
 ---
 

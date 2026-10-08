@@ -243,8 +243,12 @@ red() { printf '\033[31m%s\033[0m' "$1"; }
 # actors) and `packages/mock/src/scripted.test.ts` (1: MANIFEST_MOCK_LEVEL); Task 6 +9: `ai/app-key-sweep.test.ts` (9, new).
 # Then the U1 plan's sitting 3 (2026-10-04, Task 7 and the whole-branch review's fix wave): +1, no new file —
 # `ai/capable.test.ts` (1: a level none of the seven names floors the fallback at very-high, the review's I1).
-EXPECT_TESTS=3395
-EXPECT_FILES=206
+# Then P0, out of plan (2026-10-08, the coordinated run — the roadmap's *Tracked defects found in use*, its two platform rows): +5,
+# one new file — `blueprints/proof-app-boot.test.ts` (3, new: the proof-app starter boots with COURSE_CODE and /api/me answers it,
+# and refuses to boot without it or with it empty) and `blueprints/blueprints.test.ts` (2: AGENTS.md's two sentences, the second
+# with the starter's page telling a 401 from any other failure). Measured 3400/207, 0 failed, 988 s.
+EXPECT_TESTS=3400
+EXPECT_FILES=207
 # EXPECT_DOCTOR 21 -> 22 (2026-10-03, the UBC AI Gateway plan's sitting 2, Task 2): the gateway key's expiry, a
 # check_warn — counted, never failing — from 14 days ahead (its Decision 11). Measured: 22 checks, 0 failed, 0 warnings.
 EXPECT_DOCTOR=22
