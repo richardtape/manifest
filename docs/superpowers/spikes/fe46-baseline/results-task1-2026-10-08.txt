@@ -1,0 +1,266 @@
+# FE-46/47/5 Task 1 — raw results, 2026-10-08 09:11–09:30 PDT, manifest-p1 (coordinated run job P1)
+# HEAD 4abbbc8 (tree: P0's uncommitted blueprints/ edits only). macOS 26.7.1 (25G241), Docker Desktop 4.87.0 (engine 29.7.2), Node v24.12.0, pnpm 11.24.0.
+# $SCRATCH is the session's scratchpad. Probes are in probes/. Load 3.4–5.5 throughout.
+
+== [M7] the gate numbers and the contract
+246:EXPECT_TESTS=3395
+247:EXPECT_FILES=206
+250:EXPECT_DOCTOR=22
+255:EXPECT_VERIFY=67
+87:export const CONTRACT_VERSION = '1.7.0'
+packages/contract/openapi.json: info.version 1.7.0, paths 61, operations 72 (72 unique operationIds), components.schemas 100
+pnpm test: NOT RUN (Rich, 2026-10-08 09:07, answer 3: "Skip it"). pnpm test:docker per ORIENTATION §2: 289 tests, 43 files.
+
+== [M2] the throwaway Postgres
+image: infra/images.lock has NO postgres line; compose.yaml:120 pins postgres:16-alpine by TAG only. Used the running manifest-postgres image by digest:
+docker run -d --name fe46-probe -p 127.0.0.1:7198:5432 -e POSTGRES_PASSWORD=probe postgres@sha256:4e6e670bb069649261c9c18031f0aded7bb249a5b6664ddec29c013a89310d50
+select version() -> PostgreSQL 16.13 on aarch64-unknown-linux-musl, compiled by gcc (Alpine 15.2.0) 15.2.0, 64-bit
+
+-- step 2 (probes/m2-step2-uncast.sql), psql -v VERBOSITY=verbose -e
+BEGIN;
+BEGIN
+CREATE TYPE s AS ENUM ('draft','submitted');
+CREATE TYPE
+CREATE TABLE t (state s NOT NULL DEFAULT 'draft', f text);
+CREATE TABLE
+ALTER TYPE s ADD VALUE 'sent' BEFORE 'submitted';
+ALTER TYPE
+ALTER TABLE t ADD CONSTRAINT c CHECK ((state = 'sent') = (f IS NOT NULL));
+ERROR:  55P04: unsafe use of new value "sent" of enum type s
+HINT:  New enum values must be committed before they can be used.
+LOCATION:  check_safe_enum_use, enum.c:97
+COMMIT;
+ROLLBACK
+SELECT 'after step 2: type s exists?' AS q, count(*) FROM pg_type WHERE typname = 's';
+              q               | count 
+------------------------------+-------
+ after step 2: type s exists? |     0
+(1 row)
+
+
+-- step 3 (probes/m2-step3-text-cast.sql)
+BEGIN;
+BEGIN
+CREATE TYPE s AS ENUM ('draft','submitted');
+CREATE TYPE
+CREATE TABLE t (state s NOT NULL DEFAULT 'draft', f text);
+CREATE TABLE
+ALTER TYPE s ADD VALUE 'sent' BEFORE 'submitted';
+ALTER TYPE
+ALTER TABLE t ADD CONSTRAINT c CHECK ((state::text = 'sent') = (f IS NOT NULL));
+ALTER TABLE
+COMMIT;
+COMMIT
+SELECT enum_range(NULL::s);
+       enum_range       
+------------------------
+ {draft,sent,submitted}
+(1 row)
+
+INSERT INTO t (state, f) VALUES ('sent', 'x');
+INSERT 0 1
+INSERT INTO t (state, f) VALUES ('sent', NULL);
+INSERT INTO t (state, f) VALUES ('draft', NULL);
+ERROR:  new row for relation "t" violates check constraint "c"
+DETAIL:  Failing row contains (sent, null).
+INSERT 0 1
+INSERT INTO t (state, f) VALUES ('draft', 'x');
+ERROR:  new row for relation "t" violates check constraint "c"
+DETAIL:  Failing row contains (draft, x).
+SELECT state, f FROM t ORDER BY state;
+ state | f 
+-------+---
+ draft | 
+ sent  | x
+(2 rows)
+
+SELECT pg_get_constraintdef(oid) FROM pg_constraint WHERE conname = 'c';
+                    pg_get_constraintdef                    
+------------------------------------------------------------
+ CHECK ((((state)::text = 'sent'::text) = (f IS NOT NULL)))
+(1 row)
+
+
+-- step 4: drizzle-kit 0.31.10 migrate (drizzle-orm 0.45.2) from a FRESH database probe_control: drizzle/ copied, + 0053_probe.sql and a journal entry (idx 53)
+Reading config file '$SCRATCH/m2/kit/drizzle.config.ts'
+Using 'pg' driver for database querying
+[✓] migrations applied successfully!exit=0
+after: select count(*) from drizzle.__drizzle_migrations -> 54
+enum_range(NULL::iam_registration_state) -> {draft,sent,submitted,active,change_requested,expired}
+enum_range(NULL::privacy_assessment_state) -> {draft,submitted,approved}
+pg_get_constraintdef fe46_c -> CHECK ((((state)::text = 'sent'::text) = (f IS NOT NULL)))
+pg_get_constraintdef fe46_sent_from (on iam_registrations) -> CHECK ((((state)::text = 'sent'::text) = (sent_from IS NOT NULL)))
+tables in public+audit -> 29
+
+-- step 4 NEGATIVE CONTROL: the same, CHECK uncast (probes/m2-step4-control-0053_probe-uncast.sql), fresh database probe_neg
+Reading config file '$SCRATCH/m2/kit-neg/drizzle.config.ts'
+Using 'pg' driver for database querying
+[⣟] applying migrations...exit=1
+second run, stdout and stderr apart: exit=1; stdout 330 bytes (the config line, the driver line, the spinner); stderr 0 bytes — drizzle-kit printed NO error
+docker logs fe46-probe:
+  ERROR:  unsafe use of new value "sent" of enum type fe46_s
+  HINT:  New enum values must be committed before they can be used.
+  STATEMENT:  ALTER TABLE "fe46_t" ADD CONSTRAINT "fe46_c" CHECK (("fe46_t"."state" = 'sent') = ("fe46_t"."f" IS NOT NULL));
+after: tables outside pg_catalog/information_schema -> 1 (drizzle.__drizzle_migrations, created before the transaction); its rows -> 0; iam_registration_state exists -> 0
+=> all 53 earlier migrations rolled back with the probe: ONE transaction, measured.
+
+-- what drizzle-kit generate writes (schema.ts copied, 'sent' inserted before 'submitted' in both enums; drizzle-kit generate --name probe)
+webhook_deliveries 3 columns 0 indexes 0 fks
+[✓] Your SQL migration file ➜ drizzle/0053_probe.sql 🚀
+--- drizzle/0053_probe.sql:
+ALTER TYPE "public"."iam_registration_state" ADD VALUE 'sent' BEFORE 'submitted';--> statement-breakpoint
+ALTER TYPE "public"."privacy_assessment_state" ADD VALUE 'sent' BEFORE 'submitted';
+
+-- step 5: docker rm -f fe46-probe -> fe46-probe; 7198 free. It LEFT the image's anonymous volume 2ab1edcc8a17… (label com.docker.volume.anonymous, created 2026-10-08T16:12:13Z): removed by docker volume rm; dangling volumes 29 -> 28, as at the start.
+
+== [M3] what nodemailer's add will meet
+-- step 1: node probes/m3-ehlo.mjs (EHLO, QUIT; no message)
+< 220 dde06759b44e Mailpit ESMTP Service ready
+> EHLO fe46-probe
+< 250-dde06759b44e greets fe46-probe
+< 250-SIZE 52428800
+< 250-ENHANCEDSTATUSCODES
+< 250-8BITMIME
+< 250 SMTPUTF8
+> QUIT
+< 221 2.0.0 dde06759b44e Mailpit ESMTP Service closing transmission channel
+manifest-mailpit image: axllent/mailpit:v1.31.3@sha256:ed9b00c609e77e99c79b93f1178255ebc271868920f2c69a8d166bd5634ed10d
+
+-- step 2: scratch COPY (root package.json, pnpm-workspace.yaml, pnpm-lock.yaml, the seven packages/*/package.json): pnpm --filter @manifest/control-plane add --offline --save-exact nodemailer
+✓ Lockfile passes supply-chain policies (verified 11d ago)
+Progress: resolved 1, reused 0, downloaded 0, added 0
+.                                        | [WARN] deprecated eslint@9.39.5
+[WARN] 3 deprecated subdependencies found: @esbuild-kit/core-utils@3.3.2, @esbuild-kit/esm-loader@2.6.5, node-domexception@1.0.0
+Progress: resolved 751, reused 0, downloaded 0, added 0
+Progress: resolved 751, reused 0, downloaded 0, added 0, done
+.                                        | +324 ++++++++++++++++++++++++++++++++
+Packages are cloned from the content-addressable store to the virtual store.
+  Content-addressable store is at: /Users/rich/Library/pnpm/store/v11
+  Virtual store is at:             node_modules/.pnpm
+.../esbuild@0.18.20/node_modules/esbuild postinstall$ node install.js
+.../esbuild@0.25.12/node_modules/esbuild postinstall$ node install.js
+.../esbuild@0.25.12/node_modules/esbuild postinstall: Done
+.../esbuild@0.18.20/node_modules/esbuild postinstall: Done
+Done in 3.4s using pnpm v11.24.0
+pnpm --filter @manifest/control-plane add --offline --save-exact nodemailer  3.15s user 3.21s system 180% cpu 3.527 total
+--- diff packages/control-plane/package.json:
+22a23
+>     "nodemailer": "10.0.13",
+--- pnpm-workspace.yaml: unchanged; root package.json: unchanged
+--- diff pnpm-lock.yaml:
+90a91,93
+>       nodemailer:
+>         specifier: 10.0.13
+>         version: 10.0.13
+2727a2731,2734
+>   nodemailer@10.0.13:
+>     resolution: {integrity: sha512-SzG86OlvcW/NNhUFC6uROMwRTL4n7MswfQqC/T8mhkmnY1YVa23zUEMYi4ijSeXSl9GLz9ZeTJDUatEDuY5FeQ==}
+>     engines: {node: '>=20.0.0'}
+> 
+6295a6303,6304
+> 
+>   nodemailer@10.0.13: {}
+--- the installed package: nodemailer 10.0.13, "type": "module", no dependencies, engines node >=20.0.0, NO install/preinstall/postinstall script (scripts: build, typecheck, pretest, test, …, prepare, update); exports map has import/require conditions and no "types"; 76 .d.ts files under dist/
+--- why offline worked: ~/Library/Caches/pnpm/v11/metadata/registry.npmjs.org/nodemailer.jsonl (336K, written 2026-10-01 18:15, packument modified 2026-09-30T04:40:23Z: dist-tags latest 10.0.13, 322 versions) and the store's tarball — the faculty front-end's packages/server pins "nodemailer": "10.0.13" (its pnpm-lock.yaml:1475, the same integrity sha512-SzG86Olv…); the lockfile check was cached: "Lockfile passes supply-chain policies (verified 11d ago)"
+--- nodemailer 10.0.13 CHANGELOG: released 2026-09-30.
+
+-- the types: probes/m3-nodemailer-types.ts in the scratch copy, tsc 5.9.3 with tsconfig.base.json (NodeNext, strict, exactOptionalPropertyTypes)
+tsc -p packages/control-plane --noEmit -> exit 0
+--traceResolution: Module name 'nodemailer' was successfully resolved to …/nodemailer@10.0.13/node_modules/nodemailer/dist/esm/nodemailer.d.ts
+NEGATIVE CONTROL: disableFileAccess: 'yes' -> mail-probe.ts(14,3): error TS2769: No overload matches this call. … Type 'string' is not assignable to type 'boolean | undefined'. (exit 2); restored -> exit 0
+dist/esm/errors.d.ts ERROR_CODES: ECONNECTION ETIMEDOUT ESOCKET EDNS ETLS EREQUIRETLS EPROTOCOL EENVELOPE EMESSAGE ESTREAM EAUTH ENOAUTH EOAUTH2 EMAXLIMIT EMAXRECIPIENTS ESENDMAIL ESES ECONFIG EPROXY EFILEACCESS EURLACCESS EFETCH
+
+-- step 3: the policy. pnpm 11.24.0; pnpm config list (auth redacted):
+  {
+    "@jsr:registry": "https://npm.jsr.io/",
+    "allowBuilds": {
+      "esbuild": true,
+      "vue-demi": false
+    },
+    "packages": [
+      "packages/*"
+    ],
+    "registries": {
+      "https://npm.jsr.io/": {
+        "scopes": [
+          "@jsr"
+        ]
+      },
+      "https://npm.pkg.github.com/": {
+        "prefix": "gh"
+      },
+      "https://registry.npmjs.org/": {
+        "scopes": [
+          "@"
+        ],
+        "prefix": "npmjs"
+      }
+    },
+    "registry": "https://registry.npmjs.org/",
+    "userAgent": "pnpm/11.24.0 npm/? node/v24.12.0 darwin arm64"
+  }
+  //registry.npmjs.org/:_authToken: (protected) — present, value not read
+pnpm config get, each -> undefined (no user or workspace setting): minimumReleaseAge minimumReleaseAgeExclude trustPolicy trustPolicyExclude blockExoticSubdeps strictDepBuilds dangerouslyAllowAllBuilds resolutionMode verifyStoreIntegrity storeDir saveExact savePrefix offline preferOffline engineStrict nodeLinker
+store: /Users/rich/Library/pnpm/store/v11
+pnpm 11 BUILT-IN DEFAULTS (its CHANGELOG.md: 1597 and 1309-1316):
+  minimumReleaseAge 1440 (1 day), minimumReleaseAgeStrict false (LOOSE: immature picks are AUTO-ADDED to pnpm-workspace.yaml's minimumReleaseAgeExclude and the install proceeds); strictDepBuilds true; blockExoticSubdeps true;
+  since 11.1.3 an install re-validates every lockfile entry against minimumReleaseAge and trustPolicy before fetching (ERR_PNPM_MINIMUM_RELEASE_AGE_VIOLATION / ERR_PNPM_TRUST_DOWNGRADE); trustLockfile: true skips it.
+
+== [M4] and FE-55: node probes/m4-fe55-m6-pure-functions.mjs (MANIFEST_DATABASE_URL a dummy on port 1 — db/client.js demands it at import; nothing queried)
+--- [M4] validation never reads a registration: validationContext keys = projectSlug,projectBlueprint,attributeWhitelist,serviceCatalogue,aiEnabled,modelCatalogue,unclassifiedModels,quota
+A  proof-app as shipped (5 attributes): {"valid":true,"auth":{"provider":"cwl","attributes":["ubcEduCwlPuid","mail","eduPersonAffiliation","givenName","sn"],"callback":"/auth/ubcshib/callback","logout":"/auth/logout"},"warnings":[]}
+B  attributes: [ubcEduCwlPuid, sn]       : {"valid":true,"auth":{"provider":"cwl","attributes":["ubcEduCwlPuid","sn"],"callback":"/auth/ubcshib/callback","logout":"/auth/logout"},"warnings":[]}
+C  attributes: [ubcEduCwlPuid, cn] (ctl) : {"valid":false,"errors":[{"code":"SPEC_ATTRIBUTE_NOT_WHITELISTED","path":"auth.attributes.1","message":"\"cn\" is not a releasable UBC attribute","hint":"Permitted attributes: ubcEduCwlPuid, mail, givenName, sn, eduPersonAffiliation. Note that \"uid\" is not a UBC attribute — the identifier is ubcEduCwlPuid."}]}
+D  FE-55: provider cwl, attributes: []   : {"valid":true,"auth":{"provider":"cwl","attributes":[],"callback":"/auth/ubcshib/callback","logout":"/auth/logout"},"warnings":[]}
+--- [M4] the build check, given a production registration that holds [ubcEduCwlPuid, mail]
+E  asks [ubcEduCwlPuid, sn] → AttributeDriftError SPEC_ATTRIBUTE_NOT_REGISTERED | manifest.yaml asks for 1 CWL attribute(s) UBC IAM did not register for 'fe46-probe': sn. Registered: mail, ubcEduCwlPuid. | A production release must request a subset of what UBC IAM registered — otherwise students hit a broken login on launch day. Raise an IAM change request against RITM0000001 for the missing attribute(s) — an administrator records it on the project as 'change_requested', with the attributes it asks for — or remove them from auth.attributes.
+F  asks [ubcEduCwlPuid] (ctl) → passes
+--- FE-55: the deploy half
+G  deriveSpEntity → SpEntityError SP_ENTITY_NO_ATTRIBUTES | auth.attributes is empty — an SP registered with no attribute list receives every attribute the IdP holds, so Manifest refuses to write the row (§9)
+H  toErrorResponse(SpEntityError)         → {"status":500,"body":{"error":{"code":"INTERNAL","message":"the control plane failed to handle this request"}}}
+I  ctl toErrorResponse(LaunchRecordError) → {"status":409,"body":{"error":{"code":"LAUNCH_NOT_CWL","message":"m","hint":"h"}}}
+J  ctl toErrorResponse(SpecInvalidError)  → {"status":422,"body":{"error":{"code":"SPEC_INVALID","message":"the manifest.yaml in this commit is not valid","hint":"Fix each path `details` lists in manifest.yaml, then commit or push again.","deta
+   SpEntityError instanceof Error: true | SpEntityError === export: true
+--- [M6] makeRedactor([]) on an event sentence
+"An agent asked to add jane.doe@ubc.ca as a collaborator." → "An agent asked to add jane.doe@ubc.ca as a collaborator."
+"An agent asked to add 5B3F9A2C1D4E6F7A8B9C0D1E2F3A4B5C as a collaborator." → "An agent asked to add 5B3F9A2C1D4E6F7A8B9C0D1E2F3A4B5C as a collaborator."
+"An agent asked to add jdoe42 as a collaborator." → "An agent asked to add jdoe42 as a collaborator."
+"An agent asked to add the person with PUID 12345678ABCD as a collaborator." → "An agent asked to add the person with PUID 12345678ABCD as a collaborator."
+
+== [M1] the survey of every reader of a record's state and of a queue kind (read-only, HEAD 4abbbc8; paths under packages/)
+State types: IamState, PiaState (control-plane/src/launch/transitions.ts:3-4); QueueKind (launch/queue.ts:21). No assertNever / `: never =` / `satisfies never` anywhere.
+Excluded as another domain: 'iam-registration'/'privacy-assessment' as readiness item ids (LaunchItemId: readiness.ts:34-35,636,882; representations/launch.ts:21; console screens/launch.tsx:138-152; mock launch.ts:458-461; journey main.ts:593-614, releases.ts:755-760) and as URL segments.
+Exhaustive over EventType (only matters for NEW event types): observability/event-schemas.ts:944 `satisfies Record<EventType, z.ZodType>`; observability/examples.ts:25.
+
+-- A. hand-written, non-test sites (line numbers; R read, W write, T type, S sql, X text)
+control-plane/src/db/schema.ts: 665 671(enum) 678(enum) 742 751 801(CHECK) 818
+control-plane/src/launch/transitions.ts: 1 3 4 39(Record map) 49(Record map) 76 87 103 104 105
+control-plane/src/launch/records.ts: 29 30 89 98 172 173 198 207 208 218 233 235 247 248 261 262 264 280 281 303 304 330 337X 357 358 366 370 381 393 415 419X 584 585 592 595 597X 598 613 616X 644W 646W 697 698 711W 756 758 761X 1002 1003 1066 1094W 1108 1156 1159X 1199 1200 1251W 1262
+control-plane/src/launch/readiness.ts: 376 405X 425 459 460 510 522X 612X 629X 863 866 894 905 913X 914X
+control-plane/src/launch/queue.ts: 175S 178S 179S 190 227S
+control-plane/src/releases/build.ts: 335 362
+control-plane/src/spec/registered-attributes.ts: 71 94X
+control-plane/src/api/representations/launch.ts: 2 285 290 406 509 571 627 628 654
+control-plane/src/api/routes/launch.ts: 173 188 221 256 264
+control-plane/src/api/routes/launch-examples.ts: 31 123 215 293 483 504 522
+control-plane/src/observability/event-schemas.ts: 5 8 459 482
+control-plane/src/observability/examples.ts: 150 157
+console/src/launch-records-state.ts: 114(switch) 148 176 183(switch)
+console/src/screens/records.tsx: 143 149 158 230 243 255(list) 262(list) 301 302 315 373 469 470 516
+mock/src/launch.ts: 106 121 137 200 201 264X 276X 289 290 299W 317 318 320 324 326X 327 333 337X 358W 382 386X 400 407 411X 622
+mock/src/fixtures.ts: 1495 1524 1545
+journey/src/production.ts: 321 322 467 479 490 497 498 500 501 504 509
+journey/src/releases.ts: 588 625 626X 627 629 1062 1096 1102 1105 1116 1120 1121 1133 1180X
+journey/src/launch.ts: 661 662 745 752 841 985 994 1078 1086 1140 1148 1317 1318 1319 1320X
+Prose naming states/kinds without reading one: readiness.ts:514,611,617; registered-attributes.ts:92,97; api/error-codes.ts:552; api/routes/launch.ts:85,150; representations/launch.ts:276,287,293,408,506,511,573; representations/queue.ts:16,26; console api.ts:643; console screens/project.tsx:214; mock fixtures.ts:692.
+-- A2. queue kinds, non-test: control-plane launch/queue.ts:15-19 21 27 80 138 192 202 233; api/representations/queue.ts:2 14; api/routes/queue.ts:34 52; console launch-records-state.ts:241 250(switch); console screens/queue-admin.tsx:45; mock launch.ts:562 576 590 624; journey launch.ts:423 427 957 960 968 1000 1092 1163 1237
+-- Tests and support: launch/testing.ts:95 108 165; api/testing.ts:438 708 715; api/authz-contract.ts:1361 1392; transitions.test.ts (7-8, 17-24 hand lists, grid counts :96 {allowed:8,refused:17} and :124 {allowed:4,refused:5}, :146-158); records.test.ts (97 lines; SQL 1239 1248 1256); readiness.test.ts (unions :150 :175; ~40 lines; SQL 594 1074); queue.test.ts (unions :56 :57 :94; kinds 161-163 211 256 316); api/launch.test.ts (31 lines; SQL 416 446 1056 1555); api/queue.test.ts:100 174 417 424-425 441 446 454; subsequent-releases.test.ts:835-838 948-1102; delivery.test.ts:1646-1702; admin-reason.test.ts:259; build-attributes.test.ts:46 186 207 228; console launch-records-state.test.ts (states 91-146; kinds 195 236 238-242 249-260); console api.test.ts:160-536; mock scripted.test.ts (states 818-908; kinds 984-1013, toBe(4) :1008).
+
+-- B. exhaustive (5): transitions.ts:39 IAM_ARROWS Record<IamState,…>; :49 PIA_ARROWS Record<PiaState,…>; console launch-records-state.ts:114 registrationActions (5 cases, no default, returns OwnerActions -> TS2366), :183 assessmentActions (3 cases), :250 queueKindWords (4 kinds). The console's three fail only after contract:write + contract:generate.
+-- B. NON-exhaustive (55), a new member falls through silently:
+control-plane: queue.ts:172-181 (sql: submitted | change_requested from active), :190 (submitted ? iam-registration : iam-change-request), :227 (pia submitted), :80 (order = QUEUE_KINDS.indexOf); transitions.ts:104, :105 (SUBMIT_ARROWS); records.ts:198, 207-208, 218, 233-235, 247-248 (sentNow), 261-265 (changeRequestedFrom), 366, 370, 592/595/598 (PIA approved), 613 (staging active), 756 (DRAFTABLE), 1066, 1199, 1262; readiness.ts:376, 425 (sent = submitted -> a sent record called a draft), 460 (waitingOnUbc), 510, 866, 894, 905.
+console: launch-records-state.ts:148, 176, 241 (new kinds link to /records); screens/records.tsx:143, 149 (waiting), 158, 230, 243 (waiting), 255 IAM_STATES, 262 PIA_STATES (hand lists typed by the REQUEST enums), 315.
+mock: launch.ts:200, 201, 320-327, 333, 382, 400, 407, 622 (queue from pia submitted only; no IAM item from its own state).
+journey: production.ts:321-322; releases.ts:625; launch.ts:957, 960, 968, 1000, 1092, 1163, 1237 (kind equality, exact kindsOf(...).join(',') strings).
+-- C. enum lists, hand-written (13): db/schema.ts:665-671, 678-682, 751, 801; launch/queue.ts:15-20; representations/launch.ts:285 (IamRegistration.state, derived), 290 (changeRequestedFrom, literal), 406 (PrivacyAssessment.state), 509 (RecordIamRegistrationRequest.state, DERIVED -> would offer `sent`), 571 (RecordPrivacyAssessmentRequest.state, DERIVED); representations/queue.ts:14 (.enum(QUEUE_KINDS)); observability/event-schemas.ts:459, 482 (…recorded.state, derived). Generated (8): contract/src/schema.d.ts:3304 3355 4855 4857 5632 5759 5820 5837.
+-- D. counts: A non-test 19 files / 211 sites; A2 7 files / 28; tests ~279 state + 23 kind; B exhaustive 2 files / 5; B non-exhaustive 10 files / 55 (+11 hand lists in 6 test files); C 5 files / 13 (+8 generated).
