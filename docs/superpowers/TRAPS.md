@@ -12,8 +12,8 @@ clusters: **zsh** (six entries: word-splitting, `${PIPESTATUS}`, `local path=`, 
 background wrapper's exit status); **single-file bind mounts** (six: the Caddyfile twice, the IdP's config,
 LiteLLM's config twice, a moved directory); **`pnpm test` truncating state** (five); **the permission classifier**
 (three); **driving Chrome** (five); **S6's probe 14 and a cold model** (two); **the edge's wildcard `200`**
-(three); **drizzle migrations** (four, two of which — `drizzle-kit migrate needs MANIFEST_DATABASE_URL` and
-`db:migrate NEEDS THE ADMIN URL` — are the same fact); **`docker network rm`** (two); **`make reset`** (four).
+(three); **drizzle migrations** (five, two of which — `drizzle-kit migrate needs MANIFEST_DATABASE_URL` and
+`db:migrate NEEDS THE ADMIN URL` — are the same fact; the fifth, 2026-10-08, that it says nothing when one fails); **`docker network rm`** (two); **`make reset`** (four).
 **About a dozen describe defects since FIXED** — the console's *Sign out* leaving the IdP session alive (twice, one
 struck through), the egress proxy that answered for its first deploy, a build finishing inside its own POST, and
 others marked FIXED in their text — and are kept as history.*
@@ -2737,3 +2737,10 @@ administrator"* is the front-end's `MODEL_NOT_AVAILABLE`, raised by the front-en
 model (`MANIFEST_APP_PLAN_MODEL`, default `default-chat`) — which a `high` or `very-high` project's never does. The platform's log shows
 nothing; the front-end's shows `"code":"MODEL_NOT_AVAILABLE","status":null,"platformRequestId":null`. And the front-end reads only its
 PROCESS environment: a line in `.env` reaches it only through RUNBOOK's start line (*The building agent's models*) — check with `ps eww`.
+
+**`drizzle-kit migrate` SAYS NOTHING WHEN A MIGRATION FAILS.** drizzle-kit 0.31.10 exits `1` with an EMPTY stderr; stdout holds only
+*"Reading config file…"*, *"Using 'pg' driver…"* and a spinner. The error — and the statement that raised it — is only in Postgres's own log:
+`docker logs manifest-postgres 2>&1 | tail -20`. And since drizzle-orm runs every pending migration in ONE transaction, the failure took every
+pending migration with it, not only the last. Measured 2026-10-08 by the FE-46/47/5 plan's sitting 1 (F2: an `ALTER TYPE … ADD VALUE` and a
+CHECK naming the new value uncast, from a fresh database — all 53 earlier migrations rolled back, nothing printed;
+`spikes/fe46-baseline/`).

@@ -17,7 +17,7 @@ queried. Raw output: [`results-task1-2026-10-08.txt`](results-task1-2026-10-08.t
 | `[M2]` | Can `ADD VALUE` and a CHECK naming the value share drizzle's one migration transaction? | **Yes, when the CHECK compares `state::text`** — measured in psql and through `drizzle-kit migrate` from a fresh database (all 54: `0000`–`0052` and a `0053` probe). The uncast CHECK is refused `55P04` and rolls back **all 53 earlier migrations** with it (the control). `drizzle-kit generate` writes exactly `ALTER TYPE … ADD VALUE 'sent' BEFORE 'submitted'`. **Decision 7 stands; no stop for Rich.** | Task 5 |
 | | | **drizzle-kit 0.31.10 prints NOTHING when a migration fails** — exit 1, an empty stderr; the error is only in Postgres's own log. | Task 5's `db:migrate` |
 | `[M3]` | What will nodemailer's add meet? | **The offline add SUCCEEDS**: `nodemailer` **10.0.13** (released 2026-09-30) is already in the shared store, because the faculty front-end's server pins it. It ships its own types (no `@types/nodemailer`), has no install script (no `allowBuilds` change) and no dependencies (three lockfile entries). **Task 3's Step 1 needs no network** — said to Rich through `manifest-coord`. Mailpit offers `SIZE 52428800`, `ENHANCEDSTATUSCODES`, `8BITMIME`, `SMTPUTF8` — **no `STARTTLS`, no `AUTH`**. pnpm 11's built-in `minimumReleaseAge` is one day, in LOOSE mode. | Task 3 |
-| `[M4]` | A manifest asking for an attribute UBC never registered: valid? built? | **`valid: true`** — validation's context holds a five-name whitelist and no registration. **The build is refused in its BACKGROUND half**: the build row goes `failed` with `SPEC_ATTRIBUTE_NOT_REGISTERED: … — <hint>`, and `build.failed`; `startBuild` itself answers success. FE-47's draft from the newest valid manifest rests on the first answer, and it holds. | Task 7 |
+| `[M4]` | A manifest asking for an attribute UBC never registered: valid? built? | **`valid: true`** — validation's context holds a five-name whitelist and no registration. **The build is refused in its BACKGROUND half**: the build row goes `failed` with `SPEC_ATTRIBUTE_NOT_REGISTERED: … — <hint>`, and `build.failed` — after `startBuild` has already answered. FE-47's draft from the newest valid manifest rests on the first answer, and it holds. | Task 7 |
 | FE-55 | A CWL app asking no attribute (Rich placed it 2026-10-08: P1 measures, Task 7 fixes) | **Measured, both halves**: `auth: { provider: cwl, attributes: [] }` validates `valid: true` with no warning; the build passes (nothing asked is a subset of anything); the deploy's `deriveSpEntity` throws `SpEntityError` `SP_ENTITY_NO_ATTRIBUTES`, which `mapError` does not know, so it is **`500 INTERNAL`**. No `SP_ENTITY_*` code is in `api/error-codes.ts`. | Task 7 |
 | `[M5]` | How was a field added to an existing event? | `environment` joined `iam_registration.recorded` as a **required** field (`b2c75e6`, contract 1.5.0); stored events were **never rewritten** (the application role holds only `SELECT, INSERT` on `audit.events`), and a replay sends them **as stored, unparsed** — so the published `EventFrame` says `environment` is required while a replay of an older event lacks it. | Tasks 2, 5, 7 |
 | `[M6]` | FE-5's premises | `findPerson` (`projects/repository.ts:415`): PUID exact, CWL login lowercased on both sides, email `lower()` on both sides, two rows → `ambiguous`. `project_members` is keyed `(project_id, user_id)`. `makeRedactor([])` changes none of an email address, a PUID or a CWL login in a sentence. A token's `addMember` 403 carries `pendingAction` with fifteen fields and no object. | Task 2 |
@@ -26,7 +26,7 @@ queried. Raw output: [`results-task1-2026-10-08.txt`](results-task1-2026-10-08.t
 
 ## `[M1]` — every *Read this first* fact, re-read
 
-*Read by four read-only surveys and spot-checked by hand (Fact 26's two commits, the mock's stage parse, its question summary, an
+*Read by three read-only surveys and spot-checked by hand (Fact 26's two commits, the mock's stage parse, its question summary, an
 operator line). "Now" is HEAD `4abbbc8`. Files unchanged since `8def435`, where the plan was written: `launch/records.ts`,
 `launch/transitions.ts`, `launch/readiness.ts`, `launch/queue.ts`, `launch/requests.ts`, `releases/build.ts`, `api/routes/launch.ts`,
 `api/representations/launch.ts`, `api/contract/route.ts`, `tokens/pending.ts`, `api/refusal.ts`, the mock's `launch.ts`, and every cited
@@ -48,7 +48,7 @@ console and journey file.*
 | 12 | MOVED | Mailpit `infra/compose.yaml:355-368`; `scripts/verify.sh` round trip `:1330-1355`, narrowness `:1362-1387`; ports `infra/lib/common.sh:96-97` | Lines only |
 | 13 | MOVED | `MANIFEST_CONTROL_PLANE_ORIGIN` `config.ts:169-172`; `config.sp.origin` `:538`/`:544`, built `:871-872`; the console's paths `packages/console/src/router.ts:37-61`; `MANIFEST_LAUNCH_CONTACTS` `config.ts:449`, `parseLaunchContacts` `:958-969` (called `:716`) | Lines only. `parseLaunchContacts`' address check is `/^(\S.*?)\s*<([^<>\s@]+@[^<>\s@]+\.[^<>\s@]+)>$/`, `CONFIG_INVALID` per entry — the one email-shaped setting today |
 | 14 | MOVED | `requestApproval` `launch/requests.ts:48`, its publish `:102-124`; called `api/routes/releases.ts:1042`; `ServerDeps` `api/server.ts:58-179`; the boot `index.ts:344-398`; `testDeps` `api/testing.ts:819-992` | The call site only (`1038 → 1042`) |
-| 15 | **CHANGED** | `releases/build.ts:72-89` (`inFlight` `:68`); `releases/release.ts:1121-1138` (`discardMintedKey`); `api/refusal.ts:12-40` | **The general claim is false**: operator lines are not all JSON, and some carry a message or a PUID — `api/routes/auth.ts:192` `` `[auth] step-up started for ${actor.puid}` `` (and `:234`, `:287`, `:484`), `releases/build.ts:241`, `releases/recover.ts:139`, `releases/summary.ts:282`, `source/queue.ts:24`, `runtime/docker/driver.ts:401`, `ai/capable.ts:328`, `:342`. The mailer follows `api/refusal.ts` (Decision 11), which is unchanged |
+| 15 | **CHANGED** | `releases/build.ts:72-89` (`inFlight` `:68`); `releases/release.ts:1121-1138` (`discardMintedKey`); `api/refusal.ts:12-40` | **The general claim is false**: eleven operator lines are template strings, not JSON — two log a PUID (`api/routes/auth.ts:192` `` `[auth] step-up started for ${actor.puid}` ``, `:287`), seven an error's message or reason (`releases/build.ts:241`, `releases/recover.ts:139`, `releases/summary.ts:282`, `source/queue.ts:24`, `runtime/docker/driver.ts:401`, `ai/capable.ts:328`, `:342`), two neither (`auth.ts:234`, `:484`). The mailer follows `api/refusal.ts` (Decision 11), which is unchanged |
 | 16 | MOVED | The mock: `RecordsStage` `packages/mock/src/launch.ts:27`; the default `server.ts:1231-1237`; `launchRecords` `:144-172`; `IAM_SUBMIT_FROM`/`PIA_SUBMIT_FROM` `:200-201`; the submits `:282-365`; `queueOf` `:608-637`; handlers `server.ts:591-619`, `listQueue` `:666` | **`MANIFEST_MOCK_RECORDS` is an allow-list, `['none', 'drafted', 'assessed', 'approved']`, and anything else silently means `sent`** — so Task 8a's `with-team` and 8b's `change-with-team` must join it. **Under `sent` only the ASSESSMENT is with UBC**; both registrations are `active` (`fixtures.ts:1495`, `:1524`, `:1545`); `server.ts:302` reads `sent` as *no launch scripted* |
 | 17 | HOLDS | `packages/console/src/launch-records-state.ts:103-208` (`switch` `:114`, `:183`), `queueKindWords` `:248-260`; `SendForm` `screens/records.tsx:849-935`; `IamForm` `:283-455`; `PiaForm` `:457-539`; `AdminQueue` `screens/queue-admin.tsx:25-70`; the submits `api.ts:696-749` | — |
 | 18 | HOLDS | `packages/journey/src/launch.ts` phases `:1738-1748`; step 4 `:876-932`, 5 `:937-1005`, 6 `:1011-1167`; `sayItWasSent` `example-launch-path.ts:82-115`, called six times (`:887`, `:895`, `:921`, `:1023`, `:1053`, `:1096`); the guide `docs/api/launching.md:68`; `examples.test.ts:664-730` | — |
@@ -243,11 +243,35 @@ document mentions older events. **Tasks 2, 5 and 7 add fields the same way** (`p
 `info.version` 1.7.0, **72 operations** (72 distinct ids) on 61 paths, 100 schemas. **`pnpm test` was not run** — Rich, 2026-10-08
 09:07: *"Skip it"*; sitting 1 changed no code.
 
+## Task 2b's references (FE-54) — added to the plan after *Read this first*, so `[M1]` re-read them here
+
+*Task 2b says "Task 1 re-reads every reference here" and "confirm at Task 1". Read at HEAD; `spec/diff.ts` last changed at `59bd934` (U1).*
+
+- **`sensitiveFieldsBetween`** is `spec/diff.ts:167`, exported (`(before: SensitiveView, after: SensitiveView) => SensitiveField[]`);
+  **`sensitiveViewOfRelease`** is `:240`, exported (`(production: ResolvedConfig, blueprint: string) => SensitiveView`). Both cited lines hold.
+- **The gate compares RELEASES, and there is no function for a commit.** `sensitiveChangeOf(db, release)` (`releases/approval.ts:227-238`)
+  takes the baseline from `lastApprovedReleaseFor(db, projectId, excludeReleaseId)` (`:166-185` — the newest `approved` decision, its
+  `excludeReleaseId` a required string) and builds each side's view with **`sensitiveViewOf(db, release)` (`:199-211`), which is NOT
+  exported** (it reads the release's `resolvedConfig.production` and the blueprint from its spec row). Its callers are
+  `approvalRequirementFor` (`:294`) and `diffFactsFor` (`:484`).
+- **A commit has no resolved config.** A release's is made at `createRelease` (`api/routes/releases.ts:349-361`):
+  `resolveConfig(parsed, 'production', descriptor.defaults.resources)` — resources start from the BLUEPRINT's defaults, then the spec's,
+  then the production override (`spec/resolve.ts:113-117`). **`sensitiveViewOfSpec(spec)` (`spec/diff.ts:214`) is NOT the gate's view**: it
+  reads the spec's own resources, not the resolved ones. So *"the gate's own function, called twice"* means resolving the commit's spec as
+  `createRelease` does and calling `sensitiveViewOfRelease` on it, with the baseline's view from the same helper the gate uses (exported, or
+  a new export beside it) — and Task 2b's own test (a commit's answer equals the gate's for the release built from it) is the one that would
+  see the difference.
+- **`SpecValidation`** is `api/representations/specs.ts:44`, `sensitiveDiff` at `:61`; it is built by `validateAndRecord`
+  (`api/spec-validation.ts:100`, through `sensitiveAgainstNewestValid` `:51-61`) and by `createCommit`'s dry run (`api/routes/source.ts:567-577`).
+  `LaunchReadiness.sensitiveFields`/`reescalated` are `launch/readiness.ts:90`, `:97`, filled at `:175-176`.
+
 ## What this leaves the plan
 
 - **Task 2** — the event's new fields meet `[M5]`: decide, and record, whether they are required (the precedent; a replay of an earlier
   `pending_action.created` lacks them) or optional. The mock's question summary differs from the platform's (Fact 25): align it while the
   fixtures gain their object. `findPerson`'s three lookups are as Decision 18 assumes; the PUID is exact.
+- **Task 2b** — no function compares a COMMIT with the last approved release; `sensitiveViewOf` is private and `sensitiveViewOfSpec` is not
+  the gate's view (above).
 - **Task 3** — the add is offline (10.0.13), types included, no `allowBuilds`; Mailpit offers no `STARTTLS`; nodemailer's codes above.
 - **Task 5** — Decision 7 measured; a failed `db:migrate` is silent but for the exit code. **Narrow the two record routes' request
   enums so they do not offer `sent`** (above). Typecheck finds five sites; the silent list above is the rest. The current lines of every
