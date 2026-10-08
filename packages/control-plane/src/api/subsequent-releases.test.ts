@@ -944,8 +944,11 @@ describe('a launched CWL app’s live registration (§9, D9.2, P6b Task 7)', () 
     expect(built.status).toBe('failed')
     expect(built.error).toContain('SPEC_ATTRIBUTE_NOT_REGISTERED')
     expect(built.error).toContain(': sn.')
-    // §9's pre-generated change request says how it is RECORDED, not only "raise one".
-    expect(built.error).toContain('change_requested')
+    // §9's pre-generated change request says HOW TO ASK FOR IT, not only "raise one" — since the FE-46/47/5 plan's
+    // Task 7, from Manifest, through the Manifest team (it said how an administrator records one before).
+    expect(built.error).toContain(
+      'Ask for the change from Manifest: draft the registration again and send it to the Manifest team (sendIamRegistration)',
+    )
     await closed(ctx)
   })
 
