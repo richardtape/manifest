@@ -371,7 +371,20 @@ export const PrivacyAssessmentDraft = representation(
                 )
                 .describe('What Manifest knows, in order.'),
               gaps: z
-                .array(z.string())
+                .array(
+                  z
+                    .object({
+                      id: z
+                        .string()
+                        .describe(
+                          'The gap’s id — `<question>.<what it asks>`, such as `collected.app-data` or `hosting.production`. The same gap keeps its id when the app is drafted again, so an answer kept for it still fits; a gap raised ahead of another never renumbers it. A draft made before gaps had ids numbers each in its question — `flows.0`, `flows.1` — and keeps those.',
+                        ),
+                      text: z
+                        .string()
+                        .describe('What the owner is asked, as a sentence.'),
+                    })
+                    .describe('One thing Manifest cannot know, for the owner to answer.'),
+                )
                 .describe(
                   'What Manifest cannot know, for the owner to add before sending — what the app keeps in its own database, where UBC will host it. Empty when there is nothing.',
                 ),

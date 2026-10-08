@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto'
 import { describe, expect, it } from 'vitest'
 import type { ModelEntry } from '../ai/index.js'
 import { manifestSchema } from '../spec/index.js'
@@ -77,6 +78,9 @@ const section = (draft: { sections: Section[] }, id: Section['id']): Section =>
 
 const valueOf = (s: Section, label: string) => s.facts.find((f) => f.label === label)
 
+/** A section's gaps as the owner reads them. */
+const texts = (s: Section) => s.gaps.map((g) => g.text)
+
 const INCIDENT_LOGS = {
   label: 'Incident logs',
   value:
@@ -131,7 +135,7 @@ describe('assembleAssessment (Task 11)', () => {
     })
     // An attribute it does not ask for is not listed.
     expect(valueOf(collected, 'givenName')).toBeUndefined()
-    expect(collected.gaps).toEqual([
+    expect(texts(collected)).toEqual([
       expect.stringMatching(/^What the app keeps in its own database/),
     ])
     // An app that signs nobody in learns nothing from CWL, and says so.
@@ -180,7 +184,7 @@ describe('assembleAssessment (Task 11)', () => {
       expect(f.value).not.toMatch(/thrown away|resettable|cleared/)
     // What Manifest keeps ITSELF, whatever the app declares.
     expect(valueOf(stored, 'Incident logs')).toEqual(INCIDENT_LOGS)
-    expect(stored.gaps).toEqual([
+    expect(texts(stored)).toEqual([
       expect.stringMatching(/staging.*real people.*Privacy Office/s),
     ])
     // No service: no database, and no environment's copy to describe — the logs still.
@@ -236,7 +240,7 @@ describe('assembleAssessment (Task 11)', () => {
         'Medium — Manifest’s default, because the manifest does not say: every AI model the app uses must be approved for medium data.',
       source: 'Manifest’s default',
     })
-    expect(flows.gaps).toEqual([
+    expect(texts(flows)).toEqual([
       'No classification declared — add data.classification to manifest.yaml, saying how sensitive the app’s data is. Manifest treats it as medium, which allows AI models that may be answered off-premise.',
     ])
   })
@@ -271,7 +275,7 @@ describe('assembleAssessment (Task 11)', () => {
     expect(valueOf(unknown, 'default-chat')?.value).toMatch(
       /not in the platform’s model catalogue/,
     )
-    expect(unknown.gaps).toEqual([expect.stringMatching(/default-chat/)])
+    expect(texts(unknown)).toEqual([expect.stringMatching(/default-chat/)])
 
     const off = section(assembleAssessment(input({ catalogue: null })), 'flows')
     expect(valueOf(off, 'default-chat')?.value).toMatch(/AI is switched off/)
@@ -288,7 +292,7 @@ describe('assembleAssessment (Task 11)', () => {
       },
       DELETION,
     ])
-    expect(declared.gaps).toEqual([
+    expect(texts(declared)).toEqual([
       'How the app removes its data once it is older than 180 days — Manifest does not remove it for the app.',
       SUNSET,
     ])
@@ -307,7 +311,7 @@ describe('assembleAssessment (Task 11)', () => {
       DELETION,
     ])
     for (const f of undeclared.facts) expect(f.value).not.toMatch(/365/)
-    expect(undeclared.gaps).toEqual([
+    expect(texts(undeclared)).toEqual([
       'No retention declared — add data.retention_days to manifest.yaml, with how long the app must keep its data.',
       SUNSET,
     ])
@@ -332,13 +336,13 @@ describe('assembleAssessment (Task 11)', () => {
         source: 'the platform’s contacts',
       },
     ])
-    expect(accountable.gaps).toEqual([BREACH])
+    expect(texts(accountable)).toEqual([BREACH])
     const alone = section(
       assembleAssessment(input({ platformContacts: [] })),
       'accountable',
     )
     expect(alone.facts.map((f) => f.label)).toEqual(['Owner', 'Collaborator'])
-    expect(alone.gaps).toEqual([expect.stringMatching(/No platform contact/), BREACH])
+    expect(texts(alone)).toEqual([expect.stringMatching(/No platform contact/), BREACH])
   })
 
   it('hosting: where Manifest runs the app and keeps its code, each model’s ceiling, and where UBC will host it as a gap', () => {
@@ -357,7 +361,7 @@ describe('assembleAssessment (Task 11)', () => {
     expect(valueOf(hosting, 'default-chat-onprem')?.value).toBe(
       'Approved for very high data at most.',
     )
-    expect(hosting.gaps).toEqual([
+    expect(texts(hosting)).toEqual([
       'Where UBC will host the app in production is not decided yet: UBC has not chosen the infrastructure Manifest runs on there.',
       expect.stringMatching(/outside Canada.*default-chat\b/s),
     ])
@@ -371,8 +375,8 @@ describe('assembleAssessment (Task 11)', () => {
       'In a private repository in the GitHub organisation Manifest-local-dev.',
     )
     // On GitHub, the people's names are a second flow whose jurisdiction is the Office's question.
-    expect(github.gaps).toEqual([
-      ...hosting.gaps,
+    expect(texts(github)).toEqual([
+      ...texts(hosting),
       'Whether people’s names may be sent to GitHub, which may hold them outside Canada, is the Privacy Office’s to say.',
     ])
     // Only on-premise models: no provider outside Canada to ask about.
@@ -478,7 +482,7 @@ describe('renderAssessmentText (Task 11)', () => {
       for (const s of draft.sections) {
         expect(draft.text).toContain(s.title)
         for (const f of s.facts) expect(draft.text).toContain(f.value)
-        for (const g of s.gaps) expect(draft.text).toContain(g)
+        for (const g of s.gaps) expect(draft.text).toContain(g.text)
       }
       for (const w of draft.warnings) expect(draft.text).toContain(w)
     }
@@ -506,5 +510,151 @@ describe('readAssessmentDraft (Task 11)', () => {
     expect(readAssessmentDraft(null)).toBeNull()
     expect(readAssessmentDraft({ placeholder: 'x' })).toBeNull()
     expect(readAssessmentDraft({ generatedAt: '2026-10-01T15:00:00.000Z' })).toBeNull()
+  })
+})
+
+describe('the gaps’ stable ids (FE-46/47/5 plan Task 4; Decision 8)', () => {
+  /** A manifest that raises every gap but one of the two retention gaps: §9's whole list at once. */
+  const EVERY_SPEC = manifestSchema.parse({
+    ...BARE_INPUT,
+    name: 'lp-sample',
+    services: [{ type: 'mongo', version: '7', name: 'db' }],
+    auth: { provider: 'cwl', attributes: ['ubcEduCwlPuid', 'mail'] },
+    ai: { models: ['default-chat', 'default-chat-onprem', 'retired-model'] },
+    egress: { allow: ['api.ubc.ca'] },
+    data: { classification: 'internal', retention_days: 180 },
+  })
+  const every = (over: Partial<AssessmentInput> = {}) =>
+    input({
+      spec: EVERY_SPEC,
+      declared: { retention: true, classification: false },
+      members: [{ name: 'Bio Prof', email: 'bio.prof@example.ubc.ca', role: 'owner' }],
+      platformContacts: [],
+      catalogue: CATALOGUE.filter((m) => m.kind === 'chat'),
+      repository: { provider: 'github', organisation: 'Manifest-local-dev' },
+      ...over,
+    })
+  const idsOf = (draft: { sections: Section[] }) =>
+    draft.sections.flatMap((s) => s.gaps.map((g) => g.id))
+
+  it('every gap the six sections can raise has its own id, named by its section and what it asks', () => {
+    const drafts = [
+      assembleAssessment(every()),
+      assembleAssessment(every({ declared: UNDECLARED })),
+      assembleAssessment(input()),
+    ]
+    for (const draft of drafts)
+      for (const s of draft.sections)
+        for (const g of s.gaps) {
+          expect(g.id).toMatch(
+            /^(collected|stored|flows|retention|accountable|hosting)\.[a-z-]+$/,
+          )
+          expect(g.id.startsWith(`${s.id}.`)).toBe(true)
+          expect(g.text.length).toBeGreaterThan(0)
+        }
+    // The whole list, exactly: twelve gaps, two of them (retention's) never in one draft together.
+    expect([...new Set(drafts.flatMap(idsOf))].sort()).toEqual([
+      'accountable.breach',
+      'accountable.platform-contact',
+      'collected.app-data',
+      'flows.classification',
+      'flows.unknown-model',
+      'hosting.offshore-ai',
+      'hosting.production',
+      'hosting.repository',
+      'retention.declare',
+      'retention.disposal',
+      'retention.removal',
+      'stored.staging-cover',
+    ])
+  })
+
+  it('no id is used twice in a draft', () => {
+    for (const draft of [
+      assembleAssessment(every()),
+      assembleAssessment(every({ declared: UNDECLARED })),
+    ]) {
+      const ids = idsOf(draft)
+      expect(new Set(ids).size).toBe(ids.length)
+    }
+  })
+
+  it('the same app drafted again keeps every id', () => {
+    const first = assembleAssessment(every())
+    const again = assembleAssessment(
+      every({
+        generatedAt: new Date('2026-10-08T15:00:00.000Z'),
+        fromCommit: 'b'.repeat(40),
+      }),
+    )
+    expect(idsOf(first)).toContain('flows.unknown-model')
+    expect(idsOf(again)).toEqual(idsOf(first))
+    expect(again.sections.flatMap((s) => s.gaps)).toEqual(
+      first.sections.flatMap((s) => s.gaps),
+    )
+  })
+
+  it('a gap raised AHEAD of others in its section moves no other gap’s id — the row an index cannot pass', () => {
+    // flows: an undeclared classification puts its gap FIRST, ahead of the unknown model's.
+    const declared = section(
+      assembleAssessment(every({ declared: { retention: true, classification: true } })),
+      'flows',
+    )
+    const undeclared = section(assembleAssessment(every()), 'flows')
+    expect(declared.gaps.map((g) => g.id)).toEqual(['flows.unknown-model'])
+    expect(undeclared.gaps.map((g) => g.id)).toEqual([
+      'flows.classification',
+      'flows.unknown-model',
+    ])
+    expect(undeclared.gaps[1]).toEqual(declared.gaps[0])
+    // accountable: no platform contact puts its gap ahead of the breach gap.
+    const contact = section(
+      assembleAssessment(
+        every({
+          platformContacts: [{ name: 'Platform Admin', email: 'admin@example.ubc.ca' }],
+        }),
+      ),
+      'accountable',
+    )
+    const none = section(assembleAssessment(every()), 'accountable')
+    expect(contact.gaps.map((g) => g.id)).toEqual(['accountable.breach'])
+    expect(none.gaps.map((g) => g.id)).toEqual([
+      'accountable.platform-contact',
+      'accountable.breach',
+    ])
+    expect(none.gaps[1]).toEqual(contact.gaps[0])
+  })
+
+  it('the text is byte-for-byte what it was before the gaps had ids — only the shape changed', () => {
+    // A pin, green from the start: the text prints each gap's `text`. The digest is of this fixture's
+    // text as `5dd49e5` assembled it, before Task 4.
+    const text = assembleAssessment(every()).text
+    expect(createHash('sha256').update(text).digest('hex')).toBe(
+      '6c83aeb4310ddc214c1d48d5902169aa01e3ed4c03797b6dd67b3769dde6d9d3',
+    )
+  })
+
+  it('a draft stored before the gaps had ids reads back with each gap numbered in its section, its text unchanged', () => {
+    const now = assembleAssessment(every())
+    const stored = JSON.parse(
+      JSON.stringify({
+        ...now,
+        sections: now.sections.map((s) => ({ ...s, gaps: s.gaps.map((g) => g.text) })),
+      }),
+    ) as unknown
+    const read = readAssessmentDraft(stored)!
+    expect(read.text).toBe(now.text)
+    expect(section(read, 'flows').gaps).toEqual([
+      { id: 'flows.0', text: section(now, 'flows').gaps[0]!.text },
+      { id: 'flows.1', text: section(now, 'flows').gaps[1]!.text },
+    ])
+    expect(section(read, 'collected').gaps).toEqual([
+      { id: 'collected.0', text: section(now, 'collected').gaps[0]!.text },
+    ])
+    expect(section(read, 'retention').gaps.map((g) => g.text)).toEqual(
+      section(now, 'retention').gaps.map((g) => g.text),
+    )
+    // And a draft in today's shape reads back exactly as it was stored.
+    expect(readAssessmentDraft(JSON.parse(JSON.stringify(now)))).toEqual(now)
   })
 })

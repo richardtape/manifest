@@ -338,7 +338,10 @@ const ASSESSMENT_DRAFT = {
         },
       ],
       gaps: [
-        'What the app keeps in its own database — the records it stores about the people who use it, beyond what CWL releases. Manifest cannot see inside the app’s data: describe it here.',
+        {
+          id: 'collected.app-data',
+          text: 'What the app keeps in its own database — the records it stores about the people who use it, beyond what CWL releases. Manifest cannot see inside the app’s data: describe it here.',
+        },
       ],
     },
     {
@@ -377,7 +380,10 @@ const ASSESSMENT_DRAFT = {
         },
       ],
       gaps: [
-        'Whether this assessment covers the app’s use at staging by real people — colleagues and students signing in to test it — or staging needs cover of its own, is a question for the Privacy Office that is not yet answered: ask it.',
+        {
+          id: 'stored.staging-cover',
+          text: 'Whether this assessment covers the app’s use at staging by real people — colleagues and students signing in to test it — or staging needs cover of its own, is a question for the Privacy Office that is not yet answered: ask it.',
+        },
       ],
     },
     {
@@ -420,8 +426,14 @@ const ASSESSMENT_DRAFT = {
         },
       ],
       gaps: [
-        'How the app removes its data once it is older than 365 days — Manifest does not remove it for the app.',
-        'How the app’s data is disposed of when the app is retired follows UBC’s sunset procedure, which the Privacy Office has not set out yet: say what should happen to it.',
+        {
+          id: 'retention.removal',
+          text: 'How the app removes its data once it is older than 365 days — Manifest does not remove it for the app.',
+        },
+        {
+          id: 'retention.disposal',
+          text: 'How the app’s data is disposed of when the app is retired follows UBC’s sunset procedure, which the Privacy Office has not set out yet: say what should happen to it.',
+        },
       ],
     },
     {
@@ -440,7 +452,10 @@ const ASSESSMENT_DRAFT = {
         },
       ],
       gaps: [
-        'Who responds if the app’s data is breached, and how the people affected are told, is not yet set at UBC — the Privacy Office’s procedure is still to come: say who answers for this app meanwhile.',
+        {
+          id: 'accountable.breach',
+          text: 'Who responds if the app’s data is breached, and how the people affected are told, is not yet set at UBC — the Privacy Office’s procedure is still to come: say who answers for this app meanwhile.',
+        },
       ],
     },
     {
@@ -465,8 +480,14 @@ const ASSESSMENT_DRAFT = {
         },
       ],
       gaps: [
-        'Where UBC will host the app in production is not decided yet: UBC has not chosen the infrastructure Manifest runs on there.',
-        'Whether the app’s medium data may reach an AI provider outside Canada is the Privacy Office’s to say: default-chat may be answered off-premise.',
+        {
+          id: 'hosting.production',
+          text: 'Where UBC will host the app in production is not decided yet: UBC has not chosen the infrastructure Manifest runs on there.',
+        },
+        {
+          id: 'hosting.offshore-ai',
+          text: 'Whether the app’s medium data may reach an AI provider outside Canada is the Privacy Office’s to say: default-chat may be answered off-premise.',
+        },
       ],
     },
   ],

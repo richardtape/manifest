@@ -39,7 +39,9 @@ export async function draftTheAssessment(
   const draft = assessment.draft!
   return {
     generatedAt: draft.generatedAt,
-    forYouToAdd: draft.sections.flatMap((s) => s.gaps.map((gap) => `${s.title}: ${gap}`)),
+    forYouToAdd: draft.sections.flatMap((s) =>
+      s.gaps.map((gap) => `${s.title}: ${gap.text}`),
+    ),
   }
 }
 

@@ -35,12 +35,23 @@ export interface Fact {
   source: string
 }
 
+/**
+ * ONE THING MANIFEST CANNOT KNOW, for the owner to answer before sending. Its `id` is `<section>.<what it
+ * asks>` and stays the same across drafts (§9: every gap is answered, and the answers are kept by gap) —
+ * so an answer a front-end holds for a gap survives the app being drafted again, and a gap raised ahead of
+ * another never renumbers it.
+ */
+export interface Gap {
+  id: string
+  text: string
+}
+
 export interface Section {
   id: SectionId
   title: string
   facts: Fact[]
   /** What Manifest cannot know, for the owner to add before sending. */
-  gaps: string[]
+  gaps: Gap[]
 }
 
 export interface PrivacyAssessmentDraft {
@@ -130,7 +141,10 @@ function collected(spec: ManifestSpec): Section {
     title: TITLES.collected,
     facts,
     gaps: [
-      'What the app keeps in its own database — the records it stores about the people who use it, beyond what CWL releases. Manifest cannot see inside the app’s data: describe it here.',
+      {
+        id: 'collected.app-data',
+        text: 'What the app keeps in its own database — the records it stores about the people who use it, beyond what CWL releases. Manifest cannot see inside the app’s data: describe it here.',
+      },
     ],
   }
 }
@@ -192,7 +206,10 @@ function stored(spec: ManifestSpec): Section {
     title: TITLES.stored,
     facts: [...facts, INCIDENT_LOGS],
     gaps: [
-      'Whether this assessment covers the app’s use at staging by real people — colleagues and students signing in to test it — or staging needs cover of its own, is a question for the Privacy Office that is not yet answered: ask it.',
+      {
+        id: 'stored.staging-cover',
+        text: 'Whether this assessment covers the app’s use at staging by real people — colleagues and students signing in to test it — or staging needs cover of its own, is a question for the Privacy Office that is not yet answered: ask it.',
+      },
     ],
   }
 }
@@ -276,12 +293,18 @@ function flows(input: AssessmentInput): Section {
       ...(input.declared.classification
         ? []
         : [
-            `No classification declared — add data.classification to manifest.yaml, saying how sensitive the app’s data is. Manifest treats it as ${levelWords(ceiling)}, which allows AI models that may be answered off-premise.`,
+            {
+              id: 'flows.classification',
+              text: `No classification declared — add data.classification to manifest.yaml, saying how sensitive the app’s data is. Manifest treats it as ${levelWords(ceiling)}, which allows AI models that may be answered off-premise.`,
+            },
           ]),
       ...(unknown.length === 0
         ? []
         : [
-            `Where ${unknown.join(', ')} sends the app’s data could not be read when this was drafted: ask an administrator, then draft this again.`,
+            {
+              id: 'flows.unknown-model',
+              text: `Where ${unknown.join(', ')} sends the app’s data could not be read when this was drafted: ask an administrator, then draft this again.`,
+            },
           ]),
     ],
   }
@@ -321,9 +344,18 @@ function retention(input: AssessmentInput): Section {
     ],
     gaps: [
       input.declared.retention
-        ? `How the app removes its data once it is older than ${days} days — Manifest does not remove it for the app.`
-        : 'No retention declared — add data.retention_days to manifest.yaml, with how long the app must keep its data.',
-      'How the app’s data is disposed of when the app is retired follows UBC’s sunset procedure, which the Privacy Office has not set out yet: say what should happen to it.',
+        ? {
+            id: 'retention.removal',
+            text: `How the app removes its data once it is older than ${days} days — Manifest does not remove it for the app.`,
+          }
+        : {
+            id: 'retention.declare',
+            text: 'No retention declared — add data.retention_days to manifest.yaml, with how long the app must keep its data.',
+          },
+      {
+        id: 'retention.disposal',
+        text: 'How the app’s data is disposed of when the app is retired follows UBC’s sunset procedure, which the Privacy Office has not set out yet: say what should happen to it.',
+      },
     ],
   }
 }
@@ -349,11 +381,17 @@ function accountable(input: AssessmentInput): Section {
     gaps: [
       ...(input.platformContacts.length === 0
         ? [
-            'No platform contact is set, and the platform has no administrator to name: ask who answers for the platform, and add them.',
+            {
+              id: 'accountable.platform-contact',
+              text: 'No platform contact is set, and the platform has no administrator to name: ask who answers for the platform, and add them.',
+            },
           ]
         : []),
       // §19: incident response ownership "to be assigned"; breach notification the Privacy Office's.
-      'Who responds if the app’s data is breached, and how the people affected are told, is not yet set at UBC — the Privacy Office’s procedure is still to come: say who answers for this app meanwhile.',
+      {
+        id: 'accountable.breach',
+        text: 'Who responds if the app’s data is breached, and how the people affected are told, is not yet set at UBC — the Privacy Office’s procedure is still to come: say who answers for this app meanwhile.',
+      },
     ],
   }
 }
@@ -395,15 +433,24 @@ function hosting(input: AssessmentInput): Section {
       })),
     ],
     gaps: [
-      'Where UBC will host the app in production is not decided yet: UBC has not chosen the infrastructure Manifest runs on there.',
+      {
+        id: 'hosting.production',
+        text: 'Where UBC will host the app in production is not decided yet: UBC has not chosen the infrastructure Manifest runs on there.',
+      },
       ...(offPremise.length === 0
         ? []
         : [
-            `Whether the app’s ${levelWords(spec.data.classification)} data may reach an AI provider outside Canada is the Privacy Office’s to say: ${offPremise.map((e) => e.name).join(', ')} may be answered off-premise.`,
+            {
+              id: 'hosting.offshore-ai',
+              text: `Whether the app’s ${levelWords(spec.data.classification)} data may reach an AI provider outside Canada is the Privacy Office’s to say: ${offPremise.map((e) => e.name).join(', ')} may be answered off-premise.`,
+            },
           ]),
       ...(input.repository.provider === 'github'
         ? [
-            'Whether people’s names may be sent to GitHub, which may hold them outside Canada, is the Privacy Office’s to say.',
+            {
+              id: 'hosting.repository',
+              text: 'Whether people’s names may be sent to GitHub, which may hold them outside Canada, is the Privacy Office’s to say.',
+            },
           ]
         : []),
     ],
@@ -451,7 +498,7 @@ export function renderAssessmentText(
     lines.push('', `${i + 1}. ${s.title}`)
     for (const f of s.facts) lines.push(`  - ${f.label}: ${f.value} (from ${f.source})`)
     if (s.gaps.length > 0)
-      lines.push('  For you to add:', ...s.gaps.map((g) => `  - ${g}`))
+      lines.push('  For you to add:', ...s.gaps.map((g) => `  - ${g.text}`))
   })
   return `${lines.join('\n')}\n`
 }
@@ -460,17 +507,32 @@ export function renderAssessmentText(
  * A STORED DRAFT, READ BACK — or null for a row with none. `generated_draft` is `jsonb`, written only
  * by `draftPrivacyAssessment`, so this checks the fields its readers use rather than trusting a cast:
  * the submission's day (`generatedAt`), the sections and the text.
+ *
+ * **A draft stored before the gaps had ids** keeps each gap as a bare string: it is read with the id
+ * `<section>.<n>`, its place in its section — stable for that draft, which is never regenerated in the
+ * old shape — and its text, and the draft's own text, unchanged. An approved assessment's draft is what
+ * it was approved from, so it is read, never refused.
  */
 export function readAssessmentDraft(value: unknown): PrivacyAssessmentDraft | null {
   if (typeof value !== 'object' || value === null) return null
   const v = value as Partial<PrivacyAssessmentDraft>
-  return typeof v.project === 'object' &&
+  if (!(
+    typeof v.project === 'object' &&
     v.project !== null &&
     typeof v.generatedAt === 'string' &&
     typeof v.fromCommit === 'string' &&
     typeof v.text === 'string' &&
     Array.isArray(v.sections) &&
     Array.isArray(v.warnings)
-    ? (v as PrivacyAssessmentDraft)
-    : null
+  ))
+    return null
+  const sections = (v.sections as (Omit<Section, 'gaps'> & { gaps: unknown })[]).map(
+    (s) => ({
+      ...s,
+      gaps: (Array.isArray(s.gaps) ? (s.gaps as unknown[]) : []).map((g, n): Gap =>
+        typeof g === 'string' ? { id: `${s.id}.${n}`, text: g } : (g as Gap),
+      ),
+    }),
+  )
+  return { ...(v as PrivacyAssessmentDraft), sections }
 }

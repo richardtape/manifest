@@ -701,7 +701,7 @@ describe('the launch path plan’s Task 13 — the records by stage, the sign-of
     draft: {
       generatedAt: string
       project: { slug: string }
-      sections: { id: string; gaps: string[] }[]
+      sections: { id: string; gaps: { id: string; text: string }[] }[]
       text: string
     } | null
   }

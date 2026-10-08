@@ -1239,7 +1239,7 @@ interface AssessmentDraftBody {
     id: string
     title: string
     facts: { label: string; value: string; source: string }[]
-    gaps: string[]
+    gaps: { id: string; text: string }[]
   }[]
   warnings: string[]
   text: string
@@ -1311,14 +1311,18 @@ describe('D19’s privacy-assessment draft (Task 11)', () => {
         value: 'The manifest gives no retention period.',
         source: 'manifest.yaml: data.retention_days',
       })
-      expect(draft.sections.find((s) => s.id === 'retention')!.gaps).toContain(
-        NO_RETENTION,
-      )
+      expect(draft.sections.find((s) => s.id === 'retention')!.gaps).toContainEqual({
+        id: 'retention.declare',
+        text: NO_RETENTION,
+      })
       expect(
         factsOf(draft, 'flows').find((f) => f.label === 'Classification')!.source,
       ).toBe('Manifest’s default')
       expect(draft.sections.find((s) => s.id === 'flows')!.gaps).toEqual([
-        expect.stringMatching(/^No classification declared/),
+        {
+          id: 'flows.classification',
+          text: expect.stringMatching(/^No classification declared/),
+        },
       ])
       expect(factsOf(draft, 'accountable')).toEqual([
         {
@@ -1338,7 +1342,7 @@ describe('D19’s privacy-assessment draft (Task 11)', () => {
       )
       expect(draft.text).toContain(`(${ctx.project.slug})`)
       for (const gap of draft.sections.flatMap((s) => s.gaps))
-        expect(draft.text).toContain(gap)
+        expect(draft.text).toContain(gap.text)
 
       // Kept on the record, and announced by its counts — never its text.
       expect(assessmentOf((await cwlRecords(ctx)).privacyAssessment)).toEqual(draft)
@@ -1374,9 +1378,9 @@ describe('D19’s privacy-assessment draft (Task 11)', () => {
         value: 'The manifest says the app keeps its data for 90 days.',
         source: 'manifest.yaml: data.retention_days',
       })
-      expect(draft.sections.find((s) => s.id === 'retention')!.gaps).not.toContain(
-        NO_RETENTION,
-      )
+      expect(
+        draft.sections.find((s) => s.id === 'retention')!.gaps.map((g) => g.text),
+      ).not.toContain(NO_RETENTION)
       expect(
         factsOf(draft, 'flows').find((f) => f.label === 'Classification')!.source,
       ).toBe('manifest.yaml: data.classification')
@@ -1633,9 +1637,10 @@ describe('the assessment’s draft against what launches, and on GitHub (Task 11
           .value,
       ).toBe(`In a private repository in the GitHub organisation ${fake.org}.`)
       // Read at the commit it was drawn from, through the mirror: the fixture writes no data block.
-      expect(draft.sections.find((s) => s.id === 'retention')!.gaps).toContain(
-        NO_RETENTION,
-      )
+      expect(draft.sections.find((s) => s.id === 'retention')!.gaps).toContainEqual({
+        id: 'retention.declare',
+        text: NO_RETENTION,
+      })
     } finally {
       await deps.sourceSync.idle()
       await deps.builds.idle()

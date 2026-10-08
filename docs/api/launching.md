@@ -52,7 +52,7 @@ Each takes weeks, so start in the first week: a draft never stops a build, and w
 
 ### Drafting
 
-- **`draftPrivacyAssessment`** writes the assessment’s six questions — what the app collects, where it is stored, where it flows, how long it is kept and how it is disposed of, who is accountable, and where it is hosted — as `facts` (each with `source`, where Manifest read it) and `gaps`: what only the owner can add, such as what the app keeps in its own database. Its `text` is the whole draft, to paste into the Privacy Office’s form.
+- **`draftPrivacyAssessment`** writes the assessment’s six questions — what the app collects, where it is stored, where it flows, how long it is kept and how it is disposed of, who is accountable, and where it is hosted — as `facts` (each with `source`, where Manifest read it) and `gaps`: what only the owner can add, such as what the app keeps in its own database. Each gap is `{ id, text }`, and its `id` (`collected.app-data`, `hosting.production`) stays the same when the app is drafted again, so an answer kept for a gap still fits it. Its `text` is the whole draft, to paste into the Privacy Office’s form.
 - **`draftIamRegistration`** (`staging` or `production`) writes the **package** a person sends UBC IAM: the environment’s entity id, its sign-in (`acsUrl`) and sign-out (`sloUrl`) addresses, the certificate it signs with (`pem`, `fingerprint`, `expiresAt` — the public half; no answer ever carries a private key), every attribute with its `purpose`, the lines that read it (`usedAt`) and a `justification`, the `contacts`, the PIA number (`privacyAssessmentReference`) and the metadata in UBC’s structure (`metadataXml`). An attribute the app asks for and never reads is `unused`.
 - **Read the `warnings` first** — an attribute to remove, a PIA number not recorded yet — fix what they name, and draft again.
 - **What each is drawn from**: the assessment and production’s registration from **the release serving staging** — so draft them once the release you will launch serves staging, and the checklist says when production’s draft or the assessment’s no longer matches it — and staging’s registration from the **newest valid manifest**, because staging is where the app is still changing. Production’s drawn with nothing serving staging comes from the newest valid manifest too, and its `warnings` say so. Draft as often as you like until it is sent; after that a record is kept as it was sent, and drafting again is refused `409 LAUNCH_RECORD_SUBMITTED` — a registration until UBC asks for changes or it lapses, the assessment until the Privacy Office sends it back. An app that signs nobody in has nothing to register: `409 LAUNCH_NOT_CWL`.
@@ -109,7 +109,9 @@ export async function draftTheAssessment(
   const draft = assessment.draft!
   return {
     generatedAt: draft.generatedAt,
-    forYouToAdd: draft.sections.flatMap((s) => s.gaps.map((gap) => `${s.title}: ${gap}`)),
+    forYouToAdd: draft.sections.flatMap((s) =>
+      s.gaps.map((gap) => `${s.title}: ${gap.text}`),
+    ),
   }
 }
 

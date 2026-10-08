@@ -787,8 +787,8 @@ function AssessmentDraftView({ draft }: { draft: Schemas['PrivacyAssessmentDraft
               <>
                 <em>For you to add:</em>
                 <ul className="gaps">
-                  {section.gaps.map((gap, i) => (
-                    <li key={i}>{gap}</li>
+                  {section.gaps.map((gap) => (
+                    <li key={gap.id}>{gap.text}</li>
                   ))}
                 </ul>
               </>
