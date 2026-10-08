@@ -1139,3 +1139,63 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
     at most: it may be answered by a provider off-premise that keeps none of what it is sent (zero data retention), as the platform's
     administrator attests, so what the app sends it may leave UBC but is not kept there."; "default-chat-onprem: Approved for very high
     data: it runs on on-premise hardware, so what the app sends it stays there." — every line as Task 7 specifies, each with its source.
+
+# Rich's decisions — 2026-10-08, 09:07 PDT (session manifest-coord, the coordinated run's opening)
+
+    Rich opened the coordinated run of manifest-app's docs/plans/2026-10-06-coordination.md (written 2026-10-06 by
+    manifest-app-2e with manifest-9c, at manifest-app f1a1d01): sixteen parked workers (manifest-p0…p5, manifest-p9,
+    manifest-app-w1…w9) and manifest-coord, started last with the plan's prompt. Measured first, 09:02: manifest HEAD 6048dac,
+    clean; manifest-app HEAD f1a1d01, clean, no worktrees; contract 1.7.0, 72 operations; the flag FREE, no Vitest; 7100
+    PID 50455 (real GitHub, since 2026-10-05 16:00), 7104 the console, 7105 Rich's edge-mode front end (PID 51537, since
+    2026-10-05 16:00), 7102 nothing; 12 Docker networks; the vulnerability database fresh until 2026-10-10. ONE PREMISE HAD
+    MOVED since the plan was written, and question 5 was re-asked on it: 7100's only project, ask-my-notes (instructor's), is
+    ARCHIVED — by instructor, 2026-10-06 16:04:56 PDT — its three sandbox instances gone, so the plan's W0 (ask for a change
+    on it and read its COURSE_CODE lines) could not run without a restore and a redeploy.
+
+    Asked through the question tool in two rounds of four, each with its options and a recommendation. Round 1, answered
+    09:07:
+      1. THE PLAN, AND P0 — "Approved; P0 now (Recommended)": the coordination plan is APPROVED AS WRITTEN (its status line
+         read "Awaiting Rich's review of this file"), and P0 — the proof-app starter's COURSE_CODE read
+         (blueprints/node-ts-mongo/starters/proof-app/server.js:150, read per request today) and AGENTS.md's two sentences,
+         the roadmap's *Tracked defects found in use*, its two platform rows (ORIENTATION §8 Open's first item) — runs NOW,
+         out of plan, beside FE-46/47/5's sitting 1; its tests after gate G1. Rejected: after FE-46/47/5; not in this run.
+      2. THE EXECUTION METHOD FOR FE-46/47/5 (its *What Rich does* 1) — "Inline (Recommended)": superpowers:executing-plans,
+         one sitting per session (P1–P5). Rejected: subagent-driven.
+      3. P1'S TASK 1 STEP 7 (`pnpm test` once on the unchanged tree) — "Skip it (Recommended)": sitting 1 changes no code and
+         owes no pnpm test (ORIENTATION §7e); [M7] still reads the EXPECT_ lines and the contract. Rejected: run it after G1.
+      4. FE-55 (manifest-app docs/api-findings.md:1728 — a CWL app asking no attribute validates, builds and releases, then
+         its deploy answers 500 INTERNAL, an unhandled SpEntityError) — "P1 measures, P4 fixes (Recommended)": P1 measures
+         it beside [M4]; P4 fixes it inside Task 7, which already touches spec/ — validateSpec refuses it SPEC_INVALID at
+         auth.attributes, and deploy refuses it typed. FE-55 is PLACED. Rejected: leave it unplaced.
+
+    Round 2, answered 09:08:
+      5. 7105 AND ask-my-notes (re-asked on the archived premise above) — "Let it go; A1 frees 7105 (Recommended)": NO W0.
+         Gate G1 is met at once, so P0's tests (and anything else that empties 7100) may run in turn. manifest-app-w1 (A1)
+         stops Rich's edge-mode tree (PID 51537) and RENAMES packages/server/.data/app.sqlite (with its -wal and -shm) to
+         app-edge-ask-my-notes.sqlite — kept, never deleted or overwritten — then starts mock mode. A8's 7100 walk after P5
+         proves both ask-my-notes fixes on a fresh app. The archived project's rows go at the first pnpm test. Rejected: A1
+         restores ask-my-notes and runs W0 (two state changes and a deploy of his app); W0 waits for him.
+      6. UNATTENDED (multi-select; an unticked one would be asked first) — ALL THREE TICKED:
+           - "make refresh-vulndb": with the network on, whenever a launch would meet a stale database (from 2026-10-10:
+             P3, P4, P5, A8);
+           - "The .env swap to driver 2": for make demo-launch's second driver on the GitHub fake, as the U1 plan's sitting
+             3 did — a 0600 copy of .env, only the MANIFEST_SOURCE_DRIVER= and MANIFEST_GITHUB_ lines commented (no value
+             printed), copied back and proved byte-identical with cmp, 7100 back on real GitHub at the close;
+           - "One make reset in P5": only if its acceptance needs one.
+      7. SPEC EDITS WHILE HE IS AWAY — "Minor ones applied" (the option read: "The 2026-10-03 night shift's rule: I apply
+         minor ones, each recorded for your review."). Rejected: hold them all (the recommendation). HOW manifest-coord
+         applies it, as manifest-3d did on 2026-10-03: a worker that needs a spec edit drafts it as a Spec action (exact
+         words, the section, why) and sends it to manifest-coord; no worker edits the spec. manifest-coord judges it minor
+         and confidently right, or holds it for Rich. An applied one is recorded in the roadmap's *Spec actions raised by…*
+         as "APPLIED under Rich's 2026-10-08 permission, judged minor by manifest-coord — for his review", its shared HTML
+         pages swept, its commit alone, and listed in the report to him, so each is easy to revert. Anything that changes a
+         decision of his, a security property or a section's meaning is NOT minor and waits for him. A classifier refusal of
+         a spec read or edit is never worked around.
+      8. manifest-app's DOCS SWEEPS — "The coordinator (Recommended)": manifest-coord edits manifest-app's docs/ORIENTATION.md
+         (Where things stand, THE NEXT JOB) and docs/plans/roadmap.md between and after the app jobs; app workers send it
+         their lines instead of editing those two files. Rejected: only the workers, one docs turn at a time.
+
+    Told to him at the opening, not asked: once A1's first fix is on manifest-app's main, the stop-gap
+    MANIFEST_APP_PLAN_MODEL=default-chat-large in manifest's .env may go — his edit, whenever he likes. And these always wait
+    for him: P5's clicked half; A8's 7100 walk and click; the operator admin grant when a classifier refuses it; sudo;
+    deleting a GitHub repository; anything a classifier refuses; any step a plan marks *stops and asks Rich*.
