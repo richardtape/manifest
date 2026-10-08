@@ -355,12 +355,16 @@ D17 already allows it, so the setting changes nothing there. Nothing else is acc
 than guess. **The app's own `ai.models` is validated by D17 whatever this says**, so a `very-high` app's own AI stays on-premise either way.
 It is a platform setting (§26): put the line in `.env` and restart the control plane.
 
-**The faculty front-end plans on ONE model, and must be started with it** (2026-10-05, Rich's testing of `ask-my-notes`). Its server on
-7105 writes every plan — the first and every *Ask for a change* — on `MANIFEST_APP_PLAN_MODEL`, and only if the agent session offers it;
-its own default is `default-chat`, which a `high` or `very-high` project's session never offers, so without the setting every change to such
-an app is refused *"Writing plans is waiting on a Manifest administrator"*. `.env` holds `MANIFEST_APP_PLAN_MODEL=default-chat-large`
-(`.env.example`'s section 2g), but **the front-end reads only its process environment** — no `.env` of its own — so its start passes that
-ONE line, never the whole file, which holds the master secret and the gateway key the front-end must not hold:
+**The faculty front-end chooses the model its plans are written on from what the session offers** (since manifest-app `ec7cf43`,
+2026-10-08, its A1 job — the fix for the first `ask-my-notes` defect of 2026-10-05). Its server on 7105 writes every plan — the first and
+every *Ask for a change* — on `MANIFEST_APP_PLAN_MODEL` when the agent session offers it, and otherwise on the first the session offers of
+`default-chat-large`, `default-chat` and `default-chat-onprem` (`packages/server/src/api/plan.ts`, `model/client.ts`'s `modelFor`); a
+session offering none of them is refused `PLAN_MODEL_NONE` in the front-end's own words. **So the variable only names its first choice**,
+and a `high` or `very-high` project — whose session never offers `default-chat` — is planned on `default-chat-large` without it. Until
+2026-10-08 it planned on that ONE model or refused, which is why `.env` holds `MANIFEST_APP_PLAN_MODEL=default-chat-large`
+(`.env.example`'s section 2g); the line is harmless now and Rich's to remove. **The front-end reads only its process environment** — no
+`.env` of its own — so a start that still passes it passes that ONE line, never the whole file, which holds the master secret and the
+gateway key the front-end must not hold:
 
 ```bash
 cd ~/Developer/manifest-app
@@ -371,8 +375,7 @@ ps eww -p "$(lsof -nP -iTCP:7105 -sTCP:LISTEN -t)" | tr ' ' '\n' | grep '^MANIFE
 ```
 
 Stop the old one first by its whole process tree — `tsx watch` outlives a killed child and takes 7105 back (the front-end's ORIENTATION,
-*Our own server is left running*). The setting is a stop-gap: the fix — the plan model chosen from `session.models` — is the front-end's,
-taken 2026-10-08 by its A1 job in the coordinated run; once it is on manifest-app's `main` the `.env` line may go (Rich's edit).
+*Our own server is left running*).
 
 **A session never holds more than its project now allows** (FE-36; since the launch path plan's Task 7, Spec action 1, it is
 NARROWED IN PLACE). Every valid `manifest.yaml` the platform records — a commit through the API, a push, a validation — and every

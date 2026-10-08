@@ -58,10 +58,10 @@ vulnerability database in the console, and FE-45 (Rich, 2026-10-03, 15:28; B and
   `keep-walk-1002`, `lp-real-a`, `my-answers` (`f5b-measure-1`'s containers and networks went with the reset). The 16 orphaned mirrors
   in `.manifest/repos` (eight of the fake's too) are left as they are; a new project with one of those slugs is refused
   `SOURCE_REPOSITORY_EXISTS` (`bash scripts/github-real-repos.sh` lists GitHub's side); removing one is his;
-- **the faculty front-end's two `ask-my-notes` defects — RELAYED and TAKEN 2026-10-08** by `manifest-app-w1` (the coordinated run's A1;
-  *Ask for a change* refused for every `high` app; a fault's change never sees the app's output — the platform's two were fixed in
-  `1e96502`). **Until A1's fix is on manifest-app's `main`, start the front-end with `MANIFEST_APP_PLAN_MODEL` from `.env`** (RUNBOOK,
-  *The building agent's models*), or it plans on `default-chat` again; the `.env` line is Rich's to remove;
+- **the `MANIFEST_APP_PLAN_MODEL=default-chat-large` line in `.env` — no longer needed, and Rich's to remove**: the faculty front-end's
+  two `ask-my-notes` defects are FIXED on manifest-app's `main` (`ec7cf43`: it plans on the first model the session offers; `e25cdd2`: a
+  fault's change sees the app's output — the coordinated run's A1, 2026-10-08; the platform's two were `1e96502`). The line is harmless:
+  it names the front-end's first choice (RUNBOOK, *The building agent's models*);
 - **the UBC external track — DEFERRED by Rich, 2026-09-30** (*"I have to get all of this working first locally. And then show
   demos"*): not a blocker; do not raise it as urgent;
 - the rest of ORIENTATION §8 *Open*.

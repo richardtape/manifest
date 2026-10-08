@@ -247,8 +247,15 @@ red() { printf '\033[31m%s\033[0m' "$1"; }
 # one new file — `blueprints/proof-app-boot.test.ts` (3, new: the proof-app starter boots with COURSE_CODE and /api/me answers it,
 # and refuses to boot without it or with it empty) and `blueprints/blueprints.test.ts` (2: AGENTS.md's two sentences, the second
 # with the starter's page telling a 401 from any other failure). Measured 3400/207, 0 failed, 988 s.
-EXPECT_TESTS=3400
-EXPECT_FILES=207
+# Then the FE-46/47/5 plan's sitting 2 (2026-10-08, the coordinated run's P2 — Tasks 2, 2b, 3): +37, five new files — Task 2 +16:
+# `tokens/pending.test.ts` (5: the column held to the event's schema, the event's four fields and its sentence, a null object, the
+# answers' sentences, the words), `api/contract/pending-object.test.ts` (2, new: exactly the three routes, each declaring one),
+# `api/delegation.test.ts` (6: a member named, who has signed in never told, a removal, a deploy and another project's release, the
+# retry pin) and `packages/console/src/question-words.test.ts` (3, new); Task 2b +4: `api/sensitive-since-approved.test.ts` (4,
+# new); Task 3 +17: `mail/team.test.ts` (5, new), `mail/mailer.test.ts` (4, new), `config.test.ts` (7: the mail settings) and
+# `launch/requests.test.ts` (1: the team told once, after the event). Measured 3437/212, 0 failed, 1052 s.
+EXPECT_TESTS=3437
+EXPECT_FILES=212
 # EXPECT_DOCTOR 21 -> 22 (2026-10-03, the UBC AI Gateway plan's sitting 2, Task 2): the gateway key's expiry, a
 # check_warn — counted, never failing — from 14 days ahead (its Decision 11). Measured: 22 checks, 0 failed, 0 warnings.
 EXPECT_DOCTOR=22

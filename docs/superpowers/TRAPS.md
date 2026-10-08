@@ -2735,8 +2735,10 @@ startup**, so an app seeded from it now fails its FIRST BOOT instead, the senten
 the per-request read, and so does any app whose own code reads a variable inside a handler; and the knowledge pack now says both rules (the
 roadmap's *Tracked defects found in use*).
 
-**THE FACULTY FRONT-END REFUSES ITS OWN PLANS AND SAYS AN ADMINISTRATOR IS TO BLAME.** *"Writing plans is waiting on a Manifest
-administrator"* is the front-end's `MODEL_NOT_AVAILABLE`, raised by the front-end ITSELF when the agent session does not offer its ONE plan
+**THE FACULTY FRONT-END REFUSES ITS OWN PLANS AND SAYS AN ADMINISTRATOR IS TO BLAME** — *FIXED in manifest-app `ec7cf43` (2026-10-08, its
+A1 job): it now plans on `MANIFEST_APP_PLAN_MODEL` when the session offers it, else the first offered of `default-chat-large`, `default-chat`,
+`default-chat-onprem`, and refuses `PLAN_MODEL_NONE` in its own words only when none is offered. Kept for a front-end older than that.* *"Writing
+plans is waiting on a Manifest administrator"* is the front-end's `MODEL_NOT_AVAILABLE`, raised by the front-end ITSELF when the agent session does not offer its ONE plan
 model (`MANIFEST_APP_PLAN_MODEL`, default `default-chat`) — which a `high` or `very-high` project's never does. The platform's log shows
 nothing; the front-end's shows `"code":"MODEL_NOT_AVAILABLE","status":null,"platformRequestId":null`. And the front-end reads only its
 PROCESS environment: a line in `.env` reaches it only through RUNBOOK's start line (*The building agent's models*) — check with `ps eww`.
@@ -2747,3 +2749,11 @@ PROCESS environment: a line in `.env` reaches it only through RUNBOOK's start li
 pending migration with it, not only the last. Measured 2026-10-08 by the FE-46/47/5 plan's sitting 1 (F2: an `ALTER TYPE … ADD VALUE` and a
 CHECK naming the new value uncast, from a fresh database — all 53 earlier migrations rolled back, nothing printed;
 `spikes/fe46-baseline/`).
+
+**A NEGATIVE CONTROL'S SCRIPTED EDIT CAN MISS — AND THEN THE "CONTROL" RUNS THE UNCHANGED CODE.** Prettier reflows a long line after it is
+written (a call's arguments one per line, a `.where(and(…))` split), so a `python`/`sed` edit keyed on the text as first written matches
+NOTHING: a `grep … &&` guard fails silently, or a replace of zero occurrences changes nothing, and the test run that follows is GREEN for the
+wrong reason. Twice in one sitting (the FE-46/47/5 plan's sitting 2, F16 — Task 2's control (a), Task 2b's control (a), whose restore said
+*"Updated 0 paths from the index"*). **Check the edit landed — `git diff --stat` must show the file — BEFORE reading the control's run**, and
+assert the replacement count in the script (`assert s.count(old) == 1`).
+
