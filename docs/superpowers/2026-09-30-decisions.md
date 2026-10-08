@@ -1199,3 +1199,13 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
     MANIFEST_APP_PLAN_MODEL=default-chat-large in manifest's .env may go — his edit, whenever he likes. And these always wait
     for him: P5's clicked half; A8's 7100 walk and click; the operator admin grant when a classifier refuses it; sudo;
     deleting a GitHub repository; anything a classifier refuses; any step a plan marks *stops and asks Rich*.
+
+    And at 09:34 PDT (the clock read just after his answer), MINORS m143 (manifest-app-w1, A1; put to him through the question tool
+    by manifest-coord, not blocking). Its premise checked against the code first: m123's re-ask, askAgainForMachinery
+    (manifest-app packages/server/src/agents/change.ts:224-235 on main at ec7cf43), runs machineryIn over a change plan's
+    "assumed" part alone; the other five parts are held to C3 by the prompt alone. Since A1's fix 2, the change planner also
+    reads the sandbox's printed output (e.g. "Error: COURSE_CODE is required…", "file:///app/server.js:99"):
+      - "(b) Every part + names (Recommended)": the same once-only re-ask (m123's "Re-ask once": the second answer is kept as
+        written, never a third ask) runs over EVERY part of a change's plan, AND triggers when a code-like word copied from the
+        printed lines (an underscore, a dot or camelCase — COURSE_CODE, server.js) appears in any part. Built test-first inside
+        A1 before it merges. Rejected: (a) every part, machinery words only; (c) leave it to the prompt, A8's walk to show it.
