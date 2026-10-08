@@ -2,10 +2,16 @@ import { useRef, useState, type FormEvent } from 'react'
 import type { Schemas } from '@manifest/contract'
 import type { Api } from '../api'
 import {
+  ANSWER_MAX,
+  answersReady,
   assessmentActions,
   dayInWords,
+  DOES_NOT_APPLY,
+  holderLine,
   registrationActions,
   sentLine,
+  teamActions,
+  vancouverDay,
   type OwnerActions,
 } from '../launch-records-state'
 import { Field, Instant, Panel, Pill, Refusal, useAsync } from '../ui'
@@ -76,6 +82,17 @@ export function Records({
             />
             {/* A RECORD WITH THE MANIFEST TEAM IS NOT RECORDED HERE (the FE-46/47/5 plan's Decision 4):
                 the platform refuses it, and the team's own two actions are what move it on. */}
+            {teamActions(value.privacyAssessment, isAdmin).submit && (
+              <TeamStep
+                api={api}
+                what="privacy-assessment"
+                to="the UBC Privacy Office"
+                reference="the PIA number, e.g. PIA-2026-0088"
+                record={value.privacyAssessment!}
+                projectId={projectId}
+                onChanged={records.reload}
+              />
+            )}
             {isAdmin && value.privacyAssessment?.state !== 'sent' && (
               <PiaForm
                 api={api}
@@ -109,6 +126,17 @@ export function Records({
                   record={record}
                   onChanged={records.reload}
                 />
+                {teamActions(record, isAdmin).submit && (
+                  <TeamStep
+                    api={api}
+                    what={environment}
+                    to="UBC IAM"
+                    reference="UBC IAM’s ticket, e.g. IAM-2026-0412"
+                    record={record!}
+                    projectId={projectId}
+                    onChanged={records.reload}
+                  />
+                )}
                 {isAdmin && record?.state !== 'sent' && (
                   <IamForm
                     api={api}
@@ -144,6 +172,7 @@ function IamRecord({ record }: { record: Schemas['IamRegistration'] | null }) {
         <Pill tone={record.state === 'active' ? 'good' : 'plain'}>{record.state}</Pill>{' '}
         recorded <Instant at={record.updatedAt} />
       </Field>
+      <HolderField record={record} />
       <SentField
         submittedAt={record.submittedAt}
         submittedBy={record.submittedBy}
@@ -231,6 +260,7 @@ function PiaRecord({ record }: { record: Schemas['PrivacyAssessment'] | null }) 
         <Pill tone={record.state === 'approved' ? 'good' : 'plain'}>{record.state}</Pill>{' '}
         recorded <Instant at={record.updatedAt} />
       </Field>
+      <HolderField record={record} />
       <Field label="Ticket">
         {record.externalTicketRef === null ? (
           'none'
@@ -552,7 +582,7 @@ function SentField({
 }) {
   if (submittedAt === null) return null
   return (
-    <Field label="Sent">
+    <Field label="Sent to UBC">
       {sentLine(submittedAt, new Date(), waiting)}
       {submittedBy !== null && (
         <span className="hint"> — recorded by {submittedBy.displayName}</span>
@@ -872,6 +902,8 @@ function SendForm({
   onSent: () => void
 }) {
   const [answers, setAnswers] = useState<Record<string, string>>({})
+  // THE SEND IS HELD until every gap has an answer — the platform's rule, said before the press.
+  const ready = answersReady(gaps ?? [], answers)
   // WHAT WAS SENT, from the answer itself — the screen re-reads the record too, but a reader
   // should not have to find the change to know the press took.
   const [sentAt, setSentAt] = useState<string | null>(null)
@@ -916,21 +948,183 @@ function SendForm({
         The Manifest team submits this draft to {to} for you, or hands it back with what
         to change. It is sent as you read it above.
       </p>
+      {gaps !== null && gaps.length > 0 && (
+        <p className="hint">
+          Answer each question only you can — every one, before it goes. “Does not apply”
+          is an answer.
+        </p>
+      )}
       {gaps !== null &&
-        gaps.map((gap) => (
-          <Field key={gap.id} label={gap.text}>
-            <textarea
-              value={answers[gap.id] ?? ''}
-              rows={3}
-              onChange={(e) => setAnswers({ ...answers, [gap.id]: e.target.value })}
-            />
-          </Field>
-        ))}
-      <button type="submit" disabled={busy}>
+        gaps.map((gap) => {
+          const length = (answers[gap.id] ?? '').trim().length
+          return (
+            <Field key={gap.id} label={gap.text}>
+              {/* NEVER LIMITED, ONLY SAID: a paste over the bound is kept, and the send waits. */}
+              <textarea
+                value={answers[gap.id] ?? ''}
+                rows={3}
+                onChange={(e) => setAnswers({ ...answers, [gap.id]: e.target.value })}
+              />{' '}
+              <button
+                type="button"
+                onClick={() => setAnswers({ ...answers, [gap.id]: DOES_NOT_APPLY })}
+              >
+                Does not apply
+              </button>
+              {length > ANSWER_MAX && (
+                <span className="hint">
+                  {' '}
+                  {length} characters — over {ANSWER_MAX.toLocaleString('en-CA')}: shorten
+                  it before you send.
+                </span>
+              )}
+            </Field>
+          )
+        })}
+      <button type="submit" disabled={busy || !ready.ready}>
         {busy ? 'sending…' : 'Send it to the Manifest team'}
       </button>{' '}
+      {!ready.ready && (
+        <span className="hint">
+          {ready.missing.length > 0 &&
+            `${ready.missing.length} question${ready.missing.length === 1 ? '' : 's'} still to answer. `}
+          {ready.over.length > 0 &&
+            `${ready.over.length} answer${ready.over.length === 1 ? ' is' : 's are'} too long.`}
+        </span>
+      )}
       {sentAt !== null && <span className="ok">Sent on {dayInWords(sentAt)}.</span>}
       <Refusal error={error} />
     </form>
+  )
+}
+
+/** WHO HAS IT, IN A LINE (the FE-46/47/5 plan's Task 8a) — the Manifest team, or UBC, and since when. */
+function HolderField({
+  record,
+}: {
+  record: Schemas['IamRegistration'] | Schemas['PrivacyAssessment']
+}) {
+  const line = holderLine(record)
+  return line === null ? null : <Field label="Who has it">{line}</Field>
+}
+
+/**
+ * THE MANIFEST TEAM'S STEP, AN ADMINISTRATOR'S (Task 8a): beside a record the team holds — and, for the
+ * assessment, the owner's answers as they sent them, which the team carries into the Privacy Office's
+ * form — *Record that the team submitted it* (the day it went to UBC, today unless they say otherwise, and
+ * UBC's reference) or *Hand it back to the owner*, unsubmitted, to the state it was sent from.
+ */
+function TeamStep({
+  api,
+  what,
+  to,
+  reference,
+  record,
+  projectId,
+  onChanged,
+}: {
+  api: Api
+  what: 'privacy-assessment' | 'staging' | 'production'
+  to: string
+  reference: string
+  record: Schemas['IamRegistration'] | Schemas['PrivacyAssessment']
+  projectId: string
+  onChanged: () => void
+}) {
+  const today = vancouverDay(new Date())
+  const [day, setDay] = useState(today)
+  const [ticket, setTicket] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<unknown>(undefined)
+  const submitKey = useRef<string | undefined>(undefined)
+  const backKey = useRef<string | undefined>(undefined)
+  const answers = 'gapAnswers' in record ? record.gapAnswers : null
+  const texts = new Map(
+    ('draft' in record && record.draft !== null ? record.draft.sections : []).flatMap(
+      (s) => s.gaps.map((g) => [g.id, g.text] as const),
+    ),
+  )
+
+  async function act(kind: 'submit' | 'return') {
+    setBusy(true)
+    setError(undefined)
+    const ref = kind === 'submit' ? submitKey : backKey
+    ref.current ??= api.newKey()
+    try {
+      if (kind === 'submit') {
+        const body = { sentAt: day, reference: ticket.trim() }
+        if (what === 'privacy-assessment')
+          await api.submitPrivacyAssessment(projectId, body, ref.current)
+        else await api.submitIamRegistration(projectId, what, body, ref.current)
+      } else if (what === 'privacy-assessment')
+        await api.returnPrivacyAssessment(projectId, ref.current)
+      else await api.returnIamRegistration(projectId, what, ref.current)
+      ref.current = undefined
+      onChanged()
+    } catch (e) {
+      setError(e)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div className="team-step">
+      <h3>The Manifest team’s step</h3>
+      <p className="hint">
+        Its owner sent this to the Manifest team
+        {record.sentAt === null ? '' : ` on ${dayInWords(record.sentAt)}`}
+        {record.sentBy === null ? '' : `, as ${record.sentBy.displayName}`}. Submit it to{' '}
+        {to} and record that you have — or hand it back to them, unsubmitted, with what to
+        change.
+      </p>
+      {answers !== null && (
+        <>
+          <strong>The owner’s answers, as they sent them</strong>
+          <dl className="gap-answers">
+            {answers.map((a) => (
+              <div key={a.gapId}>
+                <dt>{texts.get(a.gapId) ?? a.gapId}</dt>
+                <dd>{a.answer}</dd>
+              </div>
+            ))}
+          </dl>
+        </>
+      )}
+      <form
+        className="record-form"
+        onSubmit={(e: FormEvent) => {
+          e.preventDefault()
+          void act('submit')
+        }}
+      >
+        <Field label="Sent to UBC on">
+          <input
+            type="date"
+            value={day}
+            min={record.sentAt === null ? undefined : vancouverDay(record.sentAt)}
+            max={today}
+            onChange={(e) => setDay(e.target.value)}
+            required
+          />
+        </Field>
+        <Field label="UBC’s reference">
+          <input
+            value={ticket}
+            maxLength={100}
+            onChange={(e) => setTicket(e.target.value)}
+            placeholder={reference}
+            required
+          />
+        </Field>
+        <button type="submit" disabled={busy || ticket.trim() === ''}>
+          {busy ? 'recording…' : 'Record that the team submitted it'}
+        </button>{' '}
+        <button type="button" disabled={busy} onClick={() => void act('return')}>
+          Hand it back to the owner
+        </button>
+      </form>
+      <Refusal error={error} />
+    </div>
   )
 }

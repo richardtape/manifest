@@ -139,6 +139,8 @@ export interface MockOptions {
   /**
    * WHERE `mock-app` STANDS IN UBC'S ORDER (the launch path plan's Task 13; `launch.ts`):
    * `MANIFEST_MOCK_RECORDS=none` — nothing recorded; `=drafted` — all three drafted, nothing sent;
+   * `=with-team` — the assessment sent to the Manifest team, every gap answered, for the team to submit
+   * or hand back (the FE-46/47/5 plan's Task 8a); both registrations drafted;
    * `=assessed` — the assessment approved, both registrations drafted carrying its PIA number;
    * `=approved` — everything approved and registered, so the checklist is ready and a production
    * deploy answers production's own instance (FE-40 (1)). Unset, `sent`: the story every other
@@ -1253,7 +1255,7 @@ export function createMockServer(options: MockOptions = {}): Server {
         : 'ok'),
     records:
       options.records ??
-      (['none', 'drafted', 'assessed', 'approved'].includes(
+      (['none', 'drafted', 'with-team', 'assessed', 'approved'].includes(
         process.env.MANIFEST_MOCK_RECORDS ?? '',
       )
         ? (process.env.MANIFEST_MOCK_RECORDS as RecordsStage)

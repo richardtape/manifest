@@ -190,7 +190,7 @@ export async function askForSignOff(
 
 /**
  * What waits on the administrators, oldest first — an administrator's own session only. BROWSER CODE,
- * as `sayItWasSent` is.
+ * as `sendIt` is.
  */
 export async function whatWaitsOnUs(
   page: ManifestClient,

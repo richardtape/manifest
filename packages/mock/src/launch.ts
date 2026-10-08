@@ -13,6 +13,9 @@ import { MockRefusal } from './refusal.js'
  * - `none` — nothing recorded: drafts succeed, nothing can be sent.
  * - `drafted` — all three drafted, nothing sent: the assessment can be sent; a registration waits for
  *   it (`LAUNCH_PIA_NOT_APPROVED`).
+ * - `with-team` — the assessment sent to the Manifest team yesterday, every gap answered; both
+ *   registrations drafted: the team can submit it or hand it back (the FE-46/47/5 plan's Task 8a); the
+ *   owner can send nothing more, and a registration still waits for the assessment's approval.
  * - `assessed` — the assessment approved with its PIA number, both registrations drafted carrying it:
  *   staging can be sent; production waits for staging (`LAUNCH_STAGING_NOT_REGISTERED`).
  * - `sent` — THE DEFAULT, the story every other fixture tells: both registrations active, the
@@ -24,7 +27,8 @@ import { MockRefusal } from './refusal.js'
  * answers the stage again — exactly as `recordIamRegistration` always has.
  */
 
-export type RecordsStage = 'none' | 'drafted' | 'assessed' | 'sent' | 'approved'
+export type RecordsStage =
+  'none' | 'drafted' | 'with-team' | 'assessed' | 'sent' | 'approved'
 export type ApprovalState = 'approved' | 'pending' | 'rejected'
 
 export interface LaunchOptions {
@@ -136,6 +140,28 @@ function draftAssessmentRecord(now: number): Assessment {
   }
 }
 
+/**
+ * THE ASSESSMENT WITH THE MANIFEST TEAM (`with-team`): the `drafted` stage's draft, sent by the instructor a
+ * day after it was drafted, with an answer to every gap — the fixture's answers, by gap id.
+ */
+function sentAssessmentRecord(now: number): Assessment {
+  const drafted = draftAssessmentRecord(now)
+  const sentAt = new Date(
+    Date.parse(drafted.draft!.generatedAt) + 86_400_000,
+  ).toISOString()
+  const said = new Map(f.ASSESSMENT_ANSWERS_SENT.map((a) => [a.gapId, a.answer]))
+  return {
+    ...drafted,
+    state: 'sent',
+    sentAt,
+    sentBy: INSTRUCTOR,
+    gapAnswers: drafted.draft!.sections.flatMap((s) =>
+      s.gaps.map((g) => ({ gapId: g.id, answer: said.get(g.id) ?? 'Does not apply.' })),
+    ),
+    updatedAt: sentAt,
+  }
+}
+
 /** The assessment approved with its PIA number — five days ago at the `assessed` stage. */
 function approvedAssessment(when: string): Assessment {
   return {
@@ -157,16 +183,21 @@ export function launchRecords(o: LaunchOptions, now: number): Schemas['LaunchRec
         privacyAssessment: null,
       }
     case 'drafted':
-    case 'assessed':
+    case 'with-team':
+    case 'assessed': {
+      const stage = o.records === 'assessed' ? 'assessed' : 'drafted'
       return {
         projectId: f.PROJECT_ID,
-        iamRegistration: draftRegistrationRecord('production', o.records, now),
-        stagingRegistration: draftRegistrationRecord('staging', o.records, now),
+        iamRegistration: draftRegistrationRecord('production', stage, now),
+        stagingRegistration: draftRegistrationRecord('staging', stage, now),
         privacyAssessment:
           o.records === 'drafted'
             ? draftAssessmentRecord(now)
-            : approvedAssessment(approvedAt(now)),
+            : o.records === 'with-team'
+              ? sentAssessmentRecord(now)
+              : approvedAssessment(approvedAt(now)),
       }
+    }
     case 'sent':
       return f.LAUNCH_RECORDS
     case 'approved':
@@ -341,7 +372,12 @@ export function draftRegistration(
   environment: Environment,
   now: number,
 ): Registration {
-  if (o.records === 'none' || o.records === 'drafted' || o.records === 'assessed')
+  if (
+    o.records === 'none' ||
+    o.records === 'drafted' ||
+    o.records === 'with-team' ||
+    o.records === 'assessed'
+  )
     return draftRegistrationRecord(
       environment,
       o.records === 'assessed' ? 'assessed' : 'drafted',
@@ -360,6 +396,13 @@ export function draftRegistration(
 export function draftAssessment(o: LaunchOptions, now: number): Assessment {
   if (o.records === 'none' || o.records === 'drafted') return draftAssessmentRecord(now)
   const held = records(o, now).privacyAssessment!
+  if (held.state === 'sent')
+    throw new MockRefusal(
+      409,
+      'LAUNCH_RECORD_SUBMITTED',
+      "the privacy assessment is with the Manifest team ('sent'): what its owner sent is kept as it was sent, and Manifest drafts it again only if the team hands it back",
+      'Ask the Manifest team to hand it back if it needs to change, then draft it again.',
+    )
   throw new MockRefusal(
     409,
     'LAUNCH_RECORD_SUBMITTED',

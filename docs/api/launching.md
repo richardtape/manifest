@@ -42,7 +42,7 @@ export async function whatALaunchNeeds(
 
 ## The three records, in UBC’s order
 
-`getLaunchRecords` answers all three: `privacyAssessment`, `stagingRegistration` and `iamRegistration` (production’s) — each `null` until something is recorded. UBC takes them one after another, and Manifest holds that order when a person says one was sent:
+`getLaunchRecords` answers all three: `privacyAssessment`, `stagingRegistration` and `iamRegistration` (production’s) — each `null` until something is recorded. UBC takes them one after another. **The owner sends each to the Manifest team** — at UBC, the people who run Manifest — who submit it to UBC, and Manifest holds UBC’s order when the owner sends one:
 
 1. **The privacy assessment**, to the UBC Privacy Office. It comes first; nothing waits for it.
 2. **The staging registration**, to UBC IAM — once the assessment is approved, because it carries the assessment’s reference, the PIA number. Until then either registration’s send is refused `409 LAUNCH_PIA_NOT_APPROVED`.
@@ -55,15 +55,17 @@ Each takes weeks, so start in the first week: a draft never stops a build, and w
 - **`draftPrivacyAssessment`** writes the assessment’s six questions — what the app collects, where it is stored, where it flows, how long it is kept and how it is disposed of, who is accountable, and where it is hosted — as `facts` (each with `source`, where Manifest read it) and `gaps`: what only the owner can add, such as what the app keeps in its own database. Each gap is `{ id, text }`, and its `id` (`collected.app-data`, `hosting.production`) stays the same when the app is drafted again, so an answer kept for a gap still fits it. Its `text` is the whole draft, to paste into the Privacy Office’s form.
 - **`draftIamRegistration`** (`staging` or `production`) writes the **package** a person sends UBC IAM: the environment’s entity id, its sign-in (`acsUrl`) and sign-out (`sloUrl`) addresses, the certificate it signs with (`pem`, `fingerprint`, `expiresAt` — the public half; no answer ever carries a private key), every attribute with its `purpose`, the lines that read it (`usedAt`) and a `justification`, the `contacts`, the PIA number (`privacyAssessmentReference`) and the metadata in UBC’s structure (`metadataXml`). An attribute the app asks for and never reads is `unused`.
 - **Read the `warnings` first** — an attribute to remove, a PIA number not recorded yet — fix what they name, and draft again.
-- **What each is drawn from**: the assessment and production’s registration from **the release serving staging** — so draft them once the release you will launch serves staging, and the checklist says when production’s draft or the assessment’s no longer matches it — and staging’s registration from the **newest valid manifest**, because staging is where the app is still changing. Production’s drawn with nothing serving staging comes from the newest valid manifest too, and its `warnings` say so. Draft as often as you like until it is sent; after that a record is kept as it was sent, and drafting again is refused `409 LAUNCH_RECORD_SUBMITTED` — a registration until UBC asks for changes or it lapses, the assessment until the Privacy Office sends it back. An app that signs nobody in has nothing to register: `409 LAUNCH_NOT_CWL`.
+- **What each is drawn from**: the assessment and production’s registration from **the release serving staging** — so draft them once the release you will launch serves staging, and the checklist says when production’s draft or the assessment’s no longer matches it — and staging’s registration from the **newest valid manifest**, because staging is where the app is still changing. Production’s drawn with nothing serving staging comes from the newest valid manifest too, and its `warnings` say so. Draft as often as you like until it is sent; after that a record is kept as it was sent, and drafting again is refused `409 LAUNCH_RECORD_SUBMITTED` — while the Manifest team holds it (`sent`), until the team hands it back; once UBC holds it, a registration until UBC asks its owner for changes or it lapses, the assessment until the Privacy Office sends it back. An app that signs nobody in has nothing to register: `409 LAUNCH_NOT_CWL`.
 
-### Saying it was sent
+### Sending it to the Manifest team
 
-Once a person has sent a draft, they say so — **`submitPrivacyAssessment`**, or **`submitIamRegistration`** for an environment — with the day they sent it (`sentAt`, a Vancouver day, today if left out) and the ticket they were given (`reference`). **Always send `draftGeneratedAt`**, the `generatedAt` of the draft the person read: a draft made again since is refused `409 LAUNCH_DRAFT_CHANGED`, and nothing is recorded. The record is then `submitted`, with `submittedAt` and `submittedBy`, and the checklist counts the wait from that day.
+Once a person has read a draft, they send it to the Manifest team from Manifest — **`sendPrivacyAssessment`**, or **`sendIamRegistration`** for an environment. It is sent now: the record is `sent`, with `sentAt` (the moment), `sentBy`, and for a registration `sentFrom` (where it was sent from — a draft, UBC IAM’s questions to its owner, or a lapse). The team is emailed: which app, which record, who sent it and when, and a link to the record — never the draft, an answer or an attribute. **Always send `draftGeneratedAt`**, the `generatedAt` of the draft the person read: a draft made again since is refused `409 LAUNCH_DRAFT_CHANGED`, and nothing is sent.
 
-The refusals, each with what to do in its remedy: `409 LAUNCH_DRAFT_REQUIRED` (nothing drafted yet), `409 LAUNCH_TRANSITION_INVALID` (already sent, or decided), `409 LAUNCH_PIA_NOT_APPROVED` and `409 LAUNCH_STAGING_NOT_REGISTERED` (UBC’s order), `409 LAUNCH_DRAFT_STALE` (a registration drafted before the assessment’s PIA number — draft it again), and `400 LAUNCH_SENT_AT_INVALID` (a day still to come, or before the draft was made).
+**The privacy assessment carries an answer to every gap** — `answers: [{ gapId, answer }]`, one per gap of the draft, by its `id`. *“Does not apply”* is an answer; a blank one is not. An answer is at most 2,000 characters, and there are at most 64. A gap without an answer, a blank or over-long one, a gap answered twice, or an id the draft does not have (a draft made since, whose gaps changed) is refused `400 LAUNCH_GAP_ANSWERS_INVALID`, and its message names every gap at fault. The answers are kept on the record as `gapAnswers`, in the draft’s order — what the team carries into the Privacy Office’s form — and a later send replaces them.
 
-**A person says it, in their own session** — the project’s owner, a collaborator or a platform administrator (`launch:submit`); a token is refused `403 TOKEN_CREDENTIAL_REFUSED`. So this is browser code — the page’s own client, carrying no credential, because the browser sends the person’s cookie and `Origin` itself.
+The refusals, each with what to do in its remedy: `409 LAUNCH_DRAFT_REQUIRED` (nothing drafted yet), `409 LAUNCH_TRANSITION_INVALID` (already sent, with UBC, or decided), `409 LAUNCH_PIA_NOT_APPROVED` and `409 LAUNCH_STAGING_NOT_REGISTERED` (UBC’s order), `409 LAUNCH_DRAFT_STALE` (a registration drafted before the assessment’s PIA number — draft it again), and `400 LAUNCH_GAP_ANSWERS_INVALID` (the assessment’s answers).
+
+**A person sends it, in their own session** — the project’s owner, a collaborator or a platform administrator (`launch:submit`); a token is refused `403 TOKEN_CREDENTIAL_REFUSED`. So this is browser code — the page’s own client, carrying no credential, because the browser sends the person’s cookie and `Origin` itself.
 
 <!-- example: example-launch-path -->
 
@@ -260,7 +262,7 @@ export async function askForSignOff(
 
 /**
  * What waits on the administrators, oldest first — an administrator's own session only. BROWSER CODE,
- * as `sayItWasSent` is.
+ * as `sendIt` is.
  */
 export async function whatWaitsOnUs(
   page: ManifestClient,
@@ -275,11 +277,20 @@ export async function whatWaitsOnUs(
 
 <!-- /example -->
 
+### The Manifest team’s step
+
+The Manifest team submits what an owner sent it to UBC — the assessment to the Privacy Office, through PRISM; a registration to UBC IAM — and a platform administrator records it, in their own session (`launch:record`; anybody else is `403 FORBIDDEN`, a token `403 TOKEN_CREDENTIAL_REFUSED`):
+
+- **`submitPrivacyAssessment`**, or **`submitIamRegistration`** for an environment, with the day the team sent it (`sentAt`, a Vancouver day, today if left out) and UBC’s `reference` — IAM’s ticket, or the PIA number. The record is then `submitted`, with `submittedAt` (that day, at noon in Vancouver) and `submittedBy` (the administrator), and the checklist counts the wait for UBC from that day. A day after today, or before the owner sent it to the team, is refused `400 LAUNCH_SENT_AT_INVALID`. **It is never refused for UBC’s order**: that was held when the owner sent it.
+- **`returnPrivacyAssessment`**, or **`returnIamRegistration`**, hands it back to its owner, unsubmitted — the assessment to `draft`, a registration to the state it was sent from. Why travels outside the record, as UBC’s questions do. The owner sends it again when it is ready, and the next send replaces the last one’s `sentAt` and answers.
+
+Only a record with the team (`sent`) is submitted or handed back: any other is `409 LAUNCH_TRANSITION_INVALID`. And the administrator’s record routes below never move a record into or out of `sent`.
+
 ### UBC’s answer
 
 A platform administrator records what UBC said, with its ticket, in their own session: `recordIamRegistration` (naming the `environment`) and `recordPrivacyAssessment` — a registration `active`, an assessment `approved` with its PIA number, or either sent back. A registration that is `change_requested` says whose move it is in **`changeRequestedFrom`**:
 
-- `submitted` — UBC IAM asked about the request the owner sent: draft it again, send the new draft, and say so.
+- `submitted` — UBC IAM asked about the request the owner sent: draft it again, and send the new draft to the Manifest team.
 - `active` — an administrator asked UBC IAM for a change to a live registration: UBC holds it, and releases are checked against what it registered until it registers the change.
 
 ## The rehearsal
@@ -307,9 +318,9 @@ An archived project’s items are not in the queue.
 
 ## A first launch, in order
 
-1. **Draft the privacy assessment**, fill in its gaps, send it to the UBC Privacy Office, and say so. An administrator records it approved, with its PIA number.
-2. **Deploy to staging.** Draft the staging registration — it now carries the PIA number — send it to UBC IAM, and say so. An administrator records it active. Test the app at staging.
-3. **Draft the production registration**, send it, and say so. An administrator records it active.
+1. **Draft the privacy assessment**, answer each of its gaps, and send it to the Manifest team, who submit it to the UBC Privacy Office. An administrator records the submission, and then the approval, with its PIA number.
+2. **Deploy to staging.** Draft the staging registration — it now carries the PIA number — and send it to the Manifest team, who submit it to UBC IAM. An administrator records it active. Test the app at staging.
+3. **Draft the production registration**, and send it to the Manifest team the same way. An administrator records it active.
 4. **Rehearse the sign-in.**
 5. **Ask an administrator to sign the release off**; they approve it from a stored preview.
 6. **Deploy to production** (`deploy`, to the production environment), by a person who has signed in again. Production deploys only the release that is serving staging.
@@ -322,4 +333,4 @@ A launched app’s releases are **self-serve**: a release that is serving stagin
 
 - **May:** read the checklist, the launch records and the approval; **draft** the three records (`launch:draft`), so its person reads and sends them; **ask an administrator to sign a release off** (`approval:request`) — asking decides nothing; deploy to sandbox and staging; and *ask* for a production deploy.
 - **Asking for a production deploy** is answered `403 TOKEN_ACTION_PENDING`: an owner of the project — a person who could deploy it themselves — confirms that one request, after signing in again, and the agent sends the identical request again — the same method, path and body, whatever its `Idempotency-Key` — which is let through once. *For an AI agent* has the loop.
-- **May not, ever:** say a record was sent (`launch:submit`), run the rehearsal (`launch:rehearse`), record UBC’s decisions (`launch:record`), take a preview, or approve or reject a release. Saying a record was sent is the sender’s own word; the rehearsal puts an unapproved release on production’s public listener while its sign-in runs; and each of the others is a person’s own record of what they decided — so a person does each, in their own session, and a token is refused it outright (`403 TOKEN_CREDENTIAL_REFUSED`).
+- **May not, ever:** send a record to the Manifest team (`launch:submit`), run the rehearsal (`launch:rehearse`), record the team’s step or UBC’s decisions (`launch:record`), take a preview, or approve or reject a release. Sending a record is its owner’s own act; the rehearsal puts an unapproved release on production’s public listener while its sign-in runs; and each of the others is a person’s own record of what they decided — so a person does each, in their own session, and a token is refused it outright (`403 TOKEN_CREDENTIAL_REFUSED`).

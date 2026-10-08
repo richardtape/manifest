@@ -123,7 +123,7 @@ An operation that starts something long answers **`202`** with the thing in its 
 
 ## Dates and waits
 
-An instant is an ISO 8601 date-time in UTC (`2026-10-01T19:00:00.000Z`). A field named for a day a person gave — `sentAt` — is a `YYYY-MM-DD` day in Vancouver, and the platform stamps it at **noon in Vancouver** on that day. So a record sent today can carry a `submittedAt` hours ahead of now: **count a wait in Vancouver days**, from the day of `since` to the day of now, never as now minus `since`. A field that says **`since`** is when a wait began — a record sent to UBC, a sign-off request — or, on a met item, when it was met; `null` when there is nothing to date.
+An instant is an ISO 8601 date-time in UTC (`2026-10-01T19:00:00.000Z`). A request field named for a day a person gives — the Manifest team’s `sentAt` when it records a submission to UBC — is a `YYYY-MM-DD` day in Vancouver, and the platform stamps it at **noon in Vancouver** on that day, as the record’s `submittedAt`. A record’s own `sentAt` is the instant its owner sent it to the Manifest team. So a record submitted today can carry a `submittedAt` hours ahead of now: **count a wait in Vancouver days**, from the day of `since` to the day of now, never as now minus `since`. A field that says **`since`** is when a wait began — a record with UBC, a sign-off request — or, on a met item, when it was met; `null` when there is nothing to date.
 
 ## Paging
 

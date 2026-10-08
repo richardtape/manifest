@@ -927,6 +927,84 @@ describe('the launch path plan’s Task 13 — the records by stage, the sign-of
     })
   })
 
+  it('MANIFEST_MOCK_RECORDS=with-team — the assessment with the Manifest team, its answers kept; the team submits it or hands it back; a registration waits (the FE-46/47/5 plan’s Task 8a)', async () => {
+    // THE ENVIRONMENT NAMES IT: `with-team` is on the allow-list, never silently `sent`.
+    const was = process.env.MANIFEST_MOCK_RECORDS
+    process.env.MANIFEST_MOCK_RECORDS = 'with-team'
+    let at: string
+    try {
+      at = await serve()
+    } finally {
+      if (was === undefined) delete process.env.MANIFEST_MOCK_RECORDS
+      else process.env.MANIFEST_MOCK_RECORDS = was
+    }
+    const r = await records(at)
+    const pia = r.privacyAssessment! as Assessment & {
+      sentAt: string | null
+      sentBy: { displayName: string } | null
+      gapAnswers: { gapId: string; answer: string }[] | null
+    }
+    expect(pia).toMatchObject({
+      state: 'sent',
+      sentBy: { displayName: 'Instructor One' },
+      submittedAt: null,
+      submittedBy: null,
+      externalTicketRef: null,
+    })
+    // SENT AFTER IT WAS DRAFTED, AND BEFORE NOW — its answers one per gap, in the draft's order.
+    expect(Date.parse(pia.sentAt!)).toBeGreaterThan(Date.parse(pia.draft!.generatedAt))
+    expect(Date.parse(pia.sentAt!)).toBeLessThan(Date.now())
+    expect(pia.gapAnswers!.map((a) => a.gapId)).toEqual(
+      pia.draft!.sections.flatMap((s) => s.gaps.map((g) => g.id)),
+    )
+    expect(pia.gapAnswers!.every((a) => a.answer.trim() !== '')).toBe(true)
+    expect(r.stagingRegistration!.state).toBe('draft')
+    expect(r.iamRegistration!.state).toBe('draft')
+    // The checklist, as the platform reads a `sent` assessment.
+    const item_ = await item(at, 'privacy-assessment')
+    expect(item_.state).toBe('unmet')
+    expect(item_.why).toMatch(/^The assessment is 'sent'/)
+
+    // The owner may not draft or send it again while the team holds it.
+    for (const [refused, code] of [
+      [await draftPia(at), 'LAUNCH_RECORD_SUBMITTED'],
+      [await sendPia(at, { answers: everyGap(pia) }), 'LAUNCH_TRANSITION_INVALID'],
+      [
+        await sendIam(at, 'staging', {
+          draftGeneratedAt: r.stagingRegistration!.package!.generatedAt,
+        }),
+        'LAUNCH_PIA_NOT_APPROVED',
+      ],
+    ] as const) {
+      expect(refused.status, code).toBe(409)
+      expect(await codeOf(refused)).toBe(code)
+    }
+
+    // The team: a day before the owner sent it is refused; today, with UBC's reference, is recorded.
+    const early = await teamSubmits(at, 'privacy-assessment', {
+      sentAt: '2026-01-01',
+      reference: 'PIA-2026-0101',
+    })
+    expect(early.status).toBe(400)
+    expect(await codeOf(early)).toBe('LAUNCH_SENT_AT_INVALID')
+    const submitted = await teamSubmits(at, 'privacy-assessment', {
+      reference: 'PIA-2026-0101',
+    })
+    expect(submitted.status).toBe(200)
+    const filed = (await submitted.json()) as Assessment & {
+      gapAnswers: { gapId: string; answer: string }[] | null
+    }
+    expect(filed).toMatchObject({
+      state: 'submitted',
+      externalTicketRef: 'PIA-2026-0101',
+      submittedBy: { displayName: 'Operator One' },
+      gapAnswers: pia.gapAnswers,
+    })
+    const back = await handsBack(at, 'privacy-assessment')
+    expect(back.status).toBe(200)
+    expect(((await back.json()) as Assessment).state).toBe('draft')
+  })
+
   it('MANIFEST_MOCK_RECORDS=approved is FE-40 (1) — every blocking item met, and a production deploy answers a production instance of its own', async () => {
     const deployProduction = (at: string) =>
       post(at, `/v1/environments/${f.PRODUCTION_ID}/deploy`, { releaseId: f.RELEASE_ID })

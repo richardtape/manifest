@@ -2,8 +2,12 @@ import { fixtures } from '@manifest/mock'
 import type { Schemas } from '@manifest/contract'
 import { describe, expect, it } from 'vitest'
 import {
+  answersReady,
   assessmentActions,
   dayInWords,
+  DOES_NOT_APPLY,
+  holderLine,
+  teamActions,
   fleetStateWords,
   queueHeadline,
   queueKindWords,
@@ -192,6 +196,118 @@ describe('a record with the Manifest team (the FE-46/47/5 plan’s Task 5)', () 
     })
     expect(assessmentActions(draftedPia).status).toMatch(/send it to the Manifest team/)
     expect(assessmentActions(draftedPia).status).not.toMatch(/say you sent it/)
+  })
+})
+
+describe('the Manifest team’s step on screen (the FE-46/47/5 plan’s Task 8a)', () => {
+  const gaps = [
+    { id: 'collected.app-data', text: 'What the app keeps in its own database.' },
+    { id: 'hosting.production', text: 'Where UBC will host it.' },
+  ]
+
+  it('the send is held until every gap has an answer — blank is not one; over 2,000 characters says so', () => {
+    expect(answersReady(gaps, {})).toEqual({
+      ready: false,
+      missing: ['collected.app-data', 'hosting.production'],
+      over: [],
+    })
+    expect(
+      answersReady(gaps, {
+        'collected.app-data': 'Sign-ups.',
+        'hosting.production': '  ',
+      }),
+    ).toEqual({
+      ready: false,
+      missing: ['hosting.production'],
+      over: [],
+    })
+    // NEVER LIMITED, ONLY SAID: a paste over 2,000 is kept, and the send waits for it to shrink.
+    const long = 'x'.repeat(2_001)
+    expect(
+      answersReady(gaps, {
+        'collected.app-data': long,
+        'hosting.production': DOES_NOT_APPLY,
+      }),
+    ).toEqual({
+      ready: false,
+      missing: [],
+      over: ['collected.app-data'],
+    })
+    // THE POSITIVE CONTROL: every gap answered, "does not apply" among them, 2,000 at most.
+    expect(
+      answersReady(gaps, {
+        'collected.app-data': 'y'.repeat(2_000),
+        'hosting.production': DOES_NOT_APPLY,
+      }),
+    ).toEqual({ ready: true, missing: [], over: [] })
+    // A registration has no gaps: always ready.
+    expect(answersReady([], {})).toEqual({ ready: true, missing: [], over: [] })
+  })
+
+  it('the team’s two actions are an administrator’s, on a record with the team — and nobody else’s', () => {
+    const sent = assessment({ state: 'sent', sentAt: '2026-10-01T16:45:00.000Z' })
+    expect(teamActions(sent, true)).toEqual({ submit: true, handBack: true })
+    expect(teamActions(sent, false)).toEqual({ submit: false, handBack: false })
+    for (const state of ['draft', 'submitted', 'approved'] as const)
+      expect(teamActions(assessment({ state }), true), state).toEqual({
+        submit: false,
+        handBack: false,
+      })
+    expect(
+      teamActions(
+        registration({
+          state: 'sent',
+          sentFrom: 'draft',
+          sentAt: '2026-10-01T16:45:00.000Z',
+        }),
+        true,
+      ),
+    ).toEqual({ submit: true, handBack: true })
+    expect(teamActions(null, true)).toEqual({ submit: false, handBack: false })
+  })
+
+  it('who has it, in a line: the Manifest team since the owner sent it; UBC since the team’s day', () => {
+    expect(
+      holderLine(assessment({ state: 'sent', sentAt: '2026-10-01T16:45:00.000Z' })),
+    ).toBe('With the Manifest team since 1 October 2026')
+    expect(
+      holderLine(
+        registration({
+          state: 'sent',
+          sentFrom: 'draft',
+          sentAt: '2026-10-01T16:45:00.000Z',
+        }),
+      ),
+    ).toBe('With the Manifest team since 1 October 2026')
+    expect(
+      holderLine(
+        registration({ state: 'submitted', submittedAt: '2026-10-02T19:00:00.000Z' }),
+      ),
+    ).toBe('With UBC IAM since 2 October 2026')
+    expect(
+      holderLine(
+        assessment({ state: 'submitted', submittedAt: '2026-10-02T19:00:00.000Z' }),
+      ),
+    ).toBe('With the UBC Privacy Office since 2 October 2026')
+    // A change request the team filed is with UBC; UBC's questions to the owner are the owner's.
+    expect(
+      holderLine(
+        registration({
+          state: 'change_requested',
+          changeRequestedFrom: 'active',
+          submittedAt: '2026-10-03T19:00:00.000Z',
+        }),
+      ),
+    ).toBe('With UBC IAM since 3 October 2026')
+    expect(
+      holderLine(
+        registration({ state: 'change_requested', changeRequestedFrom: 'submitted' }),
+      ),
+    ).toBeNull()
+    for (const state of ['draft', 'active'] as const)
+      expect(holderLine(registration({ state })), state).toBeNull()
+    expect(holderLine(assessment({ state: 'approved' }))).toBeNull()
+    expect(holderLine(null)).toBeNull()
   })
 })
 

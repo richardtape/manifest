@@ -554,6 +554,38 @@ describe('the console’s data layer against manifest-mock', () => {
       { records: 'drafted' },
     )
 
+    // The assessment with the Manifest team (Task 8a's `with-team`): an administrator records the team's
+    // submission — the day and UBC's reference — or hands it back.
+    await withMock(
+      async (origin) => {
+        const a = api(origin)
+        const held = (await a.getLaunchRecords(PROJECT_ID)).privacyAssessment!
+        expect(held).toMatchObject({ state: 'sent' })
+        const today = new Intl.DateTimeFormat('en-CA', {
+          timeZone: 'America/Vancouver',
+        }).format(new Date())
+        const submitted = await a.submitPrivacyAssessment(
+          PROJECT_ID,
+          { sentAt: today, reference: 'PIA-2026-0101' },
+          a.newKey(),
+        )
+        expect(submitted).toMatchObject({
+          state: 'submitted',
+          externalTicketRef: 'PIA-2026-0101',
+          gapAnswers: held.gapAnswers,
+        })
+        expect(
+          new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Vancouver' }).format(
+            new Date(submitted.submittedAt!),
+          ),
+        ).toBe(today)
+        expect((await a.returnPrivacyAssessment(PROJECT_ID, a.newKey())).state).toBe(
+          'draft',
+        )
+      },
+      { records: 'with-team' },
+    )
+
     // The assessment approved: staging is sent to the Manifest team.
     await withMock(
       async (origin) => {

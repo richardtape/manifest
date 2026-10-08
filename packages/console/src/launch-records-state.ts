@@ -223,6 +223,72 @@ export function assessmentActions(
   }
 }
 
+/** The one-click answer for a gap that does not apply to the app — an answer like any other. */
+export const DOES_NOT_APPLY = 'Does not apply.'
+
+/** The longest answer the platform takes for a gap, after trimming. */
+export const ANSWER_MAX = 2_000
+
+/**
+ * IS THE ASSESSMENT READY TO SEND? (the FE-46/47/5 plan's Task 8a) — every gap answered, none blank, none
+ * over `ANSWER_MAX`. **The console never limits a paste**: an answer over the bound is kept and named, and
+ * the send waits until it is shortened. The platform is the rule (`400 LAUNCH_GAP_ANSWERS_INVALID`); this
+ * is its courtesy, so a person learns before they press.
+ */
+export function answersReady(
+  gaps: readonly { id: string }[],
+  answers: Readonly<Record<string, string>>,
+): { ready: boolean; missing: string[]; over: string[] } {
+  const missing = gaps.filter((g) => (answers[g.id] ?? '').trim() === '').map((g) => g.id)
+  const over = gaps
+    .filter((g) => (answers[g.id] ?? '').trim().length > ANSWER_MAX)
+    .map((g) => g.id)
+  return { ready: missing.length === 0 && over.length === 0, missing, over }
+}
+
+/**
+ * THE MANIFEST TEAM'S TWO ACTIONS (Task 8a): *Record that the team submitted it* and *Hand it back to the
+ * owner* — an administrator's, offered only on a record the team holds (`sent`).
+ */
+export function teamActions(
+  record: { state: string } | null,
+  isAdmin: boolean,
+): { submit: boolean; handBack: boolean } {
+  const ours = isAdmin && record?.state === 'sent'
+  return { submit: ours, handBack: ours }
+}
+
+/**
+ * WHO HAS IT, IN A LINE (Task 8a): *"With the Manifest team since …"* from the owner's send, *"With UBC IAM
+ * since …"* (or the Privacy Office) from the team's day — or null when the owner has it, or UBC has
+ * answered. A change request the team filed is UBC's; UBC's questions to the owner are the owner's.
+ */
+export function holderLine(
+  record:
+    | Pick<
+        Schemas['IamRegistration'],
+        'state' | 'sentAt' | 'submittedAt' | 'changeRequestedFrom'
+      >
+    | Pick<Schemas['PrivacyAssessment'], 'state' | 'sentAt' | 'submittedAt'>
+    | null,
+): string | null {
+  if (record === null) return null
+  if (record.state === 'sent')
+    return record.sentAt === null
+      ? 'With the Manifest team'
+      : `With the Manifest team since ${dayInWords(record.sentAt)}`
+  const ubc = 'changeRequestedFrom' in record ? 'UBC IAM' : 'the UBC Privacy Office'
+  const withUbc =
+    record.state === 'submitted' ||
+    (record.state === 'change_requested' &&
+      'changeRequestedFrom' in record &&
+      record.changeRequestedFrom === 'active')
+  if (!withUbc) return null
+  return record.submittedAt === null
+    ? `With ${ubc}`
+    : `With ${ubc} since ${dayInWords(record.submittedAt)}`
+}
+
 /**
  * *ASK AN ADMINISTRATOR TO SIGN THIS OFF* (FE-25; the launch path plan's Task 12) — offered beside
  * the checklist's `admin-approval` item while it is unmet and something serves staging, unless the
