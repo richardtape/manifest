@@ -1209,3 +1209,16 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
         written, never a third ask) runs over EVERY part of a change's plan, AND triggers when a code-like word copied from the
         printed lines (an underscore, a dot or camelCase — COURSE_CODE, server.js) appears in any part. Built test-first inside
         A1 before it merges. Rejected: (a) every part, machinery words only; (c) leave it to the prompt, A8's walk to show it.
+
+    And at 16:09 PDT, A5'S THREE QUESTIONS (manifest-app-w5, F5b sitting 3, merged at manifest-app b836ba2; put to him in chat
+    by manifest-coord, none blocking, each with a recommendation). His words: "go with your recommendations on all three". So:
+      (a) A5's NEW WORDS, ours — APPROVED AS BUILT: the twelve gap questions; "We couldn't suggest an answer to this one from
+          your app. Say what you know."; "Every question needs an answer before it's sent. “Not decided yet” is an answer."
+          (replacing the F5b design's "Only the Privacy Office can answer this one…", untrue under his FE-46 (ii)); "We couldn't
+          start it just now. Nothing is lost."; "The Manifest team handed it back." · "They'll be in touch about why."; and the
+          history's two hand-back lines. Rejected: changing them now.
+      (b) AN EMAIL TO THE OWNER WHEN THE MANIFEST TEAM HANDS A RECORD BACK — YES: a small follow-up of the front end's own
+          ("your … came back from the Manifest team"; new words, ours, for him to see). Today nothing is sent. Rejected: the
+          page and the history alone.
+      (c) "NOT DECIDED YET" FOR A GAP ONLY UBC CAN SETTLE — KEEP AS BUILT: the agent suggests nothing there and the person
+          writes it; the agent never takes the Privacy Office's position for them. Rejected: suggesting "Not decided yet".
