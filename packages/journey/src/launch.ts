@@ -1699,6 +1699,23 @@ async function changeLeg(): Promise<void> {
     if (held.state !== 'active') await recordAs('submitted', held.registeredAttributes)
     held = await recordAs('active', LAUNCHED_ATTRIBUTES)
   }
+  // A RUN THAT DIED after asking left the manifest asking for it: committed back, so the leg's own commit
+  // below is a change (an identical one is `SOURCE_NOTHING_TO_COMMIT`).
+  const head = await headCommit(owner)
+  const manifest = unwrap(
+    await owner.GET('/v1/projects/{projectId}/file', {
+      params: { path: { projectId: id }, query: { path: 'manifest.yaml', ref: head } },
+    }),
+    'getFile',
+  ).content
+  if (
+    new RegExp(`^ {2}attributes: \\[.*\\b${ASKED_FOR}\\b.*\\]$`, 'm').test(manifest ?? '')
+  ) {
+    console.log(`  (the manifest asks for ${ASKED_FOR}: committed back without it)`)
+    await commit(owner, `Back to the launched four`, [
+      { op: 'write', path: 'manifest.yaml', content: appManifest(slug) },
+    ])
+  }
   checks.ok(
     'production’s registration is live, at the four it launched with, nothing requested',
     held.state === 'active' &&
