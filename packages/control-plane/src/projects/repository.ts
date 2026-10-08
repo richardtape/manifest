@@ -1,5 +1,5 @@
 import { and, desc, eq, gt, inArray, ne, or, sql } from 'drizzle-orm'
-import type { Db } from '../db/index.js'
+import type { Db, NamedPersonColumn } from '../db/index.js'
 import {
   environments,
   instances,
@@ -18,6 +18,7 @@ import { type Config, hostnameFor } from '../config.js'
 import type { Actor, ProjectRole } from './authz.js'
 import type { ReservedLabels } from './reserved-labels.js'
 import { assertSlugAvailable, SlugRefusedError, slugTaken } from './slugs.js'
+import { nameOrNobody } from './source-attribution.js'
 import { linkOf, notMadeByRunning } from './source-repositories.js'
 
 export type Project = typeof projects.$inferSelect
@@ -430,6 +431,46 @@ export async function findPerson(
   if (rows.length === 0) return { kind: 'nobody' }
   if (rows.length > 1) return { kind: 'ambiguous' }
   return { kind: 'found', user: rows[0]! }
+}
+
+/**
+ * A PERSON AS A REQUEST NAMED THEM, for a question a person answers (FE-5). Named back by name ONLY
+ * when they are already a member of this project — which the asker can read from `listMembers` — so
+ * a token's question never tells it whether somebody else has signed in (`addMember`'s own rule:
+ * it looks the person up only after the capability and the step-up). A person found but not a
+ * member, nobody, and two people sharing an email all read alike: `member: null`.
+ */
+export async function namedPerson(
+  db: Db,
+  projectId: string,
+  named: { namedBy: NamedPersonColumn['namedBy']; value: string },
+): Promise<NamedPersonColumn> {
+  const userId =
+    named.namedBy === 'userId'
+      ? named.value
+      : await findPerson(
+          db,
+          named.namedBy === 'puid'
+            ? { puid: named.value }
+            : named.namedBy === 'cwlLogin'
+              ? { cwlLogin: named.value }
+              : { email: named.value },
+        ).then((found) => (found.kind === 'found' ? found.user.id : undefined))
+  if (userId === undefined) return { ...named, member: null }
+  const [member] = await db
+    .select({ userId: users.id, displayName: users.displayName })
+    .from(projectMembers)
+    .innerJoin(users, eq(users.id, projectMembers.userId))
+    .where(
+      and(eq(projectMembers.projectId, projectId), eq(projectMembers.userId, userId)),
+    )
+  return {
+    ...named,
+    member:
+      member === undefined
+        ? null
+        : { userId: member.userId, displayName: nameOrNobody(member.displayName) },
+  }
 }
 
 /**

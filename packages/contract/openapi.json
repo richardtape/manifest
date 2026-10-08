@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Manifest",
-    "version": "1.7.0",
+    "version": "1.8.0",
     "description": "Manifest's public API. Resource routes are under /v1, and a breaking change gets a new prefix beside it. Response objects may gain fields under /v1, so a client ignores fields it does not know. Every mutation carries an Idempotency-Key, and a mutation made with a session also carries Origin."
   },
   "servers": [
@@ -1785,7 +1785,7 @@
                   "openapi": "3.1.0",
                   "info": {
                     "title": "Manifest",
-                    "version": "1.7.0"
+                    "version": "1.8.0"
                   },
                   "paths": {}
                 }
@@ -1851,6 +1851,15 @@
                   "path": "/v1/projects/71fa56ac-c7dc-4368-ba62-32696fa50bfb/members",
                   "bodySha256": "63dbcbcf12502ef9e6d588c38dc66a2d68f50df9bf7c802d5faac5a52b5bbe5b",
                   "summary": "Add or change a member",
+                  "object": {
+                    "kind": "member",
+                    "person": {
+                      "namedBy": "puid",
+                      "value": "bio_student",
+                      "member": null
+                    },
+                    "role": "collaborator"
+                  },
                   "expiresAt": "2026-09-27T21:48:16.729Z",
                   "createdAt": "2026-09-26T21:48:16.730Z",
                   "resolvedAt": null,
@@ -1957,6 +1966,17 @@
                   "path": "/v1/projects/20f75cbb-0bd7-4fba-b648-3fd43e9640ff/members/303c35ad-8966-44a0-96a1-29e39b453258",
                   "bodySha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
                   "summary": "Remove a member",
+                  "object": {
+                    "kind": "member-removal",
+                    "person": {
+                      "namedBy": "userId",
+                      "value": "303c35ad-8966-44a0-96a1-29e39b453258",
+                      "member": {
+                        "userId": "303c35ad-8966-44a0-96a1-29e39b453258",
+                        "displayName": "Bio Student"
+                      }
+                    }
+                  },
                   "expiresAt": "2026-09-27T21:48:26.880Z",
                   "createdAt": "2026-09-26T21:48:26.881Z",
                   "resolvedAt": "2026-09-26T21:48:26.885Z",
@@ -2076,6 +2096,15 @@
                   "path": "/v1/projects/ef7b2d4a-e4a3-4f11-b0d9-dddbc1b1a3bd/members",
                   "bodySha256": "63dbcbcf12502ef9e6d588c38dc66a2d68f50df9bf7c802d5faac5a52b5bbe5b",
                   "summary": "Add or change a member",
+                  "object": {
+                    "kind": "member",
+                    "person": {
+                      "namedBy": "puid",
+                      "value": "bio_student",
+                      "member": null
+                    },
+                    "role": "collaborator"
+                  },
                   "expiresAt": "2026-09-27T21:48:29.860Z",
                   "createdAt": "2026-09-26T21:48:29.861Z",
                   "resolvedAt": "2026-09-26T21:48:29.865Z",
@@ -3989,11 +4018,26 @@
           },
           {
             "type": "pending_action.created",
-            "description": "A delegated token asked to use one of the four privileged capabilities — `release:promote`, `secret:read`, `quota:set` or `members:manage` — and a person must confirm or reject it in the console.",
+            "description": "A delegated token asked to use one of the four privileged capabilities — `release:promote`, `secret:read`, `quota:set` or `members:manage` — and a person must confirm or reject it in the console. It names what the request would act on, and when the question stops waiting.",
             "example": {
               "pendingActionId": "6f1c1d2e-8a4b-4c3d-9e2f-1a2b3c4d5e6f",
               "tokenId": "6f1c1d2e-8a4b-4c3d-9e2f-1a2b3c4d5e6f",
-              "action": "members:manage"
+              "action": "members:manage",
+              "object": {
+                "kind": "member",
+                "person": {
+                  "namedBy": "cwlLogin",
+                  "value": "colleague",
+                  "member": {
+                    "userId": "6f1c1d2e-8a4b-4c3d-9e2f-1a2b3c4d5e6f",
+                    "displayName": "Test Colleague"
+                  }
+                },
+                "role": "collaborator"
+              },
+              "expiresAt": "2026-10-09T17:30:31.447Z",
+              "tokenExpiresAt": "2026-10-15T17:00:00.000Z",
+              "tokenMintedBy": "6f1c1d2e-8a4b-4c3d-9e2f-1a2b3c4d5e6f"
             }
           },
           {
@@ -6343,6 +6387,17 @@
                     "path": "/v1/projects/29f9e50b-1ded-4f9e-ab2e-085a4f560188/members/0a418b8c-6d32-4e9f-bc77-24765feebf3b",
                     "bodySha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
                     "summary": "Remove a member",
+                    "object": {
+                      "kind": "member-removal",
+                      "person": {
+                        "namedBy": "userId",
+                        "value": "0a418b8c-6d32-4e9f-bc77-24765feebf3b",
+                        "member": {
+                          "userId": "0a418b8c-6d32-4e9f-bc77-24765feebf3b",
+                          "displayName": "Bio Student"
+                        }
+                      }
+                    },
                     "expiresAt": "2026-09-27T21:51:54.279Z",
                     "createdAt": "2026-09-26T21:51:54.280Z",
                     "resolvedAt": null,
@@ -6360,6 +6415,17 @@
                     "path": "/v1/projects/29f9e50b-1ded-4f9e-ab2e-085a4f560188/members/0a418b8c-6d32-4e9f-bc77-24765feebf3b",
                     "bodySha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
                     "summary": "Remove a member",
+                    "object": {
+                      "kind": "member-removal",
+                      "person": {
+                        "namedBy": "userId",
+                        "value": "0a418b8c-6d32-4e9f-bc77-24765feebf3b",
+                        "member": {
+                          "userId": "0a418b8c-6d32-4e9f-bc77-24765feebf3b",
+                          "displayName": "Bio Student"
+                        }
+                      }
+                    },
                     "expiresAt": "2026-09-27T21:51:54.270Z",
                     "createdAt": "2026-09-26T21:51:54.271Z",
                     "resolvedAt": null,
@@ -13463,7 +13529,7 @@
                 "type": "string"
               },
               "machineDetail": {
-                "description": "A delegated token asked to use one of the four privileged capabilities — `release:promote`, `secret:read`, `quota:set` or `members:manage` — and a person must confirm or reject it in the console.",
+                "description": "A delegated token asked to use one of the four privileged capabilities — `release:promote`, `secret:read`, `quota:set` or `members:manage` — and a person must confirm or reject it in the console. It names what the request would act on, and when the question stops waiting.",
                 "type": "object",
                 "properties": {
                   "pendingActionId": {
@@ -13481,12 +13547,45 @@
                   "action": {
                     "description": "The privileged capability it asked to use: `release:promote`, `secret:read`, `quota:set` or `members:manage`.",
                     "type": "string"
+                  },
+                  "object": {
+                    "description": "What the request would act on — who and in what role, or which release and where; null for a request with nothing to name.",
+                    "anyOf": [
+                      {
+                        "$ref": "#/components/schemas/PendingObject"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "expiresAt": {
+                    "description": "When the question lapses unanswered, in UTC — never later than `tokenExpiresAt`. Stop waiting for an answer then.",
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+                  },
+                  "tokenExpiresAt": {
+                    "description": "When the token that asked stops working, in UTC (`listTokens`).",
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+                  },
+                  "tokenMintedBy": {
+                    "description": "The person who minted the token that asked — the token’s `mintedBy` (`listMembers` names them).",
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
                   }
                 },
                 "required": [
                   "pendingActionId",
                   "tokenId",
-                  "action"
+                  "action",
+                  "object",
+                  "expiresAt",
+                  "tokenExpiresAt",
+                  "tokenMintedBy"
                 ],
                 "additionalProperties": false
               },
@@ -19164,6 +19263,60 @@
         ],
         "additionalProperties": false
       },
+      "NamedPerson": {
+        "description": "A person, as a request named them.",
+        "type": "object",
+        "properties": {
+          "namedBy": {
+            "description": "How the request named them: by PUID, CWL login name or email (`addMember`), or by user id (`removeMember`).",
+            "type": "string",
+            "enum": [
+              "puid",
+              "cwlLogin",
+              "email",
+              "userId"
+            ]
+          },
+          "value": {
+            "description": "The PUID, CWL login name, email or user id, exactly as the request gave it.",
+            "type": "string"
+          },
+          "member": {
+            "description": "The person, when they are already a member of the project; null otherwise — whether or not anyone of that name has signed in to Manifest.",
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "userId": {
+                    "description": "Their user id (`listMembers`).",
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+                  },
+                  "displayName": {
+                    "description": "Their name, as `listMembers` shows it.",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "userId",
+                  "displayName"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "namedBy",
+          "value",
+          "member"
+        ],
+        "additionalProperties": false
+      },
       "OpenApiDocument": {
         "description": "This API’s OpenAPI 3.1 document — the one the platform publishes, generated from its own route definitions when it starts, so what is served is what is published.",
         "type": "object",
@@ -19221,8 +19374,19 @@
             "type": "string"
           },
           "summary": {
-            "description": "What was asked for, for the person who answers.",
+            "description": "The operation that was asked for, in the API’s words (its summary). `object` says what it would act on.",
             "type": "string"
+          },
+          "object": {
+            "description": "What the request would act on — who and in what role, or which release and where; null on a question asked before the platform recorded what a question acts on.",
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PendingObject"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "expiresAt": {
             "description": "When the question lapses unanswered — never later than the asking token’s own expiresAt.",
@@ -19292,6 +19456,7 @@
           "path",
           "bodySha256",
           "summary",
+          "object",
           "expiresAt",
           "createdAt",
           "resolvedAt",
@@ -19307,6 +19472,130 @@
         "items": {
           "$ref": "#/components/schemas/PendingAction"
         }
+      },
+      "PendingObject": {
+        "description": "What the request would act on, taken from the request and never its body: who and in what role, or which release and where. Switch on `kind`.",
+        "anyOf": [
+          {
+            "description": "Adding a member, or changing their role.",
+            "type": "object",
+            "properties": {
+              "kind": {
+                "description": "Give a person a role on the project, or change theirs.",
+                "type": "string",
+                "const": "member"
+              },
+              "person": {
+                "$ref": "#/components/schemas/NamedPerson"
+              },
+              "role": {
+                "description": "The role asked for.",
+                "type": "string",
+                "enum": [
+                  "owner",
+                  "collaborator"
+                ]
+              }
+            },
+            "required": [
+              "kind",
+              "person",
+              "role"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "description": "Removing a member.",
+            "type": "object",
+            "properties": {
+              "kind": {
+                "description": "Take a person off the project.",
+                "type": "string",
+                "const": "member-removal"
+              },
+              "person": {
+                "$ref": "#/components/schemas/NamedPerson"
+              }
+            },
+            "required": [
+              "kind",
+              "person"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "description": "Deploying a release.",
+            "type": "object",
+            "properties": {
+              "kind": {
+                "description": "Deploy a release to an environment.",
+                "type": "string",
+                "const": "deploy"
+              },
+              "release": {
+                "description": "The release it would run.",
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "description": "The release, as the request named it (`getRelease`).",
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+                  },
+                  "commitSha": {
+                    "description": "The commit it was built from; null when the release is not this project’s.",
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "pattern": "^[0-9a-f]{40}$"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "id",
+                  "commitSha"
+                ],
+                "additionalProperties": false
+              },
+              "environment": {
+                "description": "Where it would run.",
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "description": "The environment (`getEnvironment`).",
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+                  },
+                  "kind": {
+                    "description": "Which of the project’s three environments.",
+                    "type": "string",
+                    "enum": [
+                      "sandbox",
+                      "staging",
+                      "production"
+                    ]
+                  }
+                },
+                "required": [
+                  "id",
+                  "kind"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "kind",
+              "release",
+              "environment"
+            ],
+            "additionalProperties": false
+          }
+        ]
       },
       "PrivacyAssessment": {
         "description": "The app’s privacy impact assessment: when a person said it was sent, and what UBC’s Privacy Office said, as an administrator recorded it. It comes first: the staging registration waits for its approval.",

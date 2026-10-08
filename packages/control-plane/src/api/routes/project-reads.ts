@@ -16,6 +16,7 @@ import {
   assertStepUp,
   AuthorizationError,
   findPerson,
+  namedPerson,
   getProject,
   personName,
   type Actor,
@@ -453,6 +454,21 @@ export const projectReadRoutes = [
         role: 'collaborator',
       },
     },
+    // FE-5: the person as the request named them — by whichever of the three keys it carries — and
+    // the role asked for.
+    pendingObject: async ({ deps, params, body }) => ({
+      kind: 'member',
+      person: await namedPerson(
+        deps.db,
+        params.projectId,
+        body.puid !== undefined
+          ? { namedBy: 'puid', value: body.puid }
+          : body.cwlLogin !== undefined
+            ? { namedBy: 'cwlLogin', value: body.cwlLogin }
+            : { namedBy: 'email', value: body.email! },
+      ),
+      role: body.role,
+    }),
     handler: async ({ deps, actor, params, body }) => {
       // A collaborator reaches this line and is refused here. §13: "same as owner
       // except member management and deletion."
@@ -587,6 +603,14 @@ export const projectReadRoutes = [
         },
       ],
     },
+    // FE-5: the member a removal would take off, by the id the request named.
+    pendingObject: async ({ deps, params }) => ({
+      kind: 'member-removal',
+      person: await namedPerson(deps.db, params.projectId, {
+        namedBy: 'userId',
+        value: params.userId,
+      }),
+    }),
     handler: async ({ deps, actor, params }) => {
       await assertCapability(deps.db, actor, params.projectId, 'members:manage')
       assertStepUp(actor, 'members:manage')

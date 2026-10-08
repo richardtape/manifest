@@ -1,8 +1,13 @@
 import { randomUUID } from 'node:crypto'
 import { eq } from 'drizzle-orm'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, expectTypeOf, it } from 'vitest'
+import type { z } from 'zod/v4'
 import { resetDatabase, withProject } from '../db/testing.js'
-import { createEventBus } from '../observability/index.js'
+import {
+  createEventBus,
+  PENDING_OBJECT,
+  type StreamFrame,
+} from '../observability/index.js'
 import { expectSqlState } from '../observability/testing.js'
 import { TokenCapabilityRefusedError } from '../projects/index.js'
 import {
@@ -21,7 +26,9 @@ import {
   recordPendingAction,
   resolutionFor,
   resolveAction,
+  whatIsAsked,
   PENDING_ACTION_TTL_MS,
+  type PendingObject,
 } from './pending.js'
 import { mintTestToken } from './testing.js'
 
@@ -250,6 +257,192 @@ describe('recording a pending action (D24)', () => {
  * runs too tidily to reach. Sitting 4's F6 is the same shape — a rule with no control is a
  * rule that is true until somebody tidies it away.
  */
+/**
+ * FE-5 AND FE-53: A QUESTION NAMES WHAT IT WOULD ACT ON, AND ITS EVENT SAYS WHEN IT STOPS WAITING.
+ *
+ * The object is the route's (`pendingObject`, `api/contract/route.ts`), so here it is handed in on
+ * the fingerprint exactly as the wrapper hands it; `api/delegation.test.ts` drives each route's.
+ */
+describe('a question names what it would act on, and when it stops waiting (FE-5, FE-53)', () => {
+  /** ONE STATEMENT OF THE SHAPE: the column's type, the event's schema and the contract's agree, or `pnpm typecheck` refuses. */
+  it('holds the column’s type to the event’s schema (a type assertion — `pnpm typecheck` is its gate)', () => {
+    expectTypeOf<PendingObject>().toEqualTypeOf<z.infer<typeof PENDING_OBJECT>>()
+  })
+
+  const COLLEAGUE = '6a1f2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d'
+  const NAMED: PendingObject = {
+    kind: 'member',
+    person: {
+      namedBy: 'cwlLogin',
+      value: 'colleague',
+      member: { userId: COLLEAGUE, displayName: 'Test Colleague' },
+    },
+    role: 'collaborator',
+  }
+
+  async function heard(
+    db: Db,
+    projectId: string,
+    ownerId: string,
+    object: PendingObject | null,
+  ) {
+    const bus = createEventBus()
+    const frames: StreamFrame[] = []
+    const publish = bus.publish.bind(bus)
+    bus.publish = (frame) => {
+      frames.push(frame)
+      publish(frame)
+    }
+    /**
+     * THE TOKEN OUTLIVES THE QUESTION'S OWN LIFE (24 h) — thirty days — so the question's expiry and
+     * the token's are DIFFERENT instants. With the harness's default (24 h, the question's own life)
+     * they would be equal to the second, and publishing one as the other could not fail (control (c)).
+     */
+    const { row: token } = await mintTestToken(db, {
+      userId: ownerId,
+      projectId,
+      capabilities: ['project:read'],
+      expiresAt: new Date(Date.now() + 30 * 86_400_000),
+    })
+    const pending = await recordPendingAction(db, bus, {
+      error: refusedFor(projectId, token.id),
+      tokenExpiresAt: token.expiresAt,
+      fingerprint: { ...fingerprintOf(ASK), object },
+    })
+    return { bus, frames, token, pending }
+  }
+
+  it('publishes the object, the question’s expiry, the token’s and who minted it — and a sentence naming the person', async () => {
+    await withProject(async (db, { projectId, ownerId }) => {
+      const { frames, token, pending } = await heard(db, projectId, ownerId, NAMED)
+      // The precondition the expiry assertions rest on: the two instants differ.
+      expect(pending.expiresAt.getTime()).toBeLessThan(token.expiresAt.getTime())
+
+      expect(frames).toHaveLength(1)
+      const frame = frames[0]!
+      expect(frame).toMatchObject({ kind: 'event', type: 'pending_action.created' })
+      expect(frame.kind === 'event' ? frame.machineDetail : undefined).toEqual({
+        pendingActionId: pending.id,
+        tokenId: token.id,
+        action: 'members:manage',
+        object: NAMED,
+        expiresAt: pending.expiresAt.toISOString(),
+        tokenExpiresAt: token.expiresAt.toISOString(),
+        tokenMintedBy: ownerId,
+      })
+      expect(frame.kind === 'event' ? frame.humanMessage : '').toBe(
+        'An agent asked to make Test Colleague a collaborator of this project. It waits for a person who may do that to confirm or reject it.',
+      )
+      // Published text cites no decision.
+      expect(JSON.stringify(frame)).not.toContain('D24')
+      // And the row keeps it, for the 403 and `getPendingAction`.
+      expect((await pendingById(db, pending.id))?.payload.object).toEqual(NAMED)
+    })
+  })
+
+  it('a question with nothing to name reads its summary, and its event says object: null', async () => {
+    await withProject(async (db, { projectId, ownerId }) => {
+      const { frames, pending } = await heard(db, projectId, ownerId, null)
+      const frame = frames[0]!
+      expect(frame.kind === 'event' ? frame.machineDetail : undefined).toMatchObject({
+        object: null,
+        expiresAt: pending.expiresAt.toISOString(),
+      })
+      expect(frame.kind === 'event' ? frame.humanMessage : '').toBe(
+        'An agent asked to add or change a member. It waits for a person who may do that to confirm or reject it.',
+      )
+    })
+  })
+
+  it('the answer names the person too — confirmed and refused', async () => {
+    await withProject(async (db, { projectId, ownerId }) => {
+      const first = await heard(db, projectId, ownerId, NAMED)
+      await resolveAction(db, first.bus, {
+        resolvedByPuid: 'bio_prof',
+        pendingActionId: first.pending.id,
+        resolvedBy: ownerId,
+        state: 'confirmed',
+      })
+      const second = await heard(db, projectId, ownerId, NAMED)
+      await resolveAction(db, second.bus, {
+        resolvedByPuid: 'bio_prof',
+        pendingActionId: second.pending.id,
+        resolvedBy: ownerId,
+        state: 'rejected',
+        reason: 'not today',
+      })
+      expect(first.frames.at(-1)).toMatchObject({
+        humanMessage:
+          "Test Owner confirmed an agent's request to make Test Colleague a collaborator of this project. It may do it once.",
+      })
+      expect(second.frames.at(-1)).toMatchObject({
+        humanMessage:
+          "Test Owner refused an agent's request to make Test Colleague a collaborator of this project: not today",
+      })
+    })
+  })
+
+  it('says who the request named, by name only for a member, and never a PUID in words', () => {
+    const outsider = (
+      namedBy: 'puid' | 'cwlLogin' | 'email' | 'userId',
+      value: string,
+    ) => ({
+      namedBy,
+      value,
+      member: null,
+    })
+    expect(
+      whatIsAsked(
+        { kind: 'member', person: outsider('email', 'jane.doe@ubc.ca'), role: 'owner' },
+        'Add or change a member',
+      ),
+    ).toBe('make the person whose email is jane.doe@ubc.ca an owner of this project')
+    expect(
+      whatIsAsked(
+        { kind: 'member', person: outsider('cwlLogin', 'jdoe42'), role: 'collaborator' },
+        'Add or change a member',
+      ),
+    ).toBe('make the person whose CWL login is jdoe42 a collaborator of this project')
+    // A PUID is never put in a sentence (the house rule for every sentence that names a person); the
+    // object carries it, as the request named it.
+    const byPuid = whatIsAsked(
+      { kind: 'member', person: outsider('puid', 'col000001'), role: 'collaborator' },
+      'Add or change a member',
+    )
+    expect(byPuid).toBe(
+      'make the person the request named by their PUID a collaborator of this project',
+    )
+    expect(byPuid).not.toContain('col000001')
+    expect(
+      whatIsAsked({ kind: 'member-removal', person: NAMED.person }, 'Remove a member'),
+    ).toBe('remove Test Colleague from this project')
+    expect(
+      whatIsAsked(
+        {
+          kind: 'deploy',
+          release: {
+            id: '87155b5c-f7d8-4519-9042-cc5fa8e2d352',
+            commitSha: 'a'.repeat(40),
+          },
+          environment: { id: COLLEAGUE, kind: 'production' },
+        },
+        'Deploy a release to an environment',
+      ),
+    ).toBe('deploy release 87155b5c (commit aaaaaaaaaaaa) to production')
+    expect(
+      whatIsAsked(
+        {
+          kind: 'deploy',
+          release: { id: '87155b5c-f7d8-4519-9042-cc5fa8e2d352', commitSha: null },
+          environment: { id: COLLEAGUE, kind: 'production' },
+        },
+        'Deploy a release to an environment',
+      ),
+    ).toBe('deploy release 87155b5c to production')
+    expect(whatIsAsked(null, 'Add or change a member')).toBe('add or change a member')
+  })
+})
+
 describe('finding a person’s answer again (P5b Task 7)', () => {
   const ANSWER = { resolvedByPuid: 'bio_prof' }
 

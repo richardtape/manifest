@@ -1,6 +1,12 @@
 import { createHash } from 'node:crypto'
 import { and, desc, eq, gt, isNull, sql } from 'drizzle-orm'
-import { delegatedTokens, pendingActions, type Db } from '../db/index.js'
+import {
+  delegatedTokens,
+  pendingActions,
+  type Db,
+  type NamedPersonColumn,
+  type PendingObjectColumn,
+} from '../db/index.js'
 import { makeRedactor, publishEvent, type EventBus } from '../observability/index.js'
 import { expirePendingActions } from './expiry.js'
 import { personName, type TokenCapabilityRefusedError } from '../projects/index.js'
@@ -10,6 +16,52 @@ export type PendingAction = typeof pendingActions.$inferSelect
 
 /** What was asked for — never the body itself. The column's `$type` states the same. */
 export type ActionFingerprint = PendingAction['payload']
+
+/** Who a question's request named (FE-5) — `db/`'s column type, under the name the API uses. */
+export type NamedPerson = NamedPersonColumn
+
+/**
+ * What a question's retry would act on (FE-5) — `db/`'s column type, held equal to the event's
+ * `PENDING_OBJECT` by `pending.test.ts` under `pnpm typecheck`.
+ */
+export type PendingObject = PendingObjectColumn
+
+/**
+ * A PERSON IN WORDS: by name when they are a member — and otherwise as the request named them, but
+ * NEVER by a PUID, which no sentence carries (`projects/source-attribution.ts`); the object does.
+ */
+const personWords = (p: NamedPerson): string =>
+  p.member !== null
+    ? p.member.displayName
+    : p.namedBy === 'cwlLogin'
+      ? `the person whose CWL login is ${p.value}`
+      : p.namedBy === 'email'
+        ? `the person whose email is ${p.value}`
+        : p.namedBy === 'puid'
+          ? 'the person the request named by their PUID'
+          : `the person with user id ${p.value}`
+
+/**
+ * WHAT THE RETRY WOULD DO, in words (FE-5) — the question's sentence and its answers'. A row asked
+ * before the object existed has none, and reads its route's summary instead.
+ */
+export function whatIsAsked(object: PendingObject | null, summary: string): string {
+  if (object === null) return `${summary.charAt(0).toLowerCase()}${summary.slice(1)}`
+  switch (object.kind) {
+    case 'member':
+      return `make ${personWords(object.person)} ${object.role === 'owner' ? 'an owner' : 'a collaborator'} of this project`
+    case 'member-removal':
+      return `remove ${personWords(object.person)} from this project`
+    case 'deploy':
+      return (
+        `deploy release ${object.release.id.slice(0, 8)}` +
+        (object.release.commitSha === null
+          ? ''
+          : ` (commit ${object.release.commitSha.slice(0, 12)})`) +
+        ` to ${object.environment.kind}`
+      )
+  }
+}
 
 /**
  * How long a question waits for an answer before Task 10's sweeper expires it.
@@ -147,6 +199,7 @@ export async function recordPendingAction(
       .select({
         revokedAt: delegatedTokens.revokedAt,
         expiresAt: delegatedTokens.expiresAt,
+        mintedBy: delegatedTokens.userId,
       })
       .from(delegatedTokens)
       .where(eq(delegatedTokens.id, error.tokenId))
@@ -182,7 +235,7 @@ export async function recordPendingAction(
     }
 
     const existing = await openAsk()
-    if (existing !== undefined) return { row: existing, wrote: false }
+    if (existing !== undefined) return { row: existing, wrote: false, token }
 
     // Before the insert, never after: see the note above. Scoped to this token.
     await expirePendingActions(tx, now, { tokenId: error.tokenId })
@@ -232,17 +285,18 @@ export async function recordPendingAction(
           `pending action for token ${error.tokenId} conflicted on ${fingerprint.method} ${fingerprint.path} and no open ask could be read back`,
         )
       }
-      return { row: winner, wrote: false }
+      return { row: winner, wrote: false, token }
     }
-    return { row, wrote: true }
+    return { row, wrote: true, token }
   })
-  const { row, wrote } = recorded
+  const { row, wrote, token } = recorded
   if (!wrote) return row
 
   /**
-   * §14: the event names the action and who asked, and carries NEITHER the body nor its
-   * hash — a person reading the audit trail needs to know a question was asked, not what
-   * was in it. The row is where the fingerprint lives.
+   * §14: the event names the action, who asked and what it would act on (FE-5's typed
+   * object, from the request), and carries NEITHER the body nor its hash — a person reading
+   * the audit trail needs to know what was asked, not what was in it. The row is where the
+   * fingerprint lives.
    *
    * **Only the caller that WROTE the row publishes.** Reuse returns above without an
    * event, and so does the loser of a race: five concurrent asks are one question, and
@@ -260,8 +314,14 @@ export async function recordPendingAction(
         pendingActionId: row.id,
         tokenId: error.tokenId,
         action: error.capability,
+        // FE-5 and FE-53: what it would act on, when it stops waiting — and the asking token's own
+        // end and minter, read from its row as held above.
+        object: fingerprint.object ?? null,
+        expiresAt: row.expiresAt.toISOString(),
+        tokenExpiresAt: token.expiresAt.toISOString(),
+        tokenMintedBy: token.mintedBy,
       },
-      humanMessage: `An agent asked to ${fingerprint.summary.toLowerCase()}, which D24 reserves to a person. It is waiting for someone to confirm or reject it.`,
+      humanMessage: `An agent asked to ${whatIsAsked(fingerprint.object ?? null, fingerprint.summary)}. It waits for a person who may do that to confirm or reject it.`,
     },
     makeRedactor([]),
   )
@@ -428,8 +488,8 @@ export async function resolveAction(
       },
       humanMessage:
         input.state === 'confirmed'
-          ? `${resolver} confirmed an agent's request to ${row.payload.summary.toLowerCase()}. It may do it once.`
-          : `${resolver} refused an agent's request to ${row.payload.summary.toLowerCase()}: ${input.reason ?? ''}`,
+          ? `${resolver} confirmed an agent's request to ${whatIsAsked(row.payload.object ?? null, row.payload.summary)}. It may do it once.`
+          : `${resolver} refused an agent's request to ${whatIsAsked(row.payload.object ?? null, row.payload.summary)}: ${input.reason ?? ''}`,
     },
     makeRedactor([]),
   )

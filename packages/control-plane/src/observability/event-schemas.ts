@@ -61,6 +61,82 @@ const MemberRole = z.enum(memberRole.enumValues)
 const ActingToken = Uuid.nullable().describe(
   'The delegated token that acted (`listTokens`); null when the person acted in their own session.',
 )
+/**
+ * WHO A QUESTION'S REQUEST NAMED (FE-5) — `db/schema.ts`'s `NamedPersonColumn`, held equal to it by
+ * `tokens/pending.test.ts`. By name only when they are already a member of the project, so a question
+ * never tells the token that asked whether somebody else has signed in.
+ */
+export const NAMED_PERSON = z
+  .strictObject({
+    namedBy: z
+      .enum(['puid', 'cwlLogin', 'email', 'userId'])
+      .describe(
+        'How the request named them: by PUID, CWL login name or email (`addMember`), or by user id (`removeMember`).',
+      ),
+    value: z
+      .string()
+      .describe(
+        'The PUID, CWL login name, email or user id, exactly as the request gave it.',
+      ),
+    member: z
+      .strictObject({
+        userId: Uuid.describe('Their user id (`listMembers`).'),
+        displayName: z.string().describe('Their name, as `listMembers` shows it.'),
+      })
+      .nullable()
+      .describe(
+        'The person, when they are already a member of the project; null otherwise — whether or not anyone of that name has signed in to Manifest.',
+      ),
+  })
+  .describe('A person, as a request named them.')
+
+/**
+ * WHAT A QUESTION'S RETRY WOULD ACT ON (FE-5) — ONE STATEMENT of the shape: the event below carries
+ * it, the contract registers it as `PendingObject` (`api/representations/pending-actions.ts`), and
+ * `db/schema.ts`'s `PendingObjectColumn` is held equal to it under `pnpm typecheck`. Here because
+ * `observability/` imports neither `tokens/` nor `api/`. Never a secret: no field is free-form.
+ */
+export const PENDING_OBJECT = z
+  .discriminatedUnion('kind', [
+    z
+      .strictObject({
+        kind: z
+          .literal('member')
+          .describe('Give a person a role on the project, or change theirs.'),
+        person: NAMED_PERSON,
+        role: MemberRole.describe('The role asked for.'),
+      })
+      .describe('Adding a member, or changing their role.'),
+    z
+      .strictObject({
+        kind: z.literal('member-removal').describe('Take a person off the project.'),
+        person: NAMED_PERSON,
+      })
+      .describe('Removing a member.'),
+    z
+      .strictObject({
+        kind: z.literal('deploy').describe('Deploy a release to an environment.'),
+        release: z
+          .strictObject({
+            id: Uuid.describe('The release, as the request named it (`getRelease`).'),
+            commitSha: Sha.nullable().describe(
+              'The commit it was built from; null when the release is not this project’s.',
+            ),
+          })
+          .describe('The release it would run.'),
+        environment: z
+          .strictObject({
+            id: Uuid.describe('The environment (`getEnvironment`).'),
+            kind: Kind,
+          })
+          .describe('Where it would run.'),
+      })
+      .describe('Deploying a release.'),
+  ])
+  .describe(
+    'What the request would act on, taken from the request and never its body: who and in what role, or which release and where. Switch on `kind`.',
+  )
+
 const Ref = z
   .string()
   .regex(/^refs\/heads\/.+$/)
@@ -368,9 +444,28 @@ export const EVENT_DETAIL_SCHEMAS = {
         .describe(
           'The privileged capability it asked to use: `release:promote`, `secret:read`, `quota:set` or `members:manage`.',
         ),
+      /**
+       * FE-5 and FE-53. REQUIRED, as a field added to an event has always been (`[M5]`): every
+       * question asked from 1.8.0 carries them, and a replay sends a stored event as it was written —
+       * so a question asked before 1.8.0 replays without them (`docs/api/events.md` says so).
+       */
+      object: PENDING_OBJECT.nullable().describe(
+        'What the request would act on — who and in what role, or which release and where; null for a request with nothing to name.',
+      ),
+      expiresAt: z.iso
+        .datetime()
+        .describe(
+          'When the question lapses unanswered, in UTC — never later than `tokenExpiresAt`. Stop waiting for an answer then.',
+        ),
+      tokenExpiresAt: z.iso
+        .datetime()
+        .describe('When the token that asked stops working, in UTC (`listTokens`).'),
+      tokenMintedBy: Uuid.describe(
+        'The person who minted the token that asked — the token’s `mintedBy` (`listMembers` names them).',
+      ),
     })
     .describe(
-      'A delegated token asked to use one of the four privileged capabilities — `release:promote`, `secret:read`, `quota:set` or `members:manage` — and a person must confirm or reject it in the console.',
+      'A delegated token asked to use one of the four privileged capabilities — `release:promote`, `secret:read`, `quota:set` or `members:manage` — and a person must confirm or reject it in the console. It names what the request would act on, and when the question stops waiting.',
     ),
   /**
    * D24 (P5b Task 7). `resolvedBy` is WHO answered, which is the whole point of the

@@ -3085,7 +3085,7 @@ export interface components {
             type: "pending_action.created";
             /** @description What happened, in words for a person. Never parse it. */
             humanMessage: string;
-            /** @description A delegated token asked to use one of the four privileged capabilities — `release:promote`, `secret:read`, `quota:set` or `members:manage` — and a person must confirm or reject it in the console. */
+            /** @description A delegated token asked to use one of the four privileged capabilities — `release:promote`, `secret:read`, `quota:set` or `members:manage` — and a person must confirm or reject it in the console. It names what the request would act on, and when the question stops waiting. */
             machineDetail: {
                 /**
                  * Format: uuid
@@ -3099,6 +3099,23 @@ export interface components {
                 tokenId: string;
                 /** @description The privileged capability it asked to use: `release:promote`, `secret:read`, `quota:set` or `members:manage`. */
                 action: string;
+                /** @description What the request would act on — who and in what role, or which release and where; null for a request with nothing to name. */
+                object: components["schemas"]["PendingObject"] | null;
+                /**
+                 * Format: date-time
+                 * @description When the question lapses unanswered, in UTC — never later than `tokenExpiresAt`. Stop waiting for an answer then.
+                 */
+                expiresAt: string;
+                /**
+                 * Format: date-time
+                 * @description When the token that asked stops working, in UTC (`listTokens`).
+                 */
+                tokenExpiresAt: string;
+                /**
+                 * Format: uuid
+                 * @description The person who minted the token that asked — the token’s `mintedBy` (`listMembers` names them).
+                 */
+                tokenMintedBy: string;
             };
             /**
              * Format: date-time
@@ -5556,6 +5573,26 @@ export interface components {
             /** @description The token, in full: `mft_<id>_<secret>` — what an agent sends as `Authorization: Bearer`. Store it now: it is in this answer and nowhere else. `listTokens` never shows it, and a retry of this mint with the same Idempotency-Key answers `409 TOKEN_ALREADY_MINTED` naming the token, never the secret again. */
             secret: string;
         };
+        /** @description A person, as a request named them. */
+        NamedPerson: {
+            /**
+             * @description How the request named them: by PUID, CWL login name or email (`addMember`), or by user id (`removeMember`).
+             * @enum {string}
+             */
+            namedBy: "puid" | "cwlLogin" | "email" | "userId";
+            /** @description The PUID, CWL login name, email or user id, exactly as the request gave it. */
+            value: string;
+            /** @description The person, when they are already a member of the project; null otherwise — whether or not anyone of that name has signed in to Manifest. */
+            member: {
+                /**
+                 * Format: uuid
+                 * @description Their user id (`listMembers`).
+                 */
+                userId: string;
+                /** @description Their name, as `listMembers` shows it. */
+                displayName: string;
+            } | null;
+        };
         /** @description This API’s OpenAPI 3.1 document — the one the platform publishes, generated from its own route definitions when it starts, so what is served is what is published. */
         OpenApiDocument: {
             [key: string]: unknown;
@@ -5590,8 +5627,10 @@ export interface components {
             path: string;
             /** @description SHA-256 of the canonical request body, so a client can match its own. */
             bodySha256: string;
-            /** @description What was asked for, for the person who answers. */
+            /** @description The operation that was asked for, in the API’s words (its summary). `object` says what it would act on. */
             summary: string;
+            /** @description What the request would act on — who and in what role, or which release and where; null on a question asked before the platform recorded what a question acts on. */
+            object: components["schemas"]["PendingObject"] | null;
             /**
              * Format: date-time
              * @description When the question lapses unanswered — never later than the asking token’s own expiresAt.
@@ -5613,6 +5652,56 @@ export interface components {
         };
         /** @description The questions agents have put to the people who own this project, newest first. */
         PendingActionList: components["schemas"]["PendingAction"][];
+        /** @description What the request would act on, taken from the request and never its body: who and in what role, or which release and where. Switch on `kind`. */
+        PendingObject: {
+            /**
+             * @description Give a person a role on the project, or change theirs.
+             * @constant
+             */
+            kind: "member";
+            person: components["schemas"]["NamedPerson"];
+            /**
+             * @description The role asked for.
+             * @enum {string}
+             */
+            role: "owner" | "collaborator";
+        } | {
+            /**
+             * @description Take a person off the project.
+             * @constant
+             */
+            kind: "member-removal";
+            person: components["schemas"]["NamedPerson"];
+        } | {
+            /**
+             * @description Deploy a release to an environment.
+             * @constant
+             */
+            kind: "deploy";
+            /** @description The release it would run. */
+            release: {
+                /**
+                 * Format: uuid
+                 * @description The release, as the request named it (`getRelease`).
+                 */
+                id: string;
+                /** @description The commit it was built from; null when the release is not this project’s. */
+                commitSha: string | null;
+            };
+            /** @description Where it would run. */
+            environment: {
+                /**
+                 * Format: uuid
+                 * @description The environment (`getEnvironment`).
+                 */
+                id: string;
+                /**
+                 * @description Which of the project’s three environments.
+                 * @enum {string}
+                 */
+                kind: "sandbox" | "staging" | "production";
+            };
+        };
         /** @description The app’s privacy impact assessment: when a person said it was sent, and what UBC’s Privacy Office said, as an administrator recorded it. It comes first: the staging registration waits for its approval. */
         PrivacyAssessment: {
             /**
@@ -7612,7 +7701,7 @@ export interface operations {
                      *       "openapi": "3.1.0",
                      *       "info": {
                      *         "title": "Manifest",
-                     *         "version": "1.7.0"
+                     *         "version": "1.8.0"
                      *       },
                      *       "paths": {}
                      *     }
@@ -7660,6 +7749,15 @@ export interface operations {
                      *       "path": "/v1/projects/71fa56ac-c7dc-4368-ba62-32696fa50bfb/members",
                      *       "bodySha256": "63dbcbcf12502ef9e6d588c38dc66a2d68f50df9bf7c802d5faac5a52b5bbe5b",
                      *       "summary": "Add or change a member",
+                     *       "object": {
+                     *         "kind": "member",
+                     *         "person": {
+                     *           "namedBy": "puid",
+                     *           "value": "bio_student",
+                     *           "member": null
+                     *         },
+                     *         "role": "collaborator"
+                     *       },
                      *       "expiresAt": "2026-09-27T21:48:16.729Z",
                      *       "createdAt": "2026-09-26T21:48:16.730Z",
                      *       "resolvedAt": null,
@@ -7721,6 +7819,17 @@ export interface operations {
                      *       "path": "/v1/projects/20f75cbb-0bd7-4fba-b648-3fd43e9640ff/members/303c35ad-8966-44a0-96a1-29e39b453258",
                      *       "bodySha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
                      *       "summary": "Remove a member",
+                     *       "object": {
+                     *         "kind": "member-removal",
+                     *         "person": {
+                     *           "namedBy": "userId",
+                     *           "value": "303c35ad-8966-44a0-96a1-29e39b453258",
+                     *           "member": {
+                     *             "userId": "303c35ad-8966-44a0-96a1-29e39b453258",
+                     *             "displayName": "Bio Student"
+                     *           }
+                     *         }
+                     *       },
                      *       "expiresAt": "2026-09-27T21:48:26.880Z",
                      *       "createdAt": "2026-09-26T21:48:26.881Z",
                      *       "resolvedAt": "2026-09-26T21:48:26.885Z",
@@ -7786,6 +7895,15 @@ export interface operations {
                      *       "path": "/v1/projects/ef7b2d4a-e4a3-4f11-b0d9-dddbc1b1a3bd/members",
                      *       "bodySha256": "63dbcbcf12502ef9e6d588c38dc66a2d68f50df9bf7c802d5faac5a52b5bbe5b",
                      *       "summary": "Add or change a member",
+                     *       "object": {
+                     *         "kind": "member",
+                     *         "person": {
+                     *           "namedBy": "puid",
+                     *           "value": "bio_student",
+                     *           "member": null
+                     *         },
+                     *         "role": "collaborator"
+                     *       },
                      *       "expiresAt": "2026-09-27T21:48:29.860Z",
                      *       "createdAt": "2026-09-26T21:48:29.861Z",
                      *       "resolvedAt": "2026-09-26T21:48:29.865Z",
@@ -10342,6 +10460,17 @@ export interface operations {
                      *         "path": "/v1/projects/29f9e50b-1ded-4f9e-ab2e-085a4f560188/members/0a418b8c-6d32-4e9f-bc77-24765feebf3b",
                      *         "bodySha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
                      *         "summary": "Remove a member",
+                     *         "object": {
+                     *           "kind": "member-removal",
+                     *           "person": {
+                     *             "namedBy": "userId",
+                     *             "value": "0a418b8c-6d32-4e9f-bc77-24765feebf3b",
+                     *             "member": {
+                     *               "userId": "0a418b8c-6d32-4e9f-bc77-24765feebf3b",
+                     *               "displayName": "Bio Student"
+                     *             }
+                     *           }
+                     *         },
                      *         "expiresAt": "2026-09-27T21:51:54.279Z",
                      *         "createdAt": "2026-09-26T21:51:54.280Z",
                      *         "resolvedAt": null,
@@ -10359,6 +10488,17 @@ export interface operations {
                      *         "path": "/v1/projects/29f9e50b-1ded-4f9e-ab2e-085a4f560188/members/0a418b8c-6d32-4e9f-bc77-24765feebf3b",
                      *         "bodySha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
                      *         "summary": "Remove a member",
+                     *         "object": {
+                     *           "kind": "member-removal",
+                     *           "person": {
+                     *             "namedBy": "userId",
+                     *             "value": "0a418b8c-6d32-4e9f-bc77-24765feebf3b",
+                     *             "member": {
+                     *               "userId": "0a418b8c-6d32-4e9f-bc77-24765feebf3b",
+                     *               "displayName": "Bio Student"
+                     *             }
+                     *           }
+                     *         },
                      *         "expiresAt": "2026-09-27T21:51:54.270Z",
                      *         "createdAt": "2026-09-26T21:51:54.271Z",
                      *         "resolvedAt": null,

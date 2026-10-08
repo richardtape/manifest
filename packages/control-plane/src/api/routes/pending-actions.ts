@@ -177,6 +177,17 @@ export const pendingActionReads = [
           path: '/v1/projects/29f9e50b-1ded-4f9e-ab2e-085a4f560188/members/0a418b8c-6d32-4e9f-bc77-24765feebf3b',
           bodySha256: '74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b',
           summary: 'Remove a member',
+          object: {
+            kind: 'member-removal',
+            person: {
+              namedBy: 'userId',
+              value: '0a418b8c-6d32-4e9f-bc77-24765feebf3b',
+              member: {
+                userId: '0a418b8c-6d32-4e9f-bc77-24765feebf3b',
+                displayName: 'Bio Student',
+              },
+            },
+          },
           expiresAt: '2026-09-27T21:51:54.279Z',
           createdAt: '2026-09-26T21:51:54.280Z',
           resolvedAt: null,
@@ -194,6 +205,17 @@ export const pendingActionReads = [
           path: '/v1/projects/29f9e50b-1ded-4f9e-ab2e-085a4f560188/members/0a418b8c-6d32-4e9f-bc77-24765feebf3b',
           bodySha256: '74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b',
           summary: 'Remove a member',
+          object: {
+            kind: 'member-removal',
+            person: {
+              namedBy: 'userId',
+              value: '0a418b8c-6d32-4e9f-bc77-24765feebf3b',
+              member: {
+                userId: '0a418b8c-6d32-4e9f-bc77-24765feebf3b',
+                displayName: 'Bio Student',
+              },
+            },
+          },
           expiresAt: '2026-09-27T21:51:54.270Z',
           createdAt: '2026-09-26T21:51:54.271Z',
           resolvedAt: null,
@@ -239,6 +261,11 @@ export const pendingActionReads = [
         path: '/v1/projects/71fa56ac-c7dc-4368-ba62-32696fa50bfb/members',
         bodySha256: '63dbcbcf12502ef9e6d588c38dc66a2d68f50df9bf7c802d5faac5a52b5bbe5b',
         summary: 'Add or change a member',
+        object: {
+          kind: 'member',
+          person: { namedBy: 'puid', value: 'bio_student', member: null },
+          role: 'collaborator',
+        },
         expiresAt: '2026-09-27T21:48:16.729Z',
         createdAt: '2026-09-26T21:48:16.730Z',
         resolvedAt: null,
@@ -314,6 +341,17 @@ export const pendingActionRoutes = [
         path: '/v1/projects/20f75cbb-0bd7-4fba-b648-3fd43e9640ff/members/303c35ad-8966-44a0-96a1-29e39b453258',
         bodySha256: '74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b',
         summary: 'Remove a member',
+        object: {
+          kind: 'member-removal',
+          person: {
+            namedBy: 'userId',
+            value: '303c35ad-8966-44a0-96a1-29e39b453258',
+            member: {
+              userId: '303c35ad-8966-44a0-96a1-29e39b453258',
+              displayName: 'Bio Student',
+            },
+          },
+        },
         expiresAt: '2026-09-27T21:48:26.880Z',
         createdAt: '2026-09-26T21:48:26.881Z',
         resolvedAt: '2026-09-26T21:48:26.885Z',
@@ -377,6 +415,11 @@ export const pendingActionRoutes = [
         path: '/v1/projects/ef7b2d4a-e4a3-4f11-b0d9-dddbc1b1a3bd/members',
         bodySha256: '63dbcbcf12502ef9e6d588c38dc66a2d68f50df9bf7c802d5faac5a52b5bbe5b',
         summary: 'Add or change a member',
+        object: {
+          kind: 'member',
+          person: { namedBy: 'puid', value: 'bio_student', member: null },
+          role: 'collaborator',
+        },
         expiresAt: '2026-09-27T21:48:29.860Z',
         createdAt: '2026-09-26T21:48:29.861Z',
         resolvedAt: '2026-09-26T21:48:29.865Z',

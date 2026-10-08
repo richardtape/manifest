@@ -1,6 +1,14 @@
 import { z } from 'zod/v4'
+import { NAMED_PERSON, PENDING_OBJECT } from '../../observability/index.js'
 import type { PendingAction as PendingActionRow } from '../../tokens/index.js'
 import { representation, request, Timestamp, Uuid } from '../contract/schemas.js'
+
+/**
+ * WHAT A QUESTION'S RETRY WOULD ACT ON (FE-5) — the event's schema, registered as the contract's own
+ * component, so `PendingAction.object` and `pending_action.created`'s `object` are one `$ref`.
+ */
+export const PendingObject = representation('PendingObject', PENDING_OBJECT)
+export const NamedPerson = representation('NamedPerson', NAMED_PERSON)
 
 /**
  * §6's `PendingAction` on the wire: the question an agent's refused request put to a
@@ -44,7 +52,18 @@ export const PendingAction = representation(
         .describe(
           'SHA-256 of the canonical request body, so a client can match its own.',
         ),
-      summary: z.string().describe('What was asked for, for the person who answers.'),
+      summary: z
+        .string()
+        .describe(
+          'The operation that was asked for, in the API’s words (its summary). `object` says what it would act on.',
+        ),
+      /**
+       * FE-5: who and in what role, which release and where — the route's own reading of the
+       * request, never its body. Null on a question asked before 1.8.0.
+       */
+      object: PendingObject.nullable().describe(
+        'What the request would act on — who and in what role, or which release and where; null on a question asked before the platform recorded what a question acts on.',
+      ),
       expiresAt: Timestamp.describe(
         'When the question lapses unanswered — never later than the asking token’s own expiresAt.',
       ),
@@ -125,6 +144,7 @@ export function toPendingAction(
     path: row.payload.path,
     bodySha256: row.payload.bodySha256,
     summary: row.payload.summary,
+    object: row.payload.object ?? null,
     expiresAt: row.expiresAt.toISOString(),
     createdAt: row.createdAt.toISOString(),
     resolvedAt: row.resolvedAt?.toISOString() ?? null,

@@ -518,6 +518,12 @@ export const pendingActions = pgTable(
       path: string
       bodySha256: string
       summary: string
+      /**
+       * What the retry would act on (FE-5) — who and in what role, which release and where.
+       * Taken from the request by the route's own `pendingObject`, never the body itself. Absent
+       * on a row asked before it, which reads as null.
+       */
+      object?: PendingObjectColumn | null
     }>(),
     state: pendingActionState('state').notNull().default('pending'),
     resolvedBy: uuid('resolved_by').references(() => users.id),
@@ -827,6 +833,32 @@ export const privacyAssessments = pgTable('privacy_assessments', {
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 })
+
+/**
+ * WHO A QUESTION'S REQUEST NAMED (FE-5): as the request named them, and by name only when they
+ * are already a member of the project — which the asking token can read from `listMembers` — so a
+ * question never tells a token whether somebody else has signed in.
+ */
+export interface NamedPersonColumn {
+  namedBy: 'puid' | 'cwlLogin' | 'email' | 'userId'
+  value: string
+  member: { userId: string; displayName: string } | null
+}
+
+/**
+ * WHAT A QUESTION'S RETRY WOULD ACT ON (FE-5) — `pending_actions.payload.object`. Declared here
+ * because `db/` imports neither `tokens/` nor `observability/`; `PENDING_OBJECT`
+ * (`observability/event-schemas.ts`) is the schema, and `tokens/pending.test.ts` holds the two
+ * equal under `pnpm typecheck`.
+ */
+export type PendingObjectColumn =
+  | { kind: 'member'; person: NamedPersonColumn; role: 'owner' | 'collaborator' }
+  | { kind: 'member-removal'; person: NamedPersonColumn }
+  | {
+      kind: 'deploy'
+      release: { id: string; commitSha: string | null }
+      environment: { id: string; kind: 'sandbox' | 'staging' | 'production' }
+    }
 
 /**
  * §13's `diff_snapshot`, the jsonb shape — ONE statement of it, read by `approvals` and by

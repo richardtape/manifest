@@ -1131,6 +1131,29 @@ export const releaseRoutes = [
         createdAt: '2026-09-26T21:47:31.702Z',
       },
     },
+    /**
+     * FE-5: the release a production deploy would run — its commit only when it is the environment's
+     * project's, so a question never reads out another project's history — and where.
+     */
+    pendingObject: async ({ deps, params, body }) => {
+      const environment = await environmentById(deps.db, params.environmentId)
+      const [built] = await deps.db
+        .select({ projectId: releases.projectId, commitSha: builds.commitSha })
+        .from(releases)
+        .innerJoin(builds, eq(builds.id, releases.buildId))
+        .where(eq(releases.id, body.releaseId))
+      return {
+        kind: 'deploy',
+        release: {
+          id: body.releaseId,
+          commitSha:
+            built !== undefined && built.projectId === environment.projectId
+              ? built.commitSha
+              : null,
+        },
+        environment: { id: environment.id, kind: environment.kind },
+      }
+    },
     handler: async ({ deps, actor, params, body }) => {
       const environment = await environmentById(deps.db, params.environmentId)
       // §13 and D24: promoting to production is a different decision from deploying to

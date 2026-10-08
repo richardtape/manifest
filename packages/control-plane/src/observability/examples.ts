@@ -120,6 +120,18 @@ export const EXAMPLE_DETAILS: { readonly [T in EventType]: Record<string, unknow
     pendingActionId: UUID,
     tokenId: UUID,
     action: 'members:manage',
+    object: {
+      kind: 'member',
+      person: {
+        namedBy: 'cwlLogin',
+        value: 'colleague',
+        member: { userId: UUID, displayName: 'Test Colleague' },
+      },
+      role: 'collaborator',
+    },
+    expiresAt: '2026-10-09T17:30:31.447Z',
+    tokenExpiresAt: '2026-10-15T17:00:00.000Z',
+    tokenMintedBy: UUID,
   },
   'pending_action.confirmed': {
     pendingActionId: UUID,

@@ -6,7 +6,7 @@ export {
   type EventInput,
   type EventType,
 } from './events.js'
-export { EVENT_DETAIL_SCHEMAS } from './event-schemas.js'
+export { EVENT_DETAIL_SCHEMAS, NAMED_PERSON, PENDING_OBJECT } from './event-schemas.js'
 export { EXAMPLE_DETAILS } from './examples.js'
 export {
   makeRedactor,

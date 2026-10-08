@@ -15,6 +15,7 @@ import {
   PendingActionRequiredError,
   recordPendingAction,
   resolutionFor,
+  type PendingObject,
 } from '../../tokens/index.js'
 import { requireActor, requireSession, type Actor } from '../actor.js'
 import type { ErrorCode } from '../error-codes.js'
@@ -118,6 +119,19 @@ export interface RouteDefinition<
     stored: (answer: z.output<R>) => unknown
     refuse: (stored: unknown) => Error
   }
+  /**
+   * WHAT A TOKEN'S QUESTION ON THIS OPERATION WOULD ACT ON (FE-5): who and in what role, which
+   * release and where — read from the request, never its body. Run ONLY when the wrapper records a
+   * pending action (a token refused a privileged capability), and stored on the question, so the
+   * person who answers reads what they are agreeing to. **Every operation whose capability is
+   * privileged declares one** (`pending-object.test.ts`); a failure here is a `500` with the
+   * wrapper's operator line, never a question that names nothing.
+   */
+  pendingObject?: (ctx: {
+    deps: ServerDeps
+    params: z.output<P>
+    body: z.output<B>
+  }) => Promise<PendingObject>
   handler: (
     ctx: RouteContext<z.output<P>, z.output<Q>, z.output<B>>,
   ) => Promise<z.input<R>>
@@ -353,10 +367,16 @@ export function registerRoutes(
               if (resolution.kind === 'rejected') {
                 throw new PendingActionRejectedError(resolution.row)
               }
+              // FE-5: what the question is about, in the route's own terms — asked only now, when
+              // there is a question to ask.
+              const object =
+                route.pendingObject === undefined
+                  ? null
+                  : await route.pendingObject({ deps, params, body })
               throw new PendingActionRequiredError(
                 await recordPendingAction(deps.db, deps.bus, {
                   error,
-                  fingerprint,
+                  fingerprint: { ...fingerprint, object },
                   // A question never outlives its token (FE-52). Only a token is ever refused this way
                   // (`assertCapability`), and a token actor's `expiresAt` is its row's `expires_at`.
                   tokenExpiresAt: new Date(actor.expiresAt),

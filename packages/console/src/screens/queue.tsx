@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import type { Schemas, StreamFrame } from '@manifest/contract'
 import type { Api } from '../api'
+import { questionWords } from '../question-words'
 import { Instant, Field, Panel, Pill, Refusal, useAsync } from '../ui'
 
 /**
@@ -21,9 +22,10 @@ import { Instant, Field, Panel, Pill, Refusal, useAsync } from '../ui'
  * The screen says so, in words, beside the button.
  *
  * **(b) THE BODY IS NEVER CARRIED — only `bodySha256`** (P5b Task 8). A person reading a
- * question gets the summary the platform wrote and a hash of what was asked; the request
- * body is not stored anywhere, deliberately, because a person reads this row on a screen.
- * A console that dressed the hash up as "the change" would be inventing information.
+ * question gets what the request would act on — the platform's typed `object`, in words
+ * (`questionWords`, FE-5) — and a hash of what was asked; the request body is not stored
+ * anywhere, deliberately, because a person reads this row on a screen. A console that
+ * dressed the hash up as "the change" would be inventing information.
  *
  * **(c) A PERSON MAY READ THIS QUEUE WITHOUT BEING ABLE TO ANSWER IT.** Reading is
  * `project:read`, so a collaborator watches; answering needs the capability the question is
@@ -238,7 +240,7 @@ function Question({
 
   return (
     <li>
-      <Field label={row.summary}>
+      <Field label={questionWords(row)}>
         <Pill tone={shown === 'pending' ? 'bad' : 'plain'}>{shown}</Pill>{' '}
         <code>{row.action}</code>
       </Field>

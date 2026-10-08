@@ -80,11 +80,23 @@ import { STREAM_PATH, streamPathItem } from './websocket.js'
  * (`INCIDENT_LOG_CONFIDENTIAL`), whatever the building agent's setting; and `ai.models_withdrawn` is a new event. A client that
  * compares a classification must compare the level, never the string. Nothing is published between this plan's tasks.
  *
+ * **`1.8.0` SINCE THE FE-46/47/5 PLAN'S TASK 2 (2026-10-08)**, as that plan's Decision 1 has it: a question names what it
+ * would act on — `PendingAction.object` (the registered `PendingObject`, with `NamedPerson`) — and `pending_action.created`
+ * carries the same `object`, the question's `expiresAt`, the asking token's `tokenExpiresAt` and its `tokenMintedBy` (FE-5,
+ * FE-53). All ADDITIVE for a reader. **Stated, as `1.5.0`'s `environment` was:** the four event fields are REQUIRED, as every
+ * event field has been, and a replay sends a stored event as it was written — so a `pending_action.created` recorded before
+ * `1.8.0` replays without them (`docs/api/events.md` says so of every event); `PendingAction.object` reads null on a question
+ * asked before it. Task 2b adds `SpecValidation.sensitiveSinceApproved` (FE-54). **The breaks the plan's later tasks
+ * WILL make ride on this one bump, each stated here by the task that lands it** — the owner's send and the team's
+ * submission and hand-back (`submitIamRegistration` and `submitPrivacyAssessment` become the team's, with a new body;
+ * `SubmitLaunchRecordRequest` is retired), `PrivacyAssessmentDraft.sections[].gaps` as `{ id, text }[]`, the records' `sent`
+ * state and the queue's new kinds — because nothing is published between its tasks.
+ *
  * Three files carry it and two tests hold them together: this constant,
  * `packages/contract/openapi.json`'s `info.version` (GENERATED — `pnpm contract:write`,
  * never edited) and `packages/contract/package.json`.
  */
-export const CONTRACT_VERSION = '1.7.0'
+export const CONTRACT_VERSION = '1.8.0'
 
 type JsonSchema = Record<string, unknown>
 

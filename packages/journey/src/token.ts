@@ -8,6 +8,7 @@ import {
   type ManifestClient,
   type StreamFrame,
 } from '@manifest/contract'
+import { isDeepStrictEqual } from 'node:util'
 import { Checks, JourneyStop } from './check.js'
 import { waitFor } from './wait.js'
 
@@ -99,6 +100,8 @@ interface Agent {
   client: ManifestClient
   secret: string
   id: string
+  /** When the token stops working — what `pending_action.created`'s `tokenExpiresAt` names (FE-53). */
+  expiresAt: string
 }
 
 const state: {
@@ -270,6 +273,7 @@ async function step2Mint(): Promise<void> {
     client: createManifestClient({ origin, token: minted.secret }),
     secret: minted.secret,
     id: minted.token.id,
+    expiresAt: minted.token.expiresAt,
   }
 }
 
@@ -504,6 +508,25 @@ async function step6Refused(): Promise<void> {
   // A FACULTY colleague: since FE-39 only a person who may build is added (step 8 shows the student
   // refused).
   state.memberBody = { puid: 'col000001', role: 'collaborator' }
+  // The project's stream, on the agent's own bearer: the question's event is how a client learns when
+  // it stops waiting (FE-53).
+  const frames: StreamFrame[] = []
+  const stream = subscribe({
+    origin,
+    token: agent.secret,
+    projectId,
+    onFrame: (frame) => frames.push(frame),
+  })
+  try {
+    await stream.ready
+  } catch (error) {
+    checks.ok(
+      'the agent’s bearer opened the project’s event stream',
+      false,
+      (error as Error).message,
+    )
+    return
+  }
   state.askedAt = Date.now()
   const asked = await agent.client.POST('/v1/projects/{projectId}/members', {
     params: { path: { projectId }, header: { 'Idempotency-Key': state.memberKey } },
@@ -530,14 +553,67 @@ async function step6Refused(): Promise<void> {
       question.tokenId === agent.id,
     JSON.stringify(question),
   )
-  // A person reads this row on a screen (§26). The body is hashed, never stored — so the
-  // PUID the agent asked about is not in it.
+  // A person reads this row on a screen (§26). The body is hashed, never stored — the PUID the
+  // agent asked about is in the question only as its object names the person, as the request did.
   checks.ok(
     'and carries a hash of the request, never the request itself',
     /^[0-9a-f]{64}$/.test(question.bodySha256) &&
-      !JSON.stringify(question).includes('col000001'),
+      !JSON.stringify({ ...question, object: null }).includes('col000001'),
     question.bodySha256.slice(0, 16),
   )
+  // FE-5: WHAT IT WOULD ACT ON — the person as the request named them, and by name ONLY when they are
+  // already a member, so a question never tells the agent who has signed in. A fresh run's colleague
+  // is not yet one; a re-used project's is (step 8 added them), so the members list says which to expect.
+  const members = unwrap(
+    await human.GET('/v1/projects/{projectId}/members', {
+      params: { path: { projectId } },
+    }),
+    'listMembers',
+  )
+  const already = members.find((m) => m.puid === 'col000001')
+  const object = question.object
+  checks.ok(
+    already === undefined
+      ? 'and names what it would do: the colleague as the agent named them — not yet a member, so by PUID alone — as a collaborator'
+      : 'and names what it would do: the colleague — already a member on this re-used project, so by name — as a collaborator',
+    object?.kind === 'member' &&
+      object.role === 'collaborator' &&
+      object.person.namedBy === 'puid' &&
+      object.person.value === 'col000001' &&
+      (already === undefined
+        ? object.person.member === null
+        : object.person.member?.userId === already.userId &&
+          object.person.member.displayName === already.displayName),
+    JSON.stringify(object),
+  )
+  // FE-53: the question's event, on the agent's own stream, says when it stops waiting — its own
+  // expiry, and the asking token's end and minter.
+  try {
+    const created = await waitFor(
+      frames,
+      (f) =>
+        f.kind === 'event' &&
+        f.type === 'pending_action.created' &&
+        f.machineDetail.pendingActionId === question.id,
+      10_000,
+    )
+    const detail =
+      created?.kind === 'event' && created.type === 'pending_action.created'
+        ? created.machineDetail
+        : undefined
+    checks.ok(
+      'and its pending_action.created carries the object, its expiry, the token’s and who minted it',
+      detail !== undefined &&
+        // Structurally: the stored event's keys come back in jsonb's order, not the representation's.
+        isDeepStrictEqual(detail.object, question.object) &&
+        detail.expiresAt === question.expiresAt &&
+        Date.parse(detail.tokenExpiresAt) === Date.parse(agent.expiresAt) &&
+        detail.tokenMintedBy === state.meId,
+      JSON.stringify(detail ?? null),
+    )
+  } finally {
+    stream.close()
+  }
 }
 
 /**
@@ -708,6 +784,17 @@ async function step8RetriedOnce(): Promise<void> {
     'but a FRESH key is a new question — the grant was for one request, and it is spent',
     error !== undefined && error.pendingAction?.id !== pendingActionId,
     `${describe(again)} ${error?.pendingAction?.id ?? ''}`,
+  )
+  // FE-5's other half: the colleague IS a member now, so this question names them by name — the
+  // member the request named, as the project's members list shows them.
+  const named = error?.pendingAction?.object
+  checks.ok(
+    'and it names the colleague by name now they are a member',
+    named?.kind === 'member' &&
+      named.person.value === 'col000001' &&
+      named.person.member?.userId === member.userId &&
+      named.person.member.displayName === member.displayName,
+    JSON.stringify(named ?? null),
   )
   console.log(
     `  (retry 1: ${first.response.status}; retry 2, same key: ${replayed.response.status} replayed; retry 3, new key: ${again.response.status} ${(again.error as ErrorEnvelope | undefined)?.error?.code ?? ''})`,

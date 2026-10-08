@@ -267,13 +267,28 @@ A person minted a delegated token for this project. Never carries the token or i
 
 ## `pending_action.created`
 
-A delegated token asked to use one of the four privileged capabilities — `release:promote`, `secret:read`, `quota:set` or `members:manage` — and a person must confirm or reject it in the console.
+A delegated token asked to use one of the four privileged capabilities — `release:promote`, `secret:read`, `quota:set` or `members:manage` — and a person must confirm or reject it in the console. It names what the request would act on, and when the question stops waiting.
 
 ```json
 {
   "pendingActionId": "6f1c1d2e-8a4b-4c3d-9e2f-1a2b3c4d5e6f",
   "tokenId": "6f1c1d2e-8a4b-4c3d-9e2f-1a2b3c4d5e6f",
-  "action": "members:manage"
+  "action": "members:manage",
+  "object": {
+    "kind": "member",
+    "person": {
+      "namedBy": "cwlLogin",
+      "value": "colleague",
+      "member": {
+        "userId": "6f1c1d2e-8a4b-4c3d-9e2f-1a2b3c4d5e6f",
+        "displayName": "Test Colleague"
+      }
+    },
+    "role": "collaborator"
+  },
+  "expiresAt": "2026-10-09T17:30:31.447Z",
+  "tokenExpiresAt": "2026-10-15T17:00:00.000Z",
+  "tokenMintedBy": "6f1c1d2e-8a4b-4c3d-9e2f-1a2b3c4d5e6f"
 }
 ```
 

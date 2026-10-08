@@ -55,7 +55,7 @@ If you need a model, ask for a key with `startAgentSession` — your token must 
 
 **A privileged action waits for a person, and you must never try to get around it.** Deploying to production, reading a secret, changing a quota and managing members are never done by a token alone. Ask, and you are answered `403 TOKEN_ACTION_PENDING` with a `pendingAction` in the envelope: the question a person who could do it themselves — an owner of the project, or for a quota a platform administrator — answers in their own session.
 
-- Tell the person what you asked for and why, and wait: `getPendingAction` says when they have answered.
+- Tell the person what you asked for and why, and wait: `getPendingAction` says when they have answered. Its `object` is what the person is asked to agree to — who and in what role, or which release and where — and names a person by name only once they are a member of the project; anyone else exactly as your request named them.
 - `confirmed` lets the identical request through **once** — the same method, path and body, from your token, whatever its `Idempotency-Key`.
 - `rejected` is final; `pendingAction.reason` is their reason. Do not ask again for the same thing.
 - `expired` means nobody answered in time. A question never lives longer than the token that asked it, so its `expiresAt` is never later than your token’s.

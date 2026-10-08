@@ -989,7 +989,16 @@ export const PENDING_ACTION: Schemas['PendingAction'] = {
   method: 'POST',
   path: `/v1/projects/${PROJECT_ID}/members`,
   bodySha256: '0aa6131a7f3b5c8d9e0f1a2b3c4d5e6f708192a3b4c5d6e7f8091a2b3c4d5e6f',
-  summary: 'add a member to this project',
+  // The route's own summary, as the platform stores it (`addMember`'s) — a client showing it reads
+  // the same words in mock mode as against the platform.
+  summary: 'Add or change a member',
+  // What the agent asked to do (FE-5): make a person — named by CWL login, NOT yet a member, so
+  // the platform names them only as the request did — a collaborator.
+  object: {
+    kind: 'member',
+    person: { namedBy: 'cwlLogin', value: 'colleague', member: null },
+    role: 'collaborator',
+  },
   expiresAt: HOURS_FROM_NOW(24),
   createdAt: ISO,
   resolvedAt: null,

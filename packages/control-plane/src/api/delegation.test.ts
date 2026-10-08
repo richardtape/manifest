@@ -15,6 +15,7 @@ import { ERROR_CODES } from './error-codes.js'
 import {
   mutationHeaders,
   refusal,
+  releasedProject,
   sessionFor,
   withProjectServer,
   type TestProject,
@@ -235,8 +236,23 @@ describe('D24’s central refusal', () => {
       expect(stored?.payload.path).toBe(`/v1/projects/${ctx.projectId}/members`)
       expect(stored?.payload.bodySha256).toMatch(/^[0-9a-f]{64}$/)
       // The BODY IS NOT STORED (the column's own comment): a refused request can carry
-      // anything, and a person reads this row in a queue (§26).
-      expect(JSON.stringify(stored?.payload)).not.toContain('bio_student')
+      // anything, and a person reads this row in a queue (§26). What the request NAMED is, as
+      // the route's typed object (FE-5) — and nothing of the body beyond it.
+      expect(Object.keys(stored?.payload ?? {}).sort()).toEqual([
+        'bodySha256',
+        'method',
+        'object',
+        'path',
+        'summary',
+      ])
+      expect(stored?.payload.object).toEqual({
+        kind: 'member',
+        person: { namedBy: 'puid', value: 'bio_student', member: null },
+        role: 'collaborator',
+      })
+      expect(JSON.stringify({ ...stored?.payload, object: null })).not.toContain(
+        'bio_student',
+      )
       expect(stored?.payload.summary).toContain('member')
     })
   })
@@ -797,9 +813,10 @@ describe('the queue (§26)', () => {
     })
   })
 
-  it('never carries the refused request’s body', async () => {
+  it('never carries the refused request’s body — only the person it named, as its object', async () => {
     // The row exists to be read on a screen (§14, §26). `bio_student` is the PUID the
-    // refused `addMember` body named, and it appears nowhere in the answer.
+    // refused `addMember` body named: the answer names them as the request did, in the typed
+    // object (FE-5), and nowhere else.
     await withProjectServer(async (ctx) => {
       const { pendingId } = await refusedOnce(ctx)
       const res = await ctx.app.inject({
@@ -808,7 +825,12 @@ describe('the queue (§26)', () => {
         cookies: ctx.ownerCookies,
       })
       expect(refusal(res)).toEqual({ status: 200, code: undefined })
-      expect(JSON.stringify(res.json())).not.toContain('bio_student')
+      expect(res.json().object.person).toEqual({
+        namedBy: 'puid',
+        value: 'bio_student',
+        member: null,
+      })
+      expect(JSON.stringify({ ...res.json(), object: null })).not.toContain('bio_student')
     })
   })
 })
@@ -1111,6 +1133,204 @@ describe('the pending-action hint says what is matched, and who answers (FE-51, 
         expect(words, where).not.toMatch(/minted/)
         expect(words, where).toMatch(/owner/)
       }
+    })
+  })
+})
+
+/**
+ * FE-5: A QUESTION NAMES WHAT IT WOULD ACT ON — who and in what role, which release and where — as the
+ * route's own `pendingObject` reads it from the request. The 403 that creates the question carries it,
+ * and so does `getPendingAction`.
+ */
+describe('a question names what it would act on (FE-5)', () => {
+  async function userOf(ctx: TestProject, puid: TestUserPuid) {
+    const [row] = await ctx.db.select().from(users).where(eq(users.ubcCwlPuid, puid))
+    if (row === undefined) throw new Error(`'${puid}' has never signed in`)
+    return row
+  }
+
+  /** The test identities carry no CWL login; the laptop IdP's do. Given one here, as a sign-in would. */
+  async function withLogin(ctx: TestProject, puid: TestUserPuid, cwlLogin: string) {
+    await ctx.db.update(users).set({ cwlLogin }).where(eq(users.ubcCwlPuid, puid))
+  }
+
+  it('names a member by name, as the request named them, and in the role asked', async () => {
+    await withProjectServer(async (ctx) => {
+      await sessionFor(ctx, 'bio_colleague', 'collaborator')
+      await withLogin(ctx, 'bio_colleague', 'colleague')
+      const colleague = await userOf(ctx, 'bio_colleague')
+      const plaintext = await tokenHolding(ctx, ['project:read'])
+      const res = await ctx.app.inject({
+        ...addMemberRequest(ctx.projectId, plaintext),
+        payload: { cwlLogin: 'colleague', role: 'collaborator' },
+      })
+      expect(refusal(res)).toEqual({ status: 403, code: 'TOKEN_ACTION_PENDING' })
+      const object = {
+        kind: 'member',
+        person: {
+          namedBy: 'cwlLogin',
+          value: 'colleague',
+          member: { userId: colleague.id, displayName: 'Bio Colleague' },
+        },
+        role: 'collaborator',
+      }
+      expect(res.json().error.pendingAction.object).toEqual(object)
+      // And the token reads the same question back.
+      const read = await ctx.app.inject({
+        method: 'GET',
+        url: `/v1/pending-actions/${res.json().error.pendingAction.id}`,
+        headers: { authorization: `Bearer ${plaintext}` },
+      })
+      expect(refusal(read)).toEqual({ status: 200, code: undefined })
+      expect(read.json().object).toEqual(object)
+    })
+  })
+
+  it('never answers who has signed in: a login that exists and one that does not read alike', async () => {
+    await withProjectServer(async (ctx) => {
+      // `bio_student` HAS signed in and is NOT a member; `nobody-here` has never signed in.
+      await sessionFor(ctx, 'bio_student')
+      await withLogin(ctx, 'bio_student', 'student')
+      // THE POSITIVE CONTROL, in the same test: a member IS named.
+      await sessionFor(ctx, 'bio_colleague', 'collaborator')
+      await withLogin(ctx, 'bio_colleague', 'colleague')
+      const plaintext = await tokenHolding(ctx, ['project:read'])
+      const ask = (cwlLogin: string, key: string) =>
+        ctx.app.inject({
+          ...addMemberRequest(ctx.projectId, plaintext, key),
+          payload: { cwlLogin, role: 'collaborator' },
+        })
+
+      const known = await ask('student', 'a'.repeat(12))
+      const unknown = await ask('nobody-here', 'b'.repeat(12))
+      const member = await ask('colleague', 'c'.repeat(12))
+      for (const res of [known, unknown, member]) {
+        expect(refusal(res)).toEqual({ status: 403, code: 'TOKEN_ACTION_PENDING' })
+      }
+      expect(known.json().error.pendingAction.object.person).toEqual({
+        namedBy: 'cwlLogin',
+        value: 'student',
+        member: null,
+      })
+      expect(unknown.json().error.pendingAction.object.person).toEqual({
+        namedBy: 'cwlLogin',
+        value: 'nobody-here',
+        member: null,
+      })
+      expect(member.json().error.pendingAction.object.person.member).toEqual({
+        userId: (await userOf(ctx, 'bio_colleague')).id,
+        displayName: 'Bio Colleague',
+      })
+
+      /**
+       * THE TWO REFUSALS DIFFER ONLY IN THE LOGIN THE REQUEST NAMED. What differs by construction —
+       * the question's id, the body's hash, its instants and the request's reference — is set
+       * aside; then the one string is replaced, and the bodies must be equal.
+       */
+      const steady = (res: LightMyRequestResponse): string => {
+        const { error } = res.json()
+        const { pendingAction, requestId: _requestId, ...rest } = error
+        const {
+          id: _id,
+          bodySha256: _hash,
+          createdAt: _created,
+          expiresAt: _expires,
+          waitingSeconds: _waited,
+          ...question
+        } = pendingAction
+        return JSON.stringify({ ...rest, pendingAction: question })
+      }
+      expect(steady(known).replaceAll('student', 'nobody-here')).toBe(steady(unknown))
+    })
+  })
+
+  it('names the member a removal would take off, by the id the request named', async () => {
+    await withProjectServer(async (ctx) => {
+      await sessionFor(ctx, 'bio_colleague', 'collaborator')
+      const colleague = await userOf(ctx, 'bio_colleague')
+      const plaintext = await tokenHolding(ctx, ['project:read'])
+      const res = await ctx.app.inject({
+        method: 'DELETE',
+        url: `/v1/projects/${ctx.projectId}/members/${colleague.id}`,
+        headers: { authorization: `Bearer ${plaintext}`, 'idempotency-key': KEY },
+      })
+      expect(refusal(res)).toEqual({ status: 403, code: 'TOKEN_ACTION_PENDING' })
+      expect(res.json().error.pendingAction.object).toEqual({
+        kind: 'member-removal',
+        person: {
+          namedBy: 'userId',
+          value: colleague.id,
+          member: { userId: colleague.id, displayName: 'Bio Colleague' },
+        },
+      })
+    })
+  })
+
+  it('names the release a production deploy would run, its commit, and the environment', async () => {
+    await resetDatabase()
+    const { app, deps, project, build, release, production } =
+      await releasedProject('fe5-deploy')
+    try {
+      const owner = await ensureTestUser(deps.db, 'bio_prof')
+      const { plaintext } = await mintTestToken(deps.db, {
+        userId: owner.id,
+        projectId: project.id,
+        capabilities: ['project:read', 'release:deploy'],
+      })
+      const res = await app.inject({
+        method: 'POST',
+        url: `/v1/environments/${production.id}/deploy`,
+        headers: { authorization: `Bearer ${plaintext}`, 'idempotency-key': KEY },
+        payload: { releaseId: release.id },
+      })
+      expect(refusal(res)).toEqual({ status: 403, code: 'TOKEN_ACTION_PENDING' })
+      expect(res.json().error.pendingAction.object).toEqual({
+        kind: 'deploy',
+        release: { id: release.id, commitSha: build.commitSha },
+        environment: { id: production.id, kind: 'production' },
+      })
+      expect(build.commitSha).toMatch(/^[0-9a-f]{40}$/)
+    } finally {
+      await app.close()
+    }
+  })
+
+  it('names no commit for a release that is not the environment’s project’s', async () => {
+    await resetDatabase()
+    const ours = await releasedProject('fe5-ours')
+    const theirs = await releasedProject('fe5-theirs')
+    try {
+      const owner = await ensureTestUser(ours.deps.db, 'bio_prof')
+      const { plaintext } = await mintTestToken(ours.deps.db, {
+        userId: owner.id,
+        projectId: ours.project.id,
+        capabilities: ['project:read', 'release:deploy'],
+      })
+      const res = await ours.app.inject({
+        method: 'POST',
+        url: `/v1/environments/${ours.production.id}/deploy`,
+        headers: { authorization: `Bearer ${plaintext}`, 'idempotency-key': KEY },
+        payload: { releaseId: theirs.release.id },
+      })
+      expect(refusal(res)).toEqual({ status: 403, code: 'TOKEN_ACTION_PENDING' })
+      expect(res.json().error.pendingAction.object).toEqual({
+        kind: 'deploy',
+        release: { id: theirs.release.id, commitSha: null },
+        environment: { id: ours.production.id, kind: 'production' },
+      })
+    } finally {
+      await ours.app.close()
+      await theirs.app.close()
+    }
+  })
+
+  it('a confirmed retry still matches — on method, path and body, never the object (a pin, green before FE-5)', async () => {
+    await withProjectServer(async (ctx) => {
+      await sessionFor(ctx, 'bio_colleague')
+      const { ask, pendingId } = await refusedOnce(ctx, 'bio_colleague')
+      await confirmed(ctx, pendingId)
+      const retry = await ask()
+      expect(refusal(retry)).toEqual({ status: 201, code: undefined })
     })
   })
 })
