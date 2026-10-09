@@ -1591,7 +1591,7 @@ manifest `internal`, and a `mf-person-` user at LiteLLM (`scripts/litellm-orphan
 registration `active` with the five, which the next run's 8b walks back first. **What it does not cover:** the
 CLICKED half (WALKTHROUGH, *A launch's three records and the administrators' queue, clicked*), `default-chat-large` (it needs
 the network), and the console's screens for the team's step and a change (the FE-46/47/5 plan's sittings 3 and 4 walked them
-headless; its sitting 5 clicks them).
+headless; Rich clicked them on 2026-10-09, its sitting 5).
 
 ## `make demo-faculty-ready` — the faculty-ready plan's acceptance: what stood before a faculty member's first day
 

@@ -2783,3 +2783,10 @@ the transition table's `sent: []` and the `iam_registrations_sent_from` CHECK; a
 `credential: 'session'`, the handler's `requireSession` and PERSON_ONLY. **Read every layer before predicting**, and record each as the guard
 it is. **And before predicting a control on code an earlier sitting already controlled, read that sitting's record** — sitting 5's C2
 (`oneLine` dropped) stayed green exactly as sitting 2's F13 had measured: nodemailer folds a CR/LF in a subject itself.
+
+**`dead-app-resources.sh --apply` DELETED AN ARCHIVED PROJECT'S DATA — UNTIL 2026-10-09.** It called a volume dead when no container of any
+state held it, and archiving removes an app's containers and KEEPS its volumes for its restore — so the script every sitting runs with
+`--apply` destroyed an archived app's database (the FE-46/47/5 plan's sitting 5, F19: `launchpath-click`'s three data volumes, demo data).
+It now reads the archived projects' slugs from the control database and keeps their volumes, and calls NO volume dead when it cannot read
+them. **A cleanup rule written from the containers alone is wrong for any state the platform keeps without a container** — check the
+project's state before calling its resources dead.

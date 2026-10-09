@@ -97,12 +97,35 @@ done
 [ -n "$DEAD_NETS" ] || echo "  none dead"
 
 say "App volumes"
+# AN ARCHIVED PROJECT'S VOLUMES ARE ITS DATA, KEPT FOR ITS RESTORE (the FE-46/47/5 plan's sitting 5, F19): archiving
+# removes an app's containers and keeps its volumes, so "no container holds it" called them dead and --apply deleted an
+# archived project's database. Every project the control plane holds `archived` keeps its `mf-<slug>-<env>-…` volumes.
+# Unreadable is SAID, and then NO volume is called dead — guessing would delete somebody's data.
+if ARCHIVED="$(docker exec manifest-postgres psql -U manifest -d manifest_control -At -c \
+  "select slug from projects where state = 'archived'" 2>&1)"; then
+  ARCHIVED_READ=yes
+else
+  echo "  could not read the archived projects (${ARCHIVED:0:160}) — no volume is called dead"
+  ARCHIVED=""
+  ARCHIVED_READ=no
+fi
+archived_owner() {
+  local v="$1" slug
+  for slug in $ARCHIVED; do
+    case "$v" in "mf-$slug-sandbox-"* | "mf-$slug-staging-"* | "mf-$slug-production-"*) echo "$slug"; return 0 ;; esac
+  done
+  return 1
+}
 DEAD_VOLS=""
 for v in $(docker volume ls -q --filter 'name=^mf-' || true); do
   # `--filter volume=` reads containers of any state, for the same reason as above.
   holder="$(docker ps -a --filter "volume=$v" --format '{{.Names}}' 2>/dev/null | head -1 || true)"
   if [ -n "$holder" ]; then
     echo "  KEEP   $v — held by $holder"
+  elif owner="$(archived_owner "$v")"; then
+    echo "  KEEP   $v — the ARCHIVED project $owner's data, kept for its restore"
+  elif [ "$ARCHIVED_READ" = no ]; then
+    echo "  KEEP   $v — no container holds it, but the archived projects could not be read"
   else
     echo "  DEAD   $v — no container of any state holds it"
     DEAD_VOLS="$DEAD_VOLS $v"

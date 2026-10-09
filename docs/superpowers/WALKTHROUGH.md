@@ -260,8 +260,11 @@ then sign in again (`MANIFEST_ADMIN_PUIDS` is not set in `.env`).
 > the owner sends it (*Privacy assessment to submit to the Privacy Office*, *Staging registration to submit to UBC IAM*), the checklist says
 > who has each record and since when, the administrator's checklist link reads *The Manifest team’s step, and UBC IAM’s answer*, and a LIVE
 > registration offers **Ask for a change** when the newest manifest asks for an attribute UBC has not registered — sent to the team, who
-> **Record that the team filed it** with UBC IAM (*Production change to file with UBC IAM* in the queue). The plan's sitting 5 clicks the
-> new path whole.
+> **Record that the team filed it** with UBC IAM (*Production change to file with UBC IAM* in the queue). **Rich clicked the new path whole on
+> 2026-10-09** (the plan's sitting 5: an assessment sent with every gap answered, read in the queue and in Mailpit, handed back, sent again and
+> recorded submitted; a change asked for on a launched app's live registration; an agent's question confirmed) — *"All the steps worked as you
+> described, all of the text is as you said it should be for both operator and instructor, including the email."* Its ten steps are the plan's
+> *Sitting 5*.
 
 | # | As | Click | What must be true |
 |---|---|---|---|
@@ -294,8 +297,11 @@ again, and lasts ten minutes.
 > the owner sends it (*Privacy assessment to submit to the Privacy Office*, *Staging registration to submit to UBC IAM*), the checklist says
 > who has each record and since when, the administrator's checklist link reads *The Manifest team’s step, and UBC IAM’s answer*, and a LIVE
 > registration offers **Ask for a change** when the newest manifest asks for an attribute UBC has not registered — sent to the team, who
-> **Record that the team filed it** with UBC IAM (*Production change to file with UBC IAM* in the queue). The plan's sitting 5 clicks the
-> new path whole.
+> **Record that the team filed it** with UBC IAM (*Production change to file with UBC IAM* in the queue). **Rich clicked the new path whole on
+> 2026-10-09** (the plan's sitting 5: an assessment sent with every gap answered, read in the queue and in Mailpit, handed back, sent again and
+> recorded submitted; a change asked for on a launched app's live registration; an agent's question confirmed) — *"All the steps worked as you
+> described, all of the text is as you said it should be for both operator and instructor, including the email."* Its ten steps are the plan's
+> *Sitting 5*.
 
 | # | As | Click | What must be true |
 |---|---|---|---|

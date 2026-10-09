@@ -12,11 +12,10 @@ names the next job** and the current plan's sittings table says how far it has g
 `EXPECT_` lines and ORIENTATION §2's `pnpm test:docker` row, stated nowhere else; and the roadmap's ledger
 (`docs/superpowers/plans/2026-08-29-plan-roadmap.md`) outranks every document on status (Rich, 2026-09-24 and 2026-09-30).*
 
-**The design is approved and complete, five spikes are done, and eighteen plans are executed** — each with an acceptance that
-passes; the newest is **Manifest's data classes as UBC's U1 levels** (`docs/superpowers/plans/2026-10-03-u1-classification.md`), EXECUTED
-2026-10-04 — contract `1.7.0`. **The current plan, FE-46, FE-47 and FE-5** (their spec actions applied, their plan,
-`docs/superpowers/plans/2026-10-03-fe46-fe47-fe5.md`, approved 2026-10-03), **is EXECUTING since 2026-10-08**, inline, one sitting per session
-(Rich, 2026-10-08 09:07, in the coordinated run); its contract bump `1.7.0 → 1.8.0`; then A1 (production instances by audience, approved), B (the load rehearsal, FE-44), FE-32 with §12's package allowlist (approved), Phase 3 (sandboxes), A2 (hibernation), the
+**The design is approved and complete, five spikes are done, and nineteen plans are executed** — each with an acceptance that
+passes; the newest is **the Manifest team's step — FE-46, FE-47, FE-5 and FE-53** (`docs/superpowers/plans/2026-10-03-fe46-fe47-fe5.md`),
+EXECUTED 2026-10-08/09, inline, five sittings in the coordinated run — contract `1.8.0`. **The next plan is A1 — production instances by
+audience** (`docs/superpowers/plans/2026-10-03-production-instances.md`, approved; its contract bump `1.8.0 → 1.9.0`); then B (the load rehearsal, FE-44), FE-32 with §12's package allowlist (approved), Phase 3 (sandboxes), A2 (hibernation), the
 vulnerability database in the console, and FE-45 (Rich, 2026-10-03, 15:28; B and A2 await a second review). Rich's decisions since 2026-09-30 are in `docs/superpowers/2026-09-30-decisions.md`. Each plan's *What executing this plan found* is its record; this file keeps none of it.
 
 | Plan | Executed | What it made true | Acceptance |
@@ -39,6 +38,7 @@ vulnerability database in the console, and FE-45 (Rich, 2026-10-03, 15:28; B and
 | Faculty-ready | 2026-10-03 | Before faculty use it for real: `__Host-` cookies no sibling app can plant; a request id on every answer and every refusal logged; a limit's facts as fields; the test blueprint unlisted; a provider's `422` answered `422`; `node:24-alpine` with an init; the IdP store's own role; §26's administrator's reason, shown to the project's people; an agent's question ending with its token; `passport-ubcshib` 0.1.7-rc.1 | `make demo-faculty-ready` (either driver), **and a person clicking it** |
 | UBC AI Gateway | 2026-10-04 | The capable model answered by UBC's AI Gateway: the key by reference, failing closed whatever the setting; the gateway's own models by name and classification; the upstream's key headers stripped; an allowed fallback logged; LiteLLM re-pinned to 1.102.0 so a stream is charged its provider's usage | `make demo-gateway` (the network on, the key), **and Rich watching the key's spend** |
 | U1 levels | 2026-10-04 | Manifest's data classes ARE UBC's U1 levels — `low`, `medium`, `high`, `very-high`, the three earlier names aliases that never widen (`confidential` = `very-high`); stored and answered as the level; the capable model's level a setting (`high` here); a token refused a `high` project's staging and production Incidents; a lowered level taken off running apps' keys at boot | `make demo-levels` (either driver, offline), **and Rich reading a `high` app's privacy assessment** |
+| FE-46/47/5 | 2026-10-08/09 | The Manifest team's step: the owner SENDS each launch record to the team (`sent`, every gap of the assessment answered), the team submits it to UBC or hands it back, emailed through nodemailer to Mailpit; who has each record and since when; a change to a live registration through the team (FE-47); a question that names what it would act on (FE-5) and when it stops waiting (FE-53); FE-54, FE-55 | `make demo-launch` (either driver) and `make demo-token`, **and Rich clicking the team's step** |
 
 **Outstanding, and Rich's** (ORIENTATION §2 and §8 have the detail):
 - **the offline acceptance** — `scripts/offline-acceptance.sh`, run by hand, because turning the network off from a tool call cuts the
@@ -68,7 +68,7 @@ vulnerability database in the console, and FE-45 (Rich, 2026-10-03, 15:28; B and
 - the rest of ORIENTATION §8 *Open*.
 
 **Machine cleanup: at every sitting's close run `scripts/dead-app-resources.sh`, `litellm-orphans.sh` and `app-images.sh` bare,
-then TRY `--apply` yourself**, and hand the output to Rich only when the permission classifier actually refuses you — it is not a
+then TRY `--apply` yourself** (since 2026-10-09 `dead-app-resources.sh` keeps an ARCHIVED project's volumes — before, `--apply` deleted its data), and hand the output to Rich only when the permission classifier actually refuses you — it is not a
 fixed rule, so try rather than assume. **None of these stays cleared on its own**: a Docker-tier run puts back ~7 networks, a volume
 and ~13 app images, and every demo adds a LiteLLM user. **Never work from a written count — measure, and NAME THE METRIC**:
 `docker images` counts disagree by design, and the app images are tagged `127.0.0.1:7107/local/*`, so `grep '^local/'` reads 0 when

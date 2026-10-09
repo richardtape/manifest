@@ -4,7 +4,7 @@
 window, or a developer joining. **The next job is always §7e.** This box says only where the project is and what
 the gates read; it deliberately states no job and no sitting's story (Rich, 2026-09-24).
 
-**Where things stand.** The design is approved and complete, five spikes are done, and **eighteen plans are
+**Where things stand.** The design is approved and complete, five spikes are done, and **nineteen plans are
 executed** (§2's table): an application goes from a bare repository to a production launch, authenticated with CWL,
 on one laptop, offline — its code can live in a GitHub organisation instead (D5's driver 2) — an agent can CREATE it through
 the API alone, from the API's own served documentation (the authoring API), and **a separate faculty front-end can drive all
@@ -23,11 +23,14 @@ member, or as a collaborator beyond the role; an agent's question ending with it
 `passport-saml`. **And the capable model is answered by UBC's AI Gateway** (the UBC AI Gateway plan, EXECUTED 2026-10-04): Manifest's
 own LiteLLM — re-pinned to 1.102.0 — names the gateway as its upstream provider, the key by reference only and failing closed; the gateway's own
 models join the catalogue by name and classification; and every call, streamed too, is charged to the person who asked. **And Manifest's data
-classes ARE UBC's U1 levels** (the U1 plan, the newest, EXECUTED 2026-10-04 — Rich, 2026-10-03 21:48 and 22:21): `low | medium | high |
+classes ARE UBC's U1 levels** (the U1 plan, EXECUTED 2026-10-04 — Rich, 2026-10-03 21:48 and 22:21): `low | medium | high |
 very-high`, the three earlier names aliases that never widen (`confidential` is `very-high`); `very-high` data reaches only on-premise models,
 `high` also a provider that keeps nothing; a delegated token is refused a `high` project's staging and production Incidents; and a level lowered
-takes effect on running apps at the next boot. **Executing since 2026-10-08: FE-46, FE-47 and FE-5** (§7e) — then A1, B (the load rehearsal), FE-32, Phase 3, A2, the
-vulnerability database in the console and FE-45 (§8 *Decided*).
+takes effect on running apps at the next boot. **And a faculty member's launch records go to the Manifest team** (the FE-46/47/5 plan, the
+newest, EXECUTED 2026-10-08/09): the owner SENDS each record to the team, every gap of the privacy assessment answered; the team submits it to
+UBC or hands it back, and is emailed; every record says who has it and since when; a change to a live registration goes the same way; and an
+agent's question names what it would act on and when it stops waiting. **Next: A1, production instances by audience** (§7e) — then B (the load
+rehearsal), FE-32, Phase 3, A2, the vulnerability database in the console and FE-45 (§8 *Decided*).
 The roadmap's ledger outranks every document on status.
 
 *The gate numbers are stated once each (Rich, 2026-09-30): `scripts/ci-acceptance.sh`'s `EXPECT_` lines (the unit suite, doctor,
@@ -55,7 +58,7 @@ everything.
 ## 2. Where things stand
 
 **Five spikes are done — S7, S2, S1, S3 and S6 — and all five answered yes (§5); S5 and S4 are deliberately later.
-EIGHTEEN plans are executed, and each has an acceptance that passes:**
+NINETEEN plans are executed, and each has an acceptance that passes:**
 
 | Plan | Executed | What it made true | Acceptance |
 |---|---|---|---|
@@ -77,6 +80,7 @@ EIGHTEEN plans are executed, and each has an acceptance that passes:**
 | Faculty-ready | 2026-10-03 | **What stood before a faculty member's first day**: `__Host-` session, login and step-up cookies no sibling app can plant; a request id on every answer and one operator line per refusal; a limit's and a replayed session's facts as fields; the test blueprint unlisted; a provider's `422` answered `422`, streamed too; apps on `node:24-alpine` with an init as PID 1; the IdP's session store on its own role; §26's administrator's reason, as no member and as a collaborator beyond the role, shown to the project's people; an agent's question ending with its token, its end and a removal recorded in the act's own transaction; `passport-ubcshib` 0.1.7-rc.1 — five spec actions (and a sixth on the library's facts), all Rich's | `make demo-faculty-ready` (either driver) **and a person clicking it** |
 | UBC AI Gateway | 2026-10-04 | **The capable model through UBC's AI Gateway**: Manifest's LiteLLM names UBC's gateway its upstream provider — `MANIFEST_CAPABLE_MODEL=ubc-ai-gateway/<model>`, the key by REFERENCE only, scrubbed from the control plane, the boot failing closed whatever the setting; `MANIFEST_GATEWAY_MODELS`, the gateway's own models by name and classification (a `confidential` one priced at the stand-in's rate); `make verify`'s fingerprint and `make doctor`'s expiry; the upstream's key headers stripped from every caller; an allowed fallback logged; LiteLLM **re-pinned to 1.102.0** so a streamed call is charged its provider's usage (F32) — two spec actions applied, all Rich's | `make demo-gateway` (the network on, the key) **and Rich watching the key's spend** |
 | U1 levels | 2026-10-04 | **Manifest's data classes as UBC's U1 levels**: `low`, `medium`, `high`, `very-high` in ONE rank table of seven names, the earlier three aliases at their level's rank for ever (`confidential` = `very-high`); stored and answered as the level, old rows too, a rename never a change; D17's hint in U1's words and no law; the capable model's level a setting (`MANIFEST_CAPABLE_MODEL_CLASSIFICATION`, `high` on Rich's laptop), registered by level and never kept above it, its fallback floor failing closed; a token refused `high` projects' staging and production Incidents whatever the builder setting; a lowered level taken off every running app's key at boot, or the key revoked — one spec action, Rich's; contract `1.7.0` | `make demo-levels` (either driver, offline) **and Rich reading a `high` app's privacy assessment** |
+| FE-46/47/5 | 2026-10-08/09 | **The Manifest team's step** (FE-46, FE-47, FE-5, FE-53, with FE-54 and FE-55): the owner SENDS each launch record to the Manifest team — a state of its own, `sent`, every gap of the privacy assessment answered by its stable id — and the team submits it to the Privacy Office or UBC IAM, or hands it back; the platform's first email (nodemailer 10.0.13, pinned, to Mailpit) tells the team of every send and sign-off request, never a person's words; every record and queue item says who has it and since when; a change to a live registration goes the same way and is filed as a change request; a question an agent raises names what it would act on and carries when it stops waiting; a commit's sensitive change against the last approved release; a CWL app asking no attribute refused, typed — three spec actions, all Rich's; contract `1.8.0` | `make demo-launch` (either driver) and `make demo-token`, **and Rich clicking the team's step** |
 
 **Executing a plan finds defects at a rate that has never fallen with practice** — 18 in P1's 13 tasks, 52 in P2's
 21, 82 in P3's 19, 80 in P4a's 15, 140 in P4b's 16, 70 in P4c's 11, 146 in P5a's 17 — plus 8 more found in a
@@ -191,8 +195,8 @@ Read for your purpose, not front to back. The spec is ~2,340 lines; nobody reads
 | You are… | Read |
 |---|---|
 | **new, any role** | This file — §7e and §2 first. Then the roadmap's ledger and its *Lessons*. |
-| **executing a plan** | **[The FE-46/47/5 plan](plans/2026-10-03-fe46-fe47-fe5.md) is EXECUTING** (since 2026-10-08; contract `1.8.0` since its Task 2; its sittings table says how far, §7e what is next). [The U1 plan](plans/2026-10-03-u1-classification.md) was EXECUTED on 2026-10-04 — eight tasks (0–7) in three sittings, its one spec action Rich's (contract `1.7.0`); its *What executing this plan found* is the record. [The UBC AI Gateway plan](plans/2026-10-03-ubc-ai-gateway.md) was EXECUTED on 2026-10-04 — seven tasks in three sittings; its record and `spikes/gateway-baseline/`. [The faculty-ready plan](plans/2026-09-30-faculty-ready.md) was EXECUTED on 2026-10-03 — eighteen tasks in eight sittings, all five of its spec actions Rich's (a sixth, on `passport-ubcshib`'s facts, applied by him); its *What executing this plan found* is the record. [The launch path plan](plans/2026-09-29-launch-path.md) was EXECUTED on 2026-10-02 — nineteen tasks in fourteen sittings, all ten of its spec actions Rich's; its *What executing this plan found* is the record. [The front-end enablement plan](plans/2026-09-27-front-end-enablement.md) was EXECUTED on 2026-09-29 — eighteen tasks in fifteen sittings, all ten of its spec actions Rich's; its *What executing this plan found* is the record. **The current plan is always the one §7e names**: when one is, its sittings table says which sitting is next, and its *What executing this plan found* is the record of every sitting before — read that before the task. One sitting per session, with a check-in at each boundary. A plan is self-contained by construction; if it is not, that is a defect in the plan — fix it there. |
-| **writing a plan** | **The queue after FE-46/47/5 is already written** — A1 ([`plans/2026-10-03-production-instances.md`](plans/2026-10-03-production-instances.md)), B ([`-load-rehearsal.md`](plans/2026-10-03-load-rehearsal.md)), FE-32 ([`-fe32-dependencies.md`](plans/2026-10-03-fe32-dependencies.md)) and A2 ([`-hibernation.md`](plans/2026-10-03-hibernation.md)), B and A2 awaiting a second review; **not yet written**: Phase 3 (sandboxes), the vulnerability database in the console and FE-45, in Rich's order (§8 *Decided*). House style: [`plans/2026-08-30-p1-local-substrate.md`](plans/2026-08-30-p1-local-substrate.md), or the newest, [`plans/2026-09-27-front-end-enablement.md`](plans/2026-09-27-front-end-enablement.md). |
+| **executing a plan** | **[A1, production instances by audience](plans/2026-10-03-production-instances.md) is NEXT** (approved 2026-10-03; §7e). [The FE-46/47/5 plan](plans/2026-10-03-fe46-fe47-fe5.md) was EXECUTED on 2026-10-08/09 — eleven tasks (1–9, with 2b, and 8 as 8a and 8b) in five sittings, inline, in the coordinated run; contract `1.8.0`; its *What executing this plan found* is the record. [The U1 plan](plans/2026-10-03-u1-classification.md) was EXECUTED on 2026-10-04 — eight tasks (0–7) in three sittings, its one spec action Rich's (contract `1.7.0`); its *What executing this plan found* is the record. [The UBC AI Gateway plan](plans/2026-10-03-ubc-ai-gateway.md) was EXECUTED on 2026-10-04 — seven tasks in three sittings; its record and `spikes/gateway-baseline/`. [The faculty-ready plan](plans/2026-09-30-faculty-ready.md) was EXECUTED on 2026-10-03 — eighteen tasks in eight sittings, all five of its spec actions Rich's (a sixth, on `passport-ubcshib`'s facts, applied by him); its *What executing this plan found* is the record. [The launch path plan](plans/2026-09-29-launch-path.md) was EXECUTED on 2026-10-02 — nineteen tasks in fourteen sittings, all ten of its spec actions Rich's; its *What executing this plan found* is the record. [The front-end enablement plan](plans/2026-09-27-front-end-enablement.md) was EXECUTED on 2026-09-29 — eighteen tasks in fifteen sittings, all ten of its spec actions Rich's; its *What executing this plan found* is the record. **The current plan is always the one §7e names**: when one is, its sittings table says which sitting is next, and its *What executing this plan found* is the record of every sitting before — read that before the task. One sitting per session, with a check-in at each boundary. A plan is self-contained by construction; if it is not, that is a defect in the plan — fix it there. |
+| **writing a plan** | **The queue after A1 is already written** — A1 ([`plans/2026-10-03-production-instances.md`](plans/2026-10-03-production-instances.md)), B ([`-load-rehearsal.md`](plans/2026-10-03-load-rehearsal.md)), FE-32 ([`-fe32-dependencies.md`](plans/2026-10-03-fe32-dependencies.md)) and A2 ([`-hibernation.md`](plans/2026-10-03-hibernation.md)), B and A2 awaiting a second review; **not yet written**: Phase 3 (sandboxes), the vulnerability database in the console and FE-45, in Rich's order (§8 *Decided*). House style: [`plans/2026-08-30-p1-local-substrate.md`](plans/2026-08-30-p1-local-substrate.md), or the newest, [`plans/2026-09-27-front-end-enablement.md`](plans/2026-09-27-front-end-enablement.md). |
 | **seeing it run end to end** | [`WALKTHROUGH.md`](WALKTHROUGH.md) — start it, deploy the demos, what to open in a browser and with which test users, how to check it, and the traps. |
 | **running the platform** | [`RUNBOOK.md`](RUNBOOK.md) — `make seed && make host-setup && make up`, every demo step by step, and *Known gaps*. Its *Running the control plane* is the export block to start it with. |
 | **writing code** | *The code* and *What the platform keeps true* below. **Then run `make demo` once**: it is the only thing that exercises boot, build, release, deploy and the edge through the real HTTP surface, and it is where this project's worst defects were found. |
@@ -1980,78 +1984,55 @@ named in the row below.*
 | **Faculty-ready** | [`plans/2026-09-30-faculty-ready.md`](plans/2026-09-30-faculty-ready.md) — **EXECUTED 2026-10-03**, eighteen tasks in eight sittings | `make demo-faculty-ready` — either driver, green three times on EACH (fresh, re-use, from a `make reset` machine); step 17 of the offline acceptance; a step of `make ci-acceptance`; eight controls seen red; **clicked by Rich** | **Sitting 7's F7 is the one to read**: Task 15 changed WHO is asked for a reason and left the published contract stating the old rule on 24 operations — found only by the plan's one whole-branch review, because each sitting's review saw one sitting's words. **Sitting 5's F10**: recording an event inside a removal's transaction deadlocked a racing role change, until `removeMember` locked the project first. **Sitting 5b's F2**: on the new SAML library every app told the IdP it had NOT signed the person out, with every check green — only decoding the app's own answer sees it. **Sitting 7's F4**: a skeleton is read once, at boot, so a blueprint control without a restart cannot fail |
 | **UBC AI Gateway** | [`plans/2026-10-03-ubc-ai-gateway.md`](plans/2026-10-03-ubc-ai-gateway.md) — **EXECUTED 2026-10-04**, seven tasks (0–4, 6, 6a; 5 dropped) in three sittings | `make demo-gateway` — driver 1 or the fake, the network on and the key; green three times on 1.102.0 (fresh, re-use twice), its gateway-side ratio exactly 1; five controls seen red; **Rich watching the key's spend** | **Sitting 3's F32 is the one to read**: the acceptance's own comparison with the GATEWAY's spend found LiteLLM 1.98.0 charging a STREAM by its own count of the visible text — every unit and Docker case green, because none had streamed a provider's usage in the gateway's shape; fixed by re-pinning to 1.102.0 (Rich's word), which then drifted one §16 mapping row (F33). **Sitting 1's F2**: one Manifest key reads another's stored Responses answer (Phase 3's binding rule). **Sitting 3's F34**: a refused DIRECT setting kept the gateway registration, whose empty reference sends `OPENAI_API_KEY` to UBC |
 | **U1 levels** | [`plans/2026-10-03-u1-classification.md`](plans/2026-10-03-u1-classification.md) — **EXECUTED 2026-10-04**, eight tasks (0–7) in three sittings | `make demo-levels` — either driver, offline; green three times on EACH and from a `make reset` machine on each; step 18 of the offline acceptance; a step of `make ci-acceptance`; eleven controls exactly as predicted; **Rich reading a `high` app's privacy assessment** | **Sitting 3's F20 and F22 are the ones to read**: `capableFloor` FAILED OPEN on a level none of the seven names — `rank(x) < rank(undefined)` is false, so every fallback was set (sitting 2's F11, judged by the plan's one whole-branch review; now seeded `very-high`) — and the acceptance's own *"ONLY by the builder exception"* check passing by RANK once the capable model is `very-high`, MEASURED with the exception off before it was fixed. **Sitting 3's F21**: every boot reads each live app key in a URL query, and only LiteLLM 1.102.0's own `?REDACTED` keeps it out of its log. **Sitting 2's F9**: the unit tier never migrates |
-### 7e. The FE-46/47/5 plan's sitting 5 (Task 9: the acceptance on both drivers, every other demo, the controls, the one whole-branch review, the clicked half) ← **START HERE**
+| **FE-46/47/5** | [`plans/2026-10-03-fe46-fe47-fe5.md`](plans/2026-10-03-fe46-fe47-fe5.md) — **EXECUTED 2026-10-08/09**, eleven tasks (1–9, with 2b, and 8 as 8a and 8b) in five sittings, inline, in the coordinated run | `make demo-launch` — either driver, green three times on EACH (fresh, re-use with the change leg, re-use again) and from a `make reset` machine; `make demo-token` fresh, re-use and from `make reset` (driver 1's alone); step 16 of the offline acceptance; a step of `make ci-acceptance`; six controls, one per Review Focus line; **Rich clicking the team's step** | **Sitting 5's F1 and F5 are the ones to read**: a change UBC sent back with questions was drafted again from the launch CANDIDATE and sent as NO change — the new attribute dropped silently — found only by the plan's one whole-branch review; and the acceptance's own *"since the SECOND send"* check could not fail, because it compared a column with itself — found by making a control go red through the edge. **Sitting 5's F19**: the cleanup script every sitting runs with `--apply` deleted an ARCHIVED project's data. **Sitting 5's F9–F11**: controls predicted without re-reading an earlier sitting's, red for the wrong reason (a database CHECK), or green because a guard is three layers deep. **Sitting 4's F1**: one Vitest file turns the next demo fresh. **Sitting 2's F13**: nodemailer folds a CR/LF in a subject itself |
+### 7e. A1 — production instances by audience (§24): its sitting 1 (Task 1, the measurements, alone) ← **START HERE**
 
-**STATE AT ~22:50 PDT, 2026-10-08 (`manifest-p5`'s interim commit): EVERYTHING IN TASK 9 BUT THE CLICKED HALF IS DONE** — `make
-demo-launch` green three times on each driver and from a `make reset` machine, `make demo-token` three times (driver 1's alone), every other
-demo, `make ci-acceptance`, six controls, **the one whole-branch review and its fix wave (`154f220`)**, the Docker tier and `pnpm test` twice
-on the final tree — the plan's *Sitting 5* has all of it. **THE CLICKED HALF IS STAGED on 7100 (driver 1) since 20:07** — `launchpath-click`
-launched, its newest commit asking for `eduPersonAffiliation`; `launchpath-clicksend` drafted; an agent's question pending until 2026-10-09
-20:07 (`STAGE_FROM=5 bash .superpowers/sdd/2026-10-03-fe46-fe47-fe5/stage-clicked-half.sh <dir>` re-stages that part alone) — **and Rich clicks
-it on 2026-10-09 in the morning** (his words: *"tomorrow morning is fine for the click"*, the decisions file, `c720db5`); his ten steps are the
-plan's *Sitting 5*'s. **NO TRUNCATING RUN UNTIL HE HAS** — no Vitest, no Docker tier, no `make reset` — and 7100 stays on driver 1. **What then
-closes the plan:** his words, recorded in the plan's *Sitting 5*; **F16(b)'s answer** — asked of Rich through the coordinator: *should a change
-to a registration UBC holds in force block a FIRST launch?* (the code is ready: `readiness.ts`'s `iamItem` → `registrationInForce(row)`, and the
-mock's `iamItem`; (b) is a spec action) — recorded, or carried to §8 *Open*; then the close-out below; then 7100 back on real GitHub from `.env`
-and the three cleanup scripts.
+**THE PLAN IS [`plans/2026-10-03-production-instances.md`](plans/2026-10-03-production-instances.md)** — written 2026-10-03 by `manifest-c7`, revised
+to a fresh review (`2d74a5d`) and **APPROVED BY RICH 2026-10-03, 15:20** (*"A1 and FE-32 now; B and A2 later (Recommended)"*); ten tasks in eight
+sittings; next in the roadmap's order after FE-46/47/5 (Rich, 2026-10-03, 15:28 and 21:48 — the roadmap outranks the FE-46/47/5 plan's own
+*"FE-32's plan named next"*). **Production runs `solo` 1, `class` 2, `large_course` 3, `public` 3 instances behind one edge route** that
+balances and routes around a dead one; a member that exits is replaced (Rich: *"Replace it automatically"*); its acceptance is `make
+demo-capacity` and every launch demo on two instances. Read its **READ FIRST** banners (the newest is FE-46/47/5's hand-over, 2026-10-08),
+*Decided by Rich*, *Review Focus*, its sittings table and **Task 1 in full**.
 
-**THE PLAN IS THE MANIFEST TEAM'S STEP — FE-46, FE-47, FE-5 AND FE-53** ([`plans/2026-10-03-fe46-fe47-fe5.md`](plans/2026-10-03-fe46-fe47-fe5.md)),
-approved 2026-10-03, **EXECUTING SINCE 2026-10-08, INLINE** (Rich, 2026-10-08 09:07: one sitting per session). **Sittings 1–4 are DONE: every
-task but Task 9 is built.** Read its **READ FIRST** banner, *Decided by Rich*, *Review Focus*, its sittings table, **Task 9 in full — its
-*SITTING 4 LEFT YOU* note first** — and *What executing this plan found*, *Sitting 4*. **Sitting 5 is alone and last, and its clicked half
-needs Rich** (*What Rich does* 4: stage everything, ask once).
+**WHAT RICH DECIDES AT ITS OPEN:** the execution method — *"whichever Rich chooses"* (inline, one sitting per session, was his choice for
+FE-46/47/5). **Sitting 1 stops and asks Rich** if Task 1's `[M3]` finds a CWL sign-in cannot cross instances (the fork — sticky routing or a
+shared SAML cache — is his).
 
-**WHAT SITTINGS 1–4 LEFT YOU (2026-10-08; the plan's *Sitting 1* F1–F19, *Sitting 2* F1–F17, *Sitting 3* F1–F16, *Sitting 4* F1–F17):**
-- **The contract is `1.8.0`** and stays there; `api/contract/document.ts`'s version comment lists each task's breaks (Tasks 4–7 LANDED; 8b changed
-  two event descriptions only).
-- **Built:** FE-5 and FE-53 (`7a0e47c`), FE-54 (`b29700b`), the mailer (`b8fdeab`), the gaps' ids (`b3751db`), the team's step (`1d4c8da`) and
-  its screens (`dba83b0`); **who has it and since when** — the checklist's `since` dated on the holder, the queue's `iam-registration-to-submit`
-  and `privacy-assessment-to-submit`, a record with UBC naming who SENT it (`3504f7c`); **FE-47**, a change to a live registration through the
-  team (`sent` from `active`, `409 LAUNCH_CHANGE_EMPTY`, filed as `change_requested` from `active`, `iam-change-to-file`) **and FE-55**
-  (`SPEC_CWL_NO_ATTRIBUTES` at validation, `409 RELEASE_CWL_NO_ATTRIBUTES` at deploy — it was `500`) (`8fe6593`, `d83f795`); and their screens,
-  *Ask for a change*, the mock's `change-with-team` stage, the guide (`484a7cf`).
-- **`make demo-launch`'s change leg (`8b`) runs on the RE-USE path only** — "three times on each driver" is fresh, re-use, re-use again (the
-  second re-use exercises 8b's reset). **Any Vitest run empties 7100's tables, so the next demo is fresh.** 8b's reset half that commits a stray
-  manifest back (`d83f795`) has never run through the edge.
-- **`make demo-releases`' build-words check moved with Task 7's words** and has not run since — Task 9's every-other-demo run is its first.
-- **For the one whole-branch review**: a pre-launch change (`sent` or filed from `active`) blocks a FIRST launch's `iam-registration` item though
-  UBC's registration stands (sitting 4's F16) — judge it.
-- **A headless console walk needs no library**: sitting 3's and sitting 4's raw-CDP scripts are in `.superpowers/sdd/2026-10-03-fe46-fe47-fe5/`
-  (`walk-sitting3/`, `walk-sitting4/`; Chrome `--headless=new` on 7194, a throwaway profile). Run walks on driver 1 — `make demo-launch`'s guard
-  reads `.env`, so the GitHub fake needs the approved `.env` swap (Rich's answer 6: a 0600 copy, only the `MANIFEST_SOURCE_DRIVER=` and
-  `MANIFEST_GITHUB_` lines commented, restored and `cmp`-identical, 7100 back on real GitHub at the close).
-- **`make demo-launch` runs `admin-grant.sh grant`** — ALLOWED in sittings 3 and 4: try once; if refused, hand Rich the `! <command>` through the
-  coordinator. **The vulnerability database is fresh until 2026-10-10** — a launch after that needs `make refresh-vulndb` with the network on,
-  which Rich's answer 6 lets the run do unattended; **one `make reset`** too, only if the acceptance needs one.
+**WHAT FE-46/47/5 LEFT IT (2026-10-08):**
+- **The contract is `1.8.0`** (FE-46/47/5's), so A1's bump is **`1.9.0`**, not the `1.8.0` its lines say (its banner lists them); B, A2 and
+  FE-32 each one further. **Migration `0053` is taken** (`0053_lumpy_boomerang`); A1's first is `0054`.
+- **`launch/` moved throughout** — `records.ts`, `readiness.ts`, `queue.ts`, a new `mail/`; "live" is a registration IN FORCE
+  (`registrationInForce`) — and `make demo-launch`'s `class` audience is at `journey/src/launch.ts:516-517`. Task 1's `[M1]` re-reads every fact.
+- **`make demo-launch` takes ~3–4 min, and its change leg (8b) runs on the RE-USE path only** — *"three times on each driver"* is fresh, re-use,
+  re-use again; **any Vitest run empties 7100, so the next demo is fresh**. **`make demo-token` is driver 1's alone.** The GitHub fake needs the
+  approved `.env` swap (a 0600 copy, the seven `MANIFEST_SOURCE_DRIVER=`/`MANIFEST_GITHUB_` lines commented, restored `cmp`-identical).
+- **The vulnerability database is fresh until 2026-10-10** — every launch demo after that needs `make refresh-vulndb`, with the network on.
+- **F16(b) is OPEN with Rich** (§8 *Open*): should a change to a registration UBC holds in force block a FIRST launch? **Recommended: (b), a
+  spec action placed with A1** — §13's row read as *"UBC IAM's registration is in force and covers the release"*, the after-launch predicate;
+  the code is ready (`readiness.ts`'s `iamItem` → `registrationInForce(row)`, and the mock's `iamItem`). Ask him at A1's open; if (b), draft
+  the Spec action's words for his approval and build it beside A1 — never applied unasked.
+- **`scripts/dead-app-resources.sh` now keeps an ARCHIVED project's volumes** (FE-46/47/5 sitting 5's F19: `--apply` had deleted one's data).
+  `launchpath-click` is archived on 7100, its data gone (a demo project; its slug stays taken).
 
-**HOW THIS RUN WORKS — A COORDINATOR IS LIVE** (`manifest-coord`; the run's plan is `~/Developer/manifest-app/docs/plans/2026-10-06-coordination.md`,
-its *Worker's rules*). If you were started by its GO: **never use the question tool** — a question for Rich goes to `manifest-coord` with its
-options and your recommendation; **every whole-suite `pnpm test`, Docker tier, `make verify` or demo waits for its *"7100 is yours"* and its
-HOLD** (it alone writes `.superpowers/sdd/platform-window`); **any commit touching `packages/contract` or `packages/mock` — Task 9's fix wave may — is told to `manifest-coord` the moment its
-edits BEGIN, and its content BEFORE it lands — it lands only on *"land it"*** (gate G3 — name any REQUIRED key you add); report each
-commit's sha; manifest's docs turn is the sitting's. **If no coordinator is live**, everything goes to
-Rich directly (the question tool at the sitting's open) and you run the flag yourself — `ListAgents` first, and message any live
-`manifest-app-*` session before a contract or mock commit.
+**HOW THIS RUN WORKS:** if a coordinator's GO started you, its *Worker's rules* bind (no question tool; every whole-suite `pnpm test`, Docker
+tier or `make verify` waits for its HOLD; a `packages/contract` or `packages/mock` commit is told as its edits BEGIN and lands on *"land it"*).
+**If no coordinator is live**, everything goes to Rich directly (the question tool at the sitting's open) and you run the flag
+(`.superpowers/sdd/platform-window`) yourself — `ListAgents` first, and message any live `manifest-app-*` session before a contract or mock commit.
+**After any Docker run, restart 7100 from `.env`** (`bash scripts/gateway-controls.sh start real`; read `capableModel` and `gatewayModels`).
 
-**F1 OF THE U1 PLAN'S SITTING 1, FOR EVERY DOCKER RUN:** 7100 running from `.env` registers `ubc-qwen-27b` and the capable model on the SHARED
-LiteLLM, and the Docker tier removes them. **After any Docker run, restart 7100 from `.env`** (`bash scripts/gateway-controls.sh start real`, then
-read `capableModel` and `gatewayModels`) — gate G4. **Task 9 runs the Docker tier beside its one whole-branch review (Step 5), and again if the fix wave changes code in a tier-owing
-directory** (Global Constraints): count `docker network ls -q | wc
--l` first, and run `dead-app-resources.sh --apply` before it if a `pnpm test` has just orphaned demo apps; the tier needs 7.
+**RICH'S, NONE BLOCKING:** **`scripts/offline-acceptance.sh`, owed since FE-46/47/5** (run by hand; its steps did not change); the gateway key's
+rotation before 2027-01-01; the PROBE key to delete at the gateway; the `.env` line `MANIFEST_APP_PLAN_MODEL=default-chat-large`, no longer
+needed; *before production*: a failure's body verbatim, the `llm_provider-*` leak's remainder, an EXPLICIT reported cost of `0.0` charged `$0`;
+real repositories in `Manifest-local-dev` no project owns (CLAUDE.md); **`make refresh-vulndb` after 2026-10-10**; §8 *Open*. **Recorded, not
+placed** (the FE-46/47/5 plan's records): Postgres pinned by tag only; eleven operator lines that are template strings, two logging a PUID;
+`make demo-token`'s FE-53 check unable to tell the question's expiry from the token's; the control plane has no shutdown hook (an email or a
+build in flight at a restart is lost — sitting 5's F8); the queue's asker can name a person whose send was handed back (m6); the mock answers a
+2,001-character answer `LAUNCH_GAP_ANSWERS_INVALID` where the platform answers `REQUEST_INVALID`.
 
-**RICH'S, NONE BLOCKING:** the gateway key's rotation before 2027-01-01; the PROBE key to delete at the gateway; the `.env` line
-`MANIFEST_APP_PLAN_MODEL=default-chat-large`, no longer needed; *before production*: a failure's body verbatim, the `llm_provider-*` leak's
-remainder, an EXPLICIT reported cost of `0.0` charged `$0`; real repositories in `Manifest-local-dev` no project owns (CLAUDE.md); **`make
-refresh-vulndb` after 2026-10-10**; §8 *Open*'s reframed U1 question for the Privacy Office. **Recorded, not placed:** Postgres pinned by tag only
-(sitting 1's F3); eleven operator lines that are template strings, two logging a PUID (sitting 1's F16); `make demo-token`'s FE-53 check unable
-to tell the question's expiry from the token's (sitting 2's F7).
-
-**WHERE SITTING 5 STOPS, AND HOW IT ENDS** (the plan's sittings table and Task 9): after the clicked half, the review's ONE fix wave and the
-close-out — the four gates (`pnpm test` twice on the final tree), `pnpm test:docker` if the fix wave owes it, the `EXPECT_` lines where a number
-moved, the plan marked EXECUTED, ORIENTATION's *Where things stand* and §2 (nineteen plans), §8 (FE-46, FE-47, FE-5, FE-53, FE-54, FE-55
-BUILT), this §7e replaced by the next job's, CLAUDE.md's *State*, the roadmap ledger and its defect-rate total. **The next job is A1 —
-production instances by audience** — the roadmap's order (Rich, 2026-10-03, 15:28 and 21:48), which outranks the plan's own *"FE-32's plan
-named next"*.
+**WHERE SITTING 1 STOPS, AND HOW IT ENDS** (A1's sittings table): after Task 1's commit — `[M1]`–`[M…]` recorded — or at its `[M3]` stop. It changes
+no code and owes no `pnpm test:docker`; it closes out like every sitting (ORIENTATION §6): the plan's sittings table, its *What executing this
+plan found*, this §7e handed to sitting 2, the roadmap ledger.
 
 **THE TWO RULES A SITTING CANNOT GET FROM ANYWHERE ELSE**, restated because they live only in each plan's *Global
 Constraints*:
@@ -2072,6 +2053,16 @@ reasoning is recorded.**
 
 ### Open
 
+- **SHOULD A CHANGE TO A REGISTRATION UBC HOLDS IN FORCE BLOCK A FIRST LAUNCH? — RAISED 2026-10-08 by the FE-46/47/5 plan's sitting 5**
+  (sitting 4's F16, judged by its whole-branch review), asked of Rich through `manifest-coord`; **not answered at the plan's close**. §13's
+  first-launch row reads *"`IamRegistration` is `active`"* (spec :1651), so an app whose production registration UBC registered, with a change
+  sent to the team or filed (`sent`, or `change_requested` from `active`), cannot launch for the first time though the release it would launch
+  is covered (`launch/readiness.ts`'s `iamItem`); after launch the same state reads `met`. Its words now say where the change is and that the
+  team can hand it back (`154f220`). *Options:* **(a)** keep it — the owner asks the team to hand the change back, launches, and asks again;
+  **(b)** the row reads *"UBC IAM's registration is in force (recorded `active`, not lapsed since) and covers the release; a change asked for or
+  filed does not unregister it"* — the after-launch predicate; the code is `iamItem` → `registrationInForce(row)`, and the mock's `iamItem`; low
+  risk (`registered_at` is set only on reaching `active` and cleared only on `expired`). **Recommended: (b), a spec action placed with A1**
+  (the coordinator's word, 2026-10-09: record it open, apply nothing). The plan's *Sitting 5*, F3.
 - **FE-24'S OPEN QUESTIONS, for the external track and the Privacy Office** (carried from Spec action 6's draft — APPLIED
   2026-09-27, `25e7445`, so the first three are now §19's rows and `docs/external-track.md`'s items 12–14): whether D21's
   rehearsal keeps a purpose once staging signs people in against UBC's staging IdP every day; **whether a privacy assessment
@@ -2196,7 +2187,7 @@ reasoning is recorded.**
 - **`member.removed`'S AFTER-COMMIT LOSS — FIXED IN SITTING 5 AS TASK 16b, BY RICH 2026-10-03 ~13:34** (the question tool, through `manifest-94`;
   [`2026-09-30-decisions.md`](2026-09-30-decisions.md), commit `069cfb3`). **BUILT** (`16ac01c`): recorded in the removal's transaction; its design is the
   sitting's, in the plan's *Task 16b*.
-- **FE-46, FE-47 AND FE-5 — THEIR SPEC ACTIONS' WORDS APPROVED BY RICH 2026-10-03, with the recommended choices** (the same section of
+- **FE-46, FE-47 AND FE-5 — BUILT: THEIR PLAN IS EXECUTED (2026-10-08/09, five sittings in the coordinated run), with FE-53, FE-54 and FE-55.** **THEIR SPEC ACTIONS' WORDS APPROVED BY RICH 2026-10-03, with the recommended choices** (the same section of
   [`2026-09-30-decisions.md`](2026-09-30-decisions.md)): FE-46's (i) the team MAY hand a send back, to `sent_from`, and (ii) EVERY gap answered, *"does not apply"* allowed; FE-47's (a)
   `active → sent` with `sent_from: active`, over (a′) `change_sent`; FE-5 as worded. **✅ APPLIED THE SAME DAY (~13:05 PDT, `manifest-94`)**,
   the shared pages swept; **their plan is WRITTEN AND APPROVED** ([`plans/2026-10-03-fe46-fe47-fe5.md`](plans/2026-10-03-fe46-fe47-fe5.md), with FE-53, FE-54 and `tokenMintedBy`), after the UBC AI Gateway plan. Their full text is
