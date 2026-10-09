@@ -370,80 +370,90 @@ export async function recordPrivacyAssessment(
   bus: EventBus,
   input: RecordPiaInput,
 ): Promise<PrivacyAssessmentRow> {
-  const existing = await getPrivacyAssessment(db, input.projectId)
-  const from: PiaState = existing?.state ?? 'draft'
-  refuseRecordAroundTheTeam('the privacy assessment', from, input.state, {
-    send: 'sendPrivacyAssessment',
-    submit: 'submitPrivacyAssessment',
-    handBack: 'returnPrivacyAssessment',
-  })
-  const state = input.state === from ? from : piaTransition(from, input.state)
-
-  /**
-   * `approvedAt` is the moment the Privacy Office approved it, so it is set when the
-   * record REACHES `approved` and cleared when it leaves — a timestamp that survived a
-   * return to `draft` would say an assessment was approved while its state said it was
-   * being rewritten, which is the kind of pair §13's gate would then read wrongly.
-   */
-  const approvedAt = state === 'approved' ? (existing?.approvedAt ?? new Date()) : null
-  // The registration's rule (Task 9): an administrator's record that MOVES the assessment into
-  // `submitted` says it was sent, now, by them; nothing else moves the stamp.
-  const submitted =
-    state !== from && state === 'submitted'
-      ? { submittedAt: new Date(), submittedBy: input.actor.id }
-      : {
-          submittedAt: existing?.submittedAt ?? null,
-          submittedBy: existing?.submittedBy ?? null,
-        }
-
-  const [row] = await db
-    .insert(privacyAssessments)
-    .values({
-      projectId: input.projectId,
-      state,
-      approvedAt,
-      ...submitted,
-      recordedBy: input.actor.id,
-      ...(input.reviewer === undefined ? {} : { reviewer: input.reviewer }),
-      ...(input.externalTicketRef === undefined
-        ? {}
-        : { externalTicketRef: input.externalTicketRef }),
+  // THE READ AND THE WRITE ARE ONE DECISION (the whole-branch review's m5): the row `FOR UPDATE`, so an owner's
+  // send landing in between is read, and refused around the team, rather than overwritten by the upsert.
+  const row = await db.transaction(async (tx) => {
+    const [existing] = await tx
+      .select()
+      .from(privacyAssessments)
+      .where(eq(privacyAssessments.projectId, input.projectId))
+      .for('update')
+    const from: PiaState = existing?.state ?? 'draft'
+    refuseRecordAroundTheTeam('the privacy assessment', from, input.state, {
+      send: 'sendPrivacyAssessment',
+      submit: 'submitPrivacyAssessment',
+      handBack: 'returnPrivacyAssessment',
     })
-    .onConflictDoUpdate({
-      target: privacyAssessments.projectId,
-      set: {
+    const state = input.state === from ? from : piaTransition(from, input.state)
+
+    /**
+     * `approvedAt` is the moment the Privacy Office approved it, so it is set when the
+     * record REACHES `approved` and cleared when it leaves — a timestamp that survived a
+     * return to `draft` would say an assessment was approved while its state said it was
+     * being rewritten, which is the kind of pair §13's gate would then read wrongly.
+     */
+    const approvedAt = state === 'approved' ? (existing?.approvedAt ?? new Date()) : null
+    // The registration's rule (Task 9): an administrator's record that MOVES the assessment into
+    // `submitted` says it was sent, now, by them; nothing else moves the stamp.
+    const submitted =
+      state !== from && state === 'submitted'
+        ? { submittedAt: new Date(), submittedBy: input.actor.id }
+        : {
+            submittedAt: existing?.submittedAt ?? null,
+            submittedBy: existing?.submittedBy ?? null,
+          }
+
+    const [written] = await tx
+      .insert(privacyAssessments)
+      .values({
+        projectId: input.projectId,
         state,
         approvedAt,
         ...submitted,
-        reviewer: input.reviewer ?? null,
-        // KEPT WHEN NOT GIVEN (the whole-branch review's M2): since Task 9 the owner writes it too, at
-        // "I've sent it", and an administrator recording UBC's answer without one must not erase it —
-        // for an assessment, the PIA number the staging gate reads.
-        externalTicketRef: input.externalTicketRef ?? existing?.externalTicketRef ?? null,
         recordedBy: input.actor.id,
-        updatedAt: new Date(),
-      },
-    })
-    .returning()
+        ...(input.reviewer === undefined ? {} : { reviewer: input.reviewer }),
+        ...(input.externalTicketRef === undefined
+          ? {}
+          : { externalTicketRef: input.externalTicketRef }),
+      })
+      .onConflictDoUpdate({
+        target: privacyAssessments.projectId,
+        set: {
+          state,
+          approvedAt,
+          ...submitted,
+          reviewer: input.reviewer ?? null,
+          // KEPT WHEN NOT GIVEN (the whole-branch review's M2): since Task 9 the owner writes it too, at
+          // "I've sent it", and an administrator recording UBC's answer without one must not erase it —
+          // for an assessment, the PIA number the staging gate reads.
+          externalTicketRef:
+            input.externalTicketRef ?? existing?.externalTicketRef ?? null,
+          recordedBy: input.actor.id,
+          updatedAt: new Date(),
+        },
+      })
+      .returning()
+    return written!
+  })
 
   await publishEvent(
     db,
     bus,
     {
       projectId: input.projectId,
-      subject: `privacy-assessment:${row!.id}`,
+      subject: `privacy-assessment:${row.id}`,
       type: 'privacy_assessment.recorded',
       machineDetail: {
-        state,
-        externalTicketRef: row!.externalTicketRef ?? null,
+        state: row.state,
+        externalTicketRef: row.externalTicketRef ?? null,
       },
       humanMessage:
-        `${await personName(db, input.actor.id)} recorded this app's privacy assessment as ${state}` +
-        `${row!.externalTicketRef === null ? '' : ` (ticket ${row!.externalTicketRef})`}.`,
+        `${await personName(db, input.actor.id)} recorded this app's privacy assessment as ${row.state}` +
+        `${row.externalTicketRef === null ? '' : ` (ticket ${row.externalTicketRef})`}.`,
     },
     makeRedactor([]),
   )
-  return row!
+  return row
 }
 
 /**
@@ -680,7 +690,9 @@ export async function sendIamRegistration(
       )
     // A CHANGE TO THE LIVE REGISTRATION (FE-47; Decision 21) asks UBC for what the package asks — and one
     // that asks for nothing UBC has not registered, at the ACS and SLO it registered, is nothing to file.
-    const change = sentFrom === 'active'
+    // Any send while UBC's registration is in force is one: from `active`, and from UBC's questions on a
+    // change (`change_requested` from `submitted`), whose answer must still ask for it (the review's I1).
+    const change = registrationInForce(existing)
     const asked = sent.attributes.map((a) => a.name)
     if (
       change &&
@@ -1172,6 +1184,15 @@ async function newestValidSpec(
 }
 
 /**
+ * UBC'S REGISTRATION IS IN FORCE: recorded `active` once (`registered_at`), and not lapsed since — entering
+ * `expired` clears `registered_at` (sitting 12's F3). A change asked for, filed, or sent back with UBC's
+ * questions does not unregister it. `liveRegistrationItem`'s predicate.
+ */
+export const registrationInForce = (
+  row: Pick<IamRegistrationRow, 'state' | 'registeredAt'>,
+) => row.registeredAt !== null && row.state !== 'expired'
+
+/**
  * WHAT A REGISTRATION IS DRAWN FROM (Task 10's Interfaces): **production's from the launch
  * candidate** — the release serving staging, healthy, its frozen production `auth` and its build's
  * commit — because production's registration must describe what a launch would run; with nothing
@@ -1182,13 +1203,15 @@ async function drawnFrom(
   db: Db,
   projectId: string,
   environment: RegistrationEnvironment,
-  /** The record's state today — `active` is a change to the live registration (Task 7). */
-  state: IamState | undefined,
+  /** The record today — one UBC holds in force is a change to the live registration (Task 7). */
+  existing: Pick<IamRegistrationRow, 'state' | 'registeredAt'> | undefined,
 ): Promise<{ auth: ManifestSpec['auth']; commit: string; warnings: string[] }> {
   // A CHANGE TO A LIVE REGISTRATION (FE-47; Decision 21), for either environment, is drawn from the NEWEST
   // VALID MANIFEST: the release serving staging cannot ask for what UBC has not registered — its build is
-  // refused until UBC registers it — so the candidate would only ever ask for what UBC already has.
-  if (state === 'active') {
+  // refused until UBC registers it — so the candidate would only ever ask for what UBC already has. LIVE is
+  // UBC's registration in force, not only `active`: a change UBC sent back with questions (`change_requested`
+  // from `submitted`) is drafted again as the change it is (the whole-branch review's I1).
+  if (existing !== undefined && registrationInForce(existing)) {
     const newest = await newestValidSpec(db, projectId, 'a change to a registration')
     return {
       auth: newest.spec.auth,
@@ -1359,7 +1382,7 @@ export async function draftIamRegistration(
     .from(projects)
     .where(eq(projects.id, input.projectId))
   if (project === undefined) throw new Error(`no project ${input.projectId}`)
-  const drawn = await drawnFrom(db, input.projectId, input.environment, existing?.state)
+  const drawn = await drawnFrom(db, input.projectId, input.environment, existing)
   if (drawn.auth.provider !== 'cwl')
     throw new LaunchRecordError(
       'LAUNCH_NOT_CWL',

@@ -527,7 +527,7 @@ export const ERROR_CODES = {
     status: 400,
     families: ['LaunchRecordError'],
     summary:
-      'The privacy assessment’s gaps were not each answered once: a gap of the draft has no answer, an answer is blank or over 2,000 characters, a gap is answered twice, or an answer names a gap the draft does not have. The message names every gap at fault. Nothing was sent.',
+      'The privacy assessment’s gaps were not each answered once: a gap of the draft has no answer, an answer is blank, a gap is answered twice, or an answer names a gap the draft does not have. The message names every gap at fault. Nothing was sent.',
     remedy:
       'Answer every gap of the draft you read, once each, by its id — “does not apply” is an answer — and send it again. If the draft was made again since, read it first: its gaps may have changed.',
   },

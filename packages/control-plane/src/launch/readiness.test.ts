@@ -1344,6 +1344,92 @@ describe('a draft that no longer covers the app (Task 10)', () => {
     })
   })
 
+  /**
+   * BEFORE A FIRST LAUNCH, A CHANGE TO A REGISTRATION UBC HOLDS IN FORCE (the whole-branch review's F16): the first
+   * launch still waits for `active`, but the words say where the change is and what lets the app launch — never
+   * "draft it again", which draws the same change (it comes from the newest manifest), or is refused while UBC
+   * holds it. Only UBC's questions on the change make drafting again the next step.
+   */
+  it('before a first launch, a change to a registration UBC holds in force says where the change is — never to draft it again', async () => {
+    await withProject(async (tx, { projectId, ownerId }) => {
+      await serving(
+        tx,
+        projectId,
+        ownerId,
+        scan(1, false),
+        ['ubcEduCwlPuid', 'mail'],
+        PRODUCTION,
+      )
+      await withDraft(tx, {
+        projectId,
+        environment: 'production',
+        attributes: ['ubcEduCwlPuid', 'mail', 'sn'],
+        ...at,
+      })
+      const registered = {
+        registeredAt: new Date('2026-09-20T19:00:00.000Z'),
+        registeredAttributes: ['ubcEduCwlPuid', 'mail'],
+      }
+      // THE POSITIVE CONTROL: registered, nothing asked for — met.
+      await tx
+        .update(iamRegistrations)
+        .set({ state: 'active', ...registered })
+        .where(eq(iamRegistrations.projectId, projectId))
+      expect((await item(tx, projectId)).state).toBe('met')
+
+      const sentOn = new Date('2026-09-22T19:00:00.000Z')
+      await tx
+        .update(iamRegistrations)
+        .set({
+          state: 'sent',
+          sentFrom: 'active',
+          sentAt: sentOn,
+          sentBy: ownerId,
+          requestedAttributes: ['ubcEduCwlPuid', 'mail', 'sn'],
+        })
+        .where(eq(iamRegistrations.projectId, projectId))
+      const withTeam = await item(tx, projectId)
+      expect(withTeam).toMatchObject({ state: 'unmet', since: sentOn.toISOString() })
+      const [reg] = await tx
+        .select({ entityId: iamRegistrations.entityId })
+        .from(iamRegistrations)
+        .where(eq(iamRegistrations.projectId, projectId))
+      const entityId = reg!.entityId
+      expect(withTeam.why).toBe(
+        `Registered with UBC IAM as ${entityId} since 2026-09-20, but the registration is 'sent' and must be 'active' before a first production launch. A change is with the Manifest team since September 22, 2026, asking for mail, sn, ubcEduCwlPuid. To launch on what UBC IAM registered, ask the Manifest team to hand the change back (returnIamRegistration), launch, then ask for the change again; otherwise the launch waits until UBC IAM registers it and an administrator records the registration 'active'.`,
+      )
+
+      const filedOn = new Date('2026-09-23T19:00:00.000Z')
+      await tx
+        .update(iamRegistrations)
+        .set({
+          state: 'change_requested',
+          changeRequestedFrom: 'active',
+          sentFrom: null,
+          submittedAt: filedOn,
+          submittedBy: ownerId,
+          externalTicketRef: 'IAM-CHG-1',
+        })
+        .where(eq(iamRegistrations.projectId, projectId))
+      const filed = await item(tx, projectId)
+      expect(filed).toMatchObject({ state: 'unmet', since: filedOn.toISOString() })
+      expect(filed.why).toContain(
+        "A change request is on file with UBC IAM (ticket IAM-CHG-1), asking for mail, sn, ubcEduCwlPuid; the launch waits until UBC IAM answers it and an administrator records the registration 'active'.",
+      )
+      for (const said of [withTeam.why, filed.why])
+        expect(said).not.toMatch(/no longer matches|[Dd]raft it again/)
+
+      // UBC'S QUESTIONS ON THE CHANGE: now drafting again IS the next step.
+      await tx
+        .update(iamRegistrations)
+        .set({ changeRequestedFrom: 'submitted' })
+        .where(eq(iamRegistrations.projectId, projectId))
+      expect((await item(tx, projectId)).why).toContain(
+        'UBC IAM asked for changes to the change request, asking for mail, sn, ubcEduCwlPuid: draft it again and send it to the Manifest team (sendIamRegistration).',
+      )
+    })
+  })
+
   it('a request with the Manifest team that no longer matches is a request, not a draft: ask the team to hand it back (Task 6)', async () => {
     await withProject(async (tx, { projectId, ownerId }) => {
       await serving(

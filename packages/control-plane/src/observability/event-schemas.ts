@@ -642,7 +642,7 @@ export const EVENT_DETAIL_SCHEMAS = {
         ),
     })
     .describe(
-      'The owner sent the app’s staging or production registration to the Manifest team, who submit it to UBC IAM or hand it back — or, sent from a live registration (`sentFrom: active`), a change to it, which the team files with UBC IAM as a change request. The team was emailed.',
+      'The owner sent the app’s staging or production registration to the Manifest team, who submit it to UBC IAM or hand it back — or, sent from a live registration (`sentFrom: active`), a change to it, which the team files with UBC IAM as a change request. The Manifest team is emailed.',
     ),
   'privacy_assessment.sent': z
     .strictObject({
@@ -654,7 +654,7 @@ export const EVENT_DETAIL_SCHEMAS = {
         ),
     })
     .describe(
-      'The owner sent the app’s privacy impact assessment to the Manifest team, with an answer to every gap, for the team to submit to the Privacy Office or hand back. The team was emailed.',
+      'The owner sent the app’s privacy impact assessment to the Manifest team, with an answer to every gap, for the team to submit to the Privacy Office or hand back. The Manifest team is emailed.',
     ),
   'iam_registration.returned': z
     .strictObject({

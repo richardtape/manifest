@@ -98,7 +98,7 @@ const Submitter = z
     id: Uuid.describe('Their user id.'),
     displayName: z.string().describe('Their name, as CWL gave it.'),
   })
-  .describe('The person who said it was sent.')
+  .describe('A person, by name.')
 
 /**
  * D19'S REGISTRATION PACKAGE (the launch path plan's Task 10; Spec action 4) — what a person sends UBC
@@ -278,7 +278,7 @@ export const IamRegistration = representation(
         .array(z.string())
         .nullable()
         .describe(
-          'What an outstanding CHANGE REQUEST asks UBC IAM for — the registration’s own `change_requested` state is the change request. Null when none is outstanding; cleared when the registration is recorded `active` again.',
+          'What an outstanding CHANGE to the live registration asks UBC IAM for — set when its owner sends the change to the Manifest team (`sent`), kept while the team files it with UBC IAM (`change_requested`) and UBC considers it. Null when none is outstanding; cleared when the team hands the change back, or the registration is recorded `active` again.',
         ),
       registeredAt: z.iso
         .datetime()
@@ -295,7 +295,7 @@ export const IamRegistration = representation(
         .enum(['submitted', 'active'])
         .nullable()
         .describe(
-          'While `change_requested`, where it came from: `submitted` — UBC IAM came back with questions, so the next move is the owner’s (answer them, draft again, send it); `active` — an administrator filed a change request with UBC IAM, which UBC now holds. Null in any other state.',
+          'While `change_requested`, where it came from: `submitted` — UBC IAM came back with questions, so the next move is the owner’s (answer them, draft again, send it); `active` — the Manifest team filed a change to the live registration with UBC IAM as a change request (or an administrator recorded one), which UBC now holds. Null in any other state.',
         ),
       externalTicketRef: z
         .string()
@@ -307,7 +307,7 @@ export const IamRegistration = representation(
         .enum(['draft', 'change_requested', 'expired', 'active'])
         .nullable()
         .describe(
-          'While `sent`, where its owner sent it from — a draft, UBC IAM’s questions to them, a lapsed registration — which is where the Manifest team’s hand-back returns it. Null in any other state.',
+          'While `sent`, where its owner sent it from — a draft, UBC IAM’s questions to them, a lapsed registration, or the live registration (`active`: a change to it) — which is where the Manifest team’s hand-back returns it. Null in any other state.',
         ),
       sentAt: Timestamp.nullable().describe(
         'When its owner last sent it to the Manifest team. Kept once the team has submitted it or handed it back, and replaced by the next send; null until it is first sent.',
@@ -615,12 +615,14 @@ export const SendPrivacyAssessmentRequest = request(
                 .min(1)
                 .max(80)
                 .describe('The gap answered: a `gaps[].id` of the draft you read.'),
+              // NO MINIMUM HERE (the whole-branch review's I2): an empty answer is a blank one, refused by
+              // `checkGapAnswers` naming its gap, as a whitespace one is. The length bound stays the
+              // schema's, so a client reads it from the contract.
               answer: z
                 .string()
-                .min(1)
                 .max(2_000)
                 .describe(
-                  'The answer, up to 2,000 characters. “Does not apply” is an answer; a blank one is not.',
+                  'The answer, up to 2,000 characters — a longer one is refused `400 REQUEST_INVALID`, before any gap is checked. “Does not apply” is an answer; a blank one is not.',
                 ),
             })
             .describe('The owner’s answer to one gap.'),

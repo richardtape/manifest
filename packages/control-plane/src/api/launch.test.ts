@@ -298,7 +298,7 @@ describe('the owner sends each record to the Manifest team, which submits it to 
     })
   })
 
-  it('the answers: more than 64, or one over 2,000 characters, refused by the schema — 400 REQUEST_INVALID; one gap left out — 400 LAUNCH_GAP_ANSWERS_INVALID; nothing written', async () => {
+  it('the answers: more than 64, or one over 2,000 characters, refused by the schema — 400 REQUEST_INVALID; one gap left out, or an empty answer — 400 LAUNCH_GAP_ANSWERS_INVALID; nothing written', async () => {
     await withProjectServer(async (ctx) => {
       await withAssessmentDraft(ctx.db, { projectId: ctx.projectId })
       const answers = await answersFor(ctx)
@@ -336,6 +336,18 @@ describe('the owner sends each record to the Manifest team, which submits it to 
       })
       expect((missing.json() as { error: { message: string } }).error.message).toContain(
         answers[0]!.gapId,
+      )
+      // AN EMPTY ANSWER IS A BLANK ONE (the whole-branch review's I2): the one refusal, naming the gap, as a
+      // whitespace one is — never the schema's REQUEST_INVALID, which names no gap.
+      const empty = await send(
+        ctx,
+        'privacy-assessment',
+        { answers: [{ ...answers[0]!, answer: '' }, ...answers.slice(1)] },
+        as,
+      )
+      expect(refusal(empty)).toEqual({ status: 400, code: 'LAUNCH_GAP_ANSWERS_INVALID' })
+      expect((empty.json() as { error: { message: string } }).error.message).toContain(
+        `a blank answer for ${answers[0]!.gapId}`,
       )
       expect((await records(ctx)).privacyAssessment).toMatchObject({
         state: 'draft',
@@ -772,6 +784,45 @@ describe('a send and an administrator’s write cannot interleave (the whole-bra
       )
       expect(refusal(answered!)).toEqual({ status: 409, code: 'LAUNCH_PIA_NOT_APPROVED' })
       expect((await records(ctx)).stagingRegistration).toMatchObject({ state: 'draft' })
+    })
+  })
+
+  it('an assessment sent while an administrator’s record of it waits is not overwritten — 409 LAUNCH_TRANSITION_INVALID, still with the team (the whole-branch review’s m5)', async () => {
+    await withProjectServer(async (ctx) => {
+      await withAssessmentDraft(ctx.db, { projectId: ctx.projectId })
+      const admin = await loginAs(ctx.deps, 'platform_admin')
+      let answered: Awaited<ReturnType<typeof ctx.app.inject>> | undefined
+      await holdingThen(
+        'SELECT 1 FROM privacy_assessments WHERE project_id = $1 FOR UPDATE',
+        [ctx.projectId],
+        // The owner's send to the Manifest team, in the window.
+        `UPDATE privacy_assessments SET state = 'sent', sent_at = now(), sent_by = '${ctx.userId}', gap_answers = '[]'::jsonb WHERE project_id = '${ctx.projectId}'`,
+        async (lock) => {
+          // An administrator's direct record, `draft → submitted` (Decision 4 keeps it).
+          const recording = ctx.app.inject({
+            method: 'POST',
+            url: `/v1/projects/${ctx.projectId}/launch-records/privacy-assessment`,
+            payload: { state: 'submitted', externalTicketRef: 'PIA-RACE' },
+            cookies: admin,
+            headers: mutationHeaders(ctx.deps),
+          })
+          await until(
+            () => lock.waitedOn('%privacy_assessments%'),
+            'the administrator’s record waiting on the held assessment',
+          )
+          await lock.commit()
+          answered = await recording
+        },
+      )
+      expect(refusal(answered!)).toEqual({
+        status: 409,
+        code: 'LAUNCH_TRANSITION_INVALID',
+      })
+      expect((await records(ctx)).privacyAssessment).toMatchObject({
+        state: 'sent',
+        submittedAt: null,
+      })
+      expect(await eventCount(ctx, 'privacy_assessment.recorded')).toBe(0)
     })
   })
 })
@@ -2129,6 +2180,123 @@ describe('a change to a live registration, through the Manifest team (FE-46/47/5
         requestedAttributes: null,
       })
       expect(await queued()).toEqual([])
+    })
+  })
+
+  /**
+   * UBC'S QUESTIONS ON A FILED CHANGE (the whole-branch review's I1): UBC takes the change request up, then
+   * asks its owner for changes (`change_requested` from `submitted`) — UBC's registration still in force. The
+   * owner's new draft is still a CHANGE: drawn from the newest valid manifest, never from the release serving
+   * staging (whose build is refused until UBC registers the attribute), and sent asking for it — or the
+   * attribute would be dropped silently, the record still claiming it.
+   */
+  it('UBC asks the owner about a filed change: drafted again from the newest valid manifest and sent asking for it — nothing dropped; the team re-submits it', async () => {
+    await withCwlProject(['ubcEduCwlPuid', 'mail'], async (ctx) => {
+      const admin = await loginAs(ctx.deps, 'platform_admin')
+      const recordUrl = `/v1/projects/${ctx.project.id}/launch-records/iam-registration`
+      await cwlPiaApproved(ctx)
+      await stage(ctx)
+      const registered: Record<string, Json> = {}
+      for (const environment of ['staging', 'production'] as const) {
+        const pkg = packageOf((await draft(ctx, environment)).json())
+        registered[environment] = {
+          environment,
+          entityId: pkg.entityId,
+          acsUrl: pkg.acsUrl,
+          sloUrl: pkg.sloUrl,
+          registeredAttributes: pkg.attributes.map((a) => a.name),
+          externalTicketRef: `IAM-${environment}`,
+        }
+        for (const state of ['submitted', 'active'] as const)
+          await post(ctx, recordUrl, { ...registered[environment], state }, admin)
+      }
+      await ctx.deps.db
+        .update(projects)
+        .set({ launchedAt: new Date() })
+        .where(eq(projects.id, ctx.project.id))
+      const live = async () =>
+        (
+          (await (
+            await ctx.app.inject({
+              method: 'GET',
+              url: `/v1/projects/${ctx.project.id}/launch-readiness`,
+              cookies: ctx.ownerCookies,
+            })
+          ).json()) as { items: { id: string; state: string; why: string }[] }
+        ).items.find((i) => i.id === 'iam-registration')!
+      const sendProduction = (body: Json) =>
+        ctx.app.inject({
+          method: 'POST',
+          url: `${recordUrl}/production/send`,
+          payload: body,
+          cookies: ctx.ownerCookies,
+          headers: mutationHeaders(ctx.deps),
+        })
+      const newer = await commitManifest(
+        { app: ctx.app, deps: ctx.deps, cookies: ctx.ownerCookies, project: ctx.project },
+        cwlManifest(ctx.project.slug, ['ubcEduCwlPuid', 'mail', 'sn']),
+        'feat: family names',
+      )
+      const change = packageOf((await draft(ctx, 'production')).json())
+      expect(
+        (await sendProduction({ draftGeneratedAt: change.generatedAt })).statusCode,
+      ).toBe(200)
+      await post(
+        ctx,
+        `${recordUrl}/production/submission`,
+        { reference: 'IAM-CHG-1' },
+        admin,
+      )
+
+      // UBC TAKES IT UP, THEN ASKS ITS OWNER FOR CHANGES — its registration of the four still in force.
+      await post(ctx, recordUrl, { ...registered.production, state: 'submitted' }, admin)
+      const asked = await post(
+        ctx,
+        recordUrl,
+        { ...registered.production, state: 'change_requested' },
+        admin,
+      )
+      expect(asked).toMatchObject({
+        state: 'change_requested',
+        changeRequestedFrom: 'submitted',
+        registeredAttributes: ['ubcEduCwlPuid', 'mail'],
+      })
+      expect((await live()).state).toBe('met')
+
+      // DRAFTED AGAIN: still the change — from the newest valid manifest, asking for sn.
+      const again = await draft(ctx, 'production')
+      expect(again.statusCode, again.body).toBe(200)
+      const redrafted = packageOf(again.json())
+      expect(redrafted.attributes.map((a) => a.name)).toEqual([
+        'ubcEduCwlPuid',
+        'mail',
+        'sn',
+      ])
+      expect(redrafted.fromCommit).toBe(newer.commitSha)
+      expect(redrafted.warnings).toContain(CHANGE_DRAWN)
+
+      // SENT: asking for sn, what UBC registered untouched; the team re-submits it to UBC (`submitted`).
+      const sent = await sendProduction({ draftGeneratedAt: redrafted.generatedAt })
+      expect(sent.statusCode, sent.body).toBe(200)
+      expect(sent.json()).toMatchObject({
+        state: 'sent',
+        sentFrom: 'change_requested',
+        requestedAttributes: ['ubcEduCwlPuid', 'mail', 'sn'],
+        registeredAttributes: ['ubcEduCwlPuid', 'mail'],
+      })
+      expect((await live()).state).toBe('met')
+      const resubmitted = await post(
+        ctx,
+        `${recordUrl}/production/submission`,
+        { reference: 'IAM-CHG-1' },
+        admin,
+      )
+      expect(resubmitted).toMatchObject({
+        state: 'submitted',
+        requestedAttributes: ['ubcEduCwlPuid', 'mail', 'sn'],
+        registeredAttributes: ['ubcEduCwlPuid', 'mail'],
+      })
+      expect((await live()).state).toBe('met')
     })
   })
 })

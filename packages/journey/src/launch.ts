@@ -1046,9 +1046,14 @@ async function step5Queue(): Promise<void> {
     'the assessment, sent again',
     (await records(owner)).privacyAssessment,
   )
+  // ONE PER GAP, EACH THE SECOND'S (the whole-branch review's m9): `every` alone is true of no answers at all.
+  const gapCount = draft.sections.flatMap((s) => s.gaps).length
   checks.ok(
-    'the second send’s answers replace the first’s',
-    sentAgain.gapAnswers?.every((a) => a.answer.startsWith('answered again')) === true,
+    'the second send’s answers replace the first’s — one per gap',
+    gapCount > 0 &&
+      sentAgain.gapAnswers?.length === gapCount &&
+      sentAgain.gapAnswers.every((a) => a.answer.startsWith('answered again')),
+    `${sentAgain.gapAnswers?.length} answers for ${gapCount} gaps`,
   )
   const withTeam = ours(await queueFor(admin))
   const toSubmit = withTeam.find((i) => i.kind === 'privacy-assessment-to-submit')
@@ -1056,11 +1061,14 @@ async function step5Queue(): Promise<void> {
     'the Manifest team holds it: the queue’s privacy-assessment-to-submit, since the SECOND send, naming the sender',
     kindsOf(withTeam).join(',') === 'privacy-assessment-to-submit,release-approval' &&
       toSubmit?.since === sentAgain.sentAt &&
+      // THE SECOND SEND'S DAY, NOT THE FIRST'S (sitting 5's control C1): `since` and `sentAt` are one column,
+      // so they agree even when a second send keeps the first's day — the hand-back's `sentAt` is the first's.
+      Date.parse(sentAgain.sentAt ?? '') > Date.parse(back.sentAt ?? '') &&
       toSubmit?.requestedBy?.displayName === 'Test Instructor' &&
       toSubmit.summary.startsWith(
         `Test Instructor sent the privacy assessment to the Manifest team on ${todayInWords()}`,
       ),
-    `${kindsOf(withTeam).join(',')} — ${toSubmit?.since} vs ${sentAgain.sentAt}: ${toSubmit?.summary}`,
+    `${kindsOf(withTeam).join(',')} — ${toSubmit?.since} vs ${sentAgain.sentAt} (first ${back.sentAt}): ${toSubmit?.summary}`,
   )
 
   state.piaNumber = `PIA-${state.runId}`

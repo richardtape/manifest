@@ -14,6 +14,7 @@ import { candidateFor, openRequestFor, type LaunchCandidate } from './candidate.
 import {
   getIamRegistration,
   getPrivacyAssessment,
+  registrationInForce,
   vancouverDayInWords,
   type IamRegistrationRow,
 } from './records.js'
@@ -399,6 +400,24 @@ async function iamItem(
       since: isoOrNull(row.registeredAt),
     }
   }
+  // A CHANGE TO A REGISTRATION UBC HOLDS IN FORCE, BEFORE THE FIRST LAUNCH (the whole-branch review's F16): the first
+  // launch still waits for `active`, but its draft IS the change — drawn from the newest valid manifest — so
+  // `draftDrift`'s "draft it again" would draw the same one, or be refused while UBC holds it. Say where the
+  // change is and what lets the app launch, and still say if the release outgrew what UBC registered.
+  if (registrationInForce(row)) {
+    const coverage = would === undefined ? undefined : registrationCovers(row, would)
+    return {
+      ...IAM_BASE,
+      state: 'unmet',
+      why:
+        `Registered with UBC IAM as ${row.entityId} since ${row.registeredAt!.toISOString().slice(0, 10)}, but the registration is '${row.state}' and must be 'active' before a first production launch.` +
+        changeBeforeLaunch(row) +
+        (coverage === undefined || coverage.covers
+          ? ''
+          : ` ${coverageGap(row, would!, coverage, 'The release serving staging')}`),
+      since: waitingSince(row),
+    }
+  }
   return {
     ...IAM_BASE,
     state: 'unmet',
@@ -407,6 +426,23 @@ async function iamItem(
       draftDrift(row, would),
     since: waitingSince(row),
   }
+}
+
+/**
+ * WHERE A CHANGE IS, BEFORE THE FIRST LAUNCH, AND WHAT LETS THE APP LAUNCH (F16): with the Manifest team, which can
+ * hand it back so the app launches on what UBC registered; on file with UBC IAM, whose answer it waits for; or
+ * sent back by UBC with questions, the owner's to draft again.
+ */
+function changeBeforeLaunch(row: IamRegistrationRow): string {
+  const asked =
+    row.requestedAttributes === null
+      ? ''
+      : `, asking for ${[...row.requestedAttributes].sort().join(', ')}`
+  if (row.state === 'sent')
+    return ` A change is with the Manifest team${withTeamSince(row)}${asked}. To launch on what UBC IAM registered, ask the Manifest team to hand the change back (returnIamRegistration), launch, then ask for the change again; otherwise the launch waits until UBC IAM registers it and an administrator records the registration 'active'.`
+  if (row.state === 'change_requested' && row.changeRequestedFrom === 'submitted')
+    return ` UBC IAM asked for changes to the change request${asked}: draft it again and send it to the Manifest team (sendIamRegistration).`
+  return ` A change request is on file with UBC IAM${ticket(row.externalTicketRef)}${asked}; the launch waits until UBC IAM answers it and an administrator records the registration 'active'.`
 }
 
 /**

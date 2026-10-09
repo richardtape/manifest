@@ -36,6 +36,7 @@ You supply a **path** and Manifest supplies the origin. Write
 auth:
   provider: cwl
   callback: /auth/ubcshib/callback
+  attributes: [ubcEduCwlPuid, mail]
 ```
 
 and never `https://…/auth/ubcshib/callback`. The platform joins the two, registers

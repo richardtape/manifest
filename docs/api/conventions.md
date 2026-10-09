@@ -132,7 +132,7 @@ A list that can be long takes `cursor` and answers `next`: pass `next` as `curso
 ## Limits
 
 - **A request body is at most 1 MiB**, except a commit’s (`createCommit`), which is at most 8 MiB; larger is `413 REQUEST_BODY_TOO_LARGE`.
-- **A request with no body carries no `Content-Type`** — a `GET`; every `DELETE`, none of which takes a body (`clearAppSecret`, `revokeToken`, `removeMember`, `endAgentSession`, `endIntakeSession`, `deleteProject`); and the three `POST`s that take none (`startIntakeSession`, `runRehearsal`, `createApprovalPreview`). Sent with `Content-Type: application/json` and no body, it is `400 REQUEST_INVALID`. The generated client already omits it; a `curl` must too.
+- **A request with no body carries no `Content-Type`** — a `GET`; every `DELETE`, none of which takes a body (`clearAppSecret`, `revokeToken`, `removeMember`, `endAgentSession`, `endIntakeSession`, `deleteProject`); and the seven `POST`s that take none (`startIntakeSession`, `runRehearsal`, `createApprovalPreview`, `draftIamRegistration`, `draftPrivacyAssessment`, `returnIamRegistration`, `returnPrivacyAssessment`). Sent with `Content-Type: application/json` and no body, it is `400 REQUEST_INVALID`. The generated client already omits it; a `curl` must too.
 - A body is JSON, sent as `Content-Type: application/json`; anything else is `415 REQUEST_MEDIA_TYPE_UNSUPPORTED`.
 - A delegated token has its own rate limit (*Authentication*).
 - A path that matches no route is `404 ROUTE_NOT_FOUND`.

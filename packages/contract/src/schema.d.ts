@@ -923,7 +923,7 @@ export interface paths {
         put?: never;
         /**
          * Send the privacy assessment to the Manifest team, every gap answered
-         * @description The project’s owner, a collaborator or a platform administrator, in their own session, sends the privacy impact assessment to the Manifest team, who submit it to UBC’s Privacy Office (`submitPrivacyAssessment`) or hand it back (`returnPrivacyAssessment`) — with an answer to EVERY gap of the draft, once each, by its `id` (`answers`; “does not apply” is an answer). A gap without an answer, a blank one, one over 2,000 characters, a gap answered twice or one the draft does not have is `400 LAUNCH_GAP_ANSWERS_INVALID`, naming each gap at fault. It is sent now, from Manifest: the record moves to `sent`, with `sentAt`, `sentBy` and the answers in `gapAnswers`, and the Manifest team is emailed — the app and who sent it, never an answer. It comes first in UBC’s order, so nothing else gates it. What is sent is Manifest’s draft, so a record with none is `409 LAUNCH_DRAFT_REQUIRED`, one drafted again after the draft `draftGeneratedAt` names is `409 LAUNCH_DRAFT_CHANGED`, and a second send is `409 LAUNCH_TRANSITION_INVALID`. A delegated token is refused `403 TOKEN_CREDENTIAL_REFUSED`; anyone else is answered `404 NOT_FOUND`.
+         * @description The project’s owner, a collaborator or a platform administrator, in their own session, sends the privacy impact assessment to the Manifest team, who submit it to UBC’s Privacy Office (`submitPrivacyAssessment`) or hand it back (`returnPrivacyAssessment`) — with an answer to EVERY gap of the draft, once each, by its `id` (`answers`; “does not apply” is an answer). A gap without an answer, a blank one, a gap answered twice or one the draft does not have is `400 LAUNCH_GAP_ANSWERS_INVALID`, naming each gap at fault; an answer over 2,000 characters is refused by the request’s own limit, `400 REQUEST_INVALID`. It is sent now, from Manifest: the record moves to `sent`, with `sentAt`, `sentBy` and the answers in `gapAnswers`, and the Manifest team is emailed — the app and who sent it, never an answer. It comes first in UBC’s order, so nothing else gates it. What is sent is Manifest’s draft, so a record with none is `409 LAUNCH_DRAFT_REQUIRED`, one drafted again after the draft `draftGeneratedAt` names is `409 LAUNCH_DRAFT_CHANGED`, and a second send is `409 LAUNCH_TRANSITION_INVALID`. A delegated token is refused `403 TOKEN_CREDENTIAL_REFUSED`; anyone else is answered `404 NOT_FOUND`.
          */
         post: operations["sendPrivacyAssessment"];
         delete?: never;
@@ -3572,7 +3572,7 @@ export interface components {
             type: "iam_registration.sent";
             /** @description What happened, in words for a person. Never parse it. */
             humanMessage: string;
-            /** @description The owner sent the app’s staging or production registration to the Manifest team, who submit it to UBC IAM or hand it back — or, sent from a live registration (`sentFrom: active`), a change to it, which the team files with UBC IAM as a change request. The team was emailed. */
+            /** @description The owner sent the app’s staging or production registration to the Manifest team, who submit it to UBC IAM or hand it back — or, sent from a live registration (`sentFrom: active`), a change to it, which the team files with UBC IAM as a change request. The Manifest team is emailed. */
             machineDetail: {
                 /**
                  * @description Which registration was sent: the staging one, or production’s.
@@ -3617,7 +3617,7 @@ export interface components {
             type: "privacy_assessment.sent";
             /** @description What happened, in words for a person. Never parse it. */
             humanMessage: string;
-            /** @description The owner sent the app’s privacy impact assessment to the Manifest team, with an answer to every gap, for the team to submit to the Privacy Office or hand back. The team was emailed. */
+            /** @description The owner sent the app’s privacy impact assessment to the Manifest team, with an answer to every gap, for the team to submit to the Privacy Office or hand back. The Manifest team is emailed. */
             machineDetail: {
                 /** @description How many gaps the owner answered — every gap of the draft sent. The answers are on the record, not here. */
                 gapCount: number;
@@ -5112,7 +5112,7 @@ export interface components {
             certExpiresAt: string | null;
             /** @description What UBC IAM registered; empty until it has registered something. Builds are checked against the PRODUCTION registration’s list once UBC has registered it (`registeredAt` set): a build that asks for an attribute not in it fails. The staging registration’s list, and one not yet registered, gate no build. Once registered, it changes only on a record that reaches `active` — a change UBC has not registered yet is `requestedAttributes`. */
             registeredAttributes: string[];
-            /** @description What an outstanding CHANGE REQUEST asks UBC IAM for — the registration’s own `change_requested` state is the change request. Null when none is outstanding; cleared when the registration is recorded `active` again. */
+            /** @description What an outstanding CHANGE to the live registration asks UBC IAM for — set when its owner sends the change to the Manifest team (`sent`), kept while the team files it with UBC IAM (`change_requested`) and UBC considers it. Null when none is outstanding; cleared when the team hands the change back, or the registration is recorded `active` again. */
             requestedAttributes: string[] | null;
             /** @description When UBC IAM last registered this Service Provider — set when the record reaches `active`. Null until the first time, and again once the registration lapses (`expired`) until it is recorded `active` again; a launched app’s releases need it. */
             registeredAt: string | null;
@@ -5121,11 +5121,11 @@ export interface components {
              * @enum {string}
              */
             state: "draft" | "sent" | "submitted" | "active" | "change_requested" | "expired";
-            /** @description While `change_requested`, where it came from: `submitted` — UBC IAM came back with questions, so the next move is the owner’s (answer them, draft again, send it); `active` — an administrator filed a change request with UBC IAM, which UBC now holds. Null in any other state. */
+            /** @description While `change_requested`, where it came from: `submitted` — UBC IAM came back with questions, so the next move is the owner’s (answer them, draft again, send it); `active` — the Manifest team filed a change to the live registration with UBC IAM as a change request (or an administrator recorded one), which UBC now holds. Null in any other state. */
             changeRequestedFrom: ("submitted" | "active") | null;
             /** @description UBC IAM’s own reference for the request; null when none was recorded. */
             externalTicketRef: string | null;
-            /** @description While `sent`, where its owner sent it from — a draft, UBC IAM’s questions to them, a lapsed registration — which is where the Manifest team’s hand-back returns it. Null in any other state. */
+            /** @description While `sent`, where its owner sent it from — a draft, UBC IAM’s questions to them, a lapsed registration, or the live registration (`active`: a change to it) — which is where the Manifest team’s hand-back returns it. Null in any other state. */
             sentFrom: ("draft" | "change_requested" | "expired" | "active") | null;
             /** @description When its owner last sent it to the Manifest team. Kept once the team has submitted it or handed it back, and replaced by the next send; null until it is first sent. */
             sentAt: string | null;
@@ -6643,7 +6643,7 @@ export interface components {
             answers: {
                 /** @description The gap answered: a `gaps[].id` of the draft you read. */
                 gapId: string;
-                /** @description The answer, up to 2,000 characters. “Does not apply” is an answer; a blank one is not. */
+                /** @description The answer, up to 2,000 characters — a longer one is refused `400 REQUEST_INVALID`, before any gap is checked. “Does not apply” is an answer; a blank one is not. */
                 answer: string;
             }[];
         };

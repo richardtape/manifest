@@ -4114,7 +4114,7 @@
           },
           {
             "type": "iam_registration.sent",
-            "description": "The owner sent the app’s staging or production registration to the Manifest team, who submit it to UBC IAM or hand it back — or, sent from a live registration (`sentFrom: active`), a change to it, which the team files with UBC IAM as a change request. The team was emailed.",
+            "description": "The owner sent the app’s staging or production registration to the Manifest team, who submit it to UBC IAM or hand it back — or, sent from a live registration (`sentFrom: active`), a change to it, which the team files with UBC IAM as a change request. The Manifest team is emailed.",
             "example": {
               "environment": "staging",
               "sentFrom": "draft"
@@ -4122,7 +4122,7 @@
           },
           {
             "type": "privacy_assessment.sent",
-            "description": "The owner sent the app’s privacy impact assessment to the Manifest team, with an answer to every gap, for the team to submit to the Privacy Office or hand back. The team was emailed.",
+            "description": "The owner sent the app’s privacy impact assessment to the Manifest team, with an answer to every gap, for the team to submit to the Privacy Office or hand back. The Manifest team is emailed.",
             "example": {
               "gapCount": 8
             }
@@ -6593,7 +6593,7 @@
           "launch"
         ],
         "summary": "Send the privacy assessment to the Manifest team, every gap answered",
-        "description": "The project’s owner, a collaborator or a platform administrator, in their own session, sends the privacy impact assessment to the Manifest team, who submit it to UBC’s Privacy Office (`submitPrivacyAssessment`) or hand it back (`returnPrivacyAssessment`) — with an answer to EVERY gap of the draft, once each, by its `id` (`answers`; “does not apply” is an answer). A gap without an answer, a blank one, one over 2,000 characters, a gap answered twice or one the draft does not have is `400 LAUNCH_GAP_ANSWERS_INVALID`, naming each gap at fault. It is sent now, from Manifest: the record moves to `sent`, with `sentAt`, `sentBy` and the answers in `gapAnswers`, and the Manifest team is emailed — the app and who sent it, never an answer. It comes first in UBC’s order, so nothing else gates it. What is sent is Manifest’s draft, so a record with none is `409 LAUNCH_DRAFT_REQUIRED`, one drafted again after the draft `draftGeneratedAt` names is `409 LAUNCH_DRAFT_CHANGED`, and a second send is `409 LAUNCH_TRANSITION_INVALID`. A delegated token is refused `403 TOKEN_CREDENTIAL_REFUSED`; anyone else is answered `404 NOT_FOUND`.",
+        "description": "The project’s owner, a collaborator or a platform administrator, in their own session, sends the privacy impact assessment to the Manifest team, who submit it to UBC’s Privacy Office (`submitPrivacyAssessment`) or hand it back (`returnPrivacyAssessment`) — with an answer to EVERY gap of the draft, once each, by its `id` (`answers`; “does not apply” is an answer). A gap without an answer, a blank one, a gap answered twice or one the draft does not have is `400 LAUNCH_GAP_ANSWERS_INVALID`, naming each gap at fault; an answer over 2,000 characters is refused by the request’s own limit, `400 REQUEST_INVALID`. It is sent now, from Manifest: the record moves to `sent`, with `sentAt`, `sentBy` and the answers in `gapAnswers`, and the Manifest team is emailed — the app and who sent it, never an answer. It comes first in UBC’s order, so nothing else gates it. What is sent is Manifest’s draft, so a record with none is `409 LAUNCH_DRAFT_REQUIRED`, one drafted again after the draft `draftGeneratedAt` names is `409 LAUNCH_DRAFT_CHANGED`, and a second send is `409 LAUNCH_TRANSITION_INVALID`. A delegated token is refused `403 TOKEN_CREDENTIAL_REFUSED`; anyone else is answered `404 NOT_FOUND`.",
         "security": [
           {
             "session": []
@@ -12474,7 +12474,7 @@
           "LAUNCH_DRAFT_CHANGED": "The draft was made again after the one the request names (`draftGeneratedAt`), so what Manifest holds is not what the person read. Nothing was sent.",
           "LAUNCH_DRAFT_REQUIRED": "There is no draft of this registration or privacy assessment to send: Manifest drafts it, and what a person sends is that draft.",
           "LAUNCH_DRAFT_STALE": "The registration’s draft does not carry the privacy assessment’s PIA number, which UBC IAM asks for: it was drafted before the assessment was approved with it, or the number has changed since. Nothing was recorded.",
-          "LAUNCH_GAP_ANSWERS_INVALID": "The privacy assessment’s gaps were not each answered once: a gap of the draft has no answer, an answer is blank or over 2,000 characters, a gap is answered twice, or an answer names a gap the draft does not have. The message names every gap at fault. Nothing was sent.",
+          "LAUNCH_GAP_ANSWERS_INVALID": "The privacy assessment’s gaps were not each answered once: a gap of the draft has no answer, an answer is blank, a gap is answered twice, or an answer names a gap the draft does not have. The message names every gap at fault. Nothing was sent.",
           "LAUNCH_NOT_CWL": "The app signs nobody in with CWL — or asks for no attribute, which no registration may — so there is nothing to register with UBC IAM.",
           "LAUNCH_PIA_NOT_APPROVED": "Neither registration is sent until the privacy assessment is approved and carries its reference, the PIA number UBC IAM asks for. UBC’s order is the assessment first.",
           "LAUNCH_RECORD_INVALID": "An external record’s fields cannot be accepted — for example an empty registered-attribute list, against which every release’s attributes would pass the check that they are registered; the message names the field.",
@@ -15609,7 +15609,7 @@
                 "type": "string"
               },
               "machineDetail": {
-                "description": "The owner sent the app’s staging or production registration to the Manifest team, who submit it to UBC IAM or hand it back — or, sent from a live registration (`sentFrom: active`), a change to it, which the team files with UBC IAM as a change request. The team was emailed.",
+                "description": "The owner sent the app’s staging or production registration to the Manifest team, who submit it to UBC IAM or hand it back — or, sent from a live registration (`sentFrom: active`), a change to it, which the team files with UBC IAM as a change request. The Manifest team is emailed.",
                 "type": "object",
                 "properties": {
                   "environment": {
@@ -15702,7 +15702,7 @@
                 "type": "string"
               },
               "machineDetail": {
-                "description": "The owner sent the app’s privacy impact assessment to the Manifest team, with an answer to every gap, for the team to submit to the Privacy Office or hand back. The team was emailed.",
+                "description": "The owner sent the app’s privacy impact assessment to the Manifest team, with an answer to every gap, for the team to submit to the Privacy Office or hand back. The Manifest team is emailed.",
                 "type": "object",
                 "properties": {
                   "gapCount": {
@@ -19060,7 +19060,7 @@
             }
           },
           "requestedAttributes": {
-            "description": "What an outstanding CHANGE REQUEST asks UBC IAM for — the registration’s own `change_requested` state is the change request. Null when none is outstanding; cleared when the registration is recorded `active` again.",
+            "description": "What an outstanding CHANGE to the live registration asks UBC IAM for — set when its owner sends the change to the Manifest team (`sent`), kept while the team files it with UBC IAM (`change_requested`) and UBC considers it. Null when none is outstanding; cleared when the team hands the change back, or the registration is recorded `active` again.",
             "anyOf": [
               {
                 "type": "array",
@@ -19099,7 +19099,7 @@
             ]
           },
           "changeRequestedFrom": {
-            "description": "While `change_requested`, where it came from: `submitted` — UBC IAM came back with questions, so the next move is the owner’s (answer them, draft again, send it); `active` — an administrator filed a change request with UBC IAM, which UBC now holds. Null in any other state.",
+            "description": "While `change_requested`, where it came from: `submitted` — UBC IAM came back with questions, so the next move is the owner’s (answer them, draft again, send it); `active` — the Manifest team filed a change to the live registration with UBC IAM as a change request (or an administrator recorded one), which UBC now holds. Null in any other state.",
             "anyOf": [
               {
                 "type": "string",
@@ -19125,7 +19125,7 @@
             ]
           },
           "sentFrom": {
-            "description": "While `sent`, where its owner sent it from — a draft, UBC IAM’s questions to them, a lapsed registration — which is where the Manifest team’s hand-back returns it. Null in any other state.",
+            "description": "While `sent`, where its owner sent it from — a draft, UBC IAM’s questions to them, a lapsed registration, or the live registration (`active`: a change to it) — which is where the Manifest team’s hand-back returns it. Null in any other state.",
             "anyOf": [
               {
                 "type": "string",
@@ -19159,7 +19159,7 @@
             "description": "Who last sent it to the Manifest team; null until it is first sent.",
             "anyOf": [
               {
-                "description": "The person who said it was sent.",
+                "description": "A person, by name.",
                 "type": "object",
                 "properties": {
                   "id": {
@@ -19202,7 +19202,7 @@
             "description": "The administrator who recorded it submitted to UBC IAM; null until it is.",
             "anyOf": [
               {
-                "description": "The person who said it was sent.",
+                "description": "A person, by name.",
                 "type": "object",
                 "properties": {
                   "id": {
@@ -21330,7 +21330,7 @@
             "description": "Who last sent it to the Manifest team; null until it is first sent.",
             "anyOf": [
               {
-                "description": "The person who said it was sent.",
+                "description": "A person, by name.",
                 "type": "object",
                 "properties": {
                   "id": {
@@ -21403,7 +21403,7 @@
             "description": "The administrator who recorded it submitted to the Privacy Office; null until it is.",
             "anyOf": [
               {
-                "description": "The person who said it was sent.",
+                "description": "A person, by name.",
                 "type": "object",
                 "properties": {
                   "id": {
@@ -23228,9 +23228,8 @@
                   "maxLength": 80
                 },
                 "answer": {
-                  "description": "The answer, up to 2,000 characters. “Does not apply” is an answer; a blank one is not.",
+                  "description": "The answer, up to 2,000 characters — a longer one is refused `400 REQUEST_INVALID`, before any gap is checked. “Does not apply” is an answer; a blank one is not.",
                   "type": "string",
-                  "minLength": 1,
                   "maxLength": 2000
                 }
               },
@@ -24108,7 +24107,7 @@
     },
     "LAUNCH_GAP_ANSWERS_INVALID": {
       "status": 400,
-      "summary": "The privacy assessment’s gaps were not each answered once: a gap of the draft has no answer, an answer is blank or over 2,000 characters, a gap is answered twice, or an answer names a gap the draft does not have. The message names every gap at fault. Nothing was sent.",
+      "summary": "The privacy assessment’s gaps were not each answered once: a gap of the draft has no answer, an answer is blank, a gap is answered twice, or an answer names a gap the draft does not have. The message names every gap at fault. Nothing was sent.",
       "remedy": "Answer every gap of the draft you read, once each, by its id — “does not apply” is an answer — and send it again. If the draft was made again since, read it first: its gaps may have changed."
     },
     "LAUNCH_NOT_CWL": {
