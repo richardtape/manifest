@@ -1236,7 +1236,7 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
     A–F sent to him again at 09:57). He did it as instructor and as operator, and said, in his words: "All the steps worked as
     you described, all of the text is as you said it should be for both operator and instructor, including the email. Great
     work." Checked against the control database at 10:35 by manifest-coord: launchpath-clicksend's privacy assessment is
-    `submitted`; launchpath-click's production IAM registration is `sent` with sent_from `active` (the change, step E); the
+    `submitted`; launchpath-click's STAGING IAM registration is `sent` with sent_from `active`, asking for five attributes, at 10:33:33 (the change, step E — CORRECTED 10:50 by manifest-coord: this entry first said production's, from a query that did not print the environment; manifest-p5 read both through the API at 10:37 and production's is still `active`, nothing requested; manifest-p5's F20 rules it not blocking — the change is the same flow and words for either environment, Decision 21, and production's runs in every re-use `make demo-launch`); the
     agent's question on launchpath-clicksend is `confirmed` (step F). The clicked half is DONE; manifest-p5 records his words
     and closes the plan.
 
