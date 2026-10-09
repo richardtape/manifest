@@ -1229,3 +1229,23 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
     is re-staged in under a minute if needed; the vulnerability database is fresh until 2026-10-10). A8's 7100 half waits
     for manifest-p5's close-out after that click. A8's three questions (the 7100 window, two real repositories, the click's
     scope) remain open with him.
+
+# Rich's decisions — 2026-10-09, 10:35 PDT (session manifest-coord, the coordinated run's second morning)
+
+    THE FE-46/47/5 PLAN'S CLICKED HALF (Task 9; staged by manifest-p5 at 20:07 on 2026-10-08, 7100 on driver 1; the steps
+    A–F sent to him again at 09:57). He did it as instructor and as operator, and said, in his words: "All the steps worked as
+    you described, all of the text is as you said it should be for both operator and instructor, including the email. Great
+    work." Checked against the control database at 10:35 by manifest-coord: launchpath-clicksend's privacy assessment is
+    `submitted`; launchpath-click's production IAM registration is `sent` with sent_from `active` (the change, step E); the
+    agent's question on launchpath-clicksend is `confirmed` (step F). The clicked half is DONE; manifest-p5 records his words
+    and closes the plan.
+
+    A8'S HALF TWO (manifest-app-w8, F5b sitting 5 and F6b sitting 7's joint 7100 walk), three questions put to him at 07:57
+    and 09:57. His words: "yes, yes, (i)". So:
+      (a) THE 7100 WINDOW — yes: about 2½–3 hours after manifest-p5's close-out (A8's server in edge mode; agents type the
+          laptop IdP's test users under his standing yes of 2026-10-03; the walk's app made through the front end's page).
+      (b) TWO REAL PRIVATE REPOSITORIES in Manifest-local-dev that nothing deletes — yes: `a8-clocks-1` for the walk, and one
+          for his own app at the click (his slug).
+      (c) THE CLICK'S SCOPE — (i): the full path on his own app, as himself (~45–60 minutes): made on our page, the three
+          cards through each send, the sign-off, the dry run, Let your students in, and [Ask UBC's identity team] once; A8
+          plays the Manifest team and UBC. Rejected: (ii), the three sends only.
