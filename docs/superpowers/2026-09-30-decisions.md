@@ -1222,3 +1222,10 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
           page and the history alone.
       (c) "NOT DECIDED YET" FOR A GAP ONLY UBC CAN SETTLE — KEEP AS BUILT: the agent suggests nothing there and the person
           writes it; the agent never takes the Privacy Office's position for them. Rejected: suggesting "Not decided yet".
+
+    And at 22:44 PDT, THE FE-46/47/5 CLICKED HALF'S TIMING (manifest-p5 staged it at 20:07 on 7100, driver 1; flagged to him
+    as BLOCKED ON YOU at 20:08). His words: "tomorrow morning is fine for the click". So the click is on 2026-10-09 in the
+    morning; manifest-p5 keeps 7100 and the staging overnight (the agent's question in step F expires 2026-10-09 20:07 and
+    is re-staged in under a minute if needed; the vulnerability database is fresh until 2026-10-10). A8's 7100 half waits
+    for manifest-p5's close-out after that click. A8's three questions (the 7100 window, two real repositories, the click's
+    scope) remain open with him.
