@@ -273,7 +273,12 @@ red() { printf '\033[31m%s\033[0m' "$1"; }
 # `api/launch.test.ts` (2: the change through the routes; FE-55's two halves) and `packages/mock/src/scripted.test.ts` (1: a change
 # drafted and sent); Task 8b +4: `packages/console/src/launch-records-state.test.ts` (3: Ask for a change, the change's send, the
 # team's words) and `packages/mock/src/scripted.test.ts` (1: the change-with-team stage). Measured 3530/212, 0 failed, twice.
-EXPECT_TESTS=3530
+# EXPECT_TESTS 3530 -> 3533 (2026-10-08, the FE-46/47/5 plan's sitting 5 — the whole-branch review's fix wave, `154f220`), no new
+# file: `api/launch.test.ts` (2: a production change UBC sent back with questions drafted again as the change it is — I1; an
+# assessment sent while an administrator's record of it waits is not overwritten — m5) and `launch/readiness.test.ts` (1: before a
+# first launch, a change to a registration in force says where it is — sitting 4's F16). Measured 3533/212, 0 failed, twice (inside
+# `make ci-acceptance`, 969 s, and alone, 988 s).
+EXPECT_TESTS=3533
 EXPECT_FILES=212
 # EXPECT_DOCTOR 21 -> 22 (2026-10-03, the UBC AI Gateway plan's sitting 2, Task 2): the gateway key's expiry, a
 # check_warn — counted, never failing — from 14 days ahead (its Decision 11). Measured: 22 checks, 0 failed, 0 warnings.

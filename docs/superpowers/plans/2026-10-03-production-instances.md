@@ -14,6 +14,17 @@
 > It builds in **Rich's answer on a dead member — *"Replace it automatically"*** (Decision 11, Task 6). The review's line references were
 > re-checked against the code at `75030d8` and hold. **Every finding, and where it went, is in *Revised to the review*** near the end.
 
+> **READ FIRST — WHAT THE FE-46/47/5 PLAN LEFT THIS ONE (2026-10-08, `manifest-p5`, at that plan's close).** It EXECUTED after this plan
+> was written, and it took the contract to **`1.8.0`** — so **wherever this plan says the contract goes to `1.8.0`, it goes to `1.9.0`**
+> (lines 62, 93, 241, 601, 612, 629, 639, 656 — counted with this banner in place), and B, A2 and FE-32 each one further (`1.10.0`, `1.11.0`, `1.12.0`);
+> sitting 1 re-reads each against `packages/contract` and corrects them before Task 5's first schema change, as FE-46/47/5's sitting 1 did.
+> **Migration `0053` is FE-46/47/5's** (`0053_lumpy_boomerang`: the records' `sent` state); this plan's first takes `0054`. **`launch/`
+> moved throughout** (`records.ts`, `readiness.ts`, `queue.ts`, the new `mail/`; a registration IN FORCE — `registrationInForce` — is now
+> what "live" means), and **`make demo-launch`'s `class` audience is at `journey/src/launch.ts:516-517`** (line 43's `launch.ts:497`); Task
+> 1's `[M1]` re-reads every fact anyway. **`make demo-launch` takes ~3–4 min; its change leg (8b) runs on the RE-USE path only**, so *"three
+> times on each driver"* is fresh, re-use, re-use again; **`make demo-token` is driver 1's alone** (`require_driver local`). The vulnerability
+> database is fresh until 2026-10-10: a launch demo after that needs `make refresh-vulndb`, with the network on.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: superpowers:executing-plans (inline) or superpowers:subagent-driven-development, **whichever Rich chooses**. Steps use checkbox (`- [ ]`) syntax for tracking. **Commit on `main`; no branch, no worktree, no push** — ORIENTATION §6 rule 9.
 
 **Goal:** **Production runs as many instances as its audience needs** — §24's table: `solo` 1, `class` 2, `large_course` 3, `public` 3 —

@@ -2770,3 +2770,16 @@ one that launched it.**
 request's `now`, so a time written as `now - 1 day` differs between two reads — and a client comparing a record's `sentAt` with the queue
 item's `since` sees two values for one moment. Derive a stage's times from the Vancouver DAY (`vancouverDay(...)` with a fixed hour), as the
 stages do. Found red by the FE-46/47/5 plan's sitting 4 (F11, the `change-with-team` stage's first draft).
+
+**A CONTROL'S EDIT THE DATABASE REFUSES IS RED FOR THE WRONG REASON.** A control that writes a value a CHECK forbids makes every test that
+reaches the write throw — and the red count looks like a strong control. The FE-46/47/5 plan's sitting 5 (F10): an edit setting
+`registered_at` on the team's submission went red in 14 tests, 12 of them because `iam_registrations_attributes_present` refuses a
+registration with no attributes in force — the rule under test (a lapsed registration read as registered) was the other two. **Read the
+failures' messages before counting reds**, and re-run the edit so it respects the database's own rules: what is left is the control.
+
+**A GUARD THREE LAYERS DEEP IS NOT A CONTROL THAT CANNOT FAIL.** Removing one layer of a refusal another layer repeats changes only its
+WORDS, or the published document, and the code a test asserts stays put — sitting 5's C5: the team's step is `refuseRecordAroundTheTeam`,
+the transition table's `sent: []` and the `iam_registrations_sent_from` CHECK; a token's way round a person-only send is the route's
+`credential: 'session'`, the handler's `requireSession` and PERSON_ONLY. **Read every layer before predicting**, and record each as the guard
+it is. **And before predicting a control on code an earlier sitting already controlled, read that sitting's record** — sitting 5's C2
+(`oneLine` dropped) stayed green exactly as sitting 2's F13 had measured: nodemailer folds a CR/LF in a subject itself.

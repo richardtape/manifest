@@ -1560,6 +1560,8 @@ DEMO_LAUNCH_REAL=1 DEMO_LAUNCH_STOP_AFTER=3 make demo-launch
 
 **Measured 2026-10-02** (sitting 12, on `94dc0d0`'s tree): driver 1 **260 s fresh** (on a `make reset` machine, a cold build
 cache) and **154 s re-used**; driver 2 on the fake **201–253 s fresh** and **138–149 s re-used**; the real leg **133 s**.
+**Measured again 2026-10-08** (the FE-46/47/5 plan's sitting 5, on `3565b10` and `154f220`, with the team's step and the change leg):
+**~3 min 30 s fresh** on either driver (3 min 50 s from a `make reset` machine, a cold build cache) and **~3 min 05 s re-used**, 8b included.
 
 **The app** is `fixtures/launch-path-app/`: an office-hours booking app on `node-ts-mongo@1` that reads `ubcEduCwlPuid`,
 `givenName` and `mail`, and asks for `sn` WITHOUT reading it — so the package flags `sn` unread and warns before it is sent.

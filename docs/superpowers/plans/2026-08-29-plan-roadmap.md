@@ -1597,8 +1597,13 @@ valid manifest and sent as a change, `409 LAUNCH_CHANGE_EMPTY`, filed by the tea
 **and FE-55** — a CWL manifest asking no attribute refused at validation (`SPEC_CWL_NO_ATTRIBUTES`) and at deploy, typed (`409
 RELEASE_CWL_NO_ATTRIBUTES`; it was `500`) (`8fe6593`, `d83f795`); their screens — *Ask for a change*, the team's words for a change, the mock's
 `change-with-team` stage, the guide (`484a7cf`). `make demo-launch` green on both drivers, fresh and through the re-use path's new change leg;
-the console walked headless. **Sitting 5 (Task 9 — the acceptance, every other demo, the one whole-branch review, the clicked half, which
-needs Rich) is NEXT**, then A1. **Written 2026-10-03 by the
+the console walked headless. **Sitting 5 (Task 9) is IN PROGRESS — EVERYTHING BUT THE CLICKED HALF IS DONE, 2026-10-08** (`manifest-p5`, the run's job P5):
+`make demo-launch` green three times on each driver and from a `make reset` machine, `make demo-token` three times (driver 1's alone), every
+other demo and `make ci-acceptance`, six controls, and **the one whole-branch review's fix wave** (`154f220`: a change UBC sent back with
+questions drafted again as the change it is; an empty answer naming its gap; a first launch's change saying where it is — its GATE Rich's
+question; the assessment's record locked against an owner's send; the acceptance's own *"since the SECOND send"* check, which could not fail).
+**The clicked half is staged on 7100 and Rich clicks it on 2026-10-09 in the morning** (*"tomorrow morning is fine for the click"*, `c720db5`);
+then the plan closes, and A1 is next. **Written 2026-10-03 by the
 planning session `manifest-c7`** (Rich spawned it; `manifest-94` coordinated) from the spec as `8def435` left it — **the three spec actions
 APPLIED that afternoon** (*Spec actions raised by the faculty front-end's FE-46, FE-47 and FE-5*, above) — and two read-only surveys of the
 code; nothing executed. **What it builds:** the owner SENDS each launch record to the Manifest team (LTIC) — a state `sent`, with `sent_from`,
