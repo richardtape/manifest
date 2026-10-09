@@ -1000,7 +1000,13 @@ found. Each row is measured; **Owner** is the repository whose code changes. **A
 deletes it.** A row the faculty front-end owns is relayed to its live session (CLAUDE.md *Outstanding*) and deleted here once that session
 has taken it — this repository never edits `~/Developer/manifest-app`.*
 
-**NONE OPEN (2026-10-08).** The four rows Rich's testing of `ask-my-notes` produced (2026-10-05, `manifest-fd` — whole, with their
+**ONE OPEN (2026-10-09): FE-56, carried at Rich's word** (2026-10-09 11:24, *"go with your recommendations on all five"*, `6a4ae2a`).
+
+| Item | Measured | Touches | Owner | Why it is not done yet |
+|---|---|---|---|---|
+| **FE-56 — a registration drafted from a version no longer on trying-out is sent as it is.** `sendIamRegistration` checks that the draft is the one held (`LAUNCH_DRAFT_CHANGED`) and that it carries the approved PIA number (`LAUNCH_DRAFT_STALE`), never that it was drawn from what a draft would be drawn from NOW (the release serving staging for production's; the newest valid manifest for staging's). The front end tells a stale draft by structure, but only as of its last reading, so a collaborator's new version on trying-out while a page stays open leaves an old draft sendable, and UBC would register what an older version asked for | The front end's F5b sitting 4 review (`manifest-app-w6`, 2026-10-08), reading `launch/records.ts` at `484a7cf`; `~/Developer/manifest-app/docs/api-findings.md`, FE-56 | `launch/records.ts` (`sendIamRegistration`), a new refusal code, the contract | platform | Carried 2026-10-09; placed with the next plan that touches `launch/records.ts` — A1 if its scope reaches the send, else its own small item |
+
+**Before it, NONE OPEN (2026-10-08).** The four rows Rich's testing of `ask-my-notes` produced (2026-10-05, `manifest-fd` — whole, with their
 measurements, at `6048dac`: `git show 6048dac:docs/superpowers/plans/2026-08-29-plan-roadmap.md`) are cleared, in the coordinated run Rich
 opened that morning (`~/Developer/manifest-app/docs/plans/2026-10-06-coordination.md`):
 

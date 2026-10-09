@@ -2008,10 +2008,10 @@ shared SAML cache — is his).
   re-use again; **any Vitest run empties 7100, so the next demo is fresh**. **`make demo-token` is driver 1's alone.** The GitHub fake needs the
   approved `.env` swap (a 0600 copy, the seven `MANIFEST_SOURCE_DRIVER=`/`MANIFEST_GITHUB_` lines commented, restored `cmp`-identical).
 - **The vulnerability database is fresh until 2026-10-10** — every launch demo after that needs `make refresh-vulndb`, with the network on.
-- **F16(b) is OPEN with Rich** (§8 *Open*): should a change to a registration UBC holds in force block a FIRST launch? **Recommended: (b), a
-  spec action placed with A1** — §13's row read as *"UBC IAM's registration is in force and covers the release"*, the after-launch predicate;
-  the code is ready (`readiness.ts`'s `iamItem` → `registrationInForce(row)`, and the mock's `iamItem`). Ask him at A1's open; if (b), draft
-  the Spec action's words for his approval and build it beside A1 — never applied unasked.
+- **F16(b) is DECIDED: (b)** (Rich, 2026-10-09 11:24, `6a4ae2a`; §8 *Decided*): a change to a registration UBC holds in force does not
+  block a FIRST launch — §13's row read as *"UBC IAM's registration is in force and covers the release"*, the after-launch predicate; the code
+  is ready (`readiness.ts`'s `iamItem` → `registrationInForce(row)`, and the mock's `iamItem`). **Sitting 1 drafts the Spec action from (b)'s
+  words and applies it** (shared HTML pages swept), and builds it beside A1; wording beyond (b)'s goes to him first.
 - **`scripts/dead-app-resources.sh` now keeps an ARCHIVED project's volumes** (FE-46/47/5 sitting 5's F19: `--apply` had deleted one's data).
   `launchpath-click` is archived on 7100, its data gone (a demo project; its slug stays taken).
 
@@ -2053,16 +2053,6 @@ reasoning is recorded.**
 
 ### Open
 
-- **SHOULD A CHANGE TO A REGISTRATION UBC HOLDS IN FORCE BLOCK A FIRST LAUNCH? — RAISED 2026-10-08 by the FE-46/47/5 plan's sitting 5**
-  (sitting 4's F16, judged by its whole-branch review), asked of Rich through `manifest-coord`; **not answered at the plan's close**. §13's
-  first-launch row reads *"`IamRegistration` is `active`"* (spec :1651), so an app whose production registration UBC registered, with a change
-  sent to the team or filed (`sent`, or `change_requested` from `active`), cannot launch for the first time though the release it would launch
-  is covered (`launch/readiness.ts`'s `iamItem`); after launch the same state reads `met`. Its words now say where the change is and that the
-  team can hand it back (`154f220`). *Options:* **(a)** keep it — the owner asks the team to hand the change back, launches, and asks again;
-  **(b)** the row reads *"UBC IAM's registration is in force (recorded `active`, not lapsed since) and covers the release; a change asked for or
-  filed does not unregister it"* — the after-launch predicate; the code is `iamItem` → `registrationInForce(row)`, and the mock's `iamItem`; low
-  risk (`registered_at` is set only on reaching `active` and cleared only on `expired`). **Recommended: (b), a spec action placed with A1**
-  (the coordinator's word, 2026-10-09: record it open, apply nothing). The plan's *Sitting 5*, F3.
 - **FE-24'S OPEN QUESTIONS, for the external track and the Privacy Office** (carried from Spec action 6's draft — APPLIED
   2026-09-27, `25e7445`, so the first three are now §19's rows and `docs/external-track.md`'s items 12–14): whether D21's
   rehearsal keeps a purpose once staging signs people in against UBC's staging IdP every day; **whether a privacy assessment
@@ -2113,6 +2103,11 @@ reasoning is recorded.**
 
 ### Decided
 
+- **F16(b) — A CHANGE TO A REGISTRATION UBC HOLDS IN FORCE DOES NOT BLOCK A FIRST LAUNCH — RICH, 2026-10-09 11:24** (*"go with your
+  recommendations on all five"*, through `manifest-coord`; [`2026-09-30-decisions.md`](2026-09-30-decisions.md), `6a4ae2a`): (b), §13's
+  first-launch row reads *"UBC IAM's registration is in force (recorded `active`, not lapsed since) and covers the release; a change asked
+  for or filed does not unregister it"* — the after-launch predicate (`iamItem` → `registrationInForce(row)`, and the mock's). **A Spec action
+  placed with A1**: its sitting 1 drafts it from (b)'s words and applies it; wording beyond (b)'s goes to him first.
 - **THE TWO PLATFORM FIXES FROM `ask-my-notes` — NOW, OUT OF PLAN — RICH, 2026-10-08 09:07** (the coordinated run's opening, answer 1:
   *"Approved; P0 now (Recommended)"*; raised 2026-10-05 by `manifest-fd`): run by `manifest-p0` beside FE-46/47/5's sitting 1, and FIXED in
   `1e96502` — the `proof-app` starter reads `COURSE_CODE` at startup, so a dropped `env:` declaration fails an app's first boot rather than

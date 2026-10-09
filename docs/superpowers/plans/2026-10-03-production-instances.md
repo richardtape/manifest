@@ -14,6 +14,13 @@
 > It builds in **Rich's answer on a dead member — *"Replace it automatically"*** (Decision 11, Task 6). The review's line references were
 > re-checked against the code at `75030d8` and hold. **Every finding, and where it went, is in *Revised to the review*** near the end.
 
+> **AND F16(b) IS DECIDED FOR THIS PLAN (Rich, 2026-10-09 11:24, `6a4ae2a`, through `manifest-coord`): (b).** A change to a registration UBC
+> holds in force does not block a FIRST launch — §13's first-launch row reads *"UBC IAM's registration is in force (recorded `active`, not lapsed
+> since) and covers the release; a change asked for or filed does not unregister it"*, the after-launch predicate (`launch/readiness.ts`'s
+> `iamItem` → `registrationInForce(row)`, and the mock's `iamItem`). **Sitting 1 drafts the Spec action from (b)'s words and applies it**, the
+> shared HTML pages swept; any wording beyond (b)'s goes to him first. **And FE-56 is CARRIED** (the same morning): `sendIamRegistration`
+> never checks that a draft was drawn from what a draft would be drawn from now — the roadmap's *Tracked defects found in use*.
+
 > **READ FIRST — WHAT THE FE-46/47/5 PLAN LEFT THIS ONE (2026-10-08, `manifest-p5`, at that plan's close).** It EXECUTED after this plan
 > was written, and it took the contract to **`1.8.0`** — so **wherever this plan says the contract goes to `1.8.0`, it goes to `1.9.0`**
 > (lines 62, 93, 241, 601, 612, 629, 639, 656 — counted with this banner in place), and B, A2 and FE-32 each one further (`1.10.0`, `1.11.0`, `1.12.0`);
