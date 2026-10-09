@@ -1249,3 +1249,23 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
       (c) THE CLICK'S SCOPE — (i): the full path on his own app, as himself (~45–60 minutes): made on our page, the three
           cards through each send, the sign-off, the dry run, Let your students in, and [Ask UBC's identity team] once; A8
           plays the Manifest team and UBC. Rejected: (ii), the three sends only.
+
+    And at 11:24 PDT, THE FIVE OPTIONAL QUESTIONS (none blocking; put to him with recommendations at 07:57, 09:57 and, in
+    full, at ~10:40). His words: "go with your recommendations on all five". So:
+      1. F16(b) — SHOULD A CHANGE TO A REGISTRATION UBC HOLDS IN FORCE BLOCK A FIRST LAUNCH? — (b): §13's first-launch row reads
+         "UBC IAM's registration is in force (recorded `active`, not lapsed since) and covers the release; a change asked for or
+         filed does not unregister it" — the after-launch predicate (`launch/readiness.ts`'s `iamItem` → `registrationInForce(row)`,
+         and the mock's `iamItem`). A SPEC ACTION PLACED WITH A1 (production instances by audience): its sitting 1 drafts the Spec
+         action from option (b)'s words and applies it, with the shared HTML pages swept; any wording beyond (b)'s goes to him
+         first. Rejected: (a) keep it (the owner asks the team to hand the change back, launches, and asks again).
+      2. A7'S PRESS (F6b Task 14, D14.6) — (a) *[Ask UBC's identity team]*, as built (moment 8's own press is already *[Ask for
+         it]*). Rejected: (b) *[Ask UBC for it]*; (c) *[Send it to the Manifest team]*.
+      3. FE-56 (the front end's finding: `sendIamRegistration` never checks that a draft was drawn from what a draft would be
+         drawn from now) — CARRIED to the platform, placed with its next plan that touches `launch/records.ts`. Rejected: leave it
+         the front end's alone.
+      4. m167 (uid and eduPersonPrincipalName share the front end's words) — YES: [Take it out]'s change hands the planner the
+         attribute's name; a small front-end follow-up. Rejected: as built.
+      5. A8'S I1 (production's step waits on a Manifest team that never acts when UBC's registration is active but the newest
+         version asks one attribute more) — (a): *needs you*, with a press that drafts the change and offers [Send it to the
+         Manifest team]; a small front-end follow-up after F5b closes (new words, his to see). Rejected: (b) inside A8 now;
+         (c) as built.
