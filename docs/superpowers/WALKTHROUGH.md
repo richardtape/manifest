@@ -256,8 +256,12 @@ then sign in again (`MANIFEST_ADMIN_PUIDS` is not set in `.env`).
 > gap (a box each; *Does not apply* is one) and is held until each has one — and the record reads *With the Manifest team since <day>*. As
 > `operator`, the record then shows **The Manifest team's step**: the owner's answers, **Record that the team submitted it** (the day and
 > UBC's reference) or **Hand it back to the owner** — record the submission BEFORE recording UBC's answer, because *Record what … said* is
-> not offered while the team holds a record. The queue lists the record once the team has submitted it (the team's own queue kinds come with
-> the plan's Task 6). The plan's sitting 5 clicks the new path whole.
+> not offered while the team holds a record. **And since the plan's Tasks 6–8b (sitting 4)** the queue lists what the team holds the moment
+> the owner sends it (*Privacy assessment to submit to the Privacy Office*, *Staging registration to submit to UBC IAM*), the checklist says
+> who has each record and since when, the administrator's checklist link reads *The Manifest team’s step, and UBC IAM’s answer*, and a LIVE
+> registration offers **Ask for a change** when the newest manifest asks for an attribute UBC has not registered — sent to the team, who
+> **Record that the team filed it** with UBC IAM (*Production change to file with UBC IAM* in the queue). The plan's sitting 5 clicks the
+> new path whole.
 
 | # | As | Click | What must be true |
 |---|---|---|---|
@@ -286,8 +290,12 @@ again, and lasts ten minutes.
 > gap (a box each; *Does not apply* is one) and is held until each has one — and the record reads *With the Manifest team since <day>*. As
 > `operator`, the record then shows **The Manifest team's step**: the owner's answers, **Record that the team submitted it** (the day and
 > UBC's reference) or **Hand it back to the owner** — record the submission BEFORE recording UBC's answer, because *Record what … said* is
-> not offered while the team holds a record. The queue lists the record once the team has submitted it (the team's own queue kinds come with
-> the plan's Task 6). The plan's sitting 5 clicks the new path whole.
+> not offered while the team holds a record. **And since the plan's Tasks 6–8b (sitting 4)** the queue lists what the team holds the moment
+> the owner sends it (*Privacy assessment to submit to the Privacy Office*, *Staging registration to submit to UBC IAM*), the checklist says
+> who has each record and since when, the administrator's checklist link reads *The Manifest team’s step, and UBC IAM’s answer*, and a LIVE
+> registration offers **Ask for a change** when the newest manifest asks for an attribute UBC has not registered — sent to the team, who
+> **Record that the team filed it** with UBC IAM (*Production change to file with UBC IAM* in the queue). The plan's sitting 5 clicks the
+> new path whole.
 
 | # | As | Click | What must be true |
 |---|---|---|---|

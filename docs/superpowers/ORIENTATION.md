@@ -1214,7 +1214,15 @@ defect even when every test is green.**
   `sent → submitted` on the team's day (not before the owner's send) with UBC's reference, never refused for order;
   `returnIamRegistration` / `returnPrivacyAssessment` hand it back to `sent_from`. The generic record routes never move a record into
   or out of `sent` (`409`, and their request enums never offer it; `sent_from`'s CHECK refuses the row even without the code). UBC's
-  answer stays an administrator's record and is never refused for order. Every item carries `since`. **Since Task 10 Manifest
+  answer stays an administrator's record and is never refused for order. Every item carries `since` — **since Task 6 it dates the wait on
+its HOLDER** (`waitingSince`: `sent_at` while the team holds it, `submitted_at` once UBC does) and its `why` and `owner` name the holder.
+**Since Task 7 a LIVE registration (`active`) is sent as a CHANGE** (FE-47): drafted again from the NEWEST VALID MANIFEST (either
+environment — the release serving staging cannot ask for what UBC has not registered), `sent_from: active`, `requested_attributes` the
+package's, what UBC registered untouched (so the live item stays `met` for a release it covers); `409 LAUNCH_CHANGE_EMPTY` when it asks for
+exactly what UBC registered; the team FILES it (`change_requested` from `active`, the event's `changeRequest: true`) or hands it back
+(`active`, nothing requested); the build's check is unchanged and its hint says where the change is. **And FE-55**: a CWL manifest asking
+no attribute is refused at validation (`SPEC_CWL_NO_ATTRIBUTES`) and a release made before that at deploy (`409 RELEASE_CWL_NO_ATTRIBUTES`,
+before anything starts — it was `500`). **Since Task 10 Manifest
   DRAFTS each registration** (`draftIamRegistration`, `launch:draft`, mintable): a package stored on the record — the entity, the
   certificate's PUBLIC half (the type carries no private key; one mint per environment, under a lock), every attribute justified by
   the lines that read it, the contacts, the PIA number, the metadata in UBC's structure — never regenerated once sent; **what is
@@ -1230,7 +1238,9 @@ defect even when every test is green.**
   the administrators' alone — never in the answer or the event. **Open and closed are DERIVED, never written** (`openRequestFor`, beside
   `candidateFor`): the request for the release serving staging NOW, with no decision recorded since it was made — closed while another
   release serves, open again (from its first day) if its own does. `admin-approval` says who asked and waits since then. **The
-  administrators' queue** (`listQueue`, session-only, administrator-only) is DERIVED too: open requests, registrations `submitted`,
+  administrators' queue** (`listQueue`, session-only, administrator-only) is DERIVED too: open requests; since the FE-46/47/5 plan's Tasks 6
+  and 7 what the Manifest team holds (`iam-registration-to-submit`, `iam-change-to-file`, `privacy-assessment-to-submit` — since the send,
+  naming the sender); registrations `submitted`,
   change requests FILED (`change_requested_from = 'active'` — one UBC sent back to the owner is theirs, not the queue's; a CHECK holds the
   column to the state both ways), assessments `submitted`; ACTIVE projects only (an archived one's records cannot be acted on); oldest
   first, at most 200. **EVERY BLOCKING ITEM IS NOW BUILDABLE, AND ONE PROJECT HAS MET THEM ALL** (P6a sitting
@@ -1965,56 +1975,50 @@ named in the row below.*
 | **Faculty-ready** | [`plans/2026-09-30-faculty-ready.md`](plans/2026-09-30-faculty-ready.md) — **EXECUTED 2026-10-03**, eighteen tasks in eight sittings | `make demo-faculty-ready` — either driver, green three times on EACH (fresh, re-use, from a `make reset` machine); step 17 of the offline acceptance; a step of `make ci-acceptance`; eight controls seen red; **clicked by Rich** | **Sitting 7's F7 is the one to read**: Task 15 changed WHO is asked for a reason and left the published contract stating the old rule on 24 operations — found only by the plan's one whole-branch review, because each sitting's review saw one sitting's words. **Sitting 5's F10**: recording an event inside a removal's transaction deadlocked a racing role change, until `removeMember` locked the project first. **Sitting 5b's F2**: on the new SAML library every app told the IdP it had NOT signed the person out, with every check green — only decoding the app's own answer sees it. **Sitting 7's F4**: a skeleton is read once, at boot, so a blueprint control without a restart cannot fail |
 | **UBC AI Gateway** | [`plans/2026-10-03-ubc-ai-gateway.md`](plans/2026-10-03-ubc-ai-gateway.md) — **EXECUTED 2026-10-04**, seven tasks (0–4, 6, 6a; 5 dropped) in three sittings | `make demo-gateway` — driver 1 or the fake, the network on and the key; green three times on 1.102.0 (fresh, re-use twice), its gateway-side ratio exactly 1; five controls seen red; **Rich watching the key's spend** | **Sitting 3's F32 is the one to read**: the acceptance's own comparison with the GATEWAY's spend found LiteLLM 1.98.0 charging a STREAM by its own count of the visible text — every unit and Docker case green, because none had streamed a provider's usage in the gateway's shape; fixed by re-pinning to 1.102.0 (Rich's word), which then drifted one §16 mapping row (F33). **Sitting 1's F2**: one Manifest key reads another's stored Responses answer (Phase 3's binding rule). **Sitting 3's F34**: a refused DIRECT setting kept the gateway registration, whose empty reference sends `OPENAI_API_KEY` to UBC |
 | **U1 levels** | [`plans/2026-10-03-u1-classification.md`](plans/2026-10-03-u1-classification.md) — **EXECUTED 2026-10-04**, eight tasks (0–7) in three sittings | `make demo-levels` — either driver, offline; green three times on EACH and from a `make reset` machine on each; step 18 of the offline acceptance; a step of `make ci-acceptance`; eleven controls exactly as predicted; **Rich reading a `high` app's privacy assessment** | **Sitting 3's F20 and F22 are the ones to read**: `capableFloor` FAILED OPEN on a level none of the seven names — `rank(x) < rank(undefined)` is false, so every fallback was set (sitting 2's F11, judged by the plan's one whole-branch review; now seeded `very-high`) — and the acceptance's own *"ONLY by the builder exception"* check passing by RANK once the capable model is `very-high`, MEASURED with the exception off before it was fixed. **Sitting 3's F21**: every boot reads each live app key in a URL query, and only LiteLLM 1.102.0's own `?REDACTED` keeps it out of its log. **Sitting 2's F9**: the unit tier never migrates |
-### 7e. The FE-46/47/5 plan's sitting 4 (Tasks 6, 7 and 8b: who has it and for how long, FE-47's change to a live registration with FE-55, their screens) ← **START HERE**
+### 7e. The FE-46/47/5 plan's sitting 5 (Task 9: the acceptance on both drivers, every other demo, the controls, the one whole-branch review, the clicked half) ← **START HERE**
 
 **THE PLAN IS THE MANIFEST TEAM'S STEP — FE-46, FE-47, FE-5 AND FE-53** ([`plans/2026-10-03-fe46-fe47-fe5.md`](plans/2026-10-03-fe46-fe47-fe5.md)),
-approved 2026-10-03, **EXECUTING SINCE 2026-10-08, INLINE** (Rich, 2026-10-08 09:07: one sitting per session). Read its **READ FIRST** banner,
-*Decided by Rich*, its sittings table, and **Tasks 6, 7 and 8b in full — each one's *SITTING 1 MEASURED* and *SITTING 3 LEFT YOU* notes, and
-Task 7's FE-55 half** — and [`spikes/fe46-baseline/README.md`](spikes/fe46-baseline/README.md) (the survey of every reader of a record's state:
-Task 6 owns the checklist's and the queue's silent sites). **Sitting 4 stops after Task 8b's commit**, with `make demo-launch`'s reuse phase's
-change leg green on both drivers and the console walked headless.
+approved 2026-10-03, **EXECUTING SINCE 2026-10-08, INLINE** (Rich, 2026-10-08 09:07: one sitting per session). **Sittings 1–4 are DONE: every
+task but Task 9 is built.** Read its **READ FIRST** banner, *Decided by Rich*, *Review Focus*, its sittings table, **Task 9 in full — its
+*SITTING 4 LEFT YOU* note first** — and *What executing this plan found*, *Sitting 4*. **Sitting 5 is alone and last, and its clicked half
+needs Rich** (*What Rich does* 4: stage everything, ask once).
 
-**WHAT SITTINGS 1–3 LEFT YOU (2026-10-08; the plan's *Sitting 1* F1–F19, *Sitting 2* F1–F17, *Sitting 3* F1–F16):**
-- **The contract is `1.8.0`** and stays there; **`api/contract/document.ts`'s version comment lists each break by the task that landed it**
-  (Tasks 4 and 5 LANDED) — add Task 6's queue kinds and Task 7's change there as they land.
-- **The team's step is BUILT** (Task 5, `1d4c8da`): both records have `sent` (migration `0053`); the owner's `sendIamRegistration` /
-  `sendPrivacyAssessment` (every gap answered — `400 LAUNCH_GAP_ANSWERS_INVALID`); `submitIamRegistration` / `submitPrivacyAssessment` are the
-  TEAM's (`launch:record`, the day and UBC's `reference`); `returnIamRegistration` / `returnPrivacyAssessment` hand back to `sent_from`; four
-  events; the team emailed on every send. **`draftable` IS `iamSendableFrom !== null`** — Task 7's `'active'` makes a live registration
-  draftable and sendable at once. The generic record routes never move into or out of `sent` (`RECORDED_IAM_STATES`, `RECORDED_PIA_STATES`).
-- **What Task 6 inherits as it stands** (sitting 3's F10, ruled): a `sent` record reads *"is 'sent' and must be …"* with no `since`;
-  `draftDrift` calls a sent package a *draft*; the queue lists nothing the team holds and its with-UBC `requestedBy` is the ADMINISTRATOR —
-  `api/queue.test.ts` expects *"Platform Admin"* with a comment naming Task 6. The two *nothing recorded* sentences already name the sends.
-- **The screens are BUILT** (Task 8a, `dba83b0`): the console's send with one box per gap, held until all answered; the team's step for an
-  administrator (`TeamStep`) on any `sent` record — **its words say "Submit it to UBC IAM", which a change sent from `active` must not** (Task
-  8b); `holderLine`. The mock's `with-team` stage is on the allow-list and answers the platform's plain `'sent'` words and an empty queue —
-  Task 8b gives it Task 6's words and queue item (sitting 3's F11).
-- **`make demo-launch` already walks the sends, a hand-back, a second send, the team's submissions and FIVE team emails** (read from Mailpit by
-  `subject:"(<slug>)"`, deleted by id; the find phase clears earlier ones) — green fresh on both drivers. Task 6's queue items are read in
-  `step5Queue` (between the second send and `teamSubmitted`) and `step6Registrations`.
-- **A headless console walk needs no library**: sitting 3's raw-CDP script is kept at
-  `.superpowers/sdd/2026-10-03-fe46-fe47-fe5/walk-sitting3/walk.mjs` (Chrome `--headless=new` on 7194, a throwaway profile; adapt it to
-  the change leg). Run it on driver 1 — `make demo-launch`'s guard reads `.env`, so the fake needs the `.env` swap (Rich's answer 6).
-- **`transitions.test.ts`' `walk()` counts ANY throw as a refusal** (sitting 3's F4) — make it rethrow anything that is not a
-  `LaunchTransitionError` when Task 7 touches the arrows.
-- **A negative control's scripted edit can miss** text Prettier reflowed — a THIRD time in sitting 3 (F6): read `git diff --stat` before
-  reading a control's run (TRAPS).
-- **`make demo-launch` runs `admin-grant.sh grant`** — ALLOWED by the classifier in sitting 3 (refused 2026-10-03): try once; if refused, hand
-  Rich the `! <command>` through the coordinator. **The vulnerability database is fresh until 2026-10-10** — a launch after that needs `make
-  refresh-vulndb` with the network on, which Rich's answer 6 lets the run do unattended.
+**WHAT SITTINGS 1–4 LEFT YOU (2026-10-08; the plan's *Sitting 1* F1–F19, *Sitting 2* F1–F17, *Sitting 3* F1–F16, *Sitting 4* F1–F17):**
+- **The contract is `1.8.0`** and stays there; `api/contract/document.ts`'s version comment lists each task's breaks (Tasks 4–7 LANDED; 8b changed
+  two event descriptions only).
+- **Built:** FE-5 and FE-53 (`7a0e47c`), FE-54 (`b29700b`), the mailer (`b8fdeab`), the gaps' ids (`b3751db`), the team's step (`1d4c8da`) and
+  its screens (`dba83b0`); **who has it and since when** — the checklist's `since` dated on the holder, the queue's `iam-registration-to-submit`
+  and `privacy-assessment-to-submit`, a record with UBC naming who SENT it (`3504f7c`); **FE-47**, a change to a live registration through the
+  team (`sent` from `active`, `409 LAUNCH_CHANGE_EMPTY`, filed as `change_requested` from `active`, `iam-change-to-file`) **and FE-55**
+  (`SPEC_CWL_NO_ATTRIBUTES` at validation, `409 RELEASE_CWL_NO_ATTRIBUTES` at deploy — it was `500`) (`8fe6593`, `d83f795`); and their screens,
+  *Ask for a change*, the mock's `change-with-team` stage, the guide (`484a7cf`).
+- **`make demo-launch`'s change leg (`8b`) runs on the RE-USE path only** — "three times on each driver" is fresh, re-use, re-use again (the
+  second re-use exercises 8b's reset). **Any Vitest run empties 7100's tables, so the next demo is fresh.** 8b's reset half that commits a stray
+  manifest back (`d83f795`) has never run through the edge.
+- **`make demo-releases`' build-words check moved with Task 7's words** and has not run since — Task 9's every-other-demo run is its first.
+- **For the one whole-branch review**: a pre-launch change (`sent` or filed from `active`) blocks a FIRST launch's `iam-registration` item though
+  UBC's registration stands (sitting 4's F16) — judge it.
+- **A headless console walk needs no library**: sitting 3's and sitting 4's raw-CDP scripts are in `.superpowers/sdd/2026-10-03-fe46-fe47-fe5/`
+  (`walk-sitting3/`, `walk-sitting4/`; Chrome `--headless=new` on 7194, a throwaway profile). Run walks on driver 1 — `make demo-launch`'s guard
+  reads `.env`, so the GitHub fake needs the approved `.env` swap (Rich's answer 6: a 0600 copy, only the `MANIFEST_SOURCE_DRIVER=` and
+  `MANIFEST_GITHUB_` lines commented, restored and `cmp`-identical, 7100 back on real GitHub at the close).
+- **`make demo-launch` runs `admin-grant.sh grant`** — ALLOWED in sittings 3 and 4: try once; if refused, hand Rich the `! <command>` through the
+  coordinator. **The vulnerability database is fresh until 2026-10-10** — a launch after that needs `make refresh-vulndb` with the network on,
+  which Rich's answer 6 lets the run do unattended; **one `make reset`** too, only if the acceptance needs one.
 
 **HOW THIS RUN WORKS — A COORDINATOR IS LIVE** (`manifest-coord`; the run's plan is `~/Developer/manifest-app/docs/plans/2026-10-06-coordination.md`,
 its *Worker's rules*). If you were started by its GO: **never use the question tool** — a question for Rich goes to `manifest-coord` with its
 options and your recommendation; **every whole-suite `pnpm test`, Docker tier, `make verify` or demo waits for its *"7100 is yours"* and its
-HOLD** (it alone writes `.superpowers/sdd/platform-window`); **Tasks 6, 7 and 8b touch `packages/contract` and `packages/mock`, so tell
-`manifest-coord` the moment those edits BEGIN, and send each commit's content BEFORE it lands — it lands only on *"land it"*** (gate G3 — name
-any REQUIRED key you add); report each commit's sha; manifest's docs turn is the sitting's. **If no coordinator is live**, everything goes to
+HOLD** (it alone writes `.superpowers/sdd/platform-window`); **any commit touching `packages/contract` or `packages/mock` — Task 9's fix wave may — is told to `manifest-coord` the moment its
+edits BEGIN, and its content BEFORE it lands — it lands only on *"land it"*** (gate G3 — name any REQUIRED key you add); report each
+commit's sha; manifest's docs turn is the sitting's. **If no coordinator is live**, everything goes to
 Rich directly (the question tool at the sitting's open) and you run the flag yourself — `ListAgents` first, and message any live
 `manifest-app-*` session before a contract or mock commit.
 
 **F1 OF THE U1 PLAN'S SITTING 1, FOR EVERY DOCKER RUN:** 7100 running from `.env` registers `ubc-qwen-27b` and the capable model on the SHARED
 LiteLLM, and the Docker tier removes them. **After any Docker run, restart 7100 from `.env`** (`bash scripts/gateway-controls.sh start real`, then
-read `capableModel` and `gatewayModels`) — gate G4. **This sitting owes the Docker tier** (`launch/`, `spec/`): count `docker network ls -q | wc
+read `capableModel` and `gatewayModels`) — gate G4. **Task 9 runs the Docker tier beside its one whole-branch review (Step 5), and again if the fix wave changes code in a tier-owing
+directory** (Global Constraints): count `docker network ls -q | wc
 -l` first, and run `dead-app-resources.sh --apply` before it if a `pnpm test` has just orphaned demo apps; the tier needs 7.
 
 **RICH'S, NONE BLOCKING:** the gateway key's rotation before 2027-01-01; the PROBE key to delete at the gateway; the `.env` line
@@ -2024,11 +2028,12 @@ refresh-vulndb` after 2026-10-10**; §8 *Open*'s reframed U1 question for the Pr
 (sitting 1's F3); eleven operator lines that are template strings, two logging a PUID (sitting 1's F16); `make demo-token`'s FE-53 check unable
 to tell the question's expiry from the token's (sitting 2's F7).
 
-**WHERE SITTING 4 STOPS, AND HOW IT ENDS** (the plan's sittings table): after Task 8b's commit, with `make demo-launch`'s reuse phase's change leg
-green on both drivers and the console walked headless, the front-end told of every contract and mock change. Then the four gates — `pnpm test`
-twice on the final tree — and `pnpm test:docker` once; the `EXPECT_` lines moved where a number moved; the close-out: the plan's sittings
-table, its *What executing this plan found*, this §7e replaced by sitting 5's, the roadmap ledger and its defect-rate table. **Do not start
-sitting 5.**
+**WHERE SITTING 5 STOPS, AND HOW IT ENDS** (the plan's sittings table and Task 9): after the clicked half, the review's ONE fix wave and the
+close-out — the four gates (`pnpm test` twice on the final tree), `pnpm test:docker` if the fix wave owes it, the `EXPECT_` lines where a number
+moved, the plan marked EXECUTED, ORIENTATION's *Where things stand* and §2 (nineteen plans), §8 (FE-46, FE-47, FE-5, FE-53, FE-54, FE-55
+BUILT), this §7e replaced by the next job's, CLAUDE.md's *State*, the roadmap ledger and its defect-rate total. **The next job is A1 —
+production instances by audience** — the roadmap's order (Rich, 2026-10-03, 15:28 and 21:48), which outranks the plan's own *"FE-32's plan
+named next"*.
 
 **THE TWO RULES A SITTING CANNOT GET FROM ANYWHERE ELSE**, restated because they live only in each plan's *Global
 Constraints*:
@@ -2108,8 +2113,9 @@ reasoning is recorded.**
 - **FE-46/47/5 EXECUTED INLINE, AND FE-55 PLACED IN ITS TASK 7 — RICH, 2026-10-08 09:07** (the coordinated run's opening, asked by
   `manifest-coord` through the question tool): inline, one sitting per session; sitting 1's `pnpm test` skipped (it changed no code); FE-55 —
   a `cwl` app asking no attribute validates, builds and releases, then its deploy answers `500 INTERNAL` — measured by sitting 1 (both halves,
-  `spikes/fe46-baseline/`) and fixed by the plan's Task 7: `validateSpec` refuses it at `auth.attributes`, the deploy answers it typed.
-  [`2026-09-30-decisions.md`](2026-09-30-decisions.md), its *2026-10-08, 09:07* entry (`4abbbc8`).
+  `spikes/fe46-baseline/`) and **FIXED by the plan's Task 7 (`8fe6593`, sitting 4)**: `validateSpec` refuses it at `auth.attributes`
+  (`SPEC_CWL_NO_ATTRIBUTES`), and a release made before that is refused at deploy, typed (`409 RELEASE_CWL_NO_ATTRIBUTES`), before anything
+  starts. [`2026-09-30-decisions.md`](2026-09-30-decisions.md), its *2026-10-08, 09:07* entry (`4abbbc8`).
 - **MANIFEST'S DATA CLASSES BECOME UBC'S U1 LEVELS — RICH, 2026-10-03 21:48, 22:21 AND 23:22** (through the question tool): `low | medium |
   high | very-high`, `very-high` on-premise only; `public`/`internal`/`confidential` kept forever as aliases (`low`/`medium`/`very-high`), so
   contract `1.7.0` is additive; OpenAI through the gateway (zero data retention, per Rich) and Bedrock up to `high`; the spec action's S1–S11

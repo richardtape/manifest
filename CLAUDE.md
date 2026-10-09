@@ -55,8 +55,9 @@ vulnerability database in the console, and FE-45 (Rich, 2026-10-03, 15:28; B and
 - **any real repository in `Manifest-local-dev` that no project owns** — since Rich's `make reset` of 2026-10-05 ~12:30 PDT (a demo
   bring-up, at his word) NO earlier project has a row, so every repository made before it is unowned: at least the EIGHT whose driver-2
   mirrors `scripts/dead-app-resources.sh` names — `class-check-ins`, `f5-reading`, `f5b-measure-1`, `f6-watch`, `f6b-measure-1`,
-  `keep-walk-1002`, `lp-real-a`, `my-answers` (`f5b-measure-1`'s containers and networks went with the reset). The 16 orphaned mirrors
-  in `.manifest/repos` (eight of the fake's too) are left as they are; a new project with one of those slugs is refused
+  `keep-walk-1002`, `lp-real-a`, `my-answers` (`f5b-measure-1`'s containers and networks went with the reset) — and, since the
+  coordinated run's first `pnpm test` of 2026-10-08 (Rich's answer 5: the archived project's rows go), **`ask-my-notes`**, Rich's own. The 16
+  orphaned mirrors in `.manifest/repos` (nine real, seven of the fake's — measured 2026-10-08 ~17:10 PDT by `dead-app-resources.sh`) are left as they are; a new project with one of those slugs is refused
   `SOURCE_REPOSITORY_EXISTS` (`bash scripts/github-real-repos.sh` lists GitHub's side); removing one is his;
 - **the `MANIFEST_APP_PLAN_MODEL=default-chat-large` line in `.env` — no longer needed, and Rich's to remove**: the faculty front-end's
   two `ask-my-notes` defects are FIXED on manifest-app's `main` (`ec7cf43`: it plans on the first model the session offers; `e25cdd2`: a

@@ -263,7 +263,17 @@ red() { printf '\033[31m%s\033[0m' "$1"; }
 # `api/authz-contract.test.ts` (+36: four net new routes — two sends, two returns; the submissions changed hands — nine actors
 # each); Task 8a +4: `packages/console/src/launch-records-state.test.ts` (3: answersReady, teamActions, holderLine) and
 # `packages/mock/src/scripted.test.ts` (1: the with-team stage). Measured 3506/212, 0 failed, twice.
-EXPECT_TESTS=3506
+# Then the FE-46/47/5 plan's sitting 4 (2026-10-08, the coordinated run's P4 — Tasks 6, 7, 8b): +24, no new file — Task 6 +7:
+# `launch/readiness.test.ts` (4: since follows the holder for the assessment and a registration, the lapsed live registration
+# through `sent`, a sent request's drift) and `launch/queue.test.ts` (3: the team's kinds, through the team's step, a hand-back and an
+# archived project); Task 7 +13: `launch/records.test.ts` (4: a change sent, LAUNCH_CHANGE_EMPTY with its ACS control, the team's
+# filing, a hand-back), `launch/readiness.test.ts` (2: a change with the team, an uncovered release waiting since the send),
+# `launch/queue.test.ts` (1: iam-change-to-file), `spec/policy.test.ts` (1: FE-55's rule), `spec/registered-attributes.test.ts` (1: the
+# change's words), `releases/build-attributes.test.ts` (1: the build still refused while the change is with the team),
+# `api/launch.test.ts` (2: the change through the routes; FE-55's two halves) and `packages/mock/src/scripted.test.ts` (1: a change
+# drafted and sent); Task 8b +4: `packages/console/src/launch-records-state.test.ts` (3: Ask for a change, the change's send, the
+# team's words) and `packages/mock/src/scripted.test.ts` (1: the change-with-team stage). Measured 3530/212, 0 failed, twice.
+EXPECT_TESTS=3530
 EXPECT_FILES=212
 # EXPECT_DOCTOR 21 -> 22 (2026-10-03, the UBC AI Gateway plan's sitting 2, Task 2): the gateway key's expiry, a
 # check_warn — counted, never failing — from 14 days ahead (its Decision 11). Measured: 22 checks, 0 failed, 0 warnings.

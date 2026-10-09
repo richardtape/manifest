@@ -2758,3 +2758,15 @@ wrong reason. Twice in one sitting (the FE-46/47/5 plan's sitting 2, F16 — Tas
 assert the replacement count in the script (`assert s.count(old) == 1`). **And chain the run with `&&`, never `;`** — a THIRD time in the
 plan's sitting 3 (F6): the script's assert DID fire, and the `;` after it ran the suite on the unchanged code anyway (95 green, voided).
 
+
+**ONE VITEST FILE BETWEEN TWO DEMO RUNS TURNS THE SECOND ONE FRESH.** Even a single unit file runs the global setup that TRUNCATES the
+control plane's tables, so a project a demo launched has no row afterwards — and the next `make demo-launch` finds nothing, takes the FRESH
+path, and never reaches what only the RE-USE path runs (its change leg, `8b`). Its containers, networks and repositories are left orphaned
+(`scripts/dead-app-resources.sh` names them). Measured twice in the FE-46/47/5 plan's sitting 4 (F1): the run meant to exercise the change
+leg launched again instead, and so did a negative control's edge run. **Run the demo that needs a launched app with no Vitest run since the
+one that launched it.**
+
+**A MOCK STAGE'S TIMES MUST BE STABLE ACROSS REQUESTS.** `manifest-mock` keeps no state and recomputes a stage on every request from that
+request's `now`, so a time written as `now - 1 day` differs between two reads — and a client comparing a record's `sentAt` with the queue
+item's `since` sees two values for one moment. Derive a stage's times from the Vancouver DAY (`vancouverDay(...)` with a fixed hour), as the
+stages do. Found red by the FE-46/47/5 plan's sitting 4 (F11, the `change-with-team` stage's first draft).
