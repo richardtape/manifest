@@ -44,7 +44,7 @@ vulnerability database in the console, and FE-45 (Rich, 2026-10-03, 15:28; B and
 - **the offline acceptance** — `scripts/offline-acceptance.sh`, run by hand, because turning the network off from a tool call cuts the
   agent off too;
 - **the second-machine clean clone**;
-- **`make refresh-vulndb`, weekly, with the network on** — next due after **2026-10-10** (the faculty-ready plan's sitting 5's `make seed` refreshed it, built 2026-10-03T06:31:58Z); past seven days `make doctor` warns and
+- **`make refresh-vulndb`, weekly, with the network on** — next due after **2026-10-16** (`make refresh-vulndb` on 2026-10-09, at Rich's standing yes in the coordinated run, built 2026-10-09T06:32:32Z); past seven days `make doctor` warns and
   §13's `scans` item refuses every production launch;
 - **the UBC AI Gateway's virtual key** (`UBC_AI_GATEWAY_API_KEY`; Rich created it 2026-10-03 — **a 30 USD budget** (not the 20 first
   recorded; Rich, 20:56), **expiring 2027-01-01 15:23**, no rpm/tpm limits, all models). Rotate it before then: an expired key answers 401,

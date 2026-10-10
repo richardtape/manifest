@@ -30,7 +30,7 @@
 > what "live" means), and **`make demo-launch`'s `class` audience is at `journey/src/launch.ts:516-517`** (line 43's `launch.ts:497`); Task
 > 1's `[M1]` re-reads every fact anyway. **`make demo-launch` takes ~3–4 min; its change leg (8b) runs on the RE-USE path only**, so *"three
 > times on each driver"* is fresh, re-use, re-use again; **`make demo-token` is driver 1's alone** (`require_driver local`). The vulnerability
-> database is fresh until 2026-10-10: a launch demo after that needs `make refresh-vulndb`, with the network on.
+> database is fresh until 2026-10-15 23:32 PDT (refreshed 2026-10-09, built `2026-10-09T06:32:32Z`): a launch demo after that needs `make refresh-vulndb`, with the network on.
 
 > **For agentic workers:** REQUIRED SUB-SKILL: superpowers:executing-plans (inline) or superpowers:subagent-driven-development, **whichever Rich chooses**. Steps use checkbox (`- [ ]`) syntax for tracking. **Commit on `main`; no branch, no worktree, no push** — ORIENTATION §6 rule 9.
 
