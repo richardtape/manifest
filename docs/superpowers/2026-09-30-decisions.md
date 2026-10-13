@@ -1309,3 +1309,84 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
          "Waiting on UBC's identity team"; "UBC's identity team agreed. We can carry on."; the new-detail email — his answer:
          "Approve as built (Recommended)". Rejected: "Change some".
       And in chat at 14:37 PDT, his own words: "done — it all worked, address reading-updates".
+
+# Rich's decisions — 2026-10-13, 16:01 PDT (session manifest-coord3, the second coordinated run's opening)
+
+    Rich opened the second coordinated run of manifest-app's docs/plans/2026-10-13-coordination-2.md (written 2026-10-13 by
+    manifest-coord2 at his request, at manifest-app fb3a968): seventeen parked workers (manifest-fix, manifest-a1-s1…s8,
+    manifest-review-b, manifest-spare; manifest-app-m167, -i1, -minors9, -190, -walk, -spare) and manifest-coord3, started last
+    with the brief's prompt. Measured first, 15:52: manifest HEAD 565cb04, clean; manifest-app HEAD fb3a968, clean, the main
+    checkout only; contract 1.8.0, 76 operations; EXPECT_TESTS 3534, EXPECT_FILES 212; the flag FREE, no Vitest; 7100 PID 2683
+    (real GitHub, from 5869070, since 13:46:52), 7102 the mock (69985), 7104 the console, 7105 our server in mock mode (64934),
+    7106 LiteLLM, 7111/7112 Mailpit; 18 Docker networks; 7100's only project reading-updates (active), users colleague,
+    instructor, student (members) and operator (admin); the vulnerability database fresh until 2026-10-15 23:32. EVERY FACT IN
+    THE BRIEF RE-MEASURED EQUAL. The first run's ledger moved to .superpowers/sdd/coordination/ledger-run1.md.
+
+    Asked through the question tool in three rounds (4, 4, 3), each with its options and a recommendation first. Round 1,
+    answered ~15:57:
+      1. THE BRIEF — "Approve as written (Recommended)": the second run's brief is APPROVED AS WRITTEN (its status line read
+         "Awaiting Rich's review"). Rejected: change it.
+      2. reading-updates ON 7100 — "Let it go (Recommended)": his launched app's rows go at the first truncating run (S1's
+         Task 1 [M5]); its click is recorded (e44849f, dd7d9cb); Manifest-local-dev/reading-updates joins CLAUDE.md's unowned
+         list, his to delete. Gate G1 is met. Rejected: keep it until a day he names (the platform lane parked till then).
+      3. F16(b)'S BUILD AND THE THREE TRACKED DEFECTS — "Fold them into A1" (NOT the recommendation, "P0, out of plan, beside
+         S1"). So: NO P0 in this run (manifest-fix stays parked, untouched); F16(b)'s build (launch/readiness.ts's iamItem →
+         registrationInForce(row), and the mock's iamItem) goes INTO SITTING 2 (S2), beside Tasks 2 and 3 — its mock change a
+         notice there (G3); the projects-list 500 (projects/repository.ts:215, FE-58 on the front end) INTO TASK 7 (sitting
+         6, S6), which rewrites the same file; the event replay's clock order (observability/bus.ts:258) INTO TASK 6 (sitting
+         5, S5), beside its observability/ migration; FE-56 (launch/records.ts's send never checks the draft against what a
+         draft would be drawn from now) ITS OWN ITEM LATER — it stays in the roadmap's *Tracked defects found in use*, not in
+         this run. S1 still drafts F16(b)'s Spec action from option (b)'s words and applies it (approved 2026-10-09).
+         W2 (I1 (a), which reads §13's iamItem) therefore starts on S2's close-out. Rejected: P0 out of plan beside S1;
+         leave the three tracked and build F16(b) alone in S2.
+      4. SPEC ACTION A (the A1 plan's lines 845–877: §11's Driver runs a set per hostname; §11 *Redeploys* across a set; a
+         production member that exits is replaced, backing off and stopping after three in an hour; §12's
+         X-Manifest-Instance names the instance that answered) — "Approve as drafted (Recommended)": APPROVED; S3 applies it
+         before Task 4, its shared HTML pages swept (manifest-schematic.html, manifest-decisions.html D29 — check). Rejected:
+         decide later.
+
+    Round 2, answered ~16:00:
+      5. SPEC ACTION B (the A1 plan's lines 878–889: §24's counts as built — exactly 1, 2, 3 and 3; headroom the third
+         instance; the count read from the audience at each deploy; a faculty app keeps nothing a person needs in its
+         process's memory) — "Approve as drafted (Recommended)": APPROVED; S4 applies it before Task 5, its shared HTML pages
+         swept (manifest-decisions.html D29, manifest-stories.html — check). Rejected: decide later.
+      6. UNATTENDED (multi-select; an unticked one would be asked at the time) — ALL FOUR TICKED:
+           - "make refresh-vulndb, network on": whenever a launch demo would meet a stale database (from 2026-10-16: S4–S8,
+             W5), run by the 7100 holder between runs at manifest-coord3's word, the next build watched after (FE-57);
+           - "The .env swap to driver 2": each sitting's second driver on the GitHub fake — a 0600 copy, the seven
+             MANIFEST_SOURCE_DRIVER= and MANIFEST_GITHUB_ lines commented (no value printed), restored and proved
+             byte-identical with cmp, 7100 back on real GitHub at the close;
+           - "make reset in S7 and S8": their runs are from make reset on each driver;
+           - "A1 inline execution": superpowers:executing-plans, inline, one sitting per session (the A1 plan's "whichever
+             Rich chooses"). Rejected: subagent-driven.
+      7. THE FRONT END'S JOBS (multi-select) — W1 (m167 and the minors bookkeeping), W2 (F5b's I1 (a); new words his to read
+         later), W3 (the ninth minors round's batch as the brief lists it) and W4 (contract 1.9.0, after S6): ALL FOUR.
+      8. W5 AND RB (multi-select) — BOTH: "RB: B's second review (Recommended)" — B's second fresh review beside S6–S8,
+         documents only, its approval put to him at its close; and "W5: the 7100 walk after A1" — placed, on S8's close-out;
+         its 7100 window and its one real private repository in Manifest-local-dev are still asked of him at the time.
+
+    Round 3, answered 16:01:
+      9. SPEC EDITS WHILE HE IS AWAY (beyond F16(b)'s, A and B) — "Night-shift rule (2026-10-03)" (NOT the recommendation,
+         "Hold them all for you"). HOW manifest-coord3 applies it, as manifest-3d (2026-10-03) and manifest-coord (2026-10-08)
+         did: a worker that needs a spec edit drafts it as a Spec action (exact words, the section, why) and sends it to
+         manifest-coord3; no worker edits the spec on its own judgement. manifest-coord3 judges it minor and confidently right,
+         or holds it for Rich. An applied one is recorded in the roadmap's *Spec actions raised by…* as "APPLIED under Rich's
+         2026-10-13 permission, judged minor by manifest-coord3 — for his review", its shared HTML pages swept, its commit
+         alone, and listed in the report to him, so each is easy to revert. Anything that changes a decision of his, a
+         security property or a section's meaning is NOT minor and waits for him. A classifier refusal of a spec read or edit
+         is never worked around. Rejected: hold them all.
+     10. manifest-app's DOCS SWEEPS — "Yes, you may (Recommended)": manifest-coord3 edits manifest-app's docs/ORIENTATION.md
+         (Where things stand, THE NEXT JOB) and docs/plans/roadmap.md between and after the app jobs; app workers send it
+         their lines at close-out instead of editing those two files. Rejected: only the workers, one docs turn at a time.
+     11. WORDS OF OURS STILL UNREAD (manifest-app ORIENTATION's For Rich row) — "Accept all as built (Recommended)": A1's
+         PLAN_MODEL_NONE sentence; A2's two (withdrawn, carried); A4's card sentences and the email's "Your agent asked to …" /
+         "<Name>'s agent asked to …"; A5's twelve gap questions and hand-back lines; A6's failed send, its unnamed attribute,
+         I1's five refusals and the hand-back emails — ALL ACCEPTED AS BUILT. New words this run (W2's I1 (a)) still go to
+         him. Rejected: list them to read; leave them open.
+
+    Told to him at the opening, not asked: these always wait for him — S8's clicked half; S1's [M3] fork if a CWL sign-in
+    cannot cross instances; B's approval; W5's window and repository; the admin grant when a classifier refuses it; sudo;
+    deleting a GitHub repository; anything a classifier refuses; spec wording that is not minor (answer 9); any step a plan
+    marks *stops and asks Rich*. And his, none blocking: the .env line MANIFEST_APP_PLAN_MODEL=default-chat-large (no longer
+    needed); a8-clocks-1's leftovers and the unowned repositories (CLAUDE.md); P1's F3 and F16 (Postgres pinned by tag only;
+    two operator lines logging a PUID), unplaced; the offline acceptance, owed; the gateway key's rotation before 2027-01-01.
