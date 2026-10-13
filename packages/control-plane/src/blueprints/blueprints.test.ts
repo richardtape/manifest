@@ -278,6 +278,52 @@ describe('node-ts-mongo@1 (P4a Task 12)', () => {
     ).toEqual(fixture.dependencies)
     expect(fixture.overrides).toEqual(skeleton.overrides)
   })
+
+  it('resolves no package below the fix of an advisory that refused its builds (§12)', async () => {
+    // 2026-10-13: the vulnerability database refreshed on 2026-10-09 learned
+    // GHSA-jqcg-44mw-7w3h (CVE-2026-90711, IP spoofing through an IPv4-mapped IPv6 trust
+    // subnet; proxy-addr 1.1.0–2.0.7, fixed in 2.0.8), and from then on EVERY node-ts-mongo
+    // app's build was refused BUILD_SCAN_BLOCKED: the lockfile every new app copies resolved
+    // express 4.22.2's `~2.0.7` to 2.0.7, and no agent may change the stack. One row per
+    // advisory that has refused a build. The SAML fixture too: it is held to the skeleton's
+    // versions above, and its `trust proxy` is what the identity tier drives through the edge.
+    const FIXED = [
+      { name: 'proxy-addr', fixedIn: [2, 0, 8], advisory: 'GHSA-jqcg-44mw-7w3h' },
+    ]
+    const lockfiles = [
+      join(await dirOf('node-ts-mongo@1')(), 'skeleton/package-lock.json'),
+      fileURLToPath(
+        new URL('../../../../fixtures/saml-sp/package-lock.json', import.meta.url),
+      ),
+    ]
+    const below: string[] = []
+    for (const path of lockfiles) {
+      const { packages } = JSON.parse(await readFile(path, 'utf8')) as {
+        packages: Record<string, { version?: string; resolved?: string }>
+      }
+      for (const { name, fixedIn, advisory } of FIXED) {
+        // Every copy, nested ones included: npm installs a second version under its dependent.
+        const copies = Object.entries(packages).filter(
+          ([key]) =>
+            key === `node_modules/${name}` || key.endsWith(`/node_modules/${name}`),
+        )
+        // A row whose package left the tree would otherwise pass by finding nothing.
+        expect(copies.length, `${name} in ${path}`).toBeGreaterThan(0)
+        for (const [key, { version = '', resolved }] of copies) {
+          const parts = version.split('-')[0]!.split('.').map(Number)
+          const delta = parts.map((n, i) => n - fixedIn[i]!).find((d) => d !== 0) ?? 0
+          if (delta < 0)
+            below.push(`${path}: ${key} ${version} < ${fixedIn.join('.')} (${advisory})`)
+          // npm fetches the tarball `resolved` names, not `version`'s: a hand edit that moves
+          // one and not the other installs the old version under the new one's name.
+          expect(resolved?.split('/-/').pop(), key).toBe(
+            `${name.split('/').pop()!}-${version}.tgz`,
+          )
+        }
+      }
+    }
+    expect(below).toEqual([])
+  })
 })
 
 /** Every `.js` file under a directory, recursively — `ai/` and `auth/` included. */
