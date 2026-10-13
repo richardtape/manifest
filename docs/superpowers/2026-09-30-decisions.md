@@ -1269,3 +1269,22 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
          version asks one attribute more) — (a): *needs you*, with a press that drafts the change and offers [Send it to the
          Manifest team]; a small front-end follow-up after F5b closes (new words, his to see). Rejected: (b) inside A8 now;
          (c) as built.
+
+# Rich's decisions — 2026-10-13, 12:34 PDT (session manifest-coord, the coordinated run: A8's click blocked)
+
+    A8'S CLICK (F5b sitting 5) STOPPED AT ITS FIRST BUILD. Rich's app reading-check-ins (6e079aa1-…, made 12:17:56 PDT) failed three
+    builds (bd9a6936, 4a6ef907, b2a0b18e; 19:21–19:24Z), each BUILD_SCAN_BLOCKED: "1 high or critical finding(s) this build introduced:
+    GHSA-jqcg-44mw-7w3h (proxy-addr) … — Update the dependency and rebuild." The front end showed reference 783B-300E. Measured by
+    manifest-coord (7100's DB, read-only) and manifest-app-w8: the advisory is CVE-2026-90711 (IP spoofing via an IPv4-mapped IPv6
+    trust subnet; proxy-addr 1.1.0–2.0.7; FIXED in 2.0.8 — OSV, Mend); it arrived with the 2026-10-09 vulnerability-database refresh
+    (701d882), which is why a8-clocks-1 built on 10-09 and nothing node-ts-mongo builds now. Its source is the PLATFORM's blueprint:
+    blueprints/node-ts-mongo/skeleton/package-lock.json (express 4.22.2 → proxy-addr 2.0.7, ~2.0.7 allows 2.0.8), copied into every new
+    app; no agent may change the stack (the front end's lead.ts:121, FE-32). proxy-addr 2.0.8 is already in the offline mirror
+    (verdaccio, 7108). Asked through the question tool, each with its options and a recommendation:
+      1. THE PLATFORM FIX — "Bump the lockfile now (Recommended)": a platform session (the spare, manifest-p9), out of plan like P0,
+         bumps proxy-addr to 2.0.8 in the skeleton's package-lock.json, offline from the mirror; it owes pnpm test twice and the Docker
+         tier (blueprints/), plus a check that a fresh app's build passes its scan. Rejected: accept the finding until a fix (it changes
+         a security gate — the spec); leave it and close without the click.
+      2. RICH'S APP — "Delete it, start fresh (Recommended)": reading-check-ins (never launched) is deleted, which removes its
+         repository Manifest-local-dev/reading-check-ins; after the fix he makes a new app, which copies the fixed lockfile. Rejected:
+         the platform committing the bump into his app's repository.
