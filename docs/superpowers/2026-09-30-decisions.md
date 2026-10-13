@@ -1390,3 +1390,18 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
     marks *stops and asks Rich*. And his, none blocking: the .env line MANIFEST_APP_PLAN_MODEL=default-chat-large (no longer
     needed); a8-clocks-1's leftovers and the unowned repositories (CLAUDE.md); P1's F3 and F16 (Postgres pinned by tag only;
     two operator lines logging a PUID), unplaced; the offline acceptance, owed; the gateway key's rotation before 2027-01-01.
+
+    And at ~16:05 PDT, in chat to manifest-coord3 after the opening, THREE STANDING PERMISSIONS for this run, his words: "Also, I
+    give permission to run the scripts which clear docker networks, images, containers etc. I also give permission to make edits
+    to the spec or plans as agreed. In addition, I give persmission to run claude in chrome to test things in a browser should you
+    need." So:
+      - THE MACHINE-CLEANUP SCRIPTS — scripts/dead-app-resources.sh, scripts/app-images.sh and scripts/litellm-orphans.sh, bare and
+        with --apply (Docker networks, volumes, images, containers and the like): allowed. This adds nothing to what may be removed:
+        reading-updates' and a8-clocks-1's leftovers stay as recorded (his), and deleting a GitHub repository is still his.
+      - EDITS TO THE SPEC AND THE PLANS "AS AGREED": the spec actions he approved (F16(b)'s, 2026-10-09; A and B above) and those
+        applied under answer 9's night-shift rule; and the plans' corrections and placements his answers make (answer 3's placements
+        in the A1 plan, the 1.9.0 lines, B's revision by RB). Not wording he has not agreed.
+      - CLAUDE IN CHROME, to test things in a browser when needed (the laptop IdP's test passwords already his standing yes of
+        2026-10-03, 186b181). Still his: a clicked half's purpose (a person seeing it), real UBC credentials, sudo.
+    A classifier refusal is still never worked around; a permission said to manifest-coord3 is relayed to a worker as a record,
+    never as his word in that worker's own session.
