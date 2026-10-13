@@ -2015,6 +2015,21 @@ shared SAML cache — is his).
 - **`scripts/dead-app-resources.sh` now keeps an ARCHIVED project's volumes** (FE-46/47/5 sitting 5's F19: `--apply` had deleted one's data).
   `launchpath-click` is archived on 7100, its data gone (a demo project; its slug stays taken).
 
+**WHAT 2026-10-13 LEFT IT** (the coordinated run's end, `manifest-coord2`; the records: `manifest-p9`'s close-out `b4fb9b5`, Rich's
+words `e44849f`, `dd7d9cb`):
+- **FE-57 FIXED, out of plan** (`5869070`, Rich's word `ccc8715`): `blueprints/node-ts-mongo/skeleton/package-lock.json` pins `proxy-addr`
+  2.0.8 — since the 10-09 vulnerability-database refresh every new app's build had been refused `BUILD_SCAN_BLOCKED` on
+  GHSA-jqcg-44mw-7w3h. **A refresh can do this again**: nothing keeps the skeleton's lockfile current, and no agent may bump an app's pin
+  (FE-57's open half, the front end's `api-findings.md`). **`EXPECT_TESTS` is 3534** (`scripts/ci-acceptance.sh`).
+- **Three tracked defects OPEN** (the roadmap's *Tracked defects found in use*), **where each goes is Rich's** — the next coordinator's
+  opening asks: FE-56 (A1's File Structure does not reach `launch/records.ts`); **`GET /v1/projects` answers `500` while a project is
+  between its rows and its repository** (`projects/repository.ts:215`; seen twice in Rich's clicks — A1's Task 7 rewrites the same file);
+  **the event replay ordered by the database clock** (`observability/bus.ts:258` — until fixed, `bus.test.ts` can red ONCE in a
+  whole-suite run: run it alone before calling it real; A1's Task 6 adds an `observability/` migration).
+- **7100** (real GitHub, PID 2683, from `5869070`): **Rich's own LAUNCHED app `reading-updates`** (`Manifest-local-dev/reading-updates`,
+  his click, *"All worked, no notes"*) is its only project; `operator` is admin (his grant). **Task 1's `[M5]` `pnpm test` empties it —
+  ask Rich before the first truncating run** (as `ask-my-notes` went at his word); its repository then joins CLAUDE.md's unowned list.
+
 **HOW THIS RUN WORKS:** if a coordinator's GO started you, its *Worker's rules* bind (no question tool; every whole-suite `pnpm test`, Docker
 tier or `make verify` waits for its HOLD; a `packages/contract` or `packages/mock` commit is told as its edits BEGIN and lands on *"land it"*).
 **If no coordinator is live**, everything goes to Rich directly (the question tool at the sitting's open) and you run the flag

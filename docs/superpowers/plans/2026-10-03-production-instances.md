@@ -32,6 +32,15 @@
 > times on each driver"* is fresh, re-use, re-use again; **`make demo-token` is driver 1's alone** (`require_driver local`). The vulnerability
 > database is fresh until 2026-10-15 23:32 PDT (refreshed 2026-10-09, built `2026-10-09T06:32:32Z`): a launch demo after that needs `make refresh-vulndb`, with the network on.
 
+> **READ FIRST — WHAT 2026-10-13 LEFT THIS ONE (`manifest-coord2`, the coordinated run's end).** ORIENTATION §7e's *What 2026-10-13 left
+> it* is the full list: **FE-57 fixed out of plan** (`5869070`: the skeleton's `proxy-addr` 2.0.8; `EXPECT_TESTS` 3534); **three tracked
+> defects open, their placement Rich's** — FE-56, the projects-list `500` (`projects/repository.ts:215`, the file Task 7 rewrites) and the
+> event replay's clock order (`observability/bus.ts:258`, beside Task 6's migration; `bus.test.ts` can red once in a whole-suite run);
+> and **Rich's launched `reading-updates` is 7100's only project — `[M5]`'s `pnpm test` empties it: ask him first.** Two corrections to the
+> banner above: **its line numbers have drifted** — the `1.8.0` mentions are now at lines 69, 100, 248, 608, 619, 636, 646, 663 (sitting
+> 1 re-reads them anyway); and **the chain after this plan follows Rich's order of 2026-10-03 15:28** (*"FE-46/47/5 → A1 → B → FE-32 →
+> Phase 3 → A2"*), so B is `1.10.0`, FE-32 `1.11.0`, and A2 later — not *"A2 `1.11.0`, FE-32 `1.12.0`"*.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: superpowers:executing-plans (inline) or superpowers:subagent-driven-development, **whichever Rich chooses**. Steps use checkbox (`- [ ]`) syntax for tracking. **Commit on `main`; no branch, no worktree, no push** — ORIENTATION §6 rule 9.
 
 **Goal:** **Production runs as many instances as its audience needs** — §24's table: `solo` 1, `class` 2, `large_course` 3, `public` 3 —
