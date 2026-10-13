@@ -1,0 +1,10 @@
+--- a/blueprints/node-ts-mongo/skeleton/auth/ubcshib.js
++++ b/blueprints/node-ts-mongo/skeleton/auth/ubcshib.js
+@@ -69,6 +69,7 @@
+         // hardcodes SimpleSAMLphp 1.x paths (/simplesaml/saml2/idp/SSOService.php)
+         // which 404 against the 2.x IdP Manifest runs, and that is why §8 makes
+         // this variable mandatory rather than optional.
++        cacheProvider: globalThis.__m3cache, // [M3] the ONLY change: a request cache both processes share
+         entryPoint: required('SAML_ENTRY_POINT'),
+         // PASSED, like the entry point, and for the same reason: left out, the library
+         // takes UBC_CONFIG[env].logoutUrl — for LOCAL, a SimpleSAMLphp 1.x path on the

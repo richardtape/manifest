@@ -1,0 +1,108 @@
+{
+  "@id": "mf-r-m2",
+  "match": [
+    {
+      "host": [
+        "m2.manifest.internal"
+      ]
+    }
+  ],
+  "handle": [
+    {
+      "handler": "request_body",
+      "max_size": 10485760
+    },
+    {
+      "handler": "rate_limit",
+      "rate_limits": {
+        "mf-r-m2": {
+          "match": [
+            {
+              "remote_ip": {
+                "ranges": [
+                  "0.0.0.0/0",
+                  "::/0"
+                ]
+              }
+            }
+          ],
+          "key": "{http.request.remote.host}",
+          "window": "1m",
+          "max_events": 1000000
+        }
+      }
+    },
+    {
+      "handler": "headers",
+      "response": {
+        "set": {
+          "Strict-Transport-Security": [
+            "max-age=31536000; includeSubDomains"
+          ],
+          "X-Content-Type-Options": [
+            "nosniff"
+          ],
+          "Referrer-Policy": [
+            "strict-origin-when-cross-origin"
+          ],
+          "Content-Security-Policy": [
+            "frame-ancestors 'self'"
+          ],
+          "X-Manifest-Instance": [
+            "{http.reverse_proxy.upstream.host}"
+          ]
+        },
+        "replace": {
+          "X-Manifest-Instance": [
+            {
+              "search_regexp": "^mf-i-",
+              "replace": ""
+            }
+          ]
+        },
+        "deferred": true
+      }
+    },
+    {
+      "handler": "reverse_proxy",
+      "upstreams": [
+        {
+          "dial": "mf-i-374bfaeb-47c4-4162-9e0f-039bc74fc52e:8080"
+        },
+        {
+          "dial": "mf-i-255ec5b3-e6d4-413b-9098-4532edbd1fca:8080"
+        }
+      ],
+      "load_balancing": {
+        "selection_policy": {
+          "policy": "round_robin"
+        },
+        "try_duration": 3000000000,
+        "try_interval": 250000000
+      },
+      "health_checks": {
+        "active": {
+          "uri": "/healthz",
+          "interval": 5000000000,
+          "timeout": 2000000000,
+          "expect_status": 200,
+          "headers": {
+            "X-Manifest-Probe": [
+              "health"
+            ]
+          }
+        },
+        "passive": {
+          "fail_duration": 10000000000,
+          "max_fails": 2,
+          "unhealthy_status": [
+            502,
+            504
+          ]
+        }
+      },
+      "stream_close_delay": 3600000000000
+    }
+  ],
+  "terminal": true
+}

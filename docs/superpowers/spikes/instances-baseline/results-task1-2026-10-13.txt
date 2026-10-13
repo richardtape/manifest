@@ -1,0 +1,212 @@
+# A1 Task 1 — raw output, 2026-10-13 (manifest-a1-s1). Throwaway ids only; no secret, NameID or assertion.
+
+################ m2b.txt
+== (b) full headers of one response
+HTTP/1.1 200 OK
+Content-Security-Policy: frame-ancestors 'self'
+Content-Type: text/plain
+Date: Tue, 13 Oct 2026 23:07:39 GMT
+Referrer-Policy: strict-origin-when-cross-origin
+Strict-Transport-Security: max-age=31536000; includeSubDomains
+Via: 1.1 Caddy
+X-Content-Type-Options: nosniff
+X-Manifest-Instance: 255ec5b3-e6d4-413b-9098-4532edbd1fca
+Transfer-Encoding: chunked
+
+== (b) the placeholder raw (--no-replace)
+PATCH 200
+X-Manifest-Instance: mf-i-255ec5b3-e6d4-413b-9098-4532edbd1fca
+== (b) placeholder .address
+PATCH 200
+X-Manifest-Instance: tcp/mf-i-374bfaeb-47c4-4162-9e0f-039bc74fc52e:8080
+PATCH 200
+== baseline loop 5s @50ms
+{"total":98,"ok":98,"failed":0,"failureWindowMs":null,"byInstance":{"255ec5b3-e6d4-413b-9098-4532edbd1fca":33,"4db69160-1ed4-40e5-b1db-293c778aa24f":33,"374bfaeb-47c4-4162-9e0f-039bc74fc52e":32}}
+== probes per upstream after ~20s
+wget: can't connect to remote host: Connection refused
+
+wget: can't connect to remote host: Connection refused
+
+wget: can't connect to remote host: Connection refused
+
+head: illegal line count -- 0
+
+################ m2c.txt
+PATCH 200
+== (c) kill one, try_duration 3s, health on
+killed up2 (255ec5b3-e6d4-413b-9098-4532edbd1fca) at 16:08:27
+{"total":390,"ok":390,"failed":0,"failureWindowMs":null,"byInstance":{"374bfaeb-47c4-4162-9e0f-039bc74fc52e":179,"255ec5b3-e6d4-413b-9098-4532edbd1fca":33,"4db69160-1ed4-40e5-b1db-293c778aa24f":178}}
+PATCH 200
+== (c) kill one, NO try_duration, health on
+killed up2 (255ec5b3-e6d4-413b-9098-4532edbd1fca) at 16:09:08
+{"total":391,"ok":388,"failed":3,"failureWindowMs":[5218,5066],"byInstance":{"255ec5b3-e6d4-413b-9098-4532edbd1fca":33,"4db69160-1ed4-40e5-b1db-293c778aa24f":178,"374bfaeb-47c4-4162-9e0f-039bc74fc52e":177}}
+  FAIL {"at":5218,"ms":9,"status":502,"inst":"(none)","body":""}
+  FAIL {"at":5372,"ms":4,"status":502,"inst":"(none)","body":""}
+  FAIL {"at":5066,"ms":3004,"status":502,"inst":"(none)","body":""}
+PATCH 200
+
+################ m2rest.out
+== (c) rerun: kill one mid-loop, try_duration 3s, health on — 16:13:41
+PATCH 200
+killed up2 255ec5b3-e6d4-413b-9098-4532edbd1fca at +5s
+{"total":391,"ok":391,"failed":0,"failureWindowMs":null,"byInstance":{"255ec5b3-e6d4-413b-9098-4532edbd1fca":33,"4db69160-1ed4-40e5-b1db-293c778aa24f":179,"374bfaeb-47c4-4162-9e0f-039bc74fc52e":179},"latencyMs":{"p50":4,"p99":14,"max":269,"over1s":0}}
+== (c') up3 answers 503 to every request but /healthz (200) — passive [502,504] — 16:14:15
+PATCH 200
+{"total":292,"ok":195,"failed":97,"failureWindowMs":[55,14852],"byInstance":{"255ec5b3-e6d4-413b-9098-4532edbd1fca":98,"374bfaeb-47c4-4162-9e0f-039bc74fc52e":97},"latencyMs":{"p50":3,"p99":16,"max":17,"over1s":0}}
+  FAIL {"at":55,"ms":6,"status":503,"inst":"4db69160-1ed4-40e5-b1db-293c778aa24f","body":"503 from 4db69160-1ed4-40e5-b1db-293c778aa24f"}
+  FAIL {"at":210,"ms":6,"status":503,"inst":"4db69160-1ed4-40e5-b1db-293c778aa24f","body":"503 from 4db69160-1ed4-40e5-b1db-293c778aa24f"}
+  FAIL {"at":364,"ms":6,"status":503,"inst":"4db69160-1ed4-40e5-b1db-293c778aa24f","body":"503 from 4db69160-1ed4-40e5-b1db-293c778aa24f"}
+  FAIL {"at":519,"ms":6,"status":503,"inst":"4db69160-1ed4-40e5-b1db-293c778aa24f","body":"503 from 4db69160-1ed4-40e5-b1db-293c778aa24f"}
+  FAIL {"at":673,"ms":5,"status":503,"inst":"4db69160-1ed4-40e5-b1db-293c778aa24f","body":"503 from 4db69160-1ed4-40e5-b1db-293c778aa24f"}
+  FAIL {"at":826,"ms":3,"status":503,"inst":"4db69160-1ed4-40e5-b1db-293c778aa24f","body":"503 from 4db69160-1ed4-40e5-b1db-293c778aa24f"}
+  FAIL {"at":981,"ms":3,"status":503,"inst":"4db69160-1ed4-40e5-b1db-293c778aa24f","body":"503 from 4db69160-1ed4-40e5-b1db-293c778aa24f"}
+  FAIL {"at":1136,"ms":6,"status":503,"inst":"4db69160-1ed4-40e5-b1db-293c778aa24f","body":"503 from 4db69160-1ed4-40e5-b1db-293c778aa24f"}
+  FAIL {"at":1291,"ms":6,"status":503,"inst":"4db69160-1ed4-40e5-b1db-293c778aa24f","body":"503 from 4db69160-1ed4-40e5-b1db-293c778aa24f"}
+  FAIL {"at":1445,"ms":6,"status":503,"inst":"4db69160-1ed4-40e5-b1db-293c778aa24f","body":"503 from 4db69160-1ed4-40e5-b1db-293c778aa24f"}
+  FAIL {"at":1598,"ms":4,"status":503,"inst":"4db69160-1ed4-40e5-b1db-293c778aa24f","body":"503 from 4db69160-1ed4-40e5-b1db-293c778aa24f"}
+  FAIL {"at":1752,"ms":6,"status":503,"inst":"4db69160-1ed4-40e5-b1db-293c778aa24f","body":"503 from 4db69160-1ed4-40e5-b1db-293c778aa24f"}
+  FAIL {"at":1905,"ms":3,"status":503,"inst":"4db69160-1ed4-40e5-b1db-293c778aa24f","body":"503 from 4db69160-1ed4-40e5-b1db-293c778aa24f"}
+  FAIL {"at":2058,"ms":2,"status":503,"inst":"4db69160-1ed4-40e5-b1db-293c778aa24f","body":"503 from 4db69160-1ed4-40e5-b1db-293c778aa24f"}
+  FAIL {"at":2210,"ms":5,"status":503,"inst":"4db69160-1ed4-40e5-b1db-293c778aa24f","body":"503 from 4db69160-1ed4-40e5-b1db-293c778aa24f"}
+  … 82 more
+[{"address":"mf-i-374bfaeb-47c4-4162-9e0f-039bc74fc52e:8080","num_requests":0,"fails":0},{"address":"mf-i-255ec5b3-e6d4-413b-9098-4532edbd1fca:8080","num_requests":0,"fails":0},{"address":"mf-i-4db69160-1ed4-40e5-b1db-293c778aa24f:8080","num_requests":0,"fails":0}]
+
+== (c') CONTROL: the same with 503 in the passive policy — 16:14:40
+PATCH 200
+{"total":293,"ok":289,"failed":4,"failureWindowMs":[55,10250],"byInstance":{"255ec5b3-e6d4-413b-9098-4532edbd1fca":145,"374bfaeb-47c4-4162-9e0f-039bc74fc52e":144},"latencyMs":{"p50":4,"p99":11,"max":12,"over1s":0}}
+  FAIL {"at":55,"ms":4,"status":503,"inst":"4db69160-1ed4-40e5-b1db-293c778aa24f","body":"503 from 4db69160-1ed4-40e5-b1db-293c778aa24f"}
+  FAIL {"at":211,"ms":4,"status":503,"inst":"4db69160-1ed4-40e5-b1db-293c778aa24f","body":"503 from 4db69160-1ed4-40e5-b1db-293c778aa24f"}
+  FAIL {"at":10095,"ms":4,"status":503,"inst":"4db69160-1ed4-40e5-b1db-293c778aa24f","body":"503 from 4db69160-1ed4-40e5-b1db-293c778aa24f"}
+  FAIL {"at":10250,"ms":3,"status":503,"inst":"4db69160-1ed4-40e5-b1db-293c778aa24f","body":"503 from 4db69160-1ed4-40e5-b1db-293c778aa24f"}
+[{"address":"mf-i-374bfaeb-47c4-4162-9e0f-039bc74fc52e:8080","num_requests":0,"fails":0},{"address":"mf-i-255ec5b3-e6d4-413b-9098-4532edbd1fca:8080","num_requests":0,"fails":0},{"address":"mf-i-4db69160-1ed4-40e5-b1db-293c778aa24f:8080","num_requests":0,"fails":2}]
+
+== (c') up3 answers 503 to /healthz too (MODE=503-all) — passive [502,504] — 16:15:01
+PATCH 200
+{"total":294,"ok":294,"failed":0,"failureWindowMs":null,"byInstance":{"255ec5b3-e6d4-413b-9098-4532edbd1fca":147,"374bfaeb-47c4-4162-9e0f-039bc74fc52e":147},"latencyMs":{"p50":4,"p99":10,"max":13,"over1s":0}}
+[{"address":"mf-i-374bfaeb-47c4-4162-9e0f-039bc74fc52e:8080","num_requests":0,"fails":0},{"address":"mf-i-255ec5b3-e6d4-413b-9098-4532edbd1fca:8080","num_requests":0,"fails":0},{"address":"mf-i-4db69160-1ed4-40e5-b1db-293c778aa24f:8080","num_requests":0,"fails":0}]
+
+== (c'') a loop across a PATCH to three FRESH upstreams, checks on — 16:15:31
+up4 ready (private)
+up5 ready (private)
+up6 ready (private)
+PATCH 200
+PATCH 200
+PATCHed to fresh set at ~+4s 16:15:45.435
+{"total":450,"ok":450,"failed":0,"failureWindowMs":null,"byInstance":{"255ec5b3-e6d4-413b-9098-4532edbd1fca":49,"4db69160-1ed4-40e5-b1db-293c778aa24f":49,"374bfaeb-47c4-4162-9e0f-039bc74fc52e":48,"3b60dbbf-7c8e-49aa-b87f-e0c7e2561817":102,"0be0f879-858e-47b8-ae3d-70260fa215f0":101,"5d1c2932-a63b-47dc-a330-3567af96a8b9":101},"latencyMs":{"p50":3,"p99":49,"max":103,"over1s":0}}
+{"requests":450,"firstNewAtMs":4035,"oldAnswersAfterFirstNew_byStart":0,"oldAfterDetail":[]}
+{"oldAnswersAfterFirstNew_byCompletion":0}
+up4 probes: {"withHeader":2,"without":1}
+up5 probes: {"withHeader":2,"without":1}
+up6 probes: {"withHeader":2,"without":1}
+== (d) a WebSocket held across a re-apply that removes its upstream — 16:15:53
+PATCH 200
+ws landed on 0be0f879-858e-47b8-ae3d-70260fa215f0
+PATCH 200
+PATCHed WITHOUT 0be0f879-858e-47b8-ae3d-70260fa215f0 at +4s
+PATCH 200
+and an unrelated re-apply at +10s
+stopped its container a1s1-m2-up6 at +20s
+16 open (101, x-manifest-instance=0be0f879-858e-47b8-ae3d-70260fa215f0)
+21211 CLOSED (socket)
+40006 done
+ticks: 21 (first 1018 ms, last 21099 ms)
+== (e) num_requests per upstream address, for the drain — 16:16:39
+PATCH 200
+-- 6 slow requests in flight:
+[{"address":"mf-i-3b60dbbf-7c8e-49aa-b87f-e0c7e2561817:8080","num_requests":2,"fails":0},{"address":"mf-i-0be0f879-858e-47b8-ae3d-70260fa215f0:8080","num_requests":2,"fails":0},{"address":"mf-i-5d1c2932-a63b-47dc-a330-3567af96a8b9:8080","num_requests":2,"fails":0}]
+
+PATCH 200
+-- after a PATCH removing 0be0f879-858e-47b8-ae3d-70260fa215f0 (its 2 slow requests still in flight):
+[{"address":"mf-i-5d1c2932-a63b-47dc-a330-3567af96a8b9:8080","num_requests":2,"fails":0},{"address":"mf-i-3b60dbbf-7c8e-49aa-b87f-e0c7e2561817:8080","num_requests":2,"fails":0},{"address":"mf-i-0be0f879-858e-47b8-ae3d-70260fa215f0:8080","num_requests":2,"fails":0}]
+
+-- after they finished:
+[{"address":"mf-i-5d1c2932-a63b-47dc-a330-3567af96a8b9:8080","num_requests":0,"fails":0},{"address":"mf-i-3b60dbbf-7c8e-49aa-b87f-e0c7e2561817:8080","num_requests":0,"fails":0}]
+
+== (b') the header on a response the EDGE makes (every upstream unreachable) — 16:16:54
+PATCH 200
+HTTP/1.1 502 Bad Gateway
+Content-Length: 0
+body=
+PATCH 200
+HTTP/1.1 503 Service Unavailable
+Content-Length: 0
+body=
+== done 16:16:57
+
+################ m3lib.out
+{"versions":{"passport-ubcshib":"0.1.7-rc.1","@node-saml/node-saml":"5.1.0","@node-saml/passport-saml":"5.1.1","passport":"0.7.0","xml-crypto":"6.3.2"},"node":"v24.21.0"}
+control A->A: AuthnRequest 302 -> https://idp.m3.invalid/sso id=_c0fe252e3…; assertion posted to A: {"status":200,"location":null,"body":"{\"instance\":\"A\",\"signedIn\":true,\"puid\":\"M3PUID0001\"}"}
+ACROSS  A->B: AuthnRequest 302 -> https://idp.m3.invalid/sso id=_b823158c9…; assertion posted to B: {"status":500,"location":null,"body":"{\"instance\":\"B\",\"error\":\"InResponseTo is not valid\"}"}
+ACROSS  B->A: AuthnRequest 302 -> https://idp.m3.invalid/sso id=_b236287c0…; assertion posted to A: {"status":500,"location":null,"body":"{\"instance\":\"A\",\"error\":\"InResponseTo is not valid\"}"}
+control B->B: AuthnRequest 302 -> https://idp.m3.invalid/sso id=_708a94f49…; assertion posted to B: {"status":200,"location":null,"body":"{\"instance\":\"B\",\"signedIn\":true,\"puid\":\"M3PUID0001\"}"}
+control A->A (again, after the across runs): AuthnRequest 302 -> https://idp.m3.invalid/sso id=_279326f5f…; assertion posted to A: {"status":200,"location":null,"body":"{\"instance\":\"A\",\"signedIn\":true,\"puid\":\"M3PUID0001\"}"}
+replay on A: first {"status":200,"location":null,"body":"{\"instance\":\"A\",\"signedIn\":true,\"puid\":\"M3PUID0001\"}"}; second {"status":500,"location":null,"body":"{\"instance\":\"A\",\"error\":\"InResponseTo is not valid\"}"}
+
+################ m3lib-shared.out
+{"versions":{"passport-ubcshib":"0.1.7-rc.1","@node-saml/node-saml":"5.1.0","@node-saml/passport-saml":"5.1.1","passport":"0.7.0","xml-crypto":"6.3.2"},"node":"v24.21.0"}
+control A->A: AuthnRequest 302 -> https://idp.m3.invalid/sso id=_ae7ec2532…; assertion posted to A: {"status":200,"location":null,"body":"{\"instance\":\"A\",\"signedIn\":true,\"puid\":\"M3PUID0001\"}"}
+ACROSS  A->B: AuthnRequest 302 -> https://idp.m3.invalid/sso id=_ddf00f1cc…; assertion posted to B: {"status":200,"location":null,"body":"{\"instance\":\"B\",\"signedIn\":true,\"puid\":\"M3PUID0001\"}"}
+ACROSS  B->A: AuthnRequest 302 -> https://idp.m3.invalid/sso id=_6e5065f25…; assertion posted to A: {"status":200,"location":null,"body":"{\"instance\":\"A\",\"signedIn\":true,\"puid\":\"M3PUID0001\"}"}
+control B->B: AuthnRequest 302 -> https://idp.m3.invalid/sso id=_c679156f1…; assertion posted to B: {"status":200,"location":null,"body":"{\"instance\":\"B\",\"signedIn\":true,\"puid\":\"M3PUID0001\"}"}
+control A->A (again, after the across runs): AuthnRequest 302 -> https://idp.m3.invalid/sso id=_eca8e185c…; assertion posted to A: {"status":200,"location":null,"body":"{\"instance\":\"A\",\"signedIn\":true,\"puid\":\"M3PUID0001\"}"}
+replay on A: first {"status":200,"location":null,"body":"{\"instance\":\"A\",\"signedIn\":true,\"puid\":\"M3PUID0001\"}"}; second {"status":500,"location":null,"body":"{\"instance\":\"A\",\"error\":\"InResponseTo is not valid\"}"}
+
+################ m4.txt
+Tue 13 Oct 2026 16:19:00 PDT
+16:19  up 8 days, 19:37, 23 users, load averages: 5.72 9.75 8.05
+-- docker info
+MemTotal=8319238144 NCPU=12 Containers=46 Running=38 Server=29.7.2 OS=Docker Desktop
+-- host
+38654705664
+12
+System-wide memory free percentage: 55%
+Mach Virtual Memory Statistics: (page size of 16384 bytes)
+Pages free:                                     7505.
+Pages active:                                 634971.
+Pages inactive:                               627358.
+Pages speculative:                              6138.
+Pages throttled:                                   0.
+-- docker stats (no-stream)
+a1s1-m2-caddy	35.11MiB / 7.748GiB	0.44%	0.00%
+a1s1-m2-up1	19.14MiB / 7.748GiB	0.24%	0.00%
+a1s1-m2-up2	18.55MiB / 7.748GiB	0.23%	0.00%
+a1s1-m2-up3	17.79MiB / 7.748GiB	0.22%	0.00%
+a1s1-m2-up4	18.32MiB / 7.748GiB	0.23%	0.07%
+a1s1-m2-up5	18.38MiB / 7.748GiB	0.23%	0.03%
+a1s1-m2-up6	17MiB / 7.748GiB	0.21%	0.00%
+manifest-caddy	37.73MiB / 7.748GiB	0.48%	0.00%
+manifest-dns-containers	648KiB / 7.748GiB	0.01%	0.00%
+manifest-dns-host	664KiB / 7.748GiB	0.01%	0.00%
+manifest-egress	1.199MiB / 7.748GiB	0.02%	0.00%
+manifest-idp	94.21MiB / 7.748GiB	1.19%	0.01%
+manifest-litellm	526.1MiB / 7.748GiB	6.63%	0.19%
+manifest-mailpit	31.07MiB / 7.748GiB	0.39%	0.00%
+manifest-postgres	81.3MiB / 7.748GiB	1.02%	1.39%
+manifest-registry	38.74MiB / 7.748GiB	0.49%	0.00%
+manifest-verdaccio	125.6MiB / 7.748GiB	1.58%	0.01%
+mf-a8-clocks-1-production-db	81.54MiB / 512MiB	15.92%	0.74%
+mf-a8-clocks-1-production-egress	808KiB / 64MiB	1.23%	0.00%
+mf-a8-clocks-1-production-fac1e962-a049c817-app	51.57MiB / 512MiB	10.07%	1.20%
+mf-a8-clocks-1-sandbox-0d214abe-28e35438-app	51.47MiB / 512MiB	10.05%	1.20%
+mf-a8-clocks-1-sandbox-db	78.83MiB / 512MiB	15.40%	0.49%
+mf-a8-clocks-1-sandbox-egress	804KiB / 64MiB	1.23%	0.00%
+mf-a8-clocks-1-staging-db	79.29MiB / 512MiB	15.49%	0.61%
+mf-a8-clocks-1-staging-egress	892KiB / 64MiB	1.36%	0.00%
+mf-a8-clocks-1-staging-fac1e962-db7fcd14-app	49.92MiB / 512MiB	9.75%	1.43%
+mf-reading-updates-production-81de6a14-369d4d32-app	58.65MiB / 512MiB	11.46%	1.24%
+mf-reading-updates-production-db	124.9MiB / 512MiB	24.39%	1.35%
+mf-reading-updates-production-egress	1.918MiB / 64MiB	3.00%	0.00%
+mf-reading-updates-sandbox-a4598942-43bff81f-app	56.68MiB / 512MiB	11.07%	1.46%
+mf-reading-updates-sandbox-db	127.7MiB / 512MiB	24.94%	0.48%
+mf-reading-updates-sandbox-egress	1.918MiB / 64MiB	3.00%	0.00%
+mf-reading-updates-staging-81de6a14-d5817e1a-app	57.79MiB / 512MiB	11.29%	1.20%
+mf-reading-updates-staging-db	125.2MiB / 512MiB	24.46%	0.66%
+mf-reading-updates-staging-egress	1.922MiB / 64MiB	3.00%	0.00%
+mongo-express	30.69MiB / 7.748GiB	0.39%	0.00%
+mongodb	74.38MiB / 7.748GiB	0.94%	0.57%
+qdrant-local-dev	217.4MiB / 7.748GiB	2.74%	0.25%
+-- the Docker VM's own view
+              total        used        free      shared  buff/cache   available
+Mem:           7934        3122         849          43        3963        4570
+Swap:          1024         475         549
+sum of container usage: 2355 MiB
