@@ -104,6 +104,12 @@ The words are [the A1 plan's *Spec actions*](./2026-10-03-production-instances.m
   pages: all four checked, none restates the predicate — unchanged** (D19's card says *"tracks them until they are approved"*; the
   schematic's mock checklist says the registration is *"ready to send"*). **Its BUILD is A1's sitting 2** (Rich, 2026-10-13 16:01, answer
   3, `c0f969e`): `launch/readiness.ts`'s `iamItem` → `registrationInForce(row)`, and the mock's `iamItem` — a notice to the front end there.
+- **§21's *Gates that cannot exist offline* — the same gate's label. APPLIED under Rich's 2026-10-13 permission (answer 9, `c0f969e`),
+  judged minor by `manifest-coord3` — for his review.** Raised by A1's sitting 1 beside F16(b): the table named the gate
+  `` `IamRegistration` active (§9) ``, now `` `IamRegistration` in force (§9) `` — the object-name style of its next row
+  (`` `PrivacyAssessment` approved ``) and the code's `registrationInForce`. It changes no decision, security property or meaning: the label
+  names the row F16(b) reworded. Shared pages: none restates the label (the schematic's *"recorded as an override"* names no state) —
+  unchanged. Its own commit, so it reverts alone.
 - **A — §11 and §12, the driver runs a set per hostname, and a member that exits is replaced. APPROVED AS DRAFTED** (Rich, 2026-10-13
   ~15:57, answer 4, `c0f969e`). **Sitting 3 applies it before Task 4**, its shared pages swept (`manifest-schematic.html`,
   `manifest-decisions.html` D29 — check).

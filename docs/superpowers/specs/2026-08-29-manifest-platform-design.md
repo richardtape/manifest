@@ -2332,7 +2332,7 @@ model groups and §7's logical model names were chosen to make possible.
 
 | Gate | Local behaviour |
 |---|---|
-| `IamRegistration` active (§9) | Admin override, **recorded as an override** in the audit log |
+| `IamRegistration` in force (§9) | Admin override, **recorded as an override** in the audit log |
 | `PrivacyAssessment` approved (§9) | Admin override, recorded |
 | Pre-production rehearsal (D21) | Skipped; recorded |
 
