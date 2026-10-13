@@ -1308,3 +1308,4 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
       2. OUR NEW WORDS SEEN IN THE CLICK — "Sending it to the Manifest team…"; the chips "Waiting on the Manifest team" /
          "Waiting on UBC's identity team"; "UBC's identity team agreed. We can carry on."; the new-detail email — his answer:
          "Approve as built (Recommended)". Rejected: "Change some".
+      And in chat at 14:37 PDT, his own words: "done — it all worked, address reading-updates".
