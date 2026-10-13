@@ -14,8 +14,9 @@ names the next job** and the current plan's sittings table says how far it has g
 
 **The design is approved and complete, five spikes are done, and nineteen plans are executed** — each with an acceptance that
 passes; the newest is **the Manifest team's step — FE-46, FE-47, FE-5 and FE-53** (`docs/superpowers/plans/2026-10-03-fe46-fe47-fe5.md`),
-EXECUTED 2026-10-08/09, inline, five sittings in the coordinated run — contract `1.8.0`. **The next plan is A1 — production instances by
-audience** (`docs/superpowers/plans/2026-10-03-production-instances.md`, approved; its contract bump `1.8.0 → 1.9.0`); then B (the load rehearsal, FE-44), FE-32 with §12's package allowlist (approved), Phase 3 (sandboxes), A2 (hibernation), the
+EXECUTED 2026-10-08/09, inline, five sittings in the coordinated run — contract `1.8.0`. **The current plan, A1 — production instances by
+audience** (`docs/superpowers/plans/2026-10-03-production-instances.md`, approved 2026-10-03), **is EXECUTING since 2026-10-13**, inline, one sitting per
+session (Rich, 2026-10-13 16:01, in the second coordinated run); its contract bump `1.8.0 → 1.9.0`; then B (the load rehearsal, FE-44), FE-32 with §12's package allowlist (approved), Phase 3 (sandboxes), A2 (hibernation), the
 vulnerability database in the console, and FE-45 (Rich, 2026-10-03, 15:28; B and A2 await a second review). Rich's decisions since 2026-09-30 are in `docs/superpowers/2026-09-30-decisions.md`. Each plan's *What executing this plan found* is its record; this file keeps none of it.
 
 | Plan | Executed | What it made true | Acceptance |
@@ -58,7 +59,9 @@ vulnerability database in the console, and FE-45 (Rich, 2026-10-03, 15:28; B and
   containers, three networks, six volumes, two images and three LiteLLM users (`mf-191bb72e-…-{sandbox,staging,production}`) are
   left, unowned — A8's or Rich's to remove), `ask-my-notes` (Rich's own, unowned since
   2026-10-08), `f5b-measure-1`, `f6-watch`, `f6b-measure-1` and `keep-walk-1002`; Rich's `reading-check-ins` is GONE (deleted by A8 at his
-  word, 2026-10-13), and `class-check-ins`, `f5-reading`, `lp-real-a` and `my-answers` are no longer on GitHub. The 17 orphaned mirrors in
+  word, 2026-10-13), and `class-check-ins`, `f5-reading`, `lp-real-a` and `my-answers` are no longer on GitHub. **And a SEVENTH since A1's sitting 1 (2026-10-13 ~16:3x): Rich's own LAUNCHED `reading-updates`**,
+  let go at his word (16:01, answer 2) — its project went with that sitting's `pnpm test`; its containers, networks, volumes and LiteLLM
+  users are left as `a8-clocks-1`'s are, his (added by reasoning, not re-measured). The 17 orphaned mirrors in
   `.manifest/repos` (ten real — those six and those four — and seven of the fake's; `dead-app-resources.sh`, the same day) are left as
   they are; a new project with one of those slugs is refused `SOURCE_REPOSITORY_EXISTS`; removing one is his;
 - **the `MANIFEST_APP_PLAN_MODEL=default-chat-large` line in `.env` — no longer needed, and Rich's to remove**: the faculty front-end's

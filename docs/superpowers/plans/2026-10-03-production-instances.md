@@ -41,6 +41,18 @@
 > 1 re-reads them anyway); and **the chain after this plan follows Rich's order of 2026-10-03 15:28** (*"FE-46/47/5 → A1 → B → FE-32 →
 > Phase 3 → A2"*), so B is `1.10.0`, FE-32 `1.11.0`, and A2 later — not *"A2 `1.11.0`, FE-32 `1.12.0`"*.
 
+> **READ FIRST — WHAT SITTING 1 FOUND, AND WHAT RICH DECIDED (2026-10-13, `manifest-a1-s1`, the second coordinated run).** The two banners
+> above are SETTLED on every point they raise: **the `1.8.0` lines all say `1.9.0` now** (nine, at the close of sitting 1); **the three
+> tracked defects and F16(b)'s build are PLACED** (Rich, 16:01, answer 3, `c0f969e` — *Decided by Rich*): F16(b)'s build in sitting 2, the
+> event replay's clock order in Task 6, the projects list's `500` in Task 7, FE-56 its own item later; **F16(b)'s Spec action is APPLIED**
+> (`daf2ad0`); **Spec actions A and B are APPROVED** (answers 4 and 5); and **`reading-updates` went at `[M5]`'s `pnpm test`** (Rich let it
+> go, answer 2). **`[M3]`'s STOP FIRED**: a CWL sign-in started on one instance and finished on another is refused (`InResponseTo is not
+> valid`), and **Rich chose the SAML request cache in the app's own Mongo, built in sitting 3 beside Task 4** (~16:28, `3487e68`) — Task 8
+> is split, 8a in sitting 3 and 8b (the knowledge pack) in sitting 6. **`[M2]` held Decision 4 as written**, and its exact JSON is the
+> record's. **`[M1]` changed nothing in meaning**; what it found that the plan does not name is in a *SITTING 1 MEASURED* note under each
+> task it changes (2–7). The record: [`../spikes/instances-baseline/README.md`](../spikes/instances-baseline/README.md); the story: *What
+> executing this plan found*, *Sitting 1*.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: superpowers:executing-plans (inline) or superpowers:subagent-driven-development, **whichever Rich chooses**. Steps use checkbox (`- [ ]`) syntax for tracking. **Commit on `main`; no branch, no worktree, no push** — ORIENTATION §6 rule 9.
 
 **Goal:** **Production runs as many instances as its audience needs** — §24's table: `solo` 1, `class` 2, `large_course` 3, `public` 3 —
@@ -75,8 +87,8 @@ clicks it too.
 - **The shape is one function, `shapeFor(kind, purpose, audience)`** (Decision 2): production's count is the audience's, read at each
   deploy; staging and sandbox are 1; D21's rehearsal stays 1. B's load rehearsal and A2 add to this one function, never an override.
 - **A member that exits is replaced** by a background job beside the retirer, the set watcher (Decision 11, Task 6).
-- **The contract goes to `1.8.0` ONCE, at Task 5** (`Environment.instances`, the serving set; the old `instance` kept, the set's first);
-  Tasks 6 and 7 add to it (`instance.exited`). B then takes `1.9.0`, A2 `1.10.0`, FE-32 `1.11.0`.
+- **The contract goes to `1.9.0` ONCE, at Task 5** (`Environment.instances`, the serving set; the old `instance` kept, the set's first);
+  Tasks 6 and 7 add to it (`instance.exited`). B then takes `1.10.0` and FE-32 `1.11.0` (Rich's order of 2026-10-03 15:28); A2 later.
 
 **Tech Stack:** TypeScript 5.9.3 on Node 24.12.0, Fastify 5.12.3, Drizzle over Postgres 16, `zod/v4`, Vitest 2.1; Caddy with its
 `reverse_proxy` load balancing and health checks (the edge's own image, `infra/caddy/Dockerfile`); Docker Desktop 29.7.2. **No new
@@ -103,12 +115,12 @@ actually changes — production only*, l.2733-2745), §11 (*Driver interface* an
 
 | Sitting | Tasks | What it delivers | `pnpm test:docker` owed? | Where it stops | Status |
 |---|---|---|---|---|---|
-| 1 | 1 | **The measurements**: every fact re-read; Caddy's `reverse_proxy` with N upstreams, round robin, the health policy (passive without `503`, a dial failure retried), a fresh set PATCHed in under a loop with checks on, and a deferred header naming exactly the chosen upstream's instance id, in a THROWAWAY Caddy from the edge's image; a CWL sign-in started on one instance and finished on another; a WebSocket and a drain across N; the laptop's memory with three instances; the gate numbers | No | After Task 1's commit. **It stops and asks Rich** if `[M3]` finds a sign-in cannot cross instances (then the fork — sticky routing or a shared SAML cache — is his) | ← **next**, once approved and the plan before it has closed |
-| 2 | 2, 3 | **The edge's route** for N upstreams, its health policy a parameter; **`routes` one row per (hostname, instance)** | Yes — `routing/`, `db/` | After both commits, with an N-upstream route applied to the real edge and read back | |
-| 3 | 4 | **The driver's set**: `ensureInstances`, `servingInstances`, `restoreRoute(ids)`, retire and destroy across a set; the driver contract; both drivers | Yes — `runtime/` | After the commit, with the Docker contract cases green | |
-| 4 | 5 | **The deploy, retire and boot recovery across N**; `shapeFor`; the per-instance AI keys; what the deploy answers; **every client that reads `X-Manifest-Instance`**; **contract `1.8.0`** | Yes — `releases/`, `ai/`, `projects/` | After the commit, with a `class` app's production on two instances through the edge, `make demo-production` and `make demo-releases` green on it, and `make demo-redeploy` green (staging, one) | |
-| 5 | 6 | **A member that exits is replaced**: the set watcher, its backoff and cap, `instance.exited`, an Incident per exit | Yes — `releases/`, `observability/` | After the commit, with a member `docker kill`ed through the edge and replaced, quoted | |
-| 6 | 7, 8 | **The readers**: D21's rehearsal pinned to one; the API's and console's serving set; the fleet's count; **the knowledge pack's no-state-in-memory rule** | Yes — `launch/`, `projects/`, `blueprints/` | After both commits, with the front-end told | |
+| 1 | 1 | **The measurements**: every fact re-read; Caddy's `reverse_proxy` with N upstreams, round robin, the health policy (passive without `503`, a dial failure retried), a fresh set PATCHed in under a loop with checks on, and a deferred header naming exactly the chosen upstream's instance id, in a THROWAWAY Caddy from the edge's image; a CWL sign-in started on one instance and finished on another; a WebSocket and a drain across N; the laptop's memory with three instances; the gate numbers | No | After Task 1's commit. **It stops and asks Rich** if `[M3]` finds a sign-in cannot cross instances (then the fork — sticky routing or a shared SAML cache — is his) | ✅ **DONE 2026-10-13** (`manifest-a1-s1`, the second coordinated run's job S1, inline): Task 1 `a70b94b` — [`spikes/instances-baseline/`](../spikes/instances-baseline/README.md). **`[M3]`'s stop FIRED**: a CWL sign-in cannot cross instances (`InResponseTo is not valid`); **Rich chose the SAML request cache in the app's own Mongo, built in sitting 3** (~16:28, `3487e68`). F16(b)'s Spec action applied (`daf2ad0`), §21's label beside it (`1c3066c`). *What executing this plan found*, *Sitting 1* |
+| 2 | 2, 3, **F16(b)** | **The edge's route** for N upstreams, its health policy a parameter (`[M2]`'s JSON); **`routes` one row per (hostname, instance)**; **and F16(b)'s build** (Rich, 2026-10-13 answer 3, `c0f969e`): `launch/readiness.ts`'s `iamItem` → `registrationInForce(row)` — a change UBC holds in force no longer blocks a first launch (§13's row, applied `daf2ad0`) — and the mock's `iamItem`, its notice to the front end (G3); W2 starts on this sitting's close-out | Yes — `routing/`, `db/`, `launch/` | After the commits, with an N-upstream route applied to the real edge and read back, and F16(b)'s refusal gone through the edge | ← **next** |
+| 3 | 4, **8a** | **Spec action A applied first** (approved 2026-10-13, answer 4). **The driver's set**: `ensureInstances`, `servingInstances`, `restoreRoute(ids)`, retire and destroy across a set; the driver contract; both drivers. **And Task 8a — the SAML request cache in the app's own Mongo** (Rich, ~16:28, `3487e68`: `[M3]` found a sign-in cannot cross instances), so it lands before sitting 4 puts every launch demo's `class` production on two | Yes — `runtime/`, `blueprints/` | After the commits, with the Docker contract cases green and the skeleton's sign-in crossing two instances | |
+| 4 | 5 | **Spec action B applied first** (approved 2026-10-13, answer 5). **The deploy, retire and boot recovery across N**; `shapeFor`; the per-instance AI keys; what the deploy answers; **every client that reads `X-Manifest-Instance`**; **contract `1.9.0`** | Yes — `releases/`, `ai/`, `projects/` | After the commit, with a `class` app's production on two instances through the edge, `make demo-production` and `make demo-releases` green on it, and `make demo-redeploy` green (staging, one) | |
+| 5 | 6 | **A member that exits is replaced**: the set watcher, its backoff and cap, `instance.exited`, an Incident per exit; **and the event replay's clock order** (Rich, answer 3: `observability/bus.ts:258` reads `ORDER BY created_at`, a clock that can step back — an insertion order beside Task 6's migration; the roadmap's *Tracked defects*) | Yes — `releases/`, `observability/` | After the commit, with a member `docker kill`ed through the edge and replaced, quoted | |
+| 6 | 7, 8b | **The readers**: D21's rehearsal pinned to one; the API's and console's serving set; the fleet's count; **and the projects list's `500`** (Rich, answer 3: `GET /v1/projects` answers `500` while a project is between its rows and its repository, `projects/repository.ts:215` — the file Task 7 rewrites; the roadmap's *Tracked defects*); **Task 8b, the knowledge pack's no-state-in-memory rule** | Yes — `launch/`, `projects/`, `blueprints/` | After both commits, with the front-end told | |
 | 7 | 9 | **The acceptance's demo**: `make demo-capacity` — P4c's whole witness across two, a member killed and replaced, a crash loop stopped at its cap, a sign-in across instances — three times on each driver, every negative control seen red. **Alone** | No, unless a fix touches the owed list | After the commit, with the three runs on each driver quoted | |
 | 8 | 10 | **The rest of the acceptance**: every launch demo on two instances, three times on each driver; `make ci-acceptance`; the clicked half; the plan's one whole-branch review beside the Docker tier, and its one fix wave. **Alone, and last** | Yes — beside the reviewer | After the clicked half and the review's one fix wave | |
 
@@ -120,6 +132,23 @@ actually changes — production only*, l.2733-2745), §11 (*Driver interface* an
 ---
 
 ## Decided by Rich — build them, do not re-open them
+
+- **A SIGN-IN THAT CROSSES INSTANCES: THE SAML REQUEST CACHE IN THE APP'S OWN MONGO, BUILT IN SITTING 3** — *"I'm confortable going with
+  your recommendations"* (2026-10-13, ~16:28 PDT, to `manifest-coord3`; [`../2026-09-30-decisions.md`](../2026-09-30-decisions.md),
+  `3487e68`), answering `[M3]`'s stop: sitting 1 measured a sign-in started on one instance and finished on another REFUSED
+  (`InResponseTo is not valid` — passport-ubcshib 0.1.7-rc.1 makes the skeleton's unset `validateInResponseTo` `'always'`, and node-saml
+  5.1.0 keeps each AuthnRequest's id in a per-process memory cache). **(1)** `skeleton/auth/ubcshib.js` passes node-saml a `cacheProvider`
+  on a Mongo collection with an 8-hour TTL index, on the client `session.js` already holds; passport-ubcshib unchanged (Decision 9, Task
+  8a). **(2)** It moves from sitting 6 into **sitting 3, beside Task 4**, so it lands before sitting 4 puts every launch demo's `class`
+  production on two instances; the knowledge pack's paragraph stays in sitting 6 (Task 8b). *Rejected:* sticky routing by an edge cookie
+  (Caddy's is `SameSite=Lax`, which the IdP's cross-site POST does not carry; an uneven spread; the redeploy case left open);
+  `validateInResponseTo: 'never'` (turns off the replay check); its own sitting between 2 and 3; sitting 2.
+- **THE THREE TRACKED DEFECTS AND F16(b)'S BUILD, FOLDED IN** — *"Fold them into A1"* (2026-10-13, 16:01, answer 3, `c0f969e`; not the
+  recommendation, a P0 beside sitting 1): **F16(b)'s build into sitting 2**, beside Tasks 2 and 3; **the projects list's `500`**
+  (`projects/repository.ts:215`) **into Task 7** (sitting 6), which rewrites that file; **the event replay's clock order**
+  (`observability/bus.ts:258`) **into Task 6** (sitting 5), beside its `observability/` migration; **FE-56 stays in the roadmap's *Tracked
+  defects*, its own item later.** And **Spec actions A and B APPROVED AS DRAFTED** (answers 4 and 5): sitting 3 applies A before Task 4,
+  sitting 4 applies B before Task 5. **Execution: inline, one sitting per session** (answer 6 — the *"whichever Rich chooses"* below).
 
 - **§24's CAPACITY FIRST** — *"Build §24's capacity first"* (2026-10-03, ~13:52 PDT, answering the load rehearsal's first question, through
   `manifest-94`, [`../2026-09-30-decisions.md`](../2026-09-30-decisions.md)): production runs instances by audience — *class ≥2,
@@ -151,7 +180,8 @@ actually changes — production only*, l.2733-2745), §11 (*Driver interface* an
 
 ## What Rich does, and when
 
-1. ~~Review this plan~~ — **APPROVED 2026-10-03, 15:20 PDT.** 2. **Read and decide Spec action A before sitting 3, and B before sitting 4.** 3. **The clicked half, sitting 8**:
+1. ~~Review this plan~~ — **APPROVED 2026-10-03, 15:20 PDT.** 2. ~~Read and decide Spec action A before sitting 3, and B before sitting 4~~ — **BOTH APPROVED AS DRAFTED 2026-10-13** (answers 4 and 5,
+`c0f969e`). 3. **The clicked half, sitting 8**:
 open a launched `class` app twice in two browsers and read, in DevTools, two different `X-Manifest-Instance` values; sign in on one and
 stay signed in on the other; read the console's environment showing two instances; and read the history of the app's production after
 the agent kills one member — *"an instance stopped and was replaced"* — and its Incident.
@@ -254,7 +284,7 @@ the agent kills one member — *"an instance stopped and was replaced"* — and 
 
 ## Decisions this plan makes, and why
 
-1. **ONE CONTRACT BUMP, `1.8.0`, AT TASK 5**, the first schema change; Tasks 6 and 7 add to it. Additive: `Environment.instances` (the
+1. **ONE CONTRACT BUMP, `1.9.0`, AT TASK 5**, the first schema change; Tasks 6 and 7 add to it. Additive: `Environment.instances` (the
    serving set), `InstanceSummary.serving` re-described (*"one of the instances the hostname reaches"*), and `instance.exited` (Task 6).
    `Environment.instance` stays — **the set's first by `(created_at, id)`**, the same instance the deploy answers (Decision 6), because
    every member of a set comes from one deploy and *"the newest"* would tie — so no client breaks.
@@ -330,6 +360,8 @@ the agent kills one member — *"an instance stopped and was replaced"* — and 
    another, sitting 1 stops and asks — **sticky routing by a platform cookie** (`lb_policy: cookie`) or **the SAML request cache in the
    app's Mongo** (a change to the skeleton, inherited by every app). *Recommended in advance:* the cache in Mongo, because sticky routing
    breaks round robin's even spread and the identity check, and a skeleton change is what §20 calls the blueprint's multiplier.
+   **`[M3]` FOUND IT CANNOT CROSS, AND RICH CHOSE THE CACHE IN MONGO, BUILT IN SITTING 3** (2026-10-13, `3487e68`; *Decided by Rich*;
+   Task 8a). Measured with a shared cache: all four orders sign in, and a replay is still refused.
 10. **NO NEW EVENT FOR THE SET ITSELF.** `instance.*` events are per instance already; `instance.healthy`'s description changes from *"now
     serves the environment"* to *"now serves the environment, with the rest of its set"*. Decision 11 adds one event, for an exit.
 11. **A MEMBER THAT EXITS IS REPLACED** (Rich, *"Replace it automatically"*; Task 6). Each part, with what was rejected:
@@ -426,7 +458,7 @@ the agent kills one member — *"an instance stopped and was replaced"* — and 
 5. **A boot that loses a member.** The control plane restarted with two instances serving, one of whose containers was removed by hand.
    Expected: **the route is restored to the one that exists, and an operator line names the one that did not.** Owned by Task 5.
 6. **A sign-in that breaks across instances** (`[M3]`). Expected: **a CWL sign-in completes whichever instance receives the assertion.**
-   Owned by Task 1's stop and Task 8.
+   Owned by Task 1's stop (it FIRED, 2026-10-13), Task 8a and Task 9's phase 6.
 7. **A crash loop that loops for ever, or a cap that forgets.** An app whose every instance exits a few seconds after it is healthy; the
    control plane restarted between two exits. Expected: **three replacements in the hour, at once, then 1 minute, then 4; the fourth exit
    `replacement: 'stopped'`, nothing more started, an Incident saying so**; the count the same after a restart; a person's deploy resets
@@ -458,7 +490,7 @@ packages/control-plane/src/projects/repository.ts, fleet.ts               MOD (T
 packages/control-plane/src/launch/rehearsal.ts, candidate.ts              MOD (T7) one instance (shapeFor); set checks, :378 included
 packages/control-plane/src/api/representations/environments.ts, instances.ts, routes/project-reads.ts, routes/instances.ts, contract/document.ts   MOD (T5, T7)
 packages/console/src/screens/project.tsx, deploy.tsx; packages/mock/src/  MOD (T5, T7)
-blueprints/node-ts-mongo/agents/AGENTS.md (and the skeleton, if [M3] says)  MOD (T8)
+blueprints/node-ts-mongo/agents/AGENTS.md; skeleton/auth/ubcshib.js       MOD (T8b; T8a, sitting 3 — [M3], Rich 3487e68)
 packages/journey/src/capacity.ts, scripts/demo-capacity.sh, Makefile      NEW (T9); ci-acceptance.sh, offline-acceptance.sh MOD (T10)
 docs/superpowers/spikes/instances-baseline/                               NEW (T1)
 ```
@@ -513,6 +545,15 @@ expected id has been seen within `4 × N` requests, and fails naming those never
   — `unhealthyStatus`'s type cannot hold `503`; `appHealthPolicy(healthPath: string): HealthPolicy`; `buildRoute(input: { …;
   upstreams: …; health: HealthPolicy | 'none' })`. A2's waker route calls it with `'none'`.
 
+> **SITTING 1 MEASURED (2026-10-13, `[M2]`, [`../spikes/instances-baseline/README.md`](../spikes/instances-baseline/README.md)):** Decision 4 holds as written, in a throwaway Caddy 2.11.4 from the edge's image.
+> **The exact JSON is the record's**: the header `set` to `{http.reverse_proxy.upstream.host}` (which is `mf-i-<id>`) and a `replace` of
+> `search_regexp: ^mf-i-` → `""` in the same deferred `headers` handler leaves EXACTLY the bare id, one value, the app's own gone. A member
+> killed mid-loop: 0 of 391 failed with `try_duration` 3 s, 3 of 391 without; a `503` member stays in rotation (its control ejects it); a
+> loop across a PATCH to a fresh set: 0 of 450, no old answer after the first new. **And: a response the EDGE makes carries NO
+> `X-Manifest-Instance`** — `502` with no health checks, **`503` with them** once every member is down — so a reader's *"header absent"*
+> still means *"no app answered"*, and a classifier that expects `502` for that meets `503`. `[M1]`: `waitForIdentity`
+> (`routing/readiness.ts:78-131`, the match :103) is the one server-side one-id reader.
+
 - [ ] **Step 1: The failing tests.** The JSON: N upstreams, `round_robin`, Decision 4's health policy (`unhealthy_status` exactly `[502,
   504]`, a pin), `try_duration`, **the header set from the chosen upstream and its `mf-i-` prefix removed, still `deferred`** — `[M2]`'s
   exact JSON; **with `health: 'none'`, no `health_checks` key and no `try_duration`**; **a single-upstream route's JSON equal to today's
@@ -542,6 +583,12 @@ expected id has been seen within `4 × N` requests, and fails naming those never
 **`launch/testing.ts:265-267`**, and any other `[M1]` found) moves to delete-then-insert of the set in one transaction — Task 5 lands the
 deploy's; **this task changes the schema, the one shared helper, `replaceRouteSet(tx, hostname, instanceIds)`, with its test, and
 `launch/testing.ts`'s upsert** (its callers are the launch suites, which would otherwise be refused `42P10` from this commit on).
+
+> **SITTING 1 MEASURED (2026-10-13, `[M1]`, [`../spikes/instances-baseline/README.md`](../spikes/instances-baseline/README.md)):** **`0054` is free** (the newest is `0053_lumpy_boomerang`); the index is
+> `routes_hostname_key` (`db/schema.ts:375`, made by `0009_outgoing_killer_shrike.sql:13`). `launch/testing.ts`'s upsert is now **:282-285**,
+> the deploy's **`release.ts:849-857`**. Writers the plan does not name, each still right with a set: deletes by hostname at
+> `launch/rehearsal.ts:380` and `releases/lifecycle.ts:142`, by (hostname, instance) at `rehearsal.ts:492-499`; plain test inserts in five
+> files (the record lists them).
 
 - [ ] **Step 1: The failing test**: two rows for one hostname are accepted; the same (hostname, instance) twice is refused (`23505`);
   `replaceRouteSet` leaves exactly the set given; **`launch/testing.ts`'s helper called twice for one hostname leaves one row, the second
@@ -594,6 +641,11 @@ without its own upstream, removes it with the last, **leaves it untouched when i
   }
   ```
 
+> **SITTING 1 MEASURED (2026-10-13, `[M1]`, [`../spikes/instances-baseline/README.md`](../spikes/instances-baseline/README.md)):** the fake driver has **six more one-route sites than *Read this first* 2
+> names** — `fake-driver.ts:195` (an existing healthy instance), `:249` (the retire guard), `:290` (`switchOff`), `:295` (`removeName`), `:390`
+> (`holdRequest`), `:405` (`dropRoutes`) — each this task's. The Docker `destroyInstance` removes the route **without checking which
+> instance it dials** (`driver.ts:771-773`; the fake checks, `:307`). **Task 8a joins this sitting** (Rich, `3487e68`).
+
 - [ ] **Step 1: The failing tests — the driver contract, both drivers**: a set of two serves its hostname (both identities seen); a second
   set of two takes over in one move and the first set still runs (P4c, across N) — **and a request loop through the edge during the move
   never meets a mixed set: no answer from the old set after the first answer from the new** (the Docker driver's case; the fake driver
@@ -614,7 +666,7 @@ without its own upstream, removes it with the last, **leaves it untouched when i
 
 ## Task 5: The deploy, retire and boot recovery across N — `shapeFor`, what the deploy answers, and every client that reads the header
 
-**Sitting 4. Spec action B decided first.** Decisions 1, 2, 6, 7. **Contract `1.8.0`.** **Its callers are the `deploy` route
+**Sitting 4. Spec action B decided first.** Decisions 1, 2, 6, 7. **Contract `1.9.0`.** **Its callers are the `deploy` route
 (`api/routes/releases.ts:1172`) and D21's rehearsal; the readers it changes are the journeys `make demo-production`, `make demo-releases`
 and `make demo-launch` run.**
 
@@ -625,12 +677,21 @@ the count from `shapeFor`, never from a caller; its rollback and its Incident; `
 or the set's first"*); `releases/retire.ts` (targets `listInstances − servingInstances`; **the empty set → skip**, kept; `servingIsRecorded`
 over the set); `releases/recover.ts` (pass 1 grouped by hostname; a missing container leaves the set with an operator line);
 `api/representations/environments.ts` (`instances: Instance[]`, the serving set; `instance` the set's first by `(created_at, id)`),
-`instances.ts` (`serving`'s description); `api/contract/document.ts` (`1.8.0`); the four contract commands; the mock's environments in the
+`instances.ts` (`serving`'s description); `api/contract/document.ts` (`1.9.0`); the four contract commands; the mock's environments in the
 same step. **And every client of *Read this first* 13**: `packages/journey/src/production.ts` (`:366`, `:811`), `launch.ts` (`:1269`,
 `:1346`), `releases.ts` (`:282`, `:847`, `:930`, and the loop's assertion at `:1024-1040`) — each reads the set from `getEnvironment`'s
 `instances` and checks that **every id of it is seen within `4 × N` requests**; the loop's becomes *"every answer before the move from set
 A, every answer after it from set B, and the set changing exactly once"*. `scripts/lib/redeploy-loop.mjs` and `scripts/demo-redeploy.sh`
 (`serving_now`) are READ: they take the header's value as it is, and staging stays one — changed only if `[M1]` found otherwise.
+
+> **SITTING 1 MEASURED (2026-10-13, `[M1]`, [`../spikes/instances-baseline/README.md`](../spikes/instances-baseline/README.md)) — READERS *READ THIS FIRST* 13 DOES NOT NAME, ADDED TO THIS TASK'S FILES:**
+> the staging journeys `faculty-ready.ts:582`, `authoring.ts:962`, `github.ts:591` (one id each, the class of `launch.ts:632` — staging
+> stays one, so each needs only the bare id, which `[M2]` shows it gets); `scripts/demo-redeploy.sh` `:224-225` (a second reader, the asker
+> loop), `:258`, `:278`, `:315-316`, `:353-354`, and `scripts/lib/redeploy-summary.mjs` `:95-105`, `:109`, `:114` (staging, one instance —
+> READ); and **two production Docker-tier tests that compare one id**, `releases/production.docker.test.ts:461-465` and `:567-571`. The
+> named ones have moved: `production.ts:366`, `:847`; `launch.ts:1547`, `:1624`, `:632`; `releases.ts:282`, `:865`, `:948`, the loop
+> `:1042-1058`. `release.ts` is +17 lines from the lock on (`deployRelease` returns at :220-227; the gate :286 and :967; the upsert
+> :849-857; `destroy_requested` :859-877). The contract is `1.8.0`, so this task's bump is **`1.9.0`** (corrected throughout).
 
 - [ ] **Step 1: The failing tests** (the fake driver; `releases/release.test.ts`, `retire.test.ts`, `recover.test.ts`, `shape.test.ts`):
   a `class` production deploy runs two instances, two AI keys stored per instance, two Route rows, one `instance.healthy` each, **and
@@ -642,7 +703,7 @@ A, every answer after it from set B, and the set changing exactly once"*. `scrip
   `shapeFor`'s table — production `launch` and `replacement` by audience, `rehearsal` 1, every non-production kind 1, no audience 1 — and
   **`DeployInput` has no `instances` or `resources` field** (a type test: `@ts-expect-error`).
 - [ ] **Step 2: Run, and predict. Step 3: Implement**, the contract commands, then the journey readers. **Tell the front-end before the
-  commit**: `1.8.0`; `Environment.instances`; *"a deploy answers one instance of its set — read the set from the environment"*.
+  commit**: `1.9.0`; `Environment.instances`; *"a deploy answers one instance of its set — read the set from the environment"*.
 - [ ] **Step 4: Through the edge, on driver 1**: `make demo-production`'s `launch-app` (a `class` app) redeployed — two instances, both
   identities seen through the edge, each header a bare id; **`make demo-production` and `make demo-releases` green on two** (the latter's
   self-serve loop is the redeploy across two, under a request loop: set A, then set B, once); **`make demo-redeploy` green** (staging, one —
@@ -652,7 +713,7 @@ A, every answer after it from set B, and the set changing exactly once"*. `scrip
   would leave a serving sibling running either way, so a control predicted on what serves cannot fail** (the review's I3). (b) Route only
   the first new member. Predict red: the deploy's *"both identities seen"* row and `make demo-production`'s set check.
   ```bash
-  git commit -m "feat(releases): production runs as many instances as its audience needs — deployed, retired and recovered as a set (contract 1.8.0)"
+  git commit -m "feat(releases): production runs as many instances as its audience needs — deployed, retired and recovered as a set (contract 1.9.0)"
   ```
 
 ---
@@ -669,7 +730,7 @@ longer a Route row ends the deploy with nothing done and an operator line; each 
 (a new nullable column and its migration); **the approval check's condition becomes `input.purpose !== 'rehearsal'`**); `config.ts` (`MANIFEST_SET_WATCH_SECONDS`, default 15, `CONFIG_INVALID` below 5); `observability/event-schemas.ts`,
 `events.ts`, `examples.ts` (`instance.exited`, its sentence); the `audit.events` CHECK migration — **cumulative**: every type the latest
 migration lists, plus this one; the Incident's prompt for an exit and for a stopped replacement (`observability/`'s Incident builder,
-`[M1]` names it); `src/index.ts`; the four contract commands (`instance.exited`, still `1.8.0`); the mock's event example.
+`[M1]` names it); `src/index.ts`; the four contract commands (`instance.exited`, still `1.9.0`); the mock's event example.
 
 **Interfaces:**
 - Consumes: `Driver.status(id)` (`InstanceStatus`); `deployRelease` (Task 5) with `purpose: 'replacement'`; `servingInstances`.
@@ -691,6 +752,14 @@ migration lists, plus this one; the Incident's prompt for an exit and for a stop
   /** 0, 60 and 240 seconds before the first, second and third replacement STARTED in an hour; `undefined` after three — stopped. */
   export function replacementDelaySeconds(attemptsThisHour: number): number | undefined
   ```
+
+> **SITTING 1 MEASURED (2026-10-13, `[M1]`, [`../spikes/instances-baseline/README.md`](../spikes/instances-baseline/README.md)):** the Incident is built by **`captureIncident`** (`observability/incidents.ts:59`,
+> called once, by the deploy, `release.ts:919`) and its prompt by **`incidentPrompt`** (`:128-147`) at READ time
+> (`api/routes/releases.ts:1301`), whose first line is hard-coded *"…failed to start in its <kind> environment."* (`:133`) — an exit's
+> Incident needs its own. `describeExit` (`:154-170`) already says *"the process exited with code N"*. **The CHECK is `events_type_known`,
+> and `0053` lists 58 types** (= `EVENT_TYPES`). **AND THIS TASK TAKES THE EVENT REPLAY'S CLOCK ORDER** (Rich, 2026-10-13 answer 3,
+> `c0f969e`): `recentFramesFor` orders by `created_at` (`observability/bus.ts:258`), a `clock_timestamp()` that can step back — an
+> insertion order instead, test-first, beside this task's migration; the roadmap's *Tracked defects found in use* row is deleted when it lands.
 
 - [ ] **Step 1: The failing tests** (`releases/watch.test.ts`, the fake driver with a test hook that makes one member's `status` answer
   `failed`):
@@ -739,6 +808,13 @@ migration lists, plus this one; the Incident's prompt for an exit and for a stop
 `projects/fleet.ts` and its representation (the production count); the console (`screens/project.tsx:342-347`: *"2 instances, healthy"*;
 `deploy.tsx`'s pill per row, unchanged in kind; an `instance.exited` line in the project's history); the mock.
 
+> **AND THIS TASK TAKES THE PROJECTS LIST'S `500`** (Rich, 2026-10-13 answer 3, `c0f969e`): `GET /v1/projects` answers `500` — the
+> whole list — while any project its caller can see is between its rows and its repository (`projects/repository.ts:215`, against
+> `api/routes/projects.ts:284` and `:324`; the roadmap's *Tracked defects found in use*, FE-58 on the front end), test-first, in the file this
+> task rewrites; the row is deleted when it lands. **Sitting 1's `[M1]`:** `servingInstanceOf` is now `projects/repository.ts:300-318`;
+> its callers `project-reads.ts:102`, `:370`, `instances.ts:168`, `fleet.ts:61`, `candidate.ts:43`, **`ai/models.ts:101`
+> (`classificationFloor`)** — no others.
+
 - [ ] **Step 1: The failing tests**: D21's rehearsal on a `class` app puts up ONE instance and takes down exactly it, the launched set
   untouched (a launched app refuses the rehearsal anyway — the case is a first launch's production, before which nothing serves there);
   the candidate is read the same whether staging serves one instance or, during B's run, N — every member then runs the same release
@@ -752,16 +828,29 @@ migration lists, plus this one; the Incident's prompt for an exit and for a stop
 
 ---
 
-## Task 8: A faculty app on several instances — the knowledge pack (and the skeleton, if `[M3]` says)
+## Task 8: A faculty app on several instances — 8a the SAML request cache in the app's Mongo (sitting 3), 8b the knowledge pack (sitting 6)
 
-**Sitting 6, after Task 7.** Decision 9.
+**SPLIT BY RICH'S ANSWER TO `[M3]`** (2026-10-13, ~16:28, `3487e68`): sitting 1 measured that a sign-in started on one instance cannot finish
+on another, and he chose the cache in the app's own Mongo, **built in sitting 3, beside Task 4** — before sitting 4 puts every launch demo's
+`class` production on two instances. **8a: sitting 3, after Task 4. 8b: sitting 6, after Task 7.** Decision 9.
 
-**Files:** `blueprints/node-ts-mongo/agents/AGENTS.md` (Decision 9's paragraph, after *What you write*); `blueprints/blueprints.test.ts`
-(the pack names the rule); and — **only if `[M3]` found a sign-in cannot cross instances and Rich chose the cache** —
-`blueprints/node-ts-mongo/skeleton/auth/ubcshib.js` (`@node-saml`'s `cacheProvider` backed by the app's Mongo, beside the sessions), its
-starter, and the skeleton's Docker tier.
+**8a — Files:** `blueprints/node-ts-mongo/skeleton/auth/ubcshib.js` — ONE more option, `cacheProvider`: node-saml's `saveAsync` /
+`getAsync` / `removeAsync` on a collection of the app's own Mongo with a TTL index of 8 hours (node-saml's own `requestIdExpirationPeriodMs`,
+`saml.js:91`), on the client `skeleton/auth/session.js` already holds; passport-ubcshib passes an option it does not manage straight
+through, so the library is unchanged (`[M3]`'s `probes/m3-sp-shared.mjs` is the shape, measured). Its starter; the skeleton's Docker tier.
+**Its callers are every app made from the skeleton after it**; an app made before keeps the in-memory cache (on this laptop none survives
+sitting 1's `pnpm test`). **8b — Files:** `blueprints/node-ts-mongo/agents/AGENTS.md` (Decision 9's paragraph, after *What you write*);
+`blueprints/blueprints.test.ts` (the pack names the rule).
 
-- [ ] **Step 1: The failing test**: the pack says the rule. **Step 2–3.** **Step 4: Commit**, then the **negative control**: remove the
+- [ ] **8a, Step 1: The failing tests** — the skeleton's Docker tier: **two instances of a skeleton app on ONE Mongo, an AuthnRequest from
+  one answered on the other through the laptop IdP → signed in**, both orders; **a replay refused**; and `[M3]`'s two-process measurement
+  (`spikes/instances-baseline/probes/`) as a unit case if it fits the blueprints tier. **Step 2–3.** **Step 4: Commit**, then the
+  **negative control**: take `cacheProvider` out. Predict red: both crossing rows, `InResponseTo is not valid` — the same-instance control
+  stays green.
+  ```bash
+  git commit -m "feat(blueprints): a sign-in started on one instance of an app finishes on another — the SAML request cache in the app's own Mongo"
+  ```
+- [ ] **8b, Step 1: The failing test**: the pack says the rule. **Step 2–3.** **Step 4: Commit**, then the **negative control**: remove the
   paragraph. Predict red: the pack test only.
   ```bash
   git commit -m "docs(blueprints): several copies of an app answer its requests — the knowledge pack says what it must not keep in memory"
@@ -836,7 +925,10 @@ review's one fix wave touches.
 
 ---
 
-## Spec actions — DRAFTED, NONE APPLIED
+## Spec actions — A AND B APPROVED AS DRAFTED BY RICH 2026-10-13 (answers 4 and 5, `c0f969e`); sitting 3 applies A, sitting 4 applies B
+
+*And F16(b)'s, placed with this plan: applied by sitting 1 (`daf2ad0`), with §21's label beside it (`1c3066c`, minor, for his review) —
+the roadmap's* Spec actions raised by A1.
 
 **§11's `Driver` interface is changed by FOUR plans** (the review's cross-plan 2): this plan's A, then B's C (a rate limit's exemption),
 then A2's C (a service stopped, a route to the waker, a set woken), then FE-32's A (dependencies resolved). **Each is worded against the
@@ -945,3 +1037,71 @@ run; two line references.
 ## What executing this plan found
 
 *(One dated section per sitting.)*
+
+### Sitting 1 — 2026-10-13, 16:03–16:45 PDT (`manifest-a1-s1`, the second coordinated run's job S1): Task 1 — the measurements
+
+**Opened** by `manifest-coord3`'s GO (16:03), which relayed Rich's decisions of 16:01 (the decisions file's *2026-10-13, 16:01* entry,
+`c0f969e`): **inline** execution (answer 6), **`reading-updates` let go** (answer 2), the three tracked defects and F16(b)'s build **folded
+into A1** (answer 3), Spec actions A and B **approved** (answers 4 and 5), the night-shift spec rule (answer 9); and at ~16:05 his three
+standing permissions (`1fb75f8`). HEAD `c0f969e`; `manifest-coord3` committed `1fb75f8` and `3487e68` during the sitting, nothing of
+theirs staged here. **Task 1** (`a70b94b`): the record is [`../spikes/instances-baseline/README.md`](../spikes/instances-baseline/README.md),
+its raw output `results-task1-2026-10-13.txt`, its probes `probes/`. `[M1]`'s fifteen facts and the inventory of every caller and header
+reader were read by three read-only surveys, and the claims the record leans on hardest re-read by hand (fact 10 in the built image; the
+route builder; the contract's version; `registrationInForce`). **The plan's `[M3]` stop FIRED, and Rich answered it within the sitting.**
+The close-out corrected the plan's nine `1.8.0` lines to `1.9.0`, wrote Rich's placements into the sittings table, split Task 8, and put a
+*SITTING 1 MEASURED* note under each task a measurement changed (2–7). **The machine as found**: 39 containers, 64 images, 18 networks,
+57 volumes before and after (the throwaway Caddy, its six upstreams and network removed at 16:34); the three cleanup scripts bare — no dead
+network, volume or image (`reading-updates`' and `a8-clocks-1`'s containers still exist, so the script keeps theirs), 18 orphan mirrors
+(`reading-updates`' the new one), and LiteLLM's two unheld budgets (a person's agent budget and the platform's intake budget) removed by
+`litellm-orphans.sh --apply` — every app-held user (both apps', six) left alone.
+
+1. **F1 — `[M3]`: A CWL SIGN-IN CANNOT CROSS INSTANCES** — the plan's stop. Two SP processes built by the repository's own
+   `skeleton/auth/ubcshib.js` on a built app image's `node_modules` (passport-ubcshib 0.1.7-rc.1, @node-saml/node-saml 5.1.0, passport-saml
+   5.1.1), a throwaway IdP key: an assertion answering the other process's AuthnRequest is refused **`InResponseTo is not valid`**, both
+   ways; every same-process control signs in; a replay is refused. **Why:** the skeleton sets no `validateInResponseTo`; passport-ubcshib's
+   `normalizeValidateInResponseTo(undefined)` answers `'always'` (`index.js:123-129`); node-saml's default `cacheProvider` is a per-process
+   `InMemoryCacheProvider` (`saml.js:92`), read BEFORE any signature (`:513-516`). **The positive control** — the same with ONE added
+   option, a `cacheProvider` both processes share — signs in all four orders and still refuses the replay; passport-ubcshib passes the
+   option through unchanged. Sent to `manifest-coord3` at 16:23 as the fork; **Rich, ~16:28: *"I'm confortable going with your
+   recommendations"*** (`3487e68`) — the cache in the app's own Mongo, built in sitting 3 beside Task 4 (Task 8a).
+2. **F2 — PRE-EXISTING, NEWLY RECORDED: a sign-in in flight across a REDEPLOY fails today, with one instance** — the new instance never
+   issued the id the old one did. It follows from F1's measured mechanism; it was not measured through a redeploy. Task 8a closes it.
+3. **F3 — `[M3]`'s app-level form was REFUSED by the permission classifier, `[Production Reads]`** (16:18): a sibling of `reading-updates`'
+   staging container started with that container's environment (`docker inspect` into a 0600 env-file — secrets included). It never ran;
+   no file and no container existed. **Not retried**; reported to `manifest-coord3`, which judged the library-level form a DIFFERENT action
+   (it reads no app's environment and touches no running app) and allowed it with conditions (16:20): a built image's `node_modules` only,
+   `--network none`, a throwaway keypair removed after (16:23). **A second refusal, `[Modify Shared Resources]`**, met a READ-ONLY `find
+   docs -name '*.html'` beside the spec edit; not retried — the four pages' paths came from ORIENTATION §6's table instead.
+4. **F4 — `[M2]`: Decision 4 holds as written** (a throwaway Caddy 2.11.4 from `manifest-caddy:local`, its own network, ports 7190/7191,
+   removed at the close). Round robin; the header EXACTLY the answering instance's bare id, from `{http.reverse_proxy.upstream.host}` and a
+   `replace` of `^mf-i-` in the same deferred handler, the app's forged value gone; every probe carrying `X-Manifest-Probe: health`. **The
+   exact JSON Task 2 writes is the record's.** The throwaway raised the rate limit to 1,000,000 for its loops — the one difference.
+5. **F5 — `try_duration` is load-bearing:** a member `docker kill`ed mid-loop failed **0 of 391** requests with it (max 269 ms) and **3 of
+   391** without — two `502` at once and one after hanging 3,004 ms.
+6. **F6 — the passive policy without `503` keeps a shedding member in rotation** (97 of 292 answers its `503`, `fails` 0), and its control
+   (`503` in the list) ejects it; a member whose HEALTH path answers `503` is ejected by the ACTIVE check, as Decision 4 means.
+7. **F7 — a set PATCHed in under a loop, checks on: 0 of 450 failed, and no answer from the old set after the first from the new**, by
+   request start and by completion — what Task 4's *"no mixed set"* row asserts is achievable. Caddy probes each fresh upstream at
+   provisioning; whether one counts healthy before that probe returns was not separable.
+8. **F8 — a response the EDGE makes carries NO `X-Manifest-Instance`**: `502` with no health checks, and **`503`** (*no upstreams
+   available*) with them once every member is down — the placeholder is empty and Caddy omits the header. Every *"header absent"* check
+   keeps its meaning; a classifier that expects `502` for *"nothing serves"* meets `503` (Task 2's note).
+9. **F9 — a WebSocket survives a re-apply that removes its upstream** (and an unrelated one), closing only when its container stops; **the
+   drain's `num_requests` survives a PATCH that removes the address**, which leaves the pool once its requests finish.
+10. **F10 — Caddy's sticky cookie is `SameSite=Lax`** over HTTP (`mf_lb=…; Path=/; HttpOnly; SameSite=Lax`), which a browser does not send
+    on the IdP's cross-site POST — the measured reason the fork's option (2) was weaker than it looked. Over TLS: not measured.
+11. **F11 — `[M1]`: nothing changed in meaning; four kinds of thing the plan does not name** — readers of the header (three staging
+    journeys, `demo-redeploy.sh`'s comparisons and asker loop, `redeploy-summary.mjs`, two production Docker-tier tests), six one-route
+    sites in the fake driver, the Incident prompt's hard-coded *"failed to start"*, and route writers that delete by hostname. Each is in the
+    *SITTING 1 MEASURED* note of the task that changes it (2–7) — Task 5's Files gained the readers, as Step 1 asks.
+12. **F12 — `[M4]`: an idle node-ts-mongo instance is 50–59 MiB of its 512 MiB limit**; Docker's VM 7,934 MiB, 3,122 used, 4,570
+    available. Three instances add ~120 MiB idle over one; a `class` redeploy holds four for its drain.
+13. **F13 — `[M5]`: `pnpm test` ONCE, at `manifest-coord3`'s *"7100 is yours"* and HOLD (16:25): **212 files, 3534 tests, all passed** in 1,006 s — equal to
+    `EXPECT_FILES`/`EXPECT_TESTS`, nothing moves; `bus.test.ts` did not redden. Contract `1.8.0`; migration `0054` free. **It emptied 7100**:
+    `reading-updates`' rows went (Rich's answer 2), and with the users table, `operator`'s admin grant (the coordinator counted 0 projects, 0
+    users) — 7100 not restarted, PID 2683, as after `manifest-p9`'s run.**
+14. **F14 — F16(b)'s Spec action APPLIED** (`daf2ad0`), Rich's words exactly; **§21's label beside it** (`1c3066c`, judged minor by
+    `manifest-coord3` under answer 9, for his review); the four shared pages checked — none restates either. **Rulings this sitting made**
+    (the ledger's): `[M3]` measured at library level rather than through the IdP (F3); each hop aimed at a chosen process rather than left
+    to round robin, which makes both orders certain; `[M4]` from the running app instances rather than starting `launch-app` (it needs 7100
+    and a demo); `pnpm test` ONCE (`[M5]`) — no code changed, so the close's *"twice on the final tree"* would run an unchanged tree again.
