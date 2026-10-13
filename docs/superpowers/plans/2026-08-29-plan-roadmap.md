@@ -92,6 +92,24 @@ implied have already been applied to
 so **the spec is current and outranks the spike briefs**, which are deliberately
 left as a record of what was originally asked.
 
+### Spec actions raised by A1 (production instances by audience) and placed with it — F16(b) ✅ APPLIED 2026-10-13 (sitting 1); A and B ✅ APPROVED 2026-10-13, applied before sittings 3 and 4
+
+The words are [the A1 plan's *Spec actions*](./2026-10-03-production-instances.md), and F16(b)'s are Rich's own.
+
+- **F16(b) — §13's first-launch row: a change to a registration UBC holds in force does not block a FIRST launch.** Raised by the
+  FE-46/47/5 plan's sitting 4 (its F16); **DECIDED (b) by Rich 2026-10-09 11:24** (*"go with your recommendations on all five"*, through
+  `manifest-coord`, `6a4ae2a`), placed with A1. **APPLIED 2026-10-13 by A1's sitting 1** (`manifest-a1-s1`, in the second coordinated run):
+  §13's row `` `IamRegistration` is `active` `` now reads *"UBC IAM's registration is in force (recorded `active`, not lapsed since) and
+  covers the release; a change asked for or filed does not unregister it"* — his words exactly; Owner and Blocking unchanged. **Shared
+  pages: all four checked, none restates the predicate — unchanged** (D19's card says *"tracks them until they are approved"*; the
+  schematic's mock checklist says the registration is *"ready to send"*). **Its BUILD is A1's sitting 2** (Rich, 2026-10-13 16:01, answer
+  3, `c0f969e`): `launch/readiness.ts`'s `iamItem` → `registrationInForce(row)`, and the mock's `iamItem` — a notice to the front end there.
+- **A — §11 and §12, the driver runs a set per hostname, and a member that exits is replaced. APPROVED AS DRAFTED** (Rich, 2026-10-13
+  ~15:57, answer 4, `c0f969e`). **Sitting 3 applies it before Task 4**, its shared pages swept (`manifest-schematic.html`,
+  `manifest-decisions.html` D29 — check).
+- **B — §24, the instance counts as built. APPROVED AS DRAFTED** (Rich, 2026-10-13 ~16:00, answer 5, `c0f969e`). **Sitting 4 applies it
+  before Task 5**, its shared pages swept (`manifest-decisions.html` D29, `manifest-stories.html` — check).
+
 ### Spec actions raised by the faculty front-end's FE-46, FE-47 and FE-5 (confirmed by Rich 2026-10-01) — THREE DRAFTED 2026-10-01, OVERNIGHT; ✅ WORDS APPROVED BY RICH 2026-10-03, WITH THE RECOMMENDED CHOICES, AND ✅ ALL THREE APPLIED THE SAME DAY
 
 **Where the words are.** [`2026-10-01-fe46-fe47-fe5-spec-actions.md`](./2026-10-01-fe46-fe47-fe5-spec-actions.md) gives, for each, the
