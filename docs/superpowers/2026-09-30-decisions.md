@@ -1288,3 +1288,23 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
       2. RICH'S APP — "Delete it, start fresh (Recommended)": reading-check-ins (never launched) is deleted, which removes its
          repository Manifest-local-dev/reading-check-ins; after the fix he makes a new app, which copies the fixed lockfile. Rejected:
          the platform committing the bump into his app's repository.
+
+# Rich's decisions — 2026-10-13, 14:36 PDT (session manifest-coord2, the coordinated run: A8's click)
+
+    RICH'S CLICK (F5b sitting 5's clicked half, with F6b sitting 7's press, option (i) of 2026-10-09 10:35) — DONE, on his own new
+    app, as instructor, after the proxy-addr fix (manifest 5869070; P9's close-out b4fb9b5) and the operator admin grant he ran
+    himself at ~14:00 (the classifier refused it for manifest-p9: [Permission Grant]). What manifest-app-w8 saw, from our server
+    and the platform: his app "Reading updates" (reading-updates; repository Manifest-local-dev/reading-updates, made 14:06:41 PDT)
+    built at 14:10:38, its scan clean (the fix proved live on a new app's first build); Going live's three steps, the
+    administrator's sign-off and the dry run 14:13–14:21, each send answered by A8's stand-in as the Manifest team and UBC;
+    launched 14:21:56; the change "Show each student's affiliation with UBC (student, staff or faculty) beside their name" →
+    its detail card → [Ask UBC's identity team] (14:28) → filed, submitted and active (production now registers ubcEduCwlPuid,
+    mail, givenName, sn, eduPersonAffiliation) → the email "Reading updates: UBC's identity team answered" (14:29:01) →
+    [Carry on] built (14:34:35). Nothing failed; the only platform blip was GET /v1/projects 500 at 14:06:46 (requestId
+    020808f8-710e-44a9-9706-4c97d2ef207a), the create/list race b4fb9b5 records as a tracked defect. Asked through the
+    question tool:
+      1. HOW DID IT GO — his answer: "All worked, no notes". So the click is done and nothing read wrong; F5b may be closed
+         EXECUTED and F6b sitting 7 done. Rejected: "Worked, with notes"; "Something was wrong".
+      2. OUR NEW WORDS SEEN IN THE CLICK — "Sending it to the Manifest team…"; the chips "Waiting on the Manifest team" /
+         "Waiting on UBC's identity team"; "UBC's identity team agreed. We can carry on."; the new-detail email — his answer:
+         "Approve as built (Recommended)". Rejected: "Change some".
