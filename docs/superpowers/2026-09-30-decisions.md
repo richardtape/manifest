@@ -1405,3 +1405,24 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
         2026-10-03, 186b181). Still his: a clicked half's purpose (a person seeing it), real UBC credentials, sudo.
     A classifier refusal is still never worked around; a permission said to manifest-coord3 is relayed to a worker as a record,
     never as his word in that worker's own session.
+
+    And at ~16:28 PDT, in chat to manifest-coord3, A1's [M3] FORK (the plan's Decision 9; put to him at ~16:24 with a
+    recommendation for each of two questions). manifest-a1-s1 (A1 sitting 1) measured at 16:21, at library level (two SP
+    processes built by the skeleton's own auth/ubcshib.js on a built app image's node_modules — passport-ubcshib 0.1.7-rc.1,
+    @node-saml/node-saml 5.1.0 — in a --network none container, a throwaway IdP key; the app-level form, a sibling of
+    reading-updates' staging container with its env copied, was refused by the classifier [Production Reads] and never ran):
+    a sign-in started on one instance and finished on another is REFUSED ("InResponseTo is not valid") — the skeleton sets no
+    validateInResponseTo, passport-ubcshib turns that into 'always', and node-saml keeps each AuthnRequest's id in a
+    per-process memory cache. The same mechanism already fails a sign-in in flight across a REDEPLOY with one instance
+    (pre-existing, newly recorded). His words: "I'm confortable going with your recommendations." So:
+      1. THE FIX — "(1) The request cache in the app's own Mongo (recommended)": skeleton/auth/ubcshib.js passes node-saml a
+         cacheProvider — saveAsync/getAsync/removeAsync on a Mongo collection with an 8-hour TTL index, on the client
+         session.js already holds; passport-ubcshib unchanged. Measured with a shared cache: all four orders sign in, a replay
+         is still refused. Closes the sign-in across instances and the redeploy case; apps made before the change keep the
+         in-memory cache. Rejected: (2) sticky routing by an edge cookie (Caddy sets SameSite=Lax, so the IdP's cross-site POST
+         would not carry it; uneven spread; the redeploy case left open); (3) validateInResponseTo 'never' (turns off the
+         replay check: a security weakening).
+      2. WHEN — "(a) Sitting 3, beside Task 4 (recommended)": Task 8's skeleton half (ubcshib.js, its starter, the
+         skeleton's Docker tier, blueprints/) moves from sitting 6 into sitting 3, so it lands before sitting 4 puts every
+         launch demo's class production on two instances. Task 8's knowledge-pack paragraph stays in sitting 6. Rejected: (b)
+         its own sitting between S2 and S3; (c) sitting 2.
