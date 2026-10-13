@@ -278,7 +278,11 @@ red() { printf '\033[31m%s\033[0m' "$1"; }
 # assessment sent while an administrator's record of it waits is not overwritten — m5) and `launch/readiness.test.ts` (1: before a
 # first launch, a change to a registration in force says where it is — sitting 4's F16). Measured 3533/212, 0 failed, twice (inside
 # `make ci-acceptance`, 969 s, and alone, 988 s).
-EXPECT_TESTS=3533
+# EXPECT_TESTS 3533 -> 3534 (2026-10-13, `manifest-p9`, out of plan — every node-ts-mongo build refused on proxy-addr, `5869070`), no
+# new file: `blueprints/blueprints.test.ts` (1: no shipped lockfile resolves a package below the fix of an advisory that refused its
+# builds). Run twice on `5869070`, 3534 tests in 212 files each time: 1052 s with ONE red, `observability/bus.test.ts` (the database clock
+# stepped back mid-test — the roadmap's *Tracked defects found in use*; 6 of 6 green alone), then 1053 s, 3534 passed, 0 failed.
+EXPECT_TESTS=3534
 EXPECT_FILES=212
 # EXPECT_DOCTOR 21 -> 22 (2026-10-03, the UBC AI Gateway plan's sitting 2, Task 2): the gateway key's expiry, a
 # check_warn — counted, never failing — from 14 days ahead (its Decision 11). Measured: 22 checks, 0 failed, 0 warnings.

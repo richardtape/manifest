@@ -2790,3 +2790,26 @@ state held it, and archiving removes an app's containers and KEEPS its volumes f
 It now reads the archived projects' slugs from the control database and keeps their volumes, and calls NO volume dead when it cannot read
 them. **A cleanup rule written from the containers alone is wrong for any state the platform keeps without a container** — check the
 project's state before calling its resources dead.
+
+### Found in use — A8's click, every new app's build refused (2026-10-13, `manifest-p9`)
+
+**A VULNERABILITY-DATABASE REFRESH CAN REFUSE EVERY NEW APP'S FIRST BUILD — AND THE APP CHANGED NOTHING.** The skeleton's
+`package-lock.json` is copied into every app a blueprint seeds, and §12's scan calls a finding the app's when it sits in the build's own
+layers (the base image's are the platform's), so a new advisory on any package in that lockfile is *"a finding this build introduced"* in
+every app at once: `BUILD_SCAN_BLOCKED`, *"Update the dependency and rebuild"*, which no faculty member or agent can act on (the front end
+forbids changing the stack — its `lead.ts:121`). Measured: the refresh of 2026-10-09 learned GHSA-jqcg-44mw-7w3h (proxy-addr ≤ 2.0.7, Critical, fixed in 2.0.8),
+and from then no node-ts-mongo app built — Rich's `reading-check-ins` failed three builds on 10-13 (`manifest-coord`'s measurement, the
+decisions file's 2026-10-13 12:34 entry).
+**The remedy is the blueprint's lockfile** (`5869070`): `npm update <pkg> --package-lock-only --registry http://127.0.0.1:7108` in a scratch
+copy, with an empty `--cache`, then the `resolved` host put back to `registry.npmjs.org` like every other entry (the blueprint's `.npmrc`
+has `replace-registry-host=always`, so the build fetches from the mirror either way); check `integrity` against the mirror's metadata and
+the tarball in its storage. **Then RESTART 7100** — `loadBlueprints` runs once at boot (`index.ts:140`), so a control plane started before
+the commit keeps seeding the old lockfile. **An app seeded before the fix keeps its own copy** and is refused on every build until ITS
+lockfile moves; §20's fleet-wide rebuild is Phase 4+. **To measure before a build:** Grype's `dir:` scan needs the `package-lock.json` in the
+directory — pointed at `node_modules/` alone it reads `0 matches` on a tree that has the finding (Grype v0.118.0, `manifest-grype-db`).
+
+**THE DATABASE CLOCK CAN STEP BACKWARDS, AND THE EVENT REPLAY'S ORDER IS THAT CLOCK.** `events.created_at` is the server's
+`clock_timestamp()`, and `recentFramesFor` orders by it, so `observability/bus.test.ts` (*newest events, oldest first*) can go red on a
+whole-suite run with the 4th event written sorted below the 2nd — measured once, 2026-10-13, at load ~6–9, then green alone 6 of 6 and on
+the next whole run. Read the ids before calling it a tie: with `id DESC` as the tie-break, a tie puts the FIRST event first. A red there
+that is green alone is the roadmap's *Tracked defects found in use* row, not your change.
