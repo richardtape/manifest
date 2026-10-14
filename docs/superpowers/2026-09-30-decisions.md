@@ -1996,3 +1996,27 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
     cwl?" — told: the laptop IdP has four (student, instructor, colleague — the second faculty member, operator — staff); then "yes
     please add the second student." So `student2:student2` (Test Student Two, student2@student.ubc.ca, PUID stu000002, student) is
     added to infra/idp/config/authsources.php by manifest-a1-s8, written in place (the file is a single-file bind mount), no restart.
+
+    At ~13:25 PDT, in chat to manifest-coord4: "the demo's over, carry on with the queue". So the demo freeze is lifted (the flag
+    FREE once no platform run holds it), and the queue resumes — and AT ~13:26, DECIDED BY manifest-coord4 UNDER RICH'S DELEGATION —
+    FOR HIS REVIEW: THE QUEUE AFTER THE DEMO, re-cut for what the demo found.
+      - W8, A NEW FRONT-END JOB, FIRST (his "fundamental to the app working", e2377ab): (1) the lead's change-round loop — the run
+        remembers what it committed this round and its view says so; a change ends once what it asks is committed (manifest-app
+        runtime/run.ts, build/round.ts:846-849 and view(), agents/lead.ts's change paragraph and end rule), test-first; (2) the round's
+        stall guard tolerant of a model that pauses mid-answer (model/client.ts ROUND_DEADLINES.quietMs 30 s; sol went quiet past it,
+        6AC4-EEB5), its new bound measured, not guessed; (3) the plan's model: the laptop's default first choice `default-chat-large`
+        when the session offers it (config.ts:74; `default-chat` and our own PLAN_MODEL_NONE unchanged as the floor), as Rich chose
+        for the demo; (4) W5's front-end findings that need no new words (name-it.tsx:259-264's "Something else" kept selected).
+        ITS PROOF on 7100 before any platform suite empties it: the SAME change on office-hour-slots ("Adding times always says…")
+        reaches done and builds, Add times then works; then, with the capable model repointed to gpt-6.1-sol by a platform session,
+        one build reaches done — and Rich chooses luna or sol to keep. New words, if any, ours, for him.
+      - THE GENTLER TEST TIERS' SITTING 1 BESIDE IT: its reading and code at once; its FIRST WHOLE SUITE only after W8's proof on 7100
+        (a suite empties 7100 and office-hour-slots with it). Its imitated-load run at a time Rich gives.
+      - F7's SITTINGS 1–3 (mock mode) as the second app session, beside W8; 7105 granted between W8's edge-mode proof and F7's
+        mock-mode acceptance, one at a time.
+      - Then as 9ab66d7: the gentler test tiers' sitting 2 → the fix session (b967a8e, 1fe7d7f) → W5's remaining walk → B; its
+        sitting 3 where Rich is at the machine.
+      - FOR LATER, as he asked (9bc0bf6): the laptop's capable model through our LiteLLM without UBC's gateway — an investigation,
+        documents only, after W8 (sol's pauses are part of it).
+      Rejected: the gentler test tiers' suites first (they would empty office-hour-slots, W8's proof case); W8 after F7 (the loop
+      makes every change round unreliable, F7 included).
