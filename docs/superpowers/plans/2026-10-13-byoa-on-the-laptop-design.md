@@ -1,29 +1,28 @@
 # Bring your own agent, on the laptop — the platform's design (BP)
 
-> **DRAFT, SECTION BY SECTION FOR RICH — written 2026-10-13 from 20:24 PDT by `manifest-byoa-plan`** (job BP of the BYOA planning run,
-> coordinated by `manifest-byoa-coord`; brief: `manifest-app/docs/plans/2026-10-13-byoa-planning.md`, approved as written). **Rich's
-> decisions it rests on**: [`../2026-09-30-decisions.md`](../2026-09-30-decisions.md), *"Rich's decisions — 2026-10-13, 20:15 PDT (session
-> manifest-byoa-coord, the BYOA planning run)"* (`0b17f87`) — the split out of Phase 3 and its place after FE-32 (answer 2), the front end's
-> whole half after this design (answer 3), and the policy brief folded into the plan (answer 4). **Every fact below was read from the code at
-> `0b17f87`** while A1 was changing `runtime/` and `routing/` beside it; the plan's Task 1 re-reads each one.
+> **APPROVED WHOLE BY RICH, 2026-10-13, ~20:31 PDT** — every question on its recommendation, the rest as written, the §3b correction
+> included: [`../2026-09-30-decisions.md`](../2026-09-30-decisions.md), *"Rich's decisions — 2026-10-13, 20:31 PDT (session
+> manifest-byoa-coord, the BYOA planning run: BP's design)"* (`c5df7db`). Written 2026-10-13 from 20:24 PDT by `manifest-byoa-plan` (job BP
+> of the BYOA planning run, coordinated by `manifest-byoa-coord`; brief: `manifest-app/docs/plans/2026-10-13-byoa-planning.md`, approved as
+> written); drafted at `3dfc096`. **The decisions it rests on**: *"Rich's decisions — 2026-10-13, 20:15 PDT (session manifest-byoa-coord, the
+> BYOA planning run)"* (`0b17f87`) — the split out of Phase 3 and its place after FE-32 (answer 2), the front end's whole half after this
+> design (answer 3), and the policy brief folded into the plan (answer 4). **Every fact below was read from the code at `0b17f87`** while A1
+> was changing `runtime/` and `routing/` beside it; the coordinator re-checked the premises at `3dfc096`, and the plan's Task 1 re-reads each.
 >
 > **This is a design, not the approved spec.** It never goes in `specs/`. What it would change in the spec is drafted as Spec actions in the
 > plan ([`2026-10-13-byoa-on-the-laptop.md`](./2026-10-13-byoa-on-the-laptop.md)) and applied only at Rich's word, after this run.
->
-> **Each section carries its status.** Rich approves them through `manifest-byoa-coord`; his words are recorded in the decisions file and
-> cited here. *What is asked of Rich* (the end) lists every open question with its options and a recommendation.
 
 | § | Section | Status |
 |---|---|---|
-| 0 | What this is for | PROPOSED |
-| 1 | The shape: three ways to give an agent Manifest as tools | PROPOSED — **question 1** |
-| 2 | The MCP server | PROPOSED (follows 1) |
-| 3 | Token controls | PROPOSED — **question 2** (FE-11 (b), re-asked) |
-| 4 | Toolkits (FE-19) | PROPOSED — **question 3** |
-| 5 | What else the design found | PROPOSED — **question 4** (model keys); the rest decided here, for review |
-| 6 | The policy section the plan carries | PROPOSED — its questions are UBC's and Rich's to answer later; none blocks the plan |
-| 7 | Phase 5: the decisive gap, recorded and not planned | PROPOSED |
-| 8 | Placement, spec actions, contract, proof | PROPOSED |
+| 0 | What this is for | APPROVED (`c5df7db`) |
+| 1 | The shape: three ways to give an agent Manifest as tools | APPROVED — **A, served at `/mcp` beside `/v1`** |
+| 2 | The MCP server | APPROVED as written |
+| 3 | Token controls | APPROVED — **FE-11 (b), beside (a)**; 3a–3b as written, with the §3b correction |
+| 4 | Toolkits (FE-19) | APPROVED — **(1), CWL and models first** |
+| 5 | What else the design found | APPROVED — **5.2 (a): keys unchanged, `/v1/messages` and Codex measured at Task 1**; the rest as written |
+| 6 | The policy section the plan carries | APPROVED as written — its questions are UBC's and Rich's to answer later; none blocks the plan |
+| 7 | Phase 5: the decisive gap, recorded and not planned | APPROVED as written |
+| 8 | Placement, spec actions, contract, proof | APPROVED — **Spec action F DROPPED** (follows 5.2 (a)) |
 
 ---
 
@@ -46,15 +45,15 @@ over code nobody at Manifest wrote.
 2. It learns how **from the platform**: the agents guide, the blueprint's knowledge pack and each toolkit's (FE-19), served over the API.
 3. **Nothing widens.** D24 refuses what it refuses today; a question still reaches a person; the MCP server can do nothing the token cannot
    do over HTTP.
-4. **A person bounds it**: a rate set at mint, a daily quota on what every app on the machine shares, and — if Rich says so (question 2) — an
-   owner stops a collaborator's agent without removing the colleague.
+4. **A person bounds it**: a rate set at mint, a daily quota on what every app on the machine shares, and an owner (or an administrator)
+   stops a collaborator's agent without removing the colleague (FE-11 (b), Rich's answer 2 of `c5df7db`).
 5. **Proved twice**: headlessly (an MCP client builds an app on a token, `make demo-byoa`), and **clicked by Rich with a real Claude Code**.
 
 **What Rich said** (decisions entry, `0b17f87`): the plan comes out of Phase 3 and goes between FE-32 and Phase 3; it holds the MCP server,
 FE-19, token controls (a rate at mint, §20's quotas, FE-11 (b) re-asked) and whatever the design finds; the policy brief is a section of the
 plan; Phase 5 is recorded as the decisive gap and planned not at all. **What this design assumes** (correct any): the agent runs on the same
 laptop as the platform; the person is faculty (FE-39, unchanged); the agent thinks with its own provider unless question 4 is answered
-otherwise; every word a faculty member reads is BF's, and C3 holds there.
+otherwise (it was not: Rich's answer 4 of `c5df7db`); every word a faculty member reads is BF's, and C3 holds there.
 
 ---
 
@@ -84,7 +83,7 @@ for Codex a `[mcp_servers.manifest]` table with `url` and `bearer_token_env_var`
 `contract/`"*; a server inside the control plane can reach around the API, and the evidence of an independent client is lost.
 
 **Cost of changing course:** A → B later is a second transport on the same server object (the SDK ships both) and a way to distribute it;
-no tool changes. **Question 1** asks Rich to approve A.
+no tool changes. **Rich chose A** (*"Served at /mcp beside /v1 (Recommended)"*, `c5df7db`).
 
 ---
 
@@ -103,8 +102,9 @@ no tool changes. **Question 1** asks Rich to approve A.
   inside `route`, with the same `@outside` guard. No new hostname, reserved label, dnsmasq pin or certificate.
 - **`/mcp` joins the contract's unversioned endpoints** (`api/unversioned.ts`, served as `x-manifest-unversioned`), so the contract says it
   exists rather than omitting it (D23.8). Its version is MCP's own protocol negotiation.
-- **It calls the API through the edge**, at the origin it was reached on, exactly as an outside client does — never 7100 directly
-  (*"integration is where the false greens sit"*).
+- **It calls the API through the edge**, at one configured origin (`app.`'s on the laptop), exactly as an outside client does — never
+  7100 directly (*"integration is where the false greens sit"*). A bearer request is judged by its token, not its origin, so one origin
+  serves an agent that reached `/mcp` on either.
 
 **Transport and credential.**
 - **Streamable HTTP, stateless**: no MCP session id, no resumption store; every `POST /mcp` carries its own bearer. A `GET` (a
@@ -181,8 +181,11 @@ forgets at most a minute.
 
 - **Not counted**: reads (the rate covers them); model sessions (bounded in money already — a session's cap and the person's month, §10);
   questions to a person (one open question per request, by the database).
-- **Counted from the platform's own record** — the events that carry `actor_token_id` (`db/schema.ts:1280`) — over a rolling 24 hours, so
-  a restart forgets nothing and no counter table exists.
+- **Counted in a record of their own** — one row per counted act (the token, which act, when), written when the act is accepted — over a
+  rolling 24 hours, so a restart forgets nothing. *Rejected:* counting the events that carry `actor_token_id` (`db/schema.ts:1280`), which
+  this draft first proposed — FE-32's plan publishes **no** event for a resolution, deliberately (its Decisions: *"Rejected:
+  `dependencies.resolved`, which would announce a question, not a change"*), and a deploy publishes an event per **instance**, not per
+  deploy, which A1's sets of instances make several; *in memory*, which a restart empties.
 - **Platform settings, one per counted action, not set at mint** (a later field if a person ever needs it). **Starting values proposed: 100
   builds, 100 deploys, 500 commits and 50 resolutions a day** — generous for an agent iterating all day, and a loop at one a minute stops
   inside two hours rather than running all night. Task 1 measures a day's worth from the demos and the plan sets them from that.
@@ -201,7 +204,8 @@ colleague off the app.
   its streams; the event names who revoked whose. *Closes:* one agent stopped, the colleague kept. *Leaves open:* nothing new.
 - **(a) Keep the decision of 2026-09-29.** *Closes:* nothing new.
 - **(c) An owner may pause a token** — rejected here: a state and its undo, for what revoke-and-mint-another already does.
-- **Recommended: (b).**
+- **Rich chose (b)** (*"(b) owner/admin may revoke (Recommended)"*, `c5df7db`) — **beside (a), which stays built**: this reverses his
+  2026-09-29 choice of (a) alone, for the new reason above.
 
 ---
 
@@ -221,7 +225,7 @@ argument, on a second axis. Option (a) of FE-19, which the front end recommended
 - **No new `manifest.yaml` field**: a toolkit is packages and declarations the platform already validates. That keeps §7 unchanged.
 - **The blueprint's pack keeps what is its skeleton's own** and points to a toolkit for the rest.
 
-**Which toolkits first — question 3:**
+**Which toolkits first — Rich chose (1)** (*"CWL + models, already wired (Recommended)"*, `c5df7db`):
 - **(1) The catalogue, with the two toolkits `node-ts-mongo@1` already wires — CWL sign-in (`passport-ubcshib`) and models
   (`ubc-genai-toolkit-llm`, through the skeleton's `ai/llm.js`)** — their know-how served as toolkits. **Recommended**: the catalogue is real,
   tested and served, and every later integration — RAG over Qdrant (FE-21), Canvas and the academic API (FE-20) — lands as a toolkit rather
@@ -242,7 +246,7 @@ through `createCommit` would be stored, and on driver 2 pushed to GitHub. Two ru
 it); the knowledge pack and the agents guide say never to commit an agent's configuration. *Rejected:* a rule for `mft_` only — an agent's
 model key is the same leak.
 
-**5.2 What an outside agent thinks with — question 4.** A Manifest model key reaches three routes (`ai/keys.ts:22-26`: chat completions,
+**5.2 What an outside agent thinks with — Rich chose (a)** (*"Unchanged; measure at Task 1 (Recommended)"*, `c5df7db`). A Manifest model key reaches three routes (`ai/keys.ts:22-26`: chat completions,
 embeddings, models). **Claude Code speaks Anthropic's Messages API (`/v1/messages`) and Codex OpenAI's Responses API (`/v1/responses`)**, so
 neither can do its own thinking on a Manifest key today (inferred from each tool's documented configuration, not measured); an agent that
 speaks chat completions can (opencode, aider, Cline …: a model key from the *Agents* screen at `http://127.0.0.1:7106/v1`,
@@ -250,7 +254,8 @@ speaks chat completions can (opencode, aider, Cline …: a model key from the *A
 - **(a) Unchanged in this plan, and (b) measured at Task 1 — RECOMMENDED.** The outside agent thinks with its own provider; the policy
   section asks UBC whether that is allowed (§6, question P1). Task 1 measures whether Claude Code can think on a Manifest key over LiteLLM
   1.102.0's `/v1/messages` (one call through the gateway, a fraction of a cent), so the platform is ready the day the Privacy Office says
-  only attested providers may see UBC code.
+  only attested providers may see UBC code — **and Codex's configuration**, which may accept chat completions (the coordinator's caveat
+  in `c5df7db`): if it does, Codex can think on a Manifest key today.
 - **(b) Agent-session keys gain `/v1/messages`** in this plan, so Claude Code thinks on UBC's gateway or on-premise and the code reaches
   only providers the platform attests. *Costs:* unmeasured — LiteLLM's translation to `gpt-6-luna` and the on-premise model under Claude
   Code's tool use, and how well Claude Code works on a model that is not Claude.
@@ -290,7 +295,7 @@ thinks with, under that provider's terms (a personal subscription's may allow tr
 
 **The questions only Rich or UBC can answer** (the brief's *Policy* paragraph, each with what the platform could do once answered):
 - **P1. May a faculty member point a commercial agent** (Claude Code → Anthropic, Codex → OpenAI, on a personal or an enterprise plan) at a
-  UBC app's code, and does the platform's PIA name it? *If not, or only for some levels:* question 4's (b)/(c) — the agent thinks on
+  UBC app's code, and does the platform's PIA name it? *If not, or only for some levels:* §5.2's (b) or (c), measured at Task 1 — the agent thinks on
   attested providers — or a project's level bounds whether a token may be minted for an outside agent. The platform cannot see which provider
   an agent uses (S9: *"a token's model is unattested"*).
 - **P2. ZDR, widened** (ORIENTATION §8 *Open*): the platform's own `high` routing rests on a provider keeping nothing; an outside agent's
@@ -324,15 +329,15 @@ it**, and its acceptance says so: every agent in it runs on the laptop.
   - **B. §22** — *"It lands in Phase 3, when sandboxes make the agent story real"* (**l. 2472**, not 2471 as the brief has it) becomes *it
     lands before sandboxes: an agent on its person's own machine needs no sandbox (§1)*, served at `/mcp` beside `/v1`, bearer only.
   - **C. §20** — the quotas made concrete (what is counted, over what, the refusal); the rate set at mint within the platform's maximum;
-    and, if question 2 is (b), who may revoke a token.
+    and who may revoke a token — its minter, an owner, or an administrator (FE-11 (b)).
   - **D. D25 and §25** — toolkits, a catalogue beside blueprints, each with a pack versioned with it (FE-19).
   - **E. §21** — the MCP server in the inventory, and the laptop divergence of §5.4.
-  - **F.** only if question 4 is (b) or (c): §10's three routes widened, with the Phase 3 rule for `/v1/responses`.
+  - ~~**F.** §10's three routes widened~~ — **DROPPED**: Rich chose 5.2 (a), keys unchanged (`c5df7db`).
 - **Proof — `make demo-byoa`, either driver.** A scripted MCP client (the SDK's client over Streamable HTTP; no model) on a token minted
   for it: connects at `/mcp` on `app.`; lists tools and reads the agents guide and the pack as resources; builds the bulletin board through
   tools alone (dry run, commit, build, `waitForBuild`, release, deploy to staging, the sandbox's output); adds a dependency
   (`resolveDependencies`); asks for production and is answered a question, which a person confirms, and the retry goes through once; is
-  refused by the rate at mint and by a quota, each with its fields; has its `.mcp.json` refused `SOURCE_SECRET_DETECTED`; (if (b)) is
+  refused by the rate at mint and by a quota, each with its fields; has its `.mcp.json` refused `SOURCE_SECRET_DETECTED`; is
   revoked by the owner, its next call `401` and its stream `4401`. The MCP server refuses a cookie-only request and an `Origin` header, and
   the token is in none of its output. Each control is broken once and seen red.
 - **And clicked by Rich**: a real Claude Code (and Codex, if Task 1 finds it connects), configured from the front end's *Agents* screen,
@@ -342,15 +347,11 @@ it**, and its acceptance says so: every agent in it runs on the laptop.
 
 ---
 
-## What is asked of Rich
+## What Rich decided (`c5df7db`, ~20:28 and ~20:31 PDT)
 
-1. **The shape (§1)**: an MCP server served by the platform at `/mcp` beside `/v1` (recommended) / a local stdio package / inside the
-   control plane.
-2. **FE-11 (b), re-asked (§3c)**: an owner or administrator may revoke any token on the project (recommended) / keep 2026-09-29's decision
-   (removing the person is the stop).
-3. **The first toolkits (§4)**: the catalogue with CWL and models (recommended) / and one new library toolkit / the machinery only.
-4. **What an outside agent thinks with (§5.2)**: unchanged, with `/v1/messages` measured at Task 1 (recommended) / agent keys gain
-   `/v1/messages` now / and `/v1/responses` under the Phase 3 rule.
-
-And, for approval as written: §2 (the MCP server's details), §3a–b (the rate and the quotas, their starting values), §5.1, 5.3–5.5 (decided
-here), §6 (the policy section's contents), §7 and §8.
+1. **The shape (§1)**: *"Served at /mcp beside /v1 (Recommended)"*.
+2. **FE-11 (b), re-asked (§3c)**: *"(b) owner/admin may revoke (Recommended)"* — beside (a), which stays.
+3. **The first toolkits (§4)**: *"CWL + models, already wired (Recommended)"*.
+4. **What an outside agent thinks with (§5.2)**: *"Unchanged; measure at Task 1 (Recommended)"* — Claude Code over `/v1/messages`, and
+   Codex's configuration, measured; Spec action F dropped.
+5. **The rest**: *"Approve as written (Recommended)"* — §2, §3a–b with the correction, §5.1 and 5.3–5.5, §6, §7 and §8.
