@@ -8,8 +8,10 @@ import { instanceName, serviceName } from '../driver.js'
 import { mintSpKeypair, renderSpMetadata, type SpKeypair } from '../../sso/index.js'
 import {
   idpLogin,
+  idpLoginAcrossInstances,
   idpSignInAndOut,
   withRegisteredMetadata,
+  type CrossingLoginResult,
   type SamlSpHandle,
 } from '../../sso/testing.js'
 import { INJECTED_FILE_PATHS, renderInjection } from '../../spec/index.js'
@@ -62,6 +64,9 @@ const HOST = `${SLUG}.staging.manifest.internal`
 // its containers by name.
 const INSTANCE_ID = '7a7a7a7a-0000-4000-8000-000000000007'
 const INSTANCE = appContainer(instanceName(SLUG, KIND, RELEASE, INSTANCE_ID))
+/** A second copy of the same release, on the same Mongo (A1 Task 8a). */
+const SECOND_ID = '7b7b7b7b-0000-4000-8000-000000000008'
+const SECOND = appContainer(instanceName(SLUG, KIND, RELEASE, SECOND_ID))
 const SERVICE = serviceName(SLUG, KIND, 'db')
 
 /**
@@ -112,9 +117,9 @@ describeDocker('node-ts-mongo@1 builds, deploys and authenticates (Task 12)', ()
     attributes: ['ubcEduCwlPuid', 'mail', 'givenName', 'sn', 'eduPersonAffiliation'],
   }
 
-  const specFor = () => ({
-    name: instanceName(SLUG, KIND, RELEASE, INSTANCE_ID),
-    instanceId: INSTANCE_ID,
+  const specFor = (instanceId = INSTANCE_ID) => ({
+    name: instanceName(SLUG, KIND, RELEASE, instanceId),
+    instanceId,
     hostname: HOST,
     projectSlug: SLUG,
     environmentKind: KIND,
@@ -205,6 +210,7 @@ describeDocker('node-ts-mongo@1 builds, deploys and authenticates (Task 12)', ()
   }, 180_000)
 
   afterAll(async () => {
+    await driver.destroyInstance(SECOND).catch(() => undefined)
     await driver.destroyInstance(INSTANCE).catch(() => undefined)
     await driver
       .destroyService(serviceContainer(SERVICE), { deleteData: true })
@@ -388,5 +394,73 @@ describeDocker('node-ts-mongo@1 builds, deploys and authenticates (Task 12)', ()
     // `req.user` (the faculty-ready plan's Task 17, F2): the IdP is told this app did NOT
     // sign the person out, after it did.
     expect(out.answer, trail).toBe('urn:oasis:names:tc:SAML:2.0:status:Success')
+  }, 600_000)
+  /**
+   * A SIGN-IN THAT CROSSES INSTANCES (A1 Task 8a; Rich, 2026-10-13 ~16:28, `3487e68`).
+   *
+   * Production runs several copies of an app, and A1's sitting 1 measured a sign-in started on
+   * one and finished on another REFUSED — `InResponseTo is not valid` — because the SAML library
+   * kept each AuthnRequest's id in the process that sent it. The skeleton now keeps it in the
+   * app's own Mongo. Here: a second copy of this release joins the first on the SAME Mongo, the
+   * hostname balances across both, and a real CWL sign-in through the laptop IdP is started on
+   * one and finished on the other — BOTH ORDERS, read off each hop's `X-Manifest-Instance` rather
+   * than assumed of round robin — then the same assertion is posted again and refused.
+   *
+   * The same-instance control is the sign-in above, on one instance.
+   */
+  it('a second instance joins on the same Mongo, and the hostname reaches both', async () => {
+    const set = await driver.ensureInstances([specFor(), specFor(SECOND_ID)])
+    expect(set.map((handle) => handle.id)).toEqual([INSTANCE, SECOND])
+    expect((await driver.servingInstances(HOST)).sort()).toEqual(
+      [INSTANCE, SECOND].sort(),
+    )
+  }, 300_000)
+
+  it('a sign-in started on one instance finishes on the other — both orders — and a replay is refused', async () => {
+    const handle: SamlSpHandle = {
+      hostname: HOST,
+      idpBaseUrl: 'https://idp.manifest.internal',
+      row: { entityId: spEntity.entityId, acsUrl: spEntity.acsUrl, attributes: [] },
+      instance: INSTANCE,
+      stop: () => Promise.resolve(),
+    }
+    const runs: CrossingLoginResult[] = []
+    await withRegisteredMetadata(
+      spEntity.entityId,
+      renderSpMetadata(spEntity, keypair),
+      async () => {
+        for (const nudge of [false, true])
+          runs.push(
+            await idpLoginAcrossInstances(
+              handle,
+              { user: 'student', password: 'student' },
+              { nudge },
+            ),
+          )
+      },
+    )
+    const both = [INSTANCE_ID, SECOND_ID].sort()
+    const orders = runs.map((run) => `${run.issuedBy}->${run.callback.instance}`)
+    for (const run of runs) {
+      const trail = JSON.stringify(run)
+      // The IdP showed a sign-in form, so what follows is about the app.
+      expect(run.status, trail).toBeUndefined()
+      // CROSSED: the copy that received the assertion is not the one that issued the request.
+      expect(both, trail).toContain(run.issuedBy)
+      expect(both, trail).toContain(run.callback.instance)
+      expect(run.callback.instance, trail).not.toBe(run.issuedBy)
+      // SIGNED IN: the callback sends the person home, not to the sign-in failure page…
+      expect(run.callback.status, trail).toBe(302)
+      expect(run.callback.location, trail).toBe(`https://${HOST}/`)
+      // …and the session it wrote is read back by whichever copy answers next.
+      expect(run.me.status, trail).toBe(200)
+      // A REPLAY IS STILL REFUSED: the id was consumed when the assertion was answered.
+      expect(
+        run.replay.status === 302 && run.replay.location === `https://${HOST}/`,
+        trail,
+      ).toBe(false)
+    }
+    // BOTH ORDERS, by what the edge said, not by what round robin was expected to do.
+    expect(new Set(orders).size, JSON.stringify(orders)).toBe(2)
   }, 600_000)
 })

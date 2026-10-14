@@ -79,7 +79,7 @@ app.use(passport.session())
 // Every §8 SAML variable is read here, at startup, so a missing one fails the
 // container's first boot rather than the first sign-in. This app declares CWL, so
 // the block is always injected.
-const cwl = configureCwl()
+const cwl = configureCwl(client)
 app.get('/login', cwl.login)
 // The ACS path is manifest.yaml's `auth.callback`; change it there, never here.
 app.post('/auth/ubcshib/callback', cwl.callback, (_req, res) => res.redirect('/'))

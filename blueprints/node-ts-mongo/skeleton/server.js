@@ -72,7 +72,7 @@ const client = new MongoClient(
 const db = () => client.db(required('MONGODB_DB_NAME'))
 
 // §8's AI rows, for an app that declared models. Configured HERE, at startup, for
-// configureCwl()'s reason: a missing or partial block fails the container's first
+// configureCwl's reason: a missing or partial block fails the container's first
 // boot rather than a person's first question. The import above is harmless for an
 // app with no models; ai/llm.js's `ask`, `askStreaming` and `embed` are what an
 // app's own routes call.
@@ -114,7 +114,7 @@ if (CWL_ENABLED) {
   app.use(passport.session())
   // Every §8 SAML variable is read HERE, at startup — so a missing one fails the
   // container's first boot rather than the first login.
-  const cwl = configureCwl()
+  const cwl = configureCwl(client)
 
   app.get('/login', cwl.login)
   // A POST: SAML's HTTP-POST binding is how the assertion comes back, and the

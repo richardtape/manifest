@@ -110,7 +110,7 @@ if (CWL_ENABLED) {
   app.use(passport.session())
   // Every §8 SAML variable is read here, at startup, so a missing one fails the
   // container's first boot rather than somebody's first login.
-  const cwl = configureCwl()
+  const cwl = configureCwl(client)
 
   app.get('/login', cwl.login)
   // A POST, at the path the platform registered as the ACS URL and injected as

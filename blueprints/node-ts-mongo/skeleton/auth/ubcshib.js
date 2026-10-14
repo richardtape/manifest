@@ -38,6 +38,8 @@ const RAW = {
   // assertions. It is still READ AND ALLOWED TO BE ABSENT, the only §8 variable this
   // file treats that way, so an app deployed before the key was placed still starts.
   SAML_PRIVATE_KEY_PATH: process.env.SAML_PRIVATE_KEY_PATH,
+  // The app's own database, where the SAML request cache below lives — as its sessions do.
+  MONGODB_DB_NAME: process.env.MONGODB_DB_NAME,
 }
 
 /**
@@ -53,17 +55,84 @@ function required(name) {
   return value
 }
 
+/** The SAML library's own request-id expiry (`requestIdExpirationPeriodMs`): eight hours. */
+const SAML_REQUEST_TTL_SECONDS = 8 * 60 * 60
+
 /**
- * Wires the strategy and returns the two middlewares an app mounts.
+ * WHERE A SIGN-IN'S REQUEST ID IS KEPT: the app's own Mongo, not this process.
+ *
+ * The library refuses an assertion that answers a request it has no record of —
+ * `InResponseTo is not valid` — and by default keeps that record in the PROCESS that sent
+ * the person to the IdP. Production runs several copies of an app, any of which may
+ * receive the assertion, and a redeploy replaces the copy that sent them: measured
+ * 2026-10-13, a sign-in started on one copy and finished on another was refused. So the
+ * record lives in the app's database, beside its sessions, and every copy reads it.
+ *
+ * It answers the library exactly as its in-memory cache does — an id issued once, its
+ * value until it is used or eight hours pass, then nothing — so a REPLAYED assertion is
+ * still refused: the library removes the id once it has answered it. Mongo removes old
+ * ids itself (a TTL index), and an id older than eight hours is gone to the library
+ * whether or not Mongo has swept it yet, because the sweep runs once a minute.
+ */
+function samlRequestCache(client) {
+  const requests = client.db(required('MONGODB_DB_NAME')).collection('saml_requests')
+  const indexed = requests.createIndex(
+    { createdAt: 1 },
+    { expireAfterSeconds: SAML_REQUEST_TTL_SECONDS },
+  )
+  const liveSince = () => new Date(Date.now() - SAML_REQUEST_TTL_SECONDS * 1000)
+  return {
+    async saveAsync(key, value) {
+      await indexed
+      await requests.deleteOne({ _id: key, createdAt: { $lte: liveSince() } })
+      const createdAt = new Date()
+      try {
+        await requests.insertOne({ _id: key, value, createdAt })
+      } catch (error) {
+        // Already issued and still live: the library is told so, as its own cache tells it.
+        if (error?.code === 11000) return null
+        throw error
+      }
+      return { createdAt: createdAt.getTime(), value }
+    },
+    async getAsync(key) {
+      await indexed
+      const found = await requests.findOne({ _id: key, createdAt: { $gt: liveSince() } })
+      return found ? found.value : null
+    },
+    async removeAsync(key) {
+      if (key === null || key === undefined) return null
+      await indexed
+      const { deletedCount } = await requests.deleteOne({ _id: key })
+      return deletedCount === 1 ? key : null
+    },
+  }
+}
+
+/**
+ * Wires the strategy and returns the two middlewares an app mounts. Pass it the
+ * `MongoClient` the app already holds — the one `sessionMiddleware(client)` is given —
+ * because a sign-in's request id is kept in the app's own database (above).
  *
  * Called at startup, not lazily: every §8 variable is read here, so a missing
  * one fails the container's FIRST boot rather than the first login. A deploy
  * that cannot authenticate should never become healthy.
  */
-export function configureCwl() {
+export function configureCwl(client) {
+  // NO FALLBACK to the library's in-memory cache: that is the cross-instance failure
+  // itself, and it would show only when a person's sign-in landed on another copy.
+  if (client === undefined || client === null)
+    throw new Error(
+      "configureCwl(client) needs the app's MongoClient — the one sessionMiddleware(client) " +
+        'is given — to keep each sign-in request where every copy of the app can read it',
+    )
   passport.use(
     new UBCStrategy(
       {
+        // A sign-in's request id, in the app's own Mongo — so whichever copy of the app
+        // receives the IdP's answer can check it (above). The library passes it straight
+        // to @node-saml/node-saml.
+        cacheProvider: samlRequestCache(client),
         // The Manifest IdP in sandbox and staging, real UBC in production —
         // decided by the platform, never by this file. UBC_CONFIG.LOCAL
         // hardcodes SimpleSAMLphp 1.x paths (/simplesaml/saml2/idp/SSOService.php)

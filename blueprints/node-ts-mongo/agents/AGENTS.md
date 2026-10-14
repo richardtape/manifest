@@ -89,8 +89,10 @@ in all of them.
 - **`session.js`** keeps sessions in your app's own Mongo, so a deploy signs nobody
   out. `app.use(sessionMiddleware(client))`, with the `MongoClient` you already hold.
 
-Mount the middlewares `configureCwl()` returns. Do not construct a `Strategy`
-yourself.
+Mount the middlewares `configureCwl(client)` returns — the same `MongoClient` you give
+`sessionMiddleware`, because a sign-in's request is kept in your app's own Mongo so that
+whichever copy of your app receives the answer from CWL can finish it. Do not construct a
+`Strategy` yourself.
 
 **CWL sign-in posts a form** (SAML's HTTP-POST binding), so an app that replaces
 `server.js` must keep `app.use(express.urlencoded({ extended: false }))` before its

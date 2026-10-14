@@ -463,6 +463,103 @@ attrs=$(printf '%s' "$me" | sed -n 's/^{"attributes":\(.*\)}$/\1/p')
 printf '{"status":%s,"body":%s,"attributes":%s}\n' "$code" "$(json_escape "$body")" "$attrs"
 `
 
+/** One hop of a sign-in, as the edge answered it. */
+export interface InstanceHop {
+  status: number
+  /** `X-Manifest-Instance` — which instance of the app answered; `''` when none did. */
+  instance: string
+  /** Where it sent the browser, absolute; `''` when it did not redirect. */
+  location: string
+}
+
+export interface CrossingLoginResult {
+  /** The instance that answered `/login` — the one that issued the AuthnRequest. */
+  issuedBy: string
+  /** The IdP's assertion posted to the app's callback: who took it, and what it answered. */
+  callback: InstanceHop
+  /** The app's `/me` with the sign-in's cookie, read afterwards — wherever round robin sends it. */
+  me: InstanceHop
+  /** THE SAME ASSERTION posted again, with no cookies: a replay. */
+  replay: InstanceHop
+  /** The callback's and the replay's bodies, truncated — the only record when one is refused. */
+  callbackBody: string
+  replayBody: string
+  /** Set instead of the rest when the IdP never showed a sign-in form. */
+  status?: number
+  body?: string
+}
+
+/**
+ * A SIGN-IN THAT CROSSES INSTANCES (A1 Task 8a), driven the way a browser drives it, from a
+ * container, with the instance that answered EVERY app hop read off its `X-Manifest-Instance`
+ * — so a test can say which copy issued the AuthnRequest and which received the assertion,
+ * rather than assuming round robin did what it was expected to.
+ *
+ * The IdP's hops are the platform's own (`SAML_LOGIN_HOPS`) except the first, which is split
+ * in two so the app's redirect can be read before it is followed. `nudge` sends one request to
+ * the app's health path first, which moves round robin on by one: two runs, one nudged, give
+ * both orders on a set of two. Then the assertion is posted a second time, with no cookies —
+ * a replay, which the app must refuse.
+ */
+export async function idpLoginAcrossInstances(
+  sp: SamlSpHandle,
+  credentials: { user: string; password: string },
+  opts: { nudge: boolean },
+): Promise<CrossingLoginResult> {
+  const firstHop = 'form=$(curl -sS --cacert /ca.crt -c $J -b $J -L "$APP/login")'
+  if (!SAML_LOGIN_HOPS.includes(firstHop))
+    throw new Error(
+      "SAML_LOGIN_HOPS' first hop changed: idpLoginAcrossInstances splits it, and must change with it",
+    )
+  const script =
+    SAML_LOGIN_HOPS.replace(
+      firstHop,
+      String.raw`[ "$NUDGE" = 1 ] && curl -sS --cacert /ca.crt -o /dev/null "$APP/healthz"
+first=$(curl -sS --cacert /ca.crt -c $J -b $J -o /dev/null   -w '%header{x-manifest-instance} %{redirect_url}' "$APP/login")
+issued_by=${'$'}{first%% *}
+form=$(curl -sS --cacert /ca.crt -c $J -b $J -L "${'$'}{first#* }")`,
+    ) +
+    String.raw`
+cb=$(curl -sS --cacert /ca.crt -c $J -b $J -o /tmp/cb   -w '%{http_code} %header{x-manifest-instance} %{redirect_url}'   --data-urlencode "SAMLResponse=$saml" "$APP/auth/ubcshib/callback")
+me=$(curl -sS --cacert /ca.crt -b $J -o /dev/null   -w '%{http_code} %header{x-manifest-instance} %{redirect_url}' "$APP/me")
+rp=$(curl -sS --cacert /ca.crt -o /tmp/rp   -w '%{http_code} %header{x-manifest-instance} %{redirect_url}'   --data-urlencode "SAMLResponse=$saml" "$APP/auth/ubcshib/callback")
+printf '{"issuedBy":"%s","callback":"%s","me":"%s","replay":"%s","callbackBody":%s,"replayBody":%s}
+'   "$issued_by" "$cb" "$me" "$rp" "$(json_escape "$(cat /tmp/cb)")" "$(json_escape "$(cat /tmp/rp)")"
+`
+  const output = await runProbeContainer({
+    script,
+    env: {
+      APP: `https://${sp.hostname}`,
+      IDP: sp.idpBaseUrl,
+      USER: credentials.user,
+      PASS: credentials.password,
+      NUDGE: opts.nudge ? '1' : '0',
+    },
+  })
+  const line = output.trim().split('\n').at(-1) ?? '{}'
+  let raw: Record<string, unknown>
+  try {
+    raw = JSON.parse(line) as Record<string, unknown>
+  } catch {
+    throw new Error(`the crossing-login probe printed no JSON. Full output:\n${output}`)
+  }
+  const hop = (value: unknown): InstanceHop => {
+    const [status = '0', instance = '', location = ''] = String(value ?? '').split(' ')
+    return { status: Number(status), instance, location }
+  }
+  return {
+    issuedBy: String(raw.issuedBy ?? ''),
+    callback: hop(raw.callback),
+    me: hop(raw.me),
+    replay: hop(raw.replay),
+    callbackBody: String(raw.callbackBody ?? ''),
+    replayBody: String(raw.replayBody ?? ''),
+    ...(typeof raw.status === 'number'
+      ? { status: raw.status, body: String(raw.body ?? '') }
+      : {}),
+  }
+}
+
 export interface SignOutResult {
   /** The app's `/me` before signing out — 200 means the sign-in held. */
   before: number
