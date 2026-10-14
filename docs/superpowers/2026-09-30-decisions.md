@@ -1686,3 +1686,11 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
     So BOTH PLANS ARE APPROVED. Their status lines are marked by BP and BF; the roadmap and ORIENTATION lines go to manifest-coord3,
     which applies them (manifest's roadmap, ORIENTATION §7e/§8, CLAUDE.md's State queue; manifest-app's roadmap and ORIENTATION).
     Nothing executes in this run.
+
+    And at ~22:39 PDT, in chat to manifest-coord3, going to bed: "I'm going to bed shortly so I won't be around to run any
+    commands until morning. If something needs me, try to determine if it's possible to skip until i'm back." HOW
+    manifest-coord3 applies it overnight: everything that needs no action of his runs (A1's sittings 5–7 and sitting 8 up to its
+    clicked half; RB; W4 after sitting 6); a step that needs him — a classifier-refused command, sudo, his credentials, S8's
+    clicked half — is skipped or parked, the session carrying on with everything that does not depend on it, and each is listed
+    for him in the morning report with its exact command; nothing is worked around. His delegation (~19:38) still decides the
+    questions.
