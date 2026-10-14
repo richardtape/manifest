@@ -55,9 +55,9 @@ vulnerability database in the console, and FE-45 (Rich, 2026-10-03, 15:28; B and
   delete at the gateway;
 - **any real repository in `Manifest-local-dev` that no project owns** — every `pnpm test` truncates the projects' rows and leaves their
   repositories on GitHub. **Rich, 2026-10-13 ~18:14 (*"go with the recommendations"*, `40c0f82`): the six unowned ones — `a8-clocks-1`,
-  `f5b-measure-1`, `f6-watch`, `f6b-measure-1`, `keep-walk-1002` and `reading-updates` — ARE BEING DELETED BY HIM** with
-  `bash scripts/github-real-repos.sh --delete <name>`, with their `.manifest/repos/<slug>.git` mirrors; **`ask-my-notes` KEPT** (his own).
-  Re-measure with `bash scripts/github-real-repos.sh` rather than trusting this line. **The two apps' LEFTOVERS ARE GONE** (his answer 2,
+  `f5b-measure-1`, `f6-watch`, `f6b-measure-1`, `keep-walk-1002` and `reading-updates` — WERE DELETED BY HIM** (~18:20, his terminal)
+  with `bash scripts/github-real-repos.sh --delete <name>`, and their `.manifest/repos/<slug>.git` mirrors removed; the listing then read
+  ONE repository, **`ask-my-notes` NONE — KEPT** (his own). Re-measure with `bash scripts/github-real-repos.sh` rather than trusting this line. **The two apps' LEFTOVERS ARE GONE** (his answer 2,
   the same entry): A1's sitting 2 removed `reading-updates`' and `a8-clocks-1`'s 18 containers (`docker rm -f -v` by name), 6 networks, 12
   volumes, 4 images and 6 LiteLLM users, read back to zero (2026-10-13, ~18:30). The other orphaned mirrors in `.manifest/repos`
   (`dead-app-resources.sh` names them) are left as they are; a new project with one of those slugs is refused `SOURCE_REPOSITORY_EXISTS`;
