@@ -1,5 +1,9 @@
 # Bring your own agent, on the laptop — the platform's design (BP)
 
+> **ITS PLAN IS APPROVED** — [`2026-10-13-byoa-on-the-laptop.md`](./2026-10-13-byoa-on-the-laptop.md), as revised (`7493be1`), by Rich,
+> 2026-10-13, ~21:50 PDT (`2b3dd6d`): inline per sitting, queued after FE-32 and before Phase 3, nothing executing now. Its departures from
+> this design were each named to him and approved; the *Annotations after BR's review* at the end list them.
+>
 > **APPROVED WHOLE BY RICH, 2026-10-13, ~20:31 PDT** — every question on its recommendation, the rest as written, the §3b correction
 > included: [`../2026-09-30-decisions.md`](../2026-09-30-decisions.md), *"Rich's decisions — 2026-10-13, 20:31 PDT (session
 > manifest-byoa-coord, the BYOA planning run: BP's design)"* (`c5df7db`). Written 2026-10-13 from 20:24 PDT by `manifest-byoa-plan` (job BP

@@ -1,5 +1,13 @@
 # Bring Your Own Agent, on the Laptop — Implementation Plan
 
+> **✅ APPROVED BY RICH, 2026-10-13, ~21:50 PDT, AS REVISED (`7493be1`)** — *"Approve; inline per sitting (Recommended)"*, with every
+> departure from the design named to him and approved (D2, D9, D10's three non-tools, D14, D19, D20, D21, 7113, the `initialize` check, the
+> journey boundary): [`../2026-09-30-decisions.md`](../2026-09-30-decisions.md), *"Rich's decisions — 2026-10-13, 21:50 PDT (session
+> manifest-byoa-coord, the BYOA planning run: both plans approved)"*, `2b3dd6d`. **Runs inline with superpowers:executing-plans, ONE FRESH
+> SESSION PER SITTING**, as A1 and FE-46/47/5 ran. **QUEUED AFTER FE-32, BEFORE PHASE 3** (`0b17f87`, answer 2) — **NOTHING OF IT IS
+> EXECUTING NOW**: its sittings table starts at sitting 1 when the roadmap reaches it, and Task 1 re-reads every fact then. The front end's F7
+> plan runs beside it (its sittings 4–7 follow this plan's 4, 2–4, 6–7 and 8b).
+
 > **WRITTEN 2026-10-13, FROM 20:38 PDT, BY `manifest-byoa-plan`** (job BP of the BYOA planning run, coordinated by `manifest-byoa-coord`,
 > beside `manifest-coord3`'s second coordinated run), from **the design Rich APPROVED WHOLE at ~20:31 PDT**:
 > [`2026-10-13-byoa-on-the-laptop-design.md`](./2026-10-13-byoa-on-the-laptop-design.md) (`e5a0c08`; his words in
@@ -13,10 +21,11 @@
 > `1fa72d6`, by `manifest-byoa-review`; verdict *approve with the fixes* — 10 Important, 13 Minor, and cross-plan X1–X7) **and to Rich's answer
 > to its one question** (X1 (a), *"F7 gains a task"*, ~21:32 PDT, `327ca2f`). **Every finding, and where it went, is in *What the review
 > found, and where it went*** (near the end). The cross-plan agreements (X1, X3, X5, X7) were made with BF (`manifest-app-byoa-plan`)
-> directly. **NOT YET APPROVED**: it waits for Rich. **Five spec actions are DRAFTED at the end, none applied.**
+> directly. **Approved at ~21:50 PDT (above).** **Five spec actions are DRAFTED at the end, none applied** — each at its sitting, its shared
+> pages swept with it.
 
-> **For agentic workers:** REQUIRED SUB-SKILL: superpowers:executing-plans (inline) or superpowers:subagent-driven-development, **whichever
-> Rich chooses**. Steps use checkbox (`- [ ]`) syntax for tracking. **Commit on `main`; no branch, no worktree, no push** — ORIENTATION §6
+> **For agentic workers:** REQUIRED SUB-SKILL: **superpowers:executing-plans, inline, one fresh session per sitting** (Rich, 2026-10-13,
+> `2b3dd6d`). Steps use checkbox (`- [ ]`) syntax for tracking. **Commit on `main`; no branch, no worktree, no push** — ORIENTATION §6
 > rule 9.
 
 **Goal:** **An agent the platform did not write — Claude Code, Codex, any MCP-capable agent, running on the laptop — connects to Manifest
@@ -92,7 +101,7 @@ dependencies, BP-M7).
 
 | Sitting | Tasks | What it delivers | `pnpm test:docker` owed? | Where it stops | Status |
 |---|---|---|---|---|---|
-| 1 | 1 | **The measurements**: every fact re-read; the SDK's current release and its server/client API in a THROWAWAY probe; Claude Code (in a throwaway `CLAUDE_CONFIG_DIR`) and Codex (in a throwaway `CODEX_HOME`) against a probe `/mcp` on loopback — headers, timeout, where each keeps the token, its permission rules, what a `401` starts; Claude Code thinking over LiteLLM's `/v1/messages` (one gateway call); Codex's configuration; whether an edge reload cuts a streamed answer, on a THROWAWAY Caddy; a day's counts; `sk-` and `mft_` hits across every repository; 7113 free; the contract's version after FE-32 | No | After Task 1's commit. **It stops and asks Rich** if `[M3]` finds Claude Code cannot be configured for `/mcp` at all, or `[M6]` finds a reload cuts a streamed answer and no bound under the agents' timeouts survives it | ← **next**, once this plan is approved and FE-32 has closed |
+| 1 | 1 | **The measurements**: every fact re-read; the SDK's current release and its server/client API in a THROWAWAY probe; Claude Code (in a throwaway `CLAUDE_CONFIG_DIR`) and Codex (in a throwaway `CODEX_HOME`) against a probe `/mcp` on loopback — headers, timeout, where each keeps the token, its permission rules, what a `401` starts; Claude Code thinking over LiteLLM's `/v1/messages` (one gateway call); Codex's configuration; whether an edge reload cuts a streamed answer, on a THROWAWAY Caddy; a day's counts; `sk-` and `mft_` hits across every repository; 7113 free; the contract's version after FE-32 | No | After Task 1's commit. **It stops and asks Rich** if `[M3]` finds Claude Code cannot be configured for `/mcp` at all, or `[M6]` finds a reload cuts a streamed answer and no bound under the agents' timeouts survives it | ← **next when the roadmap reaches this plan** (after FE-32's acceptance closes) |
 | 2 | 2, 3 | **A rate set at mint** (contract bump), `RATE_LIMITED` with its limit as fields; **per-token daily quotas** — the record, the route declaration, the wrapper's take, `429 TOKEN_QUOTA_EXHAUSTED` declared from the route, `Token.usage` — **each with the mock's fixtures** | No — `api/`, `tokens/`, `db/`, `config.ts`, `packages/mock` | After both commits, with a quota refusal through the edge quoted | |
 | 3 | 4, 5 | **An owner or administrator revokes any token** (FE-11 (b)), `capability: 'members:manage'` and the 25-list, `token.revoked` and `Token.revokedBy` with the mock's fixtures; **`mft_` and `sk-` in the secret scanner** | Yes — `build/` (the scanner), `source/` (the hook renders the list) | After both commits, with an owner's revoke of a collaborator's token and a committed `.mcp.json` refused, each through the edge | |
 | 4 | 6a | **Toolkits served**: the descriptor, the registry, three reads, `Blueprint.toolkits`, `cwl` and `models`, the mock's toolkit fixtures and answers. **`AGENTS.md` untouched** | Only if `src/blueprints/` changes | After the commit, with `listToolkits` through the edge quoted, and BF told (its F7 sitting 4 starts from this commit) | |
@@ -142,7 +151,7 @@ action (C before sitting 2; D before sitting 4; A, B and E before sitting 5).
 
 ## What Rich does, and when
 
-1. **Approve this plan**, revised to BR's review, and choose inline or subagent-driven execution. **Named for him at approval** (BR): D2 (the
+1. ~~Approve this plan~~ — **APPROVED 2026-10-13, ~21:50 PDT (`2b3dd6d`), inline per sitting.** **Named to him at approval and approved** (BR): D2 (the
    bound is the constant 600), D9 (`x-manifest-alongside`), D10 with its three exceptions — `startAgentSession` and `getOpenApiDocument` are
    not tools, beside the WebSocket — D14 (the wait is resumable, where the design said ten minutes), and 7113; and the revision's own
    departures, listed in *What the review found* (the hints, the dropped OpenAPI resource, the `401`'s header).
@@ -2278,8 +2287,8 @@ acceptance says so: every agent in it runs on the laptop.**
 
 ## Asked of Rich
 
-1. **Approve the plan**, revised to BR's review, and its **nine** sittings; choose inline or subagent-driven execution. The departures named
-   for him are in *What Rich does* 1.
+1. ~~Approve the plan~~ — **APPROVED 2026-10-13, ~21:50 PDT (`2b3dd6d`)**, its nine sittings, inline per sitting; every departure named
+   in *What Rich does* 1 approved with it.
 2. **Spec actions A–E**, each before the sitting it gates, with their shared pages.
 3. **The network**, each use listed in *What Rich does* 3.
 4. **At sitting 8b**: `make refresh-vulndb` within the seven days before it, and the clicked half — his own Claude Code, then F7's clicks on
