@@ -1838,3 +1838,13 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
     time for each of the three imitated-load runs (twelve `yes` burners, ~20–40 min each: one in sitting 1, two in sitting 2 — his
     machine is slow meanwhile), and the Docker Desktop setting itself. Rejected: one or two sittings (the Docker step would have to
     wait inside one); scaling only the tier defaults (inverts the explicit limits).
+
+    At ~08:56 PDT, THE DELEGATION CONTINUES FOR manifest-coord4 — Rich, through manifest-coord4's question tool (coord4 took the run
+    over from manifest-coord3 at 08:55, coord3's context nearly full). Asked whether his standing delegation of 2026-10-13 ~19:38
+    (028bb94, "For future questions over this session, please lock in your own recommendations"), given to manifest-coord3, continues
+    for its successor — the next such question being W5's walk (its 7100 window and one real private repository in
+    Manifest-local-dev) after A1 closes. His answer: "Yes, it continues (Recommended)". So manifest-coord4 decides on its own
+    recommendations, after checking their premises in the code, each recorded here as "decided by manifest-coord4 under Rich's
+    delegation — for his review", its commit alone, and listed in the report to him. Unchanged: what only he can DO (S8's clicked
+    half, sudo, his credentials, a command a classifier refused, his Docker Desktop step, a time for each imitated-load run) still
+    comes to him as an action, flagged. Rejected: "No — ask me each one"; "Routine only".
