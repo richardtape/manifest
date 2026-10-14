@@ -1,5 +1,5 @@
 import { fileURLToPath } from 'node:url'
-import { and, eq } from 'drizzle-orm'
+import { and, eq, inArray } from 'drizzle-orm'
 import pg from 'pg'
 import { beforeAll, describe, expect, it, vi } from 'vitest'
 import { resetDatabase, withRollback } from '../db/testing.js'
@@ -21,7 +21,7 @@ import {
   InstanceNotReadyError,
   createFakeDriver,
 } from '../runtime/index.js'
-import { createProject, deleteProject } from '../projects/index.js'
+import { createProject, deleteProject, servingInstancesOf } from '../projects/index.js'
 import { loadConfig } from '../config.js'
 import type { Driver, InstanceSpec, ServiceBinding } from '../runtime/index.js'
 import { createAppSecrets, generateMasterKeypair, getSecret } from '../secrets/index.js'
@@ -31,7 +31,9 @@ import {
   ReleaseError,
   createBuildRunner,
   createRelease,
+  createRetirer,
   deployRelease,
+  deployReleaseSet,
   getBuild,
   launchedAt,
   recordApproval,
@@ -3553,6 +3555,321 @@ describe('deployRelease replaces an instance without interrupting it (P4c Task 8
         expect.stringContaining('store sk-minted-1'),
         'discard sk-minted-1',
       ])
+    })
+  })
+})
+
+/**
+ * §24's CAPACITY (A1 Task 5): production runs as many instances as its audience needs — `shapeFor`'s
+ * count, read at each deploy — deployed, answered, retired and recovered as a SET. Sandbox and staging
+ * stay one. Every case here is a production deploy of an approved release on the fake driver.
+ */
+describe('deployRelease across N — production runs as many instances as its audience needs (A1 Task 5)', () => {
+  /** A project of `scale`, a built release of it — `resolvedConfig` — and an approval covering its digest. */
+  async function approvedFor(
+    db: Parameters<typeof createProject>[0],
+    driver: Driver,
+    scale: 'solo' | 'class' | 'large_course' | 'public',
+    resolvedConfig: ResolvedConfigSet = RESOLVED,
+  ) {
+    const { user, project, appSpec, byKind } = await fixture(db)
+    await db
+      .update(projects)
+      .set({ audience: { ...testAudience(user.id), scale } })
+      .where(eq(projects.id, project.id))
+    const build = await buildToEnd(
+      { db: db, driver: driver, bus: bus },
+      {
+        projectId: project.id,
+        projectSlug: project.slug,
+        appSpecId: appSpec.id,
+        commitSha: appSpec.commitSha,
+        blueprintRef: project.blueprintRef,
+        repoPath: '/tmp/chem-labs.git',
+      },
+    )
+    const release = await createRelease(db, {
+      projectId: project.id,
+      buildId: build.id,
+      appSpecId: appSpec.id,
+      createdBy: user.id,
+      resolvedConfig,
+    })
+    await approveFor(db, release, user, build.imageDigest!)
+    return { release, project, production: byKind.production!, staging: byKind.staging! }
+  }
+
+  /** A key service that records what it stored, per instance. */
+  function keysStored(): {
+    service: AiKeyService
+    stored: { instanceId: string; key: string }[]
+  } {
+    const stored: { instanceId: string; key: string }[] = []
+    let n = 0
+    return {
+      stored,
+      service: {
+        enabled: true,
+        mintAppKey: async () => `sk-minted-${++n}`,
+        discardAppKey: async () => undefined,
+        storeInstanceKey: async (_db, input) => {
+          stored.push({ instanceId: input.instanceId, key: input.key })
+        },
+        revokeInstanceKey: async () => true,
+        revokeLegacyAppKey: async () => true,
+      },
+    }
+  }
+
+  const stateOf = async (db: Parameters<typeof createProject>[0], id: string) =>
+    (await db.select().from(instances).where(eq(instances.id, id)))[0]!.state
+
+  it('a class production deploy runs TWO instances — a key stored for each, two Route rows, instance.healthy each — and BOTH rows stay healthy after the retirer has run', async () => {
+    await withRollback(async (db) => {
+      const driver = createFakeDriver()
+      const ai = keysStored()
+      const { release, project, production } = await approvedFor(
+        db,
+        driver,
+        'class',
+        aiRelease(),
+      )
+      const deps = { ...deployDeps, ai: ai.service }
+      const deployed = await deployReleaseSet(db, driver, config, deps, {
+        releaseId: release.id,
+        environmentId: production.id,
+      })
+      const ids = deployed.instances.map((member) => member.id)
+
+      expect(deployed.instances).toHaveLength(2)
+      expect(deployed.instances.map((member) => member.state)).toEqual([
+        'healthy',
+        'healthy',
+      ])
+      // The hostname reaches BOTH, in one route.
+      expect((await driver.servingInstances(production.hostname)).sort()).toEqual(
+        deployed.instances.map((member) => member.handle!).sort(),
+      )
+      // Two Route rows, exactly the set.
+      const routeRows = await db
+        .select()
+        .from(routes)
+        .where(eq(routes.hostname, production.hostname))
+      expect(routeRows.map((row) => row.instanceId).sort()).toEqual([...ids].sort())
+      // A key minted and stored for EACH member, under its own name — never one shared.
+      expect(ai.stored.map((entry) => entry.instanceId).sort()).toEqual([...ids].sort())
+      expect(new Set(ai.stored.map((entry) => entry.key)).size).toBe(2)
+      // An instance.healthy for each member.
+      const healthy = await db
+        .select()
+        .from(events)
+        .where(and(eq(events.projectId, project.id), eq(events.type, 'instance.healthy')))
+      expect(healthy.map((event) => event.subject).sort()).toEqual(
+        ids.map((id) => `instance:${id}`).sort(),
+      )
+
+      // THE RETIRER, RUN — the rows' states, because the retirer reads the driver's view and
+      // would leave a serving sibling running either way (the review's I3): neither member is
+      // `destroy_requested`, and both still run.
+      const retirer = createRetirer({
+        db,
+        driver,
+        ai: ai.service,
+        appSecrets: deployDeps.appSecrets,
+        bus,
+        drainMs: 0,
+      })
+      retirer.schedule(production.id)
+      await retirer.idle()
+      expect(await stateOf(db, ids[0]!)).toBe('healthy')
+      expect(await stateOf(db, ids[1]!)).toBe('healthy')
+      expect((await driver.listInstances(production.hostname)).length).toBe(2)
+    })
+  })
+
+  it('answers the set’s first by (created_at, id) — the instance the environment names', async () => {
+    await withRollback(async (db) => {
+      const driver = createFakeDriver()
+      const { release, production } = await approvedFor(db, driver, 'class')
+      const input = { releaseId: release.id, environmentId: production.id }
+      const answer = await deployRelease(db, driver, config, deployDeps, input)
+
+      const serving = await servingInstancesOf(db, production)
+      expect(serving.map((member) => member.id)).toHaveLength(2)
+      expect(answer.id).toBe(serving[0]!.id)
+      expect([...serving.map((member) => member.id)].sort()).toEqual(
+        serving.map((member) => member.id),
+      )
+    })
+  })
+
+  it('runs THREE for a large course and for a public app, and ONE for a solo app', async () => {
+    for (const [scale, count] of [
+      ['large_course', 3],
+      ['public', 3],
+      ['solo', 1],
+    ] as const) {
+      await withRollback(async (db) => {
+        const driver = createFakeDriver()
+        const { release, production } = await approvedFor(db, driver, scale)
+        const deployed = await deployReleaseSet(db, driver, config, deployDeps, {
+          releaseId: release.id,
+          environmentId: production.id,
+        })
+        expect([scale, deployed.instances.length]).toEqual([scale, count])
+        expect((await driver.servingInstances(production.hostname)).length).toBe(count)
+      })
+    }
+  })
+
+  it('runs ONE in staging, whatever the audience — sandbox and staging ignore it', async () => {
+    await withRollback(async (db) => {
+      const driver = createFakeDriver()
+      const { release, staging } = await approvedFor(db, driver, 'large_course')
+      const deployed = await deployReleaseSet(db, driver, config, deployDeps, {
+        releaseId: release.id,
+        environmentId: staging.id,
+      })
+      expect(deployed.instances).toHaveLength(1)
+      expect(await driver.servingInstances(staging.hostname)).toEqual([
+        deployed.instances[0]!.handle,
+      ])
+    })
+  })
+
+  it('a redeploy of two moves the route ONCE to the new two, and the retirer removes exactly the old two after the drain', async () => {
+    await withRollback(async (db) => {
+      const driver = createFakeDriver()
+      const { release, production } = await approvedFor(db, driver, 'class')
+      const input = { releaseId: release.id, environmentId: production.id }
+      const first = await deployReleaseSet(db, driver, config, deployDeps, input)
+      const changes = driver.routeHistory(production.hostname).length
+      const second = await deployReleaseSet(db, driver, config, deployDeps, input)
+      const handlesOf = (set: typeof first) =>
+        set.instances.map((member) => member.handle!).sort()
+
+      // ONE route change, to exactly the new set.
+      expect(
+        driver
+          .routeHistory(production.hostname)
+          .slice(changes)
+          .map((ids) => [...ids].sort()),
+      ).toEqual([handlesOf(second)])
+      // The old two are marked, the new two are not.
+      for (const member of first.instances)
+        expect(await stateOf(db, member.id)).toBe('destroying')
+      for (const member of second.instances)
+        expect(await stateOf(db, member.id)).toBe('healthy')
+
+      const retirer = createRetirer({
+        db,
+        driver,
+        ai: deployDeps.ai,
+        appSecrets: deployDeps.appSecrets,
+        bus,
+        drainMs: 0,
+      })
+      retirer.schedule(production.id)
+      await retirer.idle()
+      expect((await driver.listInstances(production.hostname)).sort()).toEqual(
+        handlesOf(second),
+      )
+      for (const member of first.instances)
+        expect(await stateOf(db, member.id)).toBe('gone')
+    })
+  })
+
+  it('one of three NEVER READY: the old set serves, the three are removed, ONE Incident, and the deploy answers THAT member, failed (Review Focus 4)', async () => {
+    await withRollback(async (db) => {
+      // The second member of the NEXT deploy is never ready: the names the fake sees, in order.
+      let armed = false
+      const seen: string[] = []
+      const driver = createFakeDriver({
+        neverReady: (spec) => {
+          if (!armed) return false
+          if (!seen.includes(spec.name)) seen.push(spec.name)
+          return seen.indexOf(spec.name) === 1
+        },
+      })
+      const { release, production } = await approvedFor(db, driver, 'large_course')
+      const input = { releaseId: release.id, environmentId: production.id }
+      const before = await deployReleaseSet(db, driver, config, deployDeps, input)
+      const beforeHandles = before.instances.map((member) => member.handle!).sort()
+
+      armed = true
+      const failed = await deployReleaseSet(db, driver, config, deployDeps, input)
+
+      // The deploy answers the member that failed — the set's second — `failed`.
+      expect(failed.instances).toHaveLength(3)
+      expect(failed.answer.id).toBe(failed.instances[1]!.id)
+      expect(failed.answer.state).toBe('failed')
+      expect(failed.instances.map((member) => member.state)).toEqual([
+        'failed',
+        'failed',
+        'failed',
+      ])
+      // The old set serves throughout, and is all that runs.
+      expect((await driver.servingInstances(production.hostname)).sort()).toEqual(
+        beforeHandles,
+      )
+      expect((await driver.listInstances(production.hostname)).sort()).toEqual(
+        beforeHandles,
+      )
+      // ONE Incident, on the member that failed.
+      const recorded = await db
+        .select()
+        .from(incidents)
+        .where(
+          inArray(
+            incidents.instanceId,
+            failed.instances.map((member) => member.id),
+          ),
+        )
+      expect(recorded.map((incident) => incident.instanceId)).toEqual([failed.answer.id])
+      // The Route rows still name the old set.
+      const routeRows = await db
+        .select()
+        .from(routes)
+        .where(eq(routes.hostname, production.hostname))
+      expect(routeRows.map((row) => row.instanceId).sort()).toEqual(
+        before.instances.map((member) => member.id).sort(),
+      )
+    })
+  })
+
+  it('one of two failing its health check AFTER the route moved: the previous set is put back, both new members removed, the answer that member', async () => {
+    await withRollback(async (db) => {
+      const base = createFakeDriver()
+      let poisoned: string | undefined
+      let arm = false
+      const driver: Driver = {
+        ...base,
+        ensureInstances: async (specs) => {
+          const handles = await base.ensureInstances(specs)
+          if (arm) poisoned = handles[1]!.id
+          return handles
+        },
+        status: async (id) =>
+          id === poisoned
+            ? { ...(await base.status(id)), state: 'failed', healthy: false, exitCode: 1 }
+            : base.status(id),
+      }
+      const { release, production } = await approvedFor(db, driver, 'class')
+      const input = { releaseId: release.id, environmentId: production.id }
+      const before = await deployReleaseSet(db, driver, config, deployDeps, input)
+      const beforeHandles = before.instances.map((member) => member.handle!).sort()
+
+      arm = true
+      const failed = await deployReleaseSet(db, driver, config, deployDeps, input)
+
+      expect(failed.answer.handle).toBe(poisoned)
+      expect(failed.answer.state).toBe('failed')
+      expect((await driver.servingInstances(production.hostname)).sort()).toEqual(
+        beforeHandles,
+      )
+      expect((await driver.listInstances(production.hostname)).sort()).toEqual(
+        beforeHandles,
+      )
     })
   })
 })

@@ -1074,13 +1074,14 @@ export const releaseRoutes = [
     tag: 'delivery',
     summary: 'Deploy a release to an environment',
     description:
-      'Deploys a release, answering once the new instance serves or has failed with an Incident — a failed deploy is a `200` whose `state` is `failed`. The previous instance serves until the new one is proved, then drains. Up to ~90 s when a release never becomes ready. Production takes only the release serving staging and answers `409` with the launch checklist (`getLaunchReadiness`) until it is met; it needs a recent step-up in a session, and a delegated token’s request becomes a pending action (`TOKEN_ACTION_PENDING`).',
+      'Deploys a release, answering once the new instances serve or one has failed with an Incident — a failed deploy is a `200` whose `state` is `failed`. Production runs as many instances as its audience needs (one for `solo`, two for `class`, three for `large_course` and `public`), sandbox and staging one; if any one fails, none serves. The answer is ONE instance of the set: the one that failed, or otherwise the first — the instance `getEnvironment`’s `instance` names; read the whole set from `getEnvironment`’s `instances`. The previous instances serve until the new ones are proved, then drain. Up to ~90 s when a release never becomes ready. Production takes only the release serving staging and answers `409` with the launch checklist (`getLaunchReadiness`) until it is met; it needs a recent step-up in a session, and a delegated token’s request becomes a pending action (`TOKEN_ACTION_PENDING`).',
     params: EnvironmentParams,
     query: NO_QUERY,
     body: DeployRequest,
     success: {
       status: 200,
-      description: 'The instance, healthy or failed.',
+      description:
+        'One instance of the set the deploy started: the one that failed, or otherwise the first.',
       schema: Instance,
     },
     capability: ['release:deploy', 'release:promote'],

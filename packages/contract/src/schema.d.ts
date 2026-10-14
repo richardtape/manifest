@@ -193,7 +193,7 @@ export interface paths {
         };
         /**
          * An environment, and what it serves
-         * @description The environment and the instance its hostname reaches — not the newest deploy, which may have failed.
+         * @description The environment and the instances its hostname reaches — production runs as many as its audience needs; `instance` is the first — not the newest deploy, which may have failed.
          */
         get: operations["getEnvironment"];
         put?: never;
@@ -215,7 +215,7 @@ export interface paths {
         put?: never;
         /**
          * Deploy a release to an environment
-         * @description Deploys a release, answering once the new instance serves or has failed with an Incident — a failed deploy is a `200` whose `state` is `failed`. The previous instance serves until the new one is proved, then drains. Up to ~90 s when a release never becomes ready. Production takes only the release serving staging and answers `409` with the launch checklist (`getLaunchReadiness`) until it is met; it needs a recent step-up in a session, and a delegated token’s request becomes a pending action (`TOKEN_ACTION_PENDING`).
+         * @description Deploys a release, answering once the new instances serve or one has failed with an Incident — a failed deploy is a `200` whose `state` is `failed`. Production runs as many instances as its audience needs (one for `solo`, two for `class`, three for `large_course` and `public`), sandbox and staging one; if any one fails, none serves. The answer is ONE instance of the set: the one that failed, or otherwise the first — the instance `getEnvironment`’s `instance` names; read the whole set from `getEnvironment`’s `instances`. The previous instances serve until the new ones are proved, then drain. Up to ~90 s when a release never becomes ready. Production takes only the release serving staging and answers `409` with the launch checklist (`getLaunchReadiness`) until it is met; it needs a recent step-up in a session, and a delegated token’s request becomes a pending action (`TOKEN_ACTION_PENDING`).
          */
         post: operations["deploy"];
         delete?: never;
@@ -2147,8 +2147,10 @@ export interface components {
              * @description Where the app answers in this environment, once it is deployed.
              */
             url: string;
-            /** @description The instance the hostname reaches. Null before any deploy. */
+            /** @description The first of the instances the hostname reaches, oldest first (`createdAt`, then `id`) — the instance a successful `deploy` answered. Null before any deploy. */
             instance: components["schemas"]["Instance"] | null;
+            /** @description Every instance the hostname reaches, oldest first (`createdAt`, then `id`): production runs as many as its audience needs — one for `solo`, two for `class`, three for `large_course` and `public` — and sandbox and staging one. Empty before any deploy. */
+            instances: components["schemas"]["Instance"][];
         };
         /** @description A project’s three environments: sandbox, staging and production. */
         EnvironmentList: components["schemas"]["Environment"][];
@@ -2504,7 +2506,7 @@ export interface components {
             type: "instance.starting";
             /** @description What happened, in words for a person. Never parse it. */
             humanMessage: string;
-            /** @description The instance’s services are bound and the runtime is starting it, beside the one already serving. */
+            /** @description The instance’s services are bound and the runtime is starting it, beside whatever is already serving. */
             machineDetail: {
                 /**
                  * Format: uuid
@@ -2564,7 +2566,7 @@ export interface components {
             type: "instance.healthy";
             /** @description What happened, in words for a person. Never parse it. */
             humanMessage: string;
-            /** @description The instance passed its health check and now serves the environment; a deploy has succeeded. */
+            /** @description The instance passed its health check and now serves the environment, with the rest of its set; a deploy has succeeded. */
             machineDetail: {
                 /**
                  * Format: uuid
@@ -2624,7 +2626,7 @@ export interface components {
             type: "instance.failed";
             /** @description What happened, in words for a person. Never parse it. */
             humanMessage: string;
-            /** @description The instance never became healthy — whatever was already serving keeps serving — and an Incident records why. */
+            /** @description The instance never became healthy, or another deployed with it did not — whatever was already serving keeps serving — and an Incident records why, on the instance that failed its own check. */
             machineDetail: {
                 /**
                  * Format: uuid
@@ -2651,7 +2653,7 @@ export interface components {
                  * @enum {string}
                  */
                 state: "pending" | "building" | "provisioning" | "starting" | "healthy" | "failed" | "hibernated" | "waking" | "destroying" | "gone";
-                /** @description Which check it failed, and how — the health check, and what it answered. */
+                /** @description Which check it failed, and how — the health check, and what it answered. For an instance that passed but was not kept because another deployed with it failed, it starts `set:` and names that instance. */
                 failedCheck: string;
             };
             /**
@@ -5303,7 +5305,7 @@ export interface components {
             /** @description Why reading stopped early, when it did — an error’s code or name, never its message. The lines before it are still answered. */
             failure: string | null;
         };
-        /** @description An instance, and whether it is the one serving. */
+        /** @description An instance, and whether it is one of those serving. */
         InstanceSummary: {
             /**
              * Format: uuid
@@ -5337,7 +5339,7 @@ export interface components {
              * @description When the deploy made it — never null, and fixed for the instance’s life. Unlike `lastSeenAt` it is set for an instance that never started, so a newer attempt is always newer, whatever order the list is in. An instance from before the platform recorded this reads as old as its release.
              */
             createdAt: string;
-            /** @description Whether the environment’s hostname reaches this instance now. At most one instance of an environment serves, and a failed one never does. */
+            /** @description Whether the environment’s hostname reaches this instance now — one of the instances it reaches: production runs as many as its audience needs, sandbox and staging one. A failed instance never serves. */
             serving: boolean;
         };
         /** @description One intake session: a model key for describing an app, before the app exists. */
@@ -7332,7 +7334,18 @@ export interface operations {
                      *         "state": "healthy",
                      *         "lastSeenAt": "2026-09-26T21:51:54.793Z",
                      *         "createdAt": "2026-09-26T21:51:54.741Z"
-                     *       }
+                     *       },
+                     *       "instances": [
+                     *         {
+                     *           "id": "a6605b8a-7adb-464e-ac45-ef3d8d56cca5",
+                     *           "environmentId": "d5084b58-e7b0-46ef-bdd8-a431d9b97b2d",
+                     *           "releaseId": "8e4d08ba-37d8-4b96-8981-e6a13722e42f",
+                     *           "kind": "web",
+                     *           "state": "healthy",
+                     *           "lastSeenAt": "2026-09-26T21:51:54.793Z",
+                     *           "createdAt": "2026-09-26T21:51:54.741Z"
+                     *         }
+                     *       ]
                      *     }
                      */
                     "application/json": components["schemas"]["Environment"];
@@ -7375,7 +7388,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description The instance, healthy or failed. */
+            /** @description One instance of the set the deploy started: the one that failed, or otherwise the first. */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -8010,7 +8023,7 @@ export interface operations {
                      *       "openapi": "3.1.0",
                      *       "info": {
                      *         "title": "Manifest",
-                     *         "version": "1.8.0"
+                     *         "version": "1.9.0"
                      *       },
                      *       "paths": {}
                      *     }
@@ -8397,7 +8410,8 @@ export interface operations {
                      *           "kind": "sandbox",
                      *           "hostname": "fixture-40adbffa.sandbox.manifest.internal",
                      *           "url": "https://fixture-40adbffa.sandbox.manifest.internal",
-                     *           "instance": null
+                     *           "instance": null,
+                     *           "instances": []
                      *         },
                      *         {
                      *           "id": "0c05344a-9022-4a93-b868-101b66b7a6c9",
@@ -8405,7 +8419,8 @@ export interface operations {
                      *           "kind": "staging",
                      *           "hostname": "fixture-40adbffa.staging.manifest.internal",
                      *           "url": "https://fixture-40adbffa.staging.manifest.internal",
-                     *           "instance": null
+                     *           "instance": null,
+                     *           "instances": []
                      *         }
                      *       ],
                      *       "spec": {
@@ -8494,7 +8509,8 @@ export interface operations {
                      *           "kind": "sandbox",
                      *           "hostname": "chem-labs.sandbox.manifest.internal",
                      *           "url": "https://chem-labs.sandbox.manifest.internal",
-                     *           "instance": null
+                     *           "instance": null,
+                     *           "instances": []
                      *         },
                      *         {
                      *           "id": "ca192723-fae5-415e-8ed5-b0085b6e33d6",
@@ -8502,7 +8518,8 @@ export interface operations {
                      *           "kind": "staging",
                      *           "hostname": "chem-labs.staging.manifest.internal",
                      *           "url": "https://chem-labs.staging.manifest.internal",
-                     *           "instance": null
+                     *           "instance": null,
+                     *           "instances": []
                      *         }
                      *       ]
                      *     }
@@ -9296,7 +9313,8 @@ export interface operations {
                      *         "kind": "sandbox",
                      *         "hostname": "authz-fixture.sandbox.manifest.internal",
                      *         "url": "https://authz-fixture.sandbox.manifest.internal",
-                     *         "instance": null
+                     *         "instance": null,
+                     *         "instances": []
                      *       },
                      *       {
                      *         "id": "d5084b58-e7b0-46ef-bdd8-a431d9b97b2d",
@@ -9304,7 +9322,8 @@ export interface operations {
                      *         "kind": "staging",
                      *         "hostname": "authz-fixture.staging.manifest.internal",
                      *         "url": "https://authz-fixture.staging.manifest.internal",
-                     *         "instance": null
+                     *         "instance": null,
+                     *         "instances": []
                      *       }
                      *     ]
                      */

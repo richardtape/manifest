@@ -25,7 +25,7 @@ import {
   listProjectsFor,
   projectViews,
   removeMember,
-  servingInstanceOf,
+  servingInstancesOf,
 } from '../../projects/index.js'
 import {
   announceQuestionsEnded,
@@ -99,7 +99,7 @@ const EnvironmentParams = z.strictObject({ environmentId: PATH.environmentId })
 async function environmentsWithInstances(db: Db, projectId: string) {
   const rows = await environmentsOf(db, projectId)
   return Promise.all(
-    rows.map(async (row) => toEnvironment(row, await servingInstanceOf(db, row))),
+    rows.map(async (row) => toEnvironment(row, await servingInstancesOf(db, row))),
   )
 }
 
@@ -259,6 +259,7 @@ export const projectReadRoutes = [
             hostname: 'chem-labs.sandbox.manifest.internal',
             url: 'https://chem-labs.sandbox.manifest.internal',
             instance: null,
+            instances: [],
           },
           {
             id: 'ca192723-fae5-415e-8ed5-b0085b6e33d6',
@@ -267,6 +268,7 @@ export const projectReadRoutes = [
             hostname: 'chem-labs.staging.manifest.internal',
             url: 'https://chem-labs.staging.manifest.internal',
             instance: null,
+            instances: [],
           },
         ],
       },
@@ -307,6 +309,7 @@ export const projectReadRoutes = [
           hostname: 'authz-fixture.sandbox.manifest.internal',
           url: 'https://authz-fixture.sandbox.manifest.internal',
           instance: null,
+          instances: [],
         },
         {
           id: 'd5084b58-e7b0-46ef-bdd8-a431d9b97b2d',
@@ -315,6 +318,7 @@ export const projectReadRoutes = [
           hostname: 'authz-fixture.staging.manifest.internal',
           url: 'https://authz-fixture.staging.manifest.internal',
           instance: null,
+          instances: [],
         },
       ],
     },
@@ -330,7 +334,7 @@ export const projectReadRoutes = [
     tag: 'projects',
     summary: 'An environment, and what it serves',
     description:
-      'The environment and the instance its hostname reaches — not the newest deploy, which may have failed.',
+      'The environment and the instances its hostname reaches — production runs as many as its audience needs; `instance` is the first — not the newest deploy, which may have failed.',
     params: EnvironmentParams,
     query: NO_QUERY,
     body: NO_BODY,
@@ -353,6 +357,17 @@ export const projectReadRoutes = [
           lastSeenAt: '2026-09-26T21:51:54.793Z',
           createdAt: '2026-09-26T21:51:54.741Z',
         },
+        instances: [
+          {
+            id: 'a6605b8a-7adb-464e-ac45-ef3d8d56cca5',
+            environmentId: 'd5084b58-e7b0-46ef-bdd8-a431d9b97b2d',
+            releaseId: '8e4d08ba-37d8-4b96-8981-e6a13722e42f',
+            kind: 'web',
+            state: 'healthy',
+            lastSeenAt: '2026-09-26T21:51:54.793Z',
+            createdAt: '2026-09-26T21:51:54.741Z',
+          },
+        ],
       },
     },
     handler: async ({ deps, actor, params }) => {
@@ -367,7 +382,7 @@ export const projectReadRoutes = [
           `no environment '${params.environmentId}'`,
         )
       await assertCapability(deps.db, actor, row.projectId, 'project:read')
-      return toEnvironment(row, await servingInstanceOf(deps.db, row))
+      return toEnvironment(row, await servingInstancesOf(deps.db, row))
     },
   }),
   defineRoute({

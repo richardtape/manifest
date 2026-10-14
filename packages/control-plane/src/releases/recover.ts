@@ -1,4 +1,4 @@
-import { eq, inArray, ne } from 'drizzle-orm'
+import { asc, eq, inArray, ne } from 'drizzle-orm'
 import { builds, instances, routes, type Db } from '../db/index.js'
 import { makeRedactor, publishEvent, type EventBus } from '../observability/index.js'
 import { canTransition, nextState, type Driver } from '../runtime/index.js'
@@ -8,10 +8,16 @@ import type { Retirer } from './retire.js'
 export interface RecoveryReport {
   /** Builds this process's predecessor was running when it stopped, now `failed` (R6). */
   buildsInterrupted: number
-  /** Route records the edge was given back. */
+  /** Hostnames whose recorded set the edge was given back — a route per hostname, whatever its size. */
   routesRestored: number
   /** Ones it could not be — the hostname and the refusal's code, never a message. */
   routesFailed: { hostname: string; reason: string }[]
+  /**
+   * Members of a recorded set left out of the route it was given back (A1 Task 5, Review Focus 5):
+   * the instance, and why — `GONE` (its container is not there) or `NO_HANDLE` (the driver never
+   * created it). The rest of the set is restored without it.
+   */
+  membersLeftOut: { hostname: string; instanceId: string; reason: 'GONE' | 'NO_HANDLE' }[]
   /** Instance rows a stopped process left mid-deploy, now `failed`. */
   interrupted: number
   /** Environments a retire pass was asked for. */
@@ -106,39 +112,92 @@ export async function recoverAtBoot(deps: {
   }
 
   const routesFailed: { hostname: string; reason: string }[] = []
+  const membersLeftOut: RecoveryReport['membersLeftOut'] = []
   let routesRestored = 0
 
   /**
-   * PASS 1 — §6's Route records, back on the edge.
+   * PASS 1 — §6's Route records, back on the edge: EACH HOSTNAME'S WHOLE SET, in one route
+   * (A1 Task 5, Decision 7).
    *
    * The driver handle comes off the `instances` row the record names: `restoreRoute`
    * takes what the driver calls the instance, and everything else it needs — the
    * hostname, the port, the instance id — it reads off the container's own labels.
    * A row with no handle names an instance the driver never created.
+   *
+   * The rows are GROUPED BY HOSTNAME — one `restoreRoute` per row would give a set of two two
+   * one-member routes, the last winning — in the set's order, `(created_at, id)`. And because
+   * `restoreRoute` is STRICT (an id the driver does not hold refuses the whole set, changing
+   * nothing), each member is asked for first: one whose container is gone — removed by hand,
+   * or lost — leaves the set with an operator line, and the rest of it is routed, rather than
+   * the whole app being lost to the wildcard for one missing member (Review Focus 5).
    */
   const recorded = await deps.db
-    .select({ hostname: routes.hostname, handle: instances.handle })
+    .select({
+      hostname: routes.hostname,
+      instanceId: instances.id,
+      handle: instances.handle,
+    })
     .from(routes)
     .innerJoin(instances, eq(routes.instanceId, instances.id))
+    .orderBy(asc(routes.hostname), asc(instances.createdAt), asc(instances.id))
 
-  for (const route of recorded) {
-    if (route.handle === null) {
-      routesFailed.push({ hostname: route.hostname, reason: 'NO_HANDLE' })
+  const sets = new Map<string, { instanceId: string; handle: string | null }[]>()
+  for (const row of recorded)
+    sets.set(row.hostname, [...(sets.get(row.hostname) ?? []), row])
+
+  for (const [hostname, members] of sets) {
+    const present: string[] = []
+    for (const member of members) {
+      if (member.handle === null) {
+        membersLeftOut.push({
+          hostname,
+          instanceId: member.instanceId,
+          reason: 'NO_HANDLE',
+        })
+        console.error(
+          `[boot] no driver handle for the instance ${member.instanceId} that ${hostname} is recorded against; it is left out of the route`,
+        )
+        continue
+      }
+      // `status` NEVER THROWS for a missing container — it answers `gone` (§11). One that
+      // throws is a driver that cannot be asked: the member is KEPT, said, and `restoreRoute`
+      // — strict — is what decides, for the whole set, in the catch below.
+      let gone = false
+      try {
+        gone = (await deps.driver.status(member.handle)).state === 'gone'
+      } catch (error) {
+        const code = (error as { code?: string }).code ?? (error as Error).name
+        console.error(
+          `[boot] the instance ${member.instanceId} that ${hostname} is recorded against could not be asked for its status (${code}); it is kept in the set`,
+        )
+      }
+      if (gone) {
+        membersLeftOut.push({ hostname, instanceId: member.instanceId, reason: 'GONE' })
+        console.error(
+          `[boot] the instance ${member.instanceId} that ${hostname} is recorded against has no container; it is left out of the route`,
+        )
+        continue
+      }
+      present.push(member.handle)
+    }
+    if (present.length === 0) {
+      const reason = members.every((member) => member.handle === null)
+        ? 'NO_HANDLE'
+        : 'INSTANCE_NOT_FOUND'
+      routesFailed.push({ hostname, reason })
       console.error(
-        `[boot] no driver handle for the instance ${route.hostname} is recorded against; it will get a route at its next deploy`,
+        `[boot] ${hostname} could not be routed again: ${reason} — no member of its recorded set is there; it will get a route at its next deploy`,
       )
       continue
     }
     try {
-      // ONE ROW, ONE MEMBER, until A1's Task 5 has a deploy write a set's rows; that task
-      // groups the rows by hostname and restores each set whole.
-      await deps.driver.restoreRoute([route.handle])
+      await deps.driver.restoreRoute(present)
       routesRestored += 1
     } catch (error) {
       const reason = (error as { code?: string }).code ?? (error as Error).name
-      routesFailed.push({ hostname: route.hostname, reason })
+      routesFailed.push({ hostname, reason })
       // The CODE, never the message: a driver message is third-party text (§14).
-      console.error(`[boot] ${route.hostname} could not be routed again: ${reason}`)
+      console.error(`[boot] ${hostname} could not be routed again: ${reason}`)
     }
   }
 
@@ -208,6 +267,7 @@ export async function recoverAtBoot(deps: {
     buildsInterrupted: unfinished.length,
     routesRestored,
     routesFailed,
+    membersLeftOut,
     interrupted,
     scheduled,
     teardowns,

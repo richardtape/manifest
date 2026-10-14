@@ -52,9 +52,9 @@ export const InstanceSummary = representation(
     serving: z
       .boolean()
       .describe(
-        'Whether the environment’s hostname reaches this instance now. At most one instance of an environment serves, and a failed one never does.',
+        'Whether the environment’s hostname reaches this instance now — one of the instances it reaches: production runs as many as its audience needs, sandbox and staging one. A failed instance never serves.',
       ),
-  }).describe('An instance, and whether it is the one serving.'),
+  }).describe('An instance, and whether it is one of those serving.'),
 )
 
 export const InstanceList = representation(

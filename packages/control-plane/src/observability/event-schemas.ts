@@ -302,19 +302,19 @@ export const EVENT_DETAIL_SCHEMAS = {
     'A deploy made an instance and is binding its services — the first step of a deploy.',
   ),
   'instance.starting': InstanceDetail.describe(
-    'The instance’s services are bound and the runtime is starting it, beside the one already serving.',
+    'The instance’s services are bound and the runtime is starting it, beside whatever is already serving.',
   ),
   'instance.healthy': InstanceDetail.describe(
-    'The instance passed its health check and now serves the environment; a deploy has succeeded.',
+    'The instance passed its health check and now serves the environment, with the rest of its set; a deploy has succeeded.',
   ),
   'instance.failed': InstanceDetail.extend({
     failedCheck: z
       .string()
       .describe(
-        'Which check it failed, and how — the health check, and what it answered.',
+        'Which check it failed, and how — the health check, and what it answered. For an instance that passed but was not kept because another deployed with it failed, it starts `set:` and names that instance.',
       ),
   }).describe(
-    'The instance never became healthy — whatever was already serving keeps serving — and an Incident records why.',
+    'The instance never became healthy, or another deployed with it did not — whatever was already serving keeps serving — and an Incident records why, on the instance that failed its own check.',
   ),
   'incident.opened': z
     .strictObject({

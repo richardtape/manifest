@@ -112,6 +112,9 @@ const ENVIRONMENT = (
       ? 'https://mock-app.manifest.internal'
       : `https://mock-app.${kind}.manifest.internal`,
   instance,
+  // Every instance the hostname reaches (1.9.0): sandbox and staging run one; the mock's production
+  // is not deployed, so it reaches none.
+  instances: instance === null ? [] : [instance],
 })
 
 /**

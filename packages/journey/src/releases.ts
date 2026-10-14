@@ -11,6 +11,7 @@ import {
   type Schemas,
 } from '@manifest/contract'
 import { Checks, JourneyStop } from './check.js'
+import { describeSeen, seeEveryMember } from './serving-set.js'
 
 /**
  * P6b's ACCEPTANCE (Task 11): D9's SECOND clause — what a LAUNCHED app's next release does —
@@ -83,6 +84,11 @@ interface ReleasesState {
   /** What production served when leg A began: the release step 4 asks for again, and its instance. */
   releaseBefore?: string
   instanceBefore?: string
+  /** The SET production served when leg A began, and after each leg (A1 Task 5) — `getEnvironment`'s `instances`. */
+  setBefore?: string[]
+  setA?: string[]
+  setB?: string[]
+  setC?: string[]
   /** The run hosts production's release declared before leg A — step 4 expects each Filtered. */
   previousHosts?: string[]
   releaseA?: string
@@ -270,19 +276,18 @@ function probe(
   })
 }
 
-/** §12's split, both halves: the public listener answers AS `instanceId`, the internal one never. */
-async function servesOnlyPublicly(instanceId: string, what: string): Promise<void> {
-  const pub = await probe('127.0.0.3', '/healthz')
-  console.log(
-    `  127.0.0.3 answered ${pub.status}, X-Manifest-Instance: ${pub.instance ?? '(none)'}`,
+/**
+ * §12's split, both halves: the public listener answers AS EVERY MEMBER of `set` — each within 4 × N
+ * requests, nothing outside it (A1 Task 5) — and the internal one never.
+ */
+async function servesOnlyPublicly(set: readonly string[], what: string): Promise<void> {
+  const pub = await seeEveryMember(
+    () => probe('127.0.0.3', '/healthz'),
+    set,
+    (answer) => answer.status === 200 && answer.body.includes('"mongo":true'),
   )
-  checks.ok(
-    `the public listener answers as ${what}`,
-    pub.status === 200 &&
-      pub.instance === instanceId &&
-      pub.body.includes('"mongo":true'),
-    `${pub.status} ${pub.instance} ${pub.body}`,
-  )
+  console.log(`  127.0.0.3 answered as [${pub.seen.join(', ')}] in ${pub.asked} requests`)
+  checks.ok(`the public listener answers as ${what}`, pub.ok, describeSeen(set, pub))
   const internal = await probe('127.0.0.2', '/healthz')
   checks.ok(
     'and the same name on the INTERNAL listener is not the app',
@@ -407,6 +412,29 @@ function askProduction(client: ManifestClient, releaseId: string) {
 }
 
 /** A production deploy that must go through: healthy, and the instance it started. */
+/**
+ * THE SET PRODUCTION SERVES NOW (A1 Task 5), read from the environment — a deploy answers ONE
+ * member of its set — and checked: `launch-app` is a `class` app, so TWO instances, every one
+ * healthy, the deploy's answer the first.
+ */
+async function servingSetAfter(
+  client: ManifestClient,
+  answered: Schemas['Instance'],
+  what: string,
+): Promise<string[]> {
+  const environment = await production(client)
+  const set = environment.instances.map((member) => member.id)
+  checks.ok(
+    `${what}: production runs TWO instances — a class’s count — every one healthy, the deploy’s answer the first`,
+    set.length === 2 &&
+      environment.instances.every((member) => member.state === 'healthy') &&
+      set[0] === answered.id &&
+      environment.instance?.id === answered.id,
+    `answer ${answered.id}; set [${environment.instances.map((m) => `${m.id} ${m.state}`).join(', ')}]`,
+  )
+  return set
+}
+
 async function deployProduction(
   client: ManifestClient,
   releaseId: string,
@@ -734,12 +762,14 @@ async function step1Setup(): Promise<void> {
 
   await recover(owner, admin)
 
+  const environment = await production(owner)
   const serving = checks.must(
     'production is serving an instance',
-    (await production(owner)).instance ?? undefined,
+    environment.instance ?? undefined,
   )
   state.releaseBefore = serving.releaseId
   state.instanceBefore = serving.id
+  state.setBefore = environment.instances.map((member) => member.id)
   const before = await release(owner, serving.releaseId)
   state.previousHosts = (before.config.production.egressAllow ?? []).filter((h) =>
     h.endsWith('.example.org'),
@@ -859,11 +889,14 @@ async function gateA(): Promise<void> {
   const owner = clientFor('MANIFEST_SESSION_STEPPED')
   const admin = clientFor('MANIFEST_ADMIN_SESSION')
   await reescalated(owner, state.releaseA!, state.expectedFieldsA!)
-  const pub = await probe('127.0.0.3', '/healthz')
+  const before = await seeEveryMember(
+    () => probe('127.0.0.3', '/healthz'),
+    state.setBefore!,
+  )
   checks.ok(
-    'and production still serves the instance it served before',
-    pub.instance === state.instanceBefore,
-    `${pub.status} ${pub.instance} vs ${state.instanceBefore}`,
+    'and production still serves the set it served before',
+    before.ok,
+    describeSeen(state.setBefore!, before),
   )
 
   checks.step('3. The administrator reads a STORED preview, and then decides')
@@ -928,7 +961,8 @@ async function approveA(): Promise<void> {
   checks.step('4. The owner deploys it — and production’s proxy follows the release')
   const instance = await deployProduction(owner, state.releaseA!)
   state.instanceA = instance.id
-  await servesOnlyPublicly(instance.id, 'leg A’s instance')
+  state.setA = await servingSetAfter(owner, instance, 'leg A')
+  await servesOnlyPublicly(state.setA, 'leg A’s set')
 }
 
 /** Step 4's last check: production runs exactly what staging ran (Decision 8). */
@@ -942,11 +976,11 @@ async function notStaged(): Promise<void> {
     refusal(attempt, 409, 'RELEASE_NOT_STAGED') !== undefined,
     describe(attempt),
   )
-  const pub = await probe('127.0.0.3', '/healthz')
+  const still = await seeEveryMember(() => probe('127.0.0.3', '/healthz'), state.setA!)
   checks.ok(
-    'and production still serves leg A',
-    pub.instance === state.instanceA,
-    `${pub.instance} vs ${state.instanceA}`,
+    'and production still serves leg A’s set',
+    still.ok,
+    describeSeen(state.setA!, still),
   )
 }
 
@@ -1026,24 +1060,36 @@ async function deployB(): Promise<void> {
   while (lines().length < 10 && Date.now() < deadline)
     await new Promise((resolve) => setTimeout(resolve, 200))
 
-  let instanceB: string | undefined
+  let answered: Schemas['Instance'] | undefined
   try {
-    const instance = await deployProduction(owner, state.releaseB!)
-    instanceB = instance.id
-    state.instanceB = instance.id
+    answered = await deployProduction(owner, state.releaseB!)
+    state.instanceB = answered.id
     await new Promise((resolve) => setTimeout(resolve, 3_000))
   } finally {
     writeFileSync(stop, '')
     await exited
   }
+  // A throw from the deploy left the `try` above, so it answered.
+  const setB = await servingSetAfter(owner, answered!, 'leg B')
+  state.setB = setB
   const records = lines().map((l) => JSON.parse(l) as LoopRecord)
   const counts = new Map<string, number>()
   for (const r of records) counts.set(r.cls, (counts.get(r.cls) ?? 0) + 1)
+  /**
+   * WHICH SET EACH ANSWER CAME FROM (A1 Task 5): the edge balances across a set, so the instance
+   * changes on every answer within one — what must change exactly once is the SET, A to B. An
+   * answer from neither is named.
+   */
+  const setOf = (instance: string): string =>
+    state.setA!.includes(instance) ? 'A' : setB.includes(instance) ? 'B' : instance
   const runs: string[] = []
-  for (const r of records)
-    if (r.instance !== null && runs[runs.length - 1] !== r.instance) runs.push(r.instance)
+  for (const r of records) {
+    if (r.instance === null) continue
+    const which = setOf(r.instance)
+    if (runs[runs.length - 1] !== which) runs.push(which)
+  }
   console.log(
-    `  the loop: ${[...counts].map(([c, n]) => `${n} ${c}`).join(', ')}; instances ${runs.map((i) => i.slice(0, 8)).join(' → ')}`,
+    `  the loop: ${[...counts].map(([c, n]) => `${n} ${c}`).join(', ')}; sets ${runs.map((i) => i.slice(0, 8)).join(' → ')}`,
   )
   checks.ok(
     'every answer was the app (at most one reset, §11’s reload) — a self-serve redeploy interrupts nobody',
@@ -1053,9 +1099,9 @@ async function deployB(): Promise<void> {
     [...counts].map(([c, n]) => `${n} ${c}`).join(', '),
   )
   checks.ok(
-    'and the instance changed exactly once, from leg A’s to leg B’s',
-    runs.length === 2 && runs[0] === state.instanceA && runs[1] === instanceB,
-    runs.join(' → '),
+    'and the SET changed exactly once — every answer before the move from leg A’s set, every one after it from leg B’s',
+    runs.length === 2 && runs[0] === 'A' && runs[1] === 'B',
+    `${runs.join(' → ')} (A [${state.setA!.join(', ')}], B [${setB.join(', ')}])`,
   )
   const none = await owner.GET('/v1/releases/{releaseId}/approval', {
     params: { path: { releaseId: state.releaseB! } },
@@ -1065,7 +1111,7 @@ async function deployB(): Promise<void> {
     refusal(none, 404, 'NOT_FOUND') !== undefined,
     describe(none),
   )
-  await servesOnlyPublicly(instanceB!, 'leg B’s instance')
+  await servesOnlyPublicly(setB, 'leg B’s set')
 }
 
 // ─── leg C ──────────────────────────────────────────────────────────────────────────────
@@ -1178,7 +1224,8 @@ async function gateC(): Promise<void> {
   await approveNaming(admin, state.releaseC!, read, 'leg C')
   const instance = await deployProduction(owner, state.releaseC!)
   state.instanceC = instance.id
-  await servesOnlyPublicly(instance.id, 'leg C’s instance')
+  state.setC = await servingSetAfter(owner, instance, 'leg C')
+  await servesOnlyPublicly(state.setC, 'leg C’s set')
 
   checks.step('7. Where launch-app stands')
   const project = unwrap(
@@ -1200,7 +1247,7 @@ async function gateC(): Promise<void> {
     `  the IAM registration: ${registration?.state}, registered [${registration?.registeredAttributes.join(', ')}]`,
   )
   console.log(
-    `  production serves leg C (${state.releaseC}), instance ${state.instanceC}`,
+    `  production serves leg C (${state.releaseC}), instances [${(state.setC ?? []).join(', ')}]`,
   )
 }
 

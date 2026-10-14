@@ -12,6 +12,7 @@ import {
   type StreamFrame,
 } from '@manifest/contract'
 import { Checks, JourneyStop } from './check.js'
+import { describeSeen, seeEveryMember } from './serving-set.js'
 import { askForSignOff, sendIt, teamSubmitted } from './example-launch-path.js'
 import { waitFor } from './wait.js'
 
@@ -1601,13 +1602,33 @@ async function step8Launch(): Promise<void> {
     instance.state,
   )
   state.productionInstanceId = instance.id
-  const pub = await probe('127.0.0.3', host, '/healthz')
+  // THE SET (A1 Task 5): the app is a `class` app, so production runs TWO instances — the deploy
+  // answers one, the set's first, and the environment names the whole set, each of which must
+  // answer through the edge within 4 × N requests.
+  const launched = unwrap(
+    await owner.GET('/v1/environments/{environmentId}', {
+      params: { path: { environmentId: state.productionEnvironmentId! } },
+    }),
+    'getEnvironment',
+  )
+  const set = launched.instances.map((member) => member.id)
   checks.ok(
-    `${host} answers on the PUBLIC listener (127.0.0.3) as the instance the deploy started`,
-    pub.status === 200 &&
-      pub.instance === instance.id &&
-      pub.body.includes('"mongo":true'),
-    `${pub.status} ${pub.instance} ${pub.body.slice(0, 120)}`,
+    'production runs TWO instances — a class’s count — every one healthy, the deploy’s answer the first',
+    set.length === 2 &&
+      launched.instances.every((member) => member.state === 'healthy') &&
+      set[0] === instance.id &&
+      launched.instance?.id === instance.id,
+    `answer ${instance.id}; set [${launched.instances.map((m) => `${m.id} ${m.state}`).join(', ')}]`,
+  )
+  const pub = await seeEveryMember(
+    () => probe('127.0.0.3', host, '/healthz'),
+    set,
+    (answer) => answer.status === 200 && answer.body.includes('"mongo":true'),
+  )
+  checks.ok(
+    `${host} answers on the PUBLIC listener (127.0.0.3) as every instance the deploy started`,
+    pub.ok,
+    describeSeen(set, pub),
   )
   const internal = await probe('127.0.0.2', host, '/healthz')
   checks.ok(
@@ -1679,14 +1700,15 @@ async function reusePhase(): Promise<void> {
       kept.iamRegistration?.state === 'active',
     `${kept.privacyAssessment?.state} ${kept.stagingRegistration?.state} ${kept.iamRegistration?.state}`,
   )
+  const servingEnvironment = unwrap(
+    await owner.GET('/v1/environments/{environmentId}', {
+      params: { path: { environmentId: production.id } },
+    }),
+    'getEnvironment',
+  )
   const serving = checks.must(
     'production serves an instance',
-    unwrap(
-      await owner.GET('/v1/environments/{environmentId}', {
-        params: { path: { environmentId: production.id } },
-      }),
-      'getEnvironment',
-    ).instance ?? undefined,
+    servingEnvironment.instance ?? undefined,
   )
   state.releaseId = serving.releaseId
   const approval = unwrap(
@@ -1700,11 +1722,16 @@ async function reusePhase(): Promise<void> {
     approval.decision === 'approved',
     approval.decision,
   )
-  const pub = await probe('127.0.0.3', production.hostname, '/healthz')
+  // EVERY INSTANCE PRODUCTION SERVES (A1 Task 5), each within 4 × N requests.
+  const servingSet = servingEnvironment.instances.map((member) => member.id)
+  const pub = await seeEveryMember(
+    () => probe('127.0.0.3', production.hostname, '/healthz'),
+    servingSet,
+  )
   checks.ok(
-    'the public listener answers as the instance production serves',
-    pub.status === 200 && pub.instance === serving.id,
-    `${pub.status} ${pub.instance} ${pub.body.slice(0, 120)}`,
+    'the public listener answers as every instance production serves',
+    pub.ok,
+    describeSeen(servingSet, pub),
   )
   checks.ok(
     'and nothing of the app waits on the administrators',

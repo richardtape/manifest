@@ -259,6 +259,34 @@ describe('retireEnvironment (P4c Task 7)', () => {
     })
   })
 
+  it('never targets a member of a serving SET — only what the hostname does not reach (A1 Task 5)', async () => {
+    // Production runs a set: every member of what the hostname reaches serves, so a pass that
+    // read "the serving instance" as one would retire a live sibling.
+    await withRollback(async (db) => {
+      const { driver, environment, rows, orphan } = await threeInstances(db)
+      await driver.restoreRoute([rows.old.handle, rows.serving.handle])
+
+      const outcome = await retireEnvironment(
+        depsFor(db, driver, recordingAi([])),
+        environment.id,
+      )
+
+      expect(outcome.retired).toEqual([orphan])
+      expect(outcome.failed).toEqual([])
+      expect(await driver.servingInstances(environment.hostname)).toEqual([
+        rows.old.handle,
+        rows.serving.handle,
+      ])
+      expect((await driver.listInstances(environment.hostname)).sort()).toEqual(
+        [rows.old.handle, rows.serving.handle].sort(),
+      )
+      const state = async (id: string) =>
+        (await db.select().from(instances).where(eq(instances.id, id)))[0]!.state
+      expect(await state(rows.old.id)).toBe('healthy')
+      expect(await state(rows.serving.id)).toBe('healthy')
+    })
+  })
+
   /**
    * THE MOST DANGEROUS LINE IN THIS PLAN, as a test.
    *

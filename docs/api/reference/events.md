@@ -83,7 +83,7 @@ A deploy made an instance and is binding its services — the first step of a de
 
 ## `instance.starting`
 
-The instance’s services are bound and the runtime is starting it, beside the one already serving.
+The instance’s services are bound and the runtime is starting it, beside whatever is already serving.
 
 ```json
 {
@@ -97,7 +97,7 @@ The instance’s services are bound and the runtime is starting it, beside the o
 
 ## `instance.healthy`
 
-The instance passed its health check and now serves the environment; a deploy has succeeded.
+The instance passed its health check and now serves the environment, with the rest of its set; a deploy has succeeded.
 
 ```json
 {
@@ -111,7 +111,7 @@ The instance passed its health check and now serves the environment; a deploy ha
 
 ## `instance.failed`
 
-The instance never became healthy — whatever was already serving keeps serving — and an Incident records why.
+The instance never became healthy, or another deployed with it did not — whatever was already serving keeps serving — and an Incident records why, on the instance that failed its own check.
 
 ```json
 {

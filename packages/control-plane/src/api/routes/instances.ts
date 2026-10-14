@@ -12,7 +12,7 @@ import {
   assertCapability,
   AuthorizationError,
   instancesOf,
-  servingInstanceOf,
+  servingInstancesOf,
 } from '../../projects/index.js'
 import { defineRoute, NO_BODY, NO_QUERY } from '../contract/route.js'
 import { PATH } from '../contract/schemas.js'
@@ -94,7 +94,7 @@ const INSTANCES_LISTED = 50
 
 /**
  * The states an instance the hostname reaches can be in. **A failed instance never serves**,
- * whatever `servingInstanceOf` answers: its fallback for an environment with no Route record
+ * whatever `servingInstancesOf` answers: its fallback for an environment with no Route record
  * is the newest instance of ANY state — P6b Task 6's lesson, which `candidateFor` holds too.
  */
 const SERVING_STATES = new Set(['healthy', 'hibernated', 'waking'])
@@ -165,12 +165,15 @@ export const instanceRoutes = [
         environment,
         INSTANCES_LISTED,
       )
-      const serving = await servingInstanceOf(deps.db, environment)
+      // THE SET (A1 Task 5): every member the hostname reaches is serving, not only the first.
+      const serving = new Set(
+        (await servingInstancesOf(deps.db, environment)).map((row) => row.id),
+      )
       return {
         environmentId: environment.id,
         instances: rows.map((row) => ({
           ...toInstance(row),
-          serving: row.id === serving?.id && SERVING_STATES.has(row.state),
+          serving: serving.has(row.id) && SERVING_STATES.has(row.state),
         })),
         truncated,
       }

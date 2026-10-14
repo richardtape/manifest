@@ -10,6 +10,7 @@ import {
   type Schemas,
 } from '@manifest/contract'
 import { Checks, JourneyStop } from './check.js'
+import { describeSeen, seeEveryMember } from './serving-set.js'
 
 /**
  * P6a's ACCEPTANCE (Task 19): an application reaches production with every one of §13's
@@ -357,14 +358,17 @@ async function launchedReuse(client: ManifestClient, launchedAt: string): Promis
     approval.decision === 'approved',
     `${serving.releaseId}: ${approval.decision}`,
   )
-  const pub = await probe('127.0.0.3', '/healthz')
+  // EVERY INSTANCE PRODUCTION SERVES (A1 Task 5): the edge balances across the set, so one
+  // answer names one member — each id of the set must answer within 4 × N requests.
+  const set = production.instances.map((member) => member.id)
+  const pub = await seeEveryMember(() => probe('127.0.0.3', '/healthz'), set)
   console.log(
-    `  127.0.0.3 answered ${pub.status}, X-Manifest-Instance: ${pub.instance ?? '(none)'}`,
+    `  127.0.0.3 answered as [${pub.seen.join(', ')}] in ${pub.asked} requests (production serves ${set.length})`,
   )
   checks.ok(
-    'the public listener answers AS THE INSTANCE PRODUCTION SERVES',
-    pub.status === 200 && pub.instance === serving.id,
-    `${pub.status} ${pub.instance} ${pub.body}`,
+    'the public listener answers AS EVERY INSTANCE PRODUCTION SERVES',
+    pub.ok,
+    describeSeen(set, pub),
   )
   const internal = await probe('127.0.0.2', '/healthz')
   checks.ok(
@@ -834,19 +838,40 @@ async function step8Launch(): Promise<void> {
   )
   state.productionInstanceId = instance.id
 
-  // §12's split from the outside. The host resolves the production name to the PUBLIC
-  // address; the body and the instance header prove it is THIS instance, because the
-  // edge's wildcard answers 200 for any name (ORIENTATION §4).
-  const pub = await probe('127.0.0.3', '/healthz')
-  console.log(
-    `  127.0.0.3 answered ${pub.status}, X-Manifest-Instance: ${pub.instance ?? '(none)'}`,
+  // THE SET (A1 Task 5): `launch-app` is a `class` app, so production runs TWO instances — the
+  // deploy answers one of them, the set's first, and the environment names the whole set.
+  const production = unwrap(
+    await owner.GET('/v1/environments/{environmentId}', {
+      params: { path: { environmentId: state.productionEnvironmentId! } },
+    }),
+    'getEnvironment',
+  )
+  const set = production.instances.map((member) => member.id)
+  checks.ok(
+    'production runs TWO instances — a class’s count — every one healthy',
+    set.length === 2 &&
+      production.instances.every((member) => member.state === 'healthy'),
+    production.instances.map((member) => `${member.id} ${member.state}`).join(', '),
   )
   checks.ok(
-    'the app answers on the public listener AS THE INSTANCE THE DEPLOY STARTED',
-    pub.status === 200 &&
-      pub.instance === instance.id &&
-      pub.body.includes('"mongo":true'),
-    `${pub.status} ${pub.instance} ${pub.body}`,
+    'the deploy answered the set’s first — the instance the environment names',
+    production.instance?.id === instance.id && set[0] === instance.id,
+    `deploy ${instance.id}; environment ${production.instance?.id ?? 'null'}; set [${set.join(', ')}]`,
+  )
+
+  // §12's split from the outside. The host resolves the production name to the PUBLIC
+  // address; the body and the instance header prove it is THIS set, because the edge's
+  // wildcard answers 200 for any name (ORIENTATION §4) — each member within 4 × N requests.
+  const pub = await seeEveryMember(
+    () => probe('127.0.0.3', '/healthz'),
+    set,
+    (answer) => answer.status === 200 && answer.body.includes('"mongo":true'),
+  )
+  console.log(`  127.0.0.3 answered as [${pub.seen.join(', ')}] in ${pub.asked} requests`)
+  checks.ok(
+    'the app answers on the public listener AS EVERY INSTANCE THE DEPLOY STARTED',
+    pub.ok,
+    describeSeen(set, pub),
   )
   const internal = await probe('127.0.0.2', '/healthz')
   console.log(

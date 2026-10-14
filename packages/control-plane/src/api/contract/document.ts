@@ -112,11 +112,22 @@ import { STREAM_PATH, streamPathItem } from './websocket.js'
  *    `SPEC_CWL_NO_ATTRIBUTES` (validation, at `auth.attributes`) and `409 RELEASE_CWL_NO_ATTRIBUTES` (a
  *    deploy of a release made before it), both new.
  *
+ *
+ * **`1.9.0` SINCE A1's TASK 5 (2026-10-13)**, as that plan's Decision 1 has it: production runs as many instances as its
+ * audience needs — `solo` 1, `class` 2, `large_course` 3, `public` 3 — and sandbox and staging one. `Environment.instances`
+ * (the set the hostname reaches, oldest first by `createdAt` then `id`), REQUIRED; `Environment.instance` kept, the set's
+ * first. `deploy` keeps its shape and answers ONE instance of its set — the one that failed, otherwise the set's first.
+ * `InstanceSummary.serving` is true for every member of the set. A production deploy publishes each `instance.*` event
+ * per member; when one member fails, each is `failed`, a sibling's `failedCheck` beginning `set:`. **Stated, as `1.6.0`'s
+ * envelope was:** a client READING an environment gains a field; a client or fixture that BUILDS one must supply
+ * `instances` (the mock's do). Tasks 6 and 7 of that plan add to this one bump (`instance.exited`, the readers), because
+ * nothing is published between its tasks.
+ *
  * Three files carry it and two tests hold them together: this constant,
  * `packages/contract/openapi.json`'s `info.version` (GENERATED — `pnpm contract:write`,
  * never edited) and `packages/contract/package.json`.
  */
-export const CONTRACT_VERSION = '1.8.0'
+export const CONTRACT_VERSION = '1.9.0'
 
 type JsonSchema = Record<string, unknown>
 

@@ -119,9 +119,9 @@ Each type, and the one sentence that says what it means; *Event types* has an ex
 | `build.succeeded` | A build finished and passed every gate; create a release from it next. |
 | `build.failed` | A build failed. `reason` says why, and `getBuildLog` has the whole output to correct it from. |
 | `instance.provisioning` | A deploy made an instance and is binding its services — the first step of a deploy. |
-| `instance.starting` | The instance’s services are bound and the runtime is starting it, beside the one already serving. |
-| `instance.healthy` | The instance passed its health check and now serves the environment; a deploy has succeeded. |
-| `instance.failed` | The instance never became healthy — whatever was already serving keeps serving — and an Incident records why. |
+| `instance.starting` | The instance’s services are bound and the runtime is starting it, beside whatever is already serving. |
+| `instance.healthy` | The instance passed its health check and now serves the environment, with the rest of its set; a deploy has succeeded. |
+| `instance.failed` | The instance never became healthy, or another deployed with it did not — whatever was already serving keeps serving — and an Incident records why, on the instance that failed its own check. |
 | `incident.opened` | An Incident was recorded for a failed instance: its logs, redacted, and a prompt an agent can work from. |
 | `ai.key_rotated` | The app’s AI key was replaced by a deploy that became healthy. The key itself is never in an event. |
 | `ai.models_withdrawn` | A running app’s AI key lost models now approved only below its data’s level — or was revoked, when nothing it declared is still allowed. Checked when the platform starts. The key itself is never in an event. |

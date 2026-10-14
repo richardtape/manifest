@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { eq, inArray } from 'drizzle-orm'
-import { beforeAll, describe, expect, it } from 'vitest'
+import { beforeAll, describe, expect, it, vi } from 'vitest'
 import { loadConfig } from '../config.js'
 import {
   appSpecs,
@@ -32,8 +32,10 @@ interface Fixture {
   driver: FakeDriver
   environmentId: string
   hostname: string
-  /** The row and the driver handle of the instance the Route record names. */
+  /** The row and the driver handle of the instance the Route record names — the set's first. */
   serving: { id: string; handle: string }
+  /** Every member of the set the Route records name, in their order (A1 Task 5). */
+  set: { id: string; handle: string }[]
   releaseId: string
   /** An environment of the same project with nothing deployed to it at all. */
   emptyEnvironmentId: string
@@ -48,7 +50,7 @@ interface Fixture {
  */
 async function deployed(
   db: Db,
-  options: { dropRoutes?: boolean; driver?: FakeDriver } = {},
+  options: { dropRoutes?: boolean; driver?: FakeDriver; members?: number } = {},
 ): Promise<Fixture> {
   const unique = randomUUID().slice(0, 8)
   const [owner] = await db
@@ -110,49 +112,60 @@ async function deployed(
    * refuse both routes and read as a defect in `recoverAtBoot` (measured 2026-09-15).
    */
   const driver = options.driver ?? createFakeDriver()
-  const handle = (
-    await driver.ensureInstances([
-      {
-        instanceId: randomUUID(),
-        name: `chem-labs-${unique}-serving`,
-        hostname: staging.hostname,
-        image: { repository: 'local/chem-labs', digest: `sha256:${'0'.repeat(64)}` },
-        env: {},
-        port: 8080,
-        healthPath: '/healthz',
-        resources: { cpu: 1, memoryMi: 256, pids: 128, diskMi: 512 },
-        projectSlug: `chem-labs-${unique}`,
-        environmentKind: 'staging',
-        releaseId: release!.id,
-        services: [],
-        egressAllow: [],
-        needsAiGateway: false,
-      },
-    ])
-  )[0]!
-  const [row] = await db
-    .insert(instances)
-    .values({
-      environmentId: staging.id,
+  const members = Array.from({ length: options.members ?? 1 }, (_, index) => ({
+    instanceId: randomUUID(),
+    name: `chem-labs-${unique}-serving-${index}`,
+  }))
+  const handles = await driver.ensureInstances(
+    members.map((member) => ({
+      ...member,
+      hostname: staging.hostname,
+      image: { repository: 'local/chem-labs', digest: `sha256:${'0'.repeat(64)}` },
+      env: {},
+      port: 8080,
+      healthPath: '/healthz',
+      resources: { cpu: 1, memoryMi: 256, pids: 128, diskMi: 512 },
+      projectSlug: `chem-labs-${unique}`,
+      environmentKind: 'staging' as const,
       releaseId: release!.id,
-      driver: 'fake',
-      state: 'healthy',
-      handle: handle.id,
-      lastSeenAt: new Date(),
-    })
+      services: [],
+      egressAllow: [],
+      needsAiGateway: false,
+    })),
+  )
+  // ONE STATEMENT, as a deploy writes a set's rows: every member shares `created_at`, so the set's
+  // order is the ids' order (A1 Task 5).
+  const rows = await db
+    .insert(instances)
+    .values(
+      handles.map((handle) => ({
+        environmentId: staging.id,
+        releaseId: release!.id,
+        driver: 'fake',
+        state: 'healthy' as const,
+        handle: handle.id,
+        lastSeenAt: new Date(),
+      })),
+    )
     .returning()
-  await db.insert(routes).values({
-    instanceId: row!.id,
-    hostname: staging.hostname,
-    listener: 'internal',
-  })
+  await db.insert(routes).values(
+    rows.map((row) => ({
+      instanceId: row.id,
+      hostname: staging.hostname,
+      listener: 'internal' as const,
+    })),
+  )
+  const set = rows
+    .map((row) => ({ id: row.id, handle: row.handle! }))
+    .sort((a, b) => (a.id < b.id ? -1 : 1))
   if (options.dropRoutes !== false) driver.dropRoutes()
 
   return {
     driver,
     environmentId: staging.id,
     hostname: staging.hostname,
-    serving: { id: row!.id, handle: handle.id },
+    serving: set[0]!,
+    set,
     releaseId: release!.id,
     emptyEnvironmentId: sandbox.id,
     projectId: project.id,
@@ -266,6 +279,56 @@ describe('recoverAtBoot (P4c Task 9)', () => {
       ])
       // And the broken hostname reaches nothing, rather than a stale upstream.
       expect(await driver.servingInstances(broken.hostname)).toEqual([])
+    })
+  })
+
+  it('restores a hostname’s WHOLE SET in one route — never one route per Route row, the last winning (A1 Task 5)', async () => {
+    await withRollback(async (db) => {
+      const { driver, hostname, set } = await deployed(db, { members: 2 })
+      expect(await driver.servingInstances(hostname)).toEqual([])
+      const changes = driver.routeHistory(hostname).length
+
+      const report = await recoverAtBoot({ db, driver, bus, ...recorder() })
+
+      // Both members, in the set's order, in ONE route change.
+      expect(await driver.servingInstances(hostname)).toEqual(set.map((m) => m.handle))
+      expect(driver.routeHistory(hostname).slice(changes)).toEqual([
+        set.map((m) => m.handle),
+      ])
+      expect(report.routesRestored).toBe(1)
+      expect(report.routesFailed).toEqual([])
+      expect(report.membersLeftOut).toEqual([])
+    })
+  })
+
+  it('leaves a member whose container is gone OUT of the set, names it, and routes the rest (Review Focus 5)', async () => {
+    // A strict `restoreRoute` refuses a set naming an instance the driver does not hold, and
+    // changes nothing — so without the check first, one member removed by hand would lose the
+    // whole app to the wildcard.
+    await withRollback(async (db) => {
+      const { driver, hostname, set } = await deployed(db, { members: 2 })
+      const [gone, kept] = set as [(typeof set)[0], (typeof set)[0]]
+      await driver.destroyInstance(gone.handle)
+      driver.dropRoutes()
+      const lines: string[] = []
+      const spy = vi.spyOn(console, 'error').mockImplementation((line: unknown) => {
+        lines.push(String(line))
+      })
+      try {
+        const report = await recoverAtBoot({ db, driver, bus, ...recorder() })
+        expect(await driver.servingInstances(hostname)).toEqual([kept.handle])
+        expect(report.routesRestored).toBe(1)
+        expect(report.routesFailed).toEqual([])
+        expect(report.membersLeftOut).toEqual([
+          { hostname, instanceId: gone.id, reason: 'GONE' },
+        ])
+      } finally {
+        spy.mockRestore()
+      }
+      // ONE operator line, naming the member and the hostname.
+      expect(lines.filter((line) => line.includes(gone.id))).toEqual([
+        `[boot] the instance ${gone.id} that ${hostname} is recorded against has no container; it is left out of the route`,
+      ])
     })
   })
 

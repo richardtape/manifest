@@ -1,4 +1,4 @@
-import { and, desc, eq, gt, inArray, ne, or, sql } from 'drizzle-orm'
+import { and, asc, desc, eq, gt, inArray, ne, or, sql } from 'drizzle-orm'
 import type { Db, NamedPersonColumn } from '../db/index.js'
 import {
   environments,
@@ -288,33 +288,45 @@ export async function listMembers(db: Db, projectId: string): Promise<MemberRow[
 }
 
 /**
- * WHAT SERVES an environment — §6's Route record — and, for an app deployed before P4c
- * that has none, its newest instance (P4c Task 8's rule, moved here from the route so the
- * environment list and the fleet read it once).
+ * WHAT SERVES an environment — the SET §6's Route records name (A1 Task 5), in the set's order,
+ * `(created_at, id)` — and, for an app deployed before P4c that has none, its newest instance alone
+ * (P4c Task 8's rule, moved here from the route so the environment list and the fleet read it once).
  *
- * Not the newest deploy: a failed deploy writes a newer `instances` row, and reporting
- * that one told a faculty member their app was failed while it was serving perfectly.
- * The newest row is only the fallback for an app with no Route record, which gets one at
- * its next deploy (P4c Decision 20 — there is no backfill).
+ * Not the newest deploy: a failed deploy writes newer `instances` rows, and reporting one of those
+ * told a faculty member their app was failed while it was serving perfectly. The newest row is only
+ * the fallback for an app with no Route record, which gets one at its next deploy (P4c Decision 20 —
+ * there is no backfill). `[]` for an environment never deployed.
  */
-export async function servingInstanceOf(
+export async function servingInstancesOf(
   db: Pick<Db, 'select'>,
   environment: Environment,
-): Promise<typeof instances.$inferSelect | undefined> {
-  const [served] = await db
+): Promise<(typeof instances.$inferSelect)[]> {
+  const served = await db
     .select({ instance: instances })
     .from(routes)
     .innerJoin(instances, eq(routes.instanceId, instances.id))
     .where(eq(routes.hostname, environment.hostname))
-    .limit(1)
-  if (served !== undefined) return served.instance
+    .orderBy(asc(instances.createdAt), asc(instances.id))
+  if (served.length > 0) return served.map((row) => row.instance)
   const [latest] = await db
     .select()
     .from(instances)
     .where(eq(instances.environmentId, environment.id))
     .orderBy(desc(instances.lastSeenAt))
     .limit(1)
-  return latest
+  return latest === undefined ? [] : [latest]
+}
+
+/**
+ * The SET'S FIRST, by `(created_at, id)` — the instance `Environment.instance` names and a healthy
+ * deploy answers (A1 Decision 6). Until A1 it read one Route row with `.limit(1)` and no order, which
+ * with a set of two would have named either member.
+ */
+export async function servingInstanceOf(
+  db: Pick<Db, 'select'>,
+  environment: Environment,
+): Promise<typeof instances.$inferSelect | undefined> {
+  return (await servingInstancesOf(db, environment))[0]
 }
 
 /**

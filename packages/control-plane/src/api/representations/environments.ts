@@ -21,8 +21,13 @@ export const Environment = representation(
         .url()
         .describe('Where the app answers in this environment, once it is deployed.'),
       instance: Instance.nullable().describe(
-        'The instance the hostname reaches. Null before any deploy.',
+        'The first of the instances the hostname reaches, oldest first (`createdAt`, then `id`) — the instance a successful `deploy` answered. Null before any deploy.',
       ),
+      instances: z
+        .array(Instance)
+        .describe(
+          'Every instance the hostname reaches, oldest first (`createdAt`, then `id`): production runs as many as its audience needs — one for `solo`, two for `class`, three for `large_course` and `public` — and sandbox and staging one. Empty before any deploy.',
+        ),
     })
     .describe(
       'One of a project’s three environments: where a release is deployed, and what is serving there now.',
@@ -36,16 +41,19 @@ export const EnvironmentList = representation(
     .describe('A project’s three environments: sandbox, staging and production.'),
 )
 
+/** `serving` is the set the hostname reaches, in its order — `servingInstancesOf`'s answer. */
 export function toEnvironment(
   row: typeof environments.$inferSelect,
-  instance: typeof instances.$inferSelect | undefined,
+  serving: readonly (typeof instances.$inferSelect)[],
 ): z.input<typeof Environment> {
+  const first = serving[0]
   return {
     id: row.id,
     projectId: row.projectId,
     kind: row.kind,
     hostname: row.hostname,
     url: `https://${row.hostname}`,
-    instance: instance === undefined ? null : toInstance(instance),
+    instance: first === undefined ? null : toInstance(first),
+    instances: serving.map(toInstance),
   }
 }

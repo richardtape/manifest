@@ -205,6 +205,7 @@ export const projectWriteRoutes = [
             hostname: 'fixture-40adbffa.sandbox.manifest.internal',
             url: 'https://fixture-40adbffa.sandbox.manifest.internal',
             instance: null,
+            instances: [],
           },
           {
             id: '0c05344a-9022-4a93-b868-101b66b7a6c9',
@@ -213,6 +214,7 @@ export const projectWriteRoutes = [
             hostname: 'fixture-40adbffa.staging.manifest.internal',
             url: 'https://fixture-40adbffa.staging.manifest.internal',
             instance: null,
+            instances: [],
           },
         ],
         spec: {
@@ -456,7 +458,7 @@ export const projectWriteRoutes = [
       const [view] = await projectViews(deps, [project.id])
       return {
         ...toProject(view!),
-        environments: created.map((row) => toEnvironment(row, undefined)),
+        environments: created.map((row) => toEnvironment(row, [])),
         spec: {
           appSpecId: appSpec.id,
           commitSha,

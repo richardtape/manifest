@@ -1,4 +1,4 @@
-import { and, eq, ne } from 'drizzle-orm'
+import { and, asc, eq, inArray, notInArray } from 'drizzle-orm'
 import type { Db } from '../db/index.js'
 import {
   builds,
@@ -10,7 +10,12 @@ import {
   withEnvironmentLock,
 } from '../db/index.js'
 import { offeredRefs, type BlueprintRegistry } from '../blueprints/index.js'
-import type { Driver, InstanceFile, InstanceHandle } from '../runtime/index.js'
+import type {
+  Driver,
+  InstanceFile,
+  InstanceHandle,
+  ServiceHandle,
+} from '../runtime/index.js'
 import {
   InstanceNotReadyError,
   canTransition,
@@ -44,11 +49,12 @@ import type { AppSecretResolver } from '../secrets/index.js'
 import type { ServiceCredentialResolver } from '../services/index.js'
 import type { SpRegistration, SsoRegistrar } from '../sso/index.js'
 import type { Config } from '../config.js'
-import { projectStateRefusal } from '../projects/index.js'
+import { projectStateRefusal, type StoredAudience } from '../projects/index.js'
 import { productionApprovalFor, unsatisfiedReason } from './approval.js'
 import { launchedAt, recordLaunch } from './launched.js'
 import { assertPromotable } from './promotion.js'
 import type { Retirer } from './retire.js'
+import { shapeFor, type DeployPurpose } from './shape.js'
 
 /**
  * What `deployRelease` needs that is neither the database nor the driver.
@@ -197,8 +203,25 @@ export interface DeployInput {
    * **IT DEFAULTS TO THE CHECKED VALUE**, so a new caller is verified unless it says it is
    * a rehearsal — the opposite default would make every future caller an exemption nobody
    * wrote down.
+   *
+   * It is also what `shapeFor` reads, beside the kind and the audience, to give the deploy its
+   * count — a rehearsal is ONE instance (A1 Decision 8). **`'replacement'` is not accepted yet**:
+   * the set watcher (A1 Task 6) widens this together with the approval check's condition below,
+   * which reads `'launch'` only and would let a new purpose skip the digest check by being new.
+   * And there is NO `instances` or `resources` field, deliberately: a caller never chooses a
+   * deploy's shape (`shape.test.ts` holds it, as a type test).
    */
-  purpose?: 'launch' | 'rehearsal'
+  purpose?: Exclude<DeployPurpose, 'replacement'>
+}
+
+/**
+ * WHAT A DEPLOY MADE (A1 Decision 6): every instance of the set, in `(created_at, id)` order — the
+ * order `Environment.instance` takes its first by — and the ONE instance the `deploy` operation
+ * answers: the member that failed, if one did, otherwise the set's first.
+ */
+export interface DeployedSet {
+  instances: Instance[]
+  answer: Instance
 }
 
 /**
@@ -217,6 +240,16 @@ export interface HealthWait {
 
 export const DEFAULT_HEALTH_WAIT: HealthWait = { timeoutMs: 10_000, intervalMs: 50 }
 
+/**
+ * Deploys a release and answers the ONE instance the `deploy` operation answers (A1 Decision 6): the
+ * member of the set that failed, if one did — so a failed deploy is still an instance whose `state` is
+ * `failed`, with its Incident — otherwise the set's first by `(created_at, id)`, the instance
+ * `Environment.instance` names. `deployReleaseSet` answers the whole set; a client reads it from the
+ * environment (`instances`).
+ *
+ * One answer rather than the set, deliberately (a ruling of A1's sitting 4): the operation answers one
+ * `Instance`, D21's rehearsal is one, and every caller that is not a test of N reads one.
+ */
 export async function deployRelease(
   db: Db,
   driver: Driver,
@@ -225,6 +258,24 @@ export async function deployRelease(
   input: DeployInput,
   healthWait: HealthWait = DEFAULT_HEALTH_WAIT,
 ): Promise<Instance> {
+  return (await deployReleaseSet(db, driver, config, deps, input, healthWait)).answer
+}
+
+/**
+ * §11's deploy, ACROSS N (A1 Task 5): as many instances as `shapeFor` gives this environment, purpose
+ * and audience — started beside whatever serves, each proved, the route moved ONCE to exactly the new
+ * set, and the set that served retired after its drain. Any one member unhealthy fails the whole deploy:
+ * every new member is removed, the previous set serves (restored, if the route had moved), and the
+ * member that failed has its Incident.
+ */
+export async function deployReleaseSet(
+  db: Db,
+  driver: Driver,
+  config: Config,
+  deps: DeployDeps,
+  input: DeployInput,
+  healthWait: HealthWait = DEFAULT_HEALTH_WAIT,
+): Promise<DeployedSet> {
   const [release] = await db
     .select()
     .from(releases)
@@ -404,6 +455,19 @@ export async function deployRelease(
   const blueprintRef = project.blueprintRef
 
   /**
+   * HOW MANY, AND AT WHOSE RESOURCES (A1 Decision 2): read here, from the audience as it is at THIS
+   * deploy — a person who changes the answer changes the next deploy's count, never a running set's —
+   * and from nowhere a caller can reach. `shapeFor` is the only place the shape is decided.
+   */
+  const shape = shapeFor(
+    environment.kind,
+    input.purpose ?? 'launch',
+    project.audience as StoredAudience | null,
+  )
+  const resources = (release.resolvedConfig as ResolvedConfigSet)[shape.resources]
+    .resources
+
+  /**
    * §10's models, checked against the platform AS IT IS NOW, before the instance row,
    * the services or the Service Provider exist — so a refusal leaves nothing behind.
    * `?.` because a release frozen before `ResolvedConfig.ai` existed has no `ai` key at
@@ -436,50 +500,66 @@ export async function deployRelease(
     if (current?.state !== 'active')
       throw projectStateRefusal(environment.projectId, current?.state ?? 'deleted')
 
-    const [row] = await db
+    /**
+     * THE SET'S ROWS, ONE STATEMENT (A1 Task 5): every member shares the statement's `created_at`, so
+     * the set's order — `(created_at, id)`, the order `Environment.instance` takes its first by — is
+     * the ids' order, here and in every read of the set.
+     */
+    const inserted = await db
       .insert(instances)
-      .values({
-        environmentId: environment.id,
-        releaseId: release.id,
-        driver: driver.name,
-        kind: 'web',
-        state: 'provisioning',
-      })
+      .values(
+        Array.from({ length: shape.instances }, () => ({
+          environmentId: environment.id,
+          releaseId: release.id,
+          driver: driver.name,
+          kind: 'web' as const,
+          state: 'provisioning' as const,
+        })),
+      )
       .returning()
-    const instanceId = row!.id
-    const instanceDetail0 = {
+    const members = inserted
+      .slice()
+      .sort(
+        (a, b) => a.createdAt.getTime() - b.createdAt.getTime() || compareIds(a.id, b.id),
+      )
+    const memberIds = members.map((member) => member.id)
+    const detailOf = (instanceId: string, state: string) => ({
       instanceId,
       releaseId: release.id,
       environmentId: environment.id,
       environment: environment.kind,
-      state: 'provisioning',
+      state,
+    })
+    for (const member of members) {
+      // §22 step 5 (P5a Task 14). The redactor is EMPTY and that is accurate: nothing in this
+      // detail or sentence is secret, and the app's secret set is opened further down, before
+      // anything is minted (P4b finding 162) — not moved up for an event that needs none of it.
+      await publishEvent(
+        db,
+        deps.bus,
+        {
+          projectId: environment.projectId,
+          subject: `instance:${member.id}`,
+          type: 'instance.provisioning',
+          machineDetail: detailOf(member.id, 'provisioning'),
+          // Who deployed (§26; the faculty-ready plan's Task 10): the acting context names them.
+          humanMessage: withActor(
+            `Preparing ${projectSlug} in ${environment.kind}`,
+            'deployed by',
+          ),
+        },
+        makeRedactor([]),
+      )
     }
-    // §22 step 5 (P5a Task 14). The redactor is EMPTY and that is accurate: nothing in this
-    // detail or sentence is secret, and the app's secret set is opened further down, before
-    // anything is minted (P4b finding 162) — not moved up for an event that needs none of it.
-    await publishEvent(
-      db,
-      deps.bus,
-      {
-        projectId: environment.projectId,
-        subject: `instance:${instanceId}`,
-        type: 'instance.provisioning',
-        machineDetail: instanceDetail0,
-        // Who deployed (§26; the faculty-ready plan's Task 10): the acting context names them.
-        humanMessage: withActor(
-          `Preparing ${projectSlug} in ${environment.kind}`,
-          'deployed by',
-        ),
-      },
-      makeRedactor([]),
-    )
     /**
      * §11's key gained the INSTANCE (P4c): a redeploy of the same release is a new
      * instance beside the one serving, so the name can no longer be computed before the
      * row exists — with the release alone in it, the two would collide on the name that
-     * identifies the container and the second deploy could only replace the first.
+     * identifies the container and the second deploy could only replace the first. Across
+     * N it is also what keeps the members of one set apart.
      */
-    const name = instanceName(projectSlug, environment.kind, release.id, instanceId)
+    const nameOf = (instanceId: string) =>
+      instanceName(projectSlug, environment.kind, release.id, instanceId)
 
     /**
      * WHAT SERVES RIGHT NOW: what a failure falls back to, and what this deploy
@@ -501,7 +581,7 @@ export async function deployRelease(
      * needs — and pairs them where both are known, in one iteration, rather than
      * leaving two arrays to agree by index.
      */
-    const serviceHandles = []
+    const serviceHandles: ServiceHandle[] = []
     const boundServices: InjectedService[] = []
     for (const declared of resolved.services) {
       const bindingName = serviceName(projectSlug, environment.kind, declared.name)
@@ -638,38 +718,47 @@ export async function deployRelease(
      * is still recorded, so the next retire cleans it up rather than losing the only
      * reference to a live key.
      *
+     * ONE KEY PER MEMBER (A1 Decision 6): the scheme was per instance already, and a key shared
+     * by a set would be revoked when its first member is retired — or outlive the set.
+     *
      * After the Service Provider and the files, so nothing that can still refuse the
      * deploy runs between the mint and the `try` that discards it.
      */
-    let minted: string | undefined
+    const minted = new Map<string, string>()
     if (aiPlan !== undefined) {
-      minted = await deps.ai.mintAppKey({
-        projectId: environment.projectId,
-        projectSlug,
-        kind: environment.kind,
-        models,
-        monthlyUsd: aiPlan.monthlyUsd,
-      })
-      try {
-        await deps.ai.storeInstanceKey(db, {
+      for (const member of members) {
+        const key = await deps.ai.mintAppKey({
           projectId: environment.projectId,
+          projectSlug,
           kind: environment.kind,
-          instanceId,
-          key: minted,
+          models,
+          monthlyUsd: aiPlan.monthlyUsd,
         })
-      } catch (error) {
-        // Nothing recorded it, so nothing else can ever revoke it: BY VALUE, here, and
-        // the store's own failure is what reaches the caller.
-        await discardMintedKey(deps.ai, minted, environment)
-        throw error
+        try {
+          await deps.ai.storeInstanceKey(db, {
+            projectId: environment.projectId,
+            kind: environment.kind,
+            instanceId: member.id,
+            key,
+          })
+        } catch (error) {
+          // Nothing recorded it, so nothing else can ever revoke it: BY VALUE, here, and
+          // the store's own failure is what reaches the caller. The members' keys stored
+          // before it ARE recorded, so they are revoked by name.
+          await discardMintedKey(deps.ai, key, environment)
+          await revokeMintedKeys(deps.ai, db, environment, minted)
+          throw error
+        }
+        minted.set(member.id, key)
       }
     }
     // `ModelEntry.kind`'s first reader (P4b finding 46): the first declared model of each
     // kind is the one the app is told about.
     const chat = aiPlan?.declared.find((m) => m.kind === 'chat')
     const embedding = aiPlan?.declared.find((m) => m.kind === 'embedding')
-    const ai: InjectionContext['ai'] =
-      minted === undefined
+    const aiFor = (instanceId: string): InjectionContext['ai'] => {
+      const apiKey = minted.get(instanceId)
+      return apiKey === undefined
         ? undefined
         : {
             // The IN-NETWORK endpoint, NEVER `config.litellm.url`. The two are not
@@ -677,146 +766,170 @@ export async function deployRelease(
             // plane's `http://127.0.0.1:7106` gets ECONNREFUSED from inside its own
             // `--internal` network, and the symptom is "the AI is down".
             endpoint: config.litellm.internalUrl,
-            apiKey: minted,
+            apiKey,
             // Conditional spread, not `x ?? undefined`: `exactOptionalPropertyTypes`.
             ...(chat === undefined ? {} : { defaultChatModel: chat.name }),
             ...(embedding === undefined ? {} : { embeddingModel: embedding.name }),
           }
+    }
 
-    let handle: InstanceHandle
-    let healthy: boolean
+    /** Each member's driver handle, by its index in `members` — none for one never started. */
+    let handles: (InstanceHandle | undefined)[] = []
+    /** The member whose own check failed, by index: -1 when every member is healthy. */
+    let failedIndex = -1
     // What the platform checked, in words, when it did not pass: §14's failing check.
     let failedCheck = ''
     try {
       // provisioning → starting, STORED (P5a Task 14). Services are bound; the driver is
-      // about to start the instance beside the one serving. Before this, `starting` existed
+      // about to start the set beside the one serving. Before this, `starting` existed
       // only as a value computed on the way to `healthy`, so no client could ever see it —
       // and a restart in this window left a row in `provisioning` that `recoverAtBoot`
       // could not tell from one that never reached its services.
       await db
         .update(instances)
         .set({ state: nextState('provisioning', 'services_bound') })
-        .where(eq(instances.id, instanceId))
-      await publishEvent(
-        db,
-        deps.bus,
-        {
-          projectId: environment.projectId,
-          subject: `instance:${instanceId}`,
-          type: 'instance.starting',
-          machineDetail: { ...instanceDetail0, state: 'starting' },
-          humanMessage: `${projectSlug} is starting in ${environment.kind}.`,
-        },
-        redact,
-      )
+        .where(inArray(instances.id, memberIds))
+      for (const member of members) {
+        await publishEvent(
+          db,
+          deps.bus,
+          {
+            projectId: environment.projectId,
+            subject: `instance:${member.id}`,
+            type: 'instance.starting',
+            machineDetail: detailOf(member.id, 'starting'),
+            humanMessage: `${projectSlug} is starting in ${environment.kind}.`,
+          },
+          redact,
+        )
+      }
       /**
-       * A SET OF ONE until A1's Task 5 gives a deploy its count (`shapeFor`): the driver's
-       * set-of-N call, asked for one (A1 Task 4).
+       * THE WHOLE SET IN ONE CALL (A1 Task 4's driver): every member started beside what serves,
+       * each proved, the route moved ONCE to exactly this set, and the call resolved only once the
+       * hostname is shown to reach EACH member by its identity. A member never ready moves nothing.
        */
-      const [started] = await driver.ensureInstances([
-        {
-          name,
-          instanceId,
-          // §23 assigned it and this function holds the environment row, so the driver is
-          // HANDED it rather than re-deriving it (P4c Task 2).
-          hostname: environment.hostname,
-          projectSlug,
-          environmentKind: environment.kind,
-          releaseId: release.id,
-          image: { digest, repository },
-          /**
-           * §8's ENTIRE contract, from one function. Nothing is added here.
-           *
-           * P3 built an ad-hoc block in this position — the app's own env, then PORT,
-           * MANIFEST_ENV, MANIFEST_PROJECT_SLUG, MANIFEST_APP_URL, then the service
-           * endpoints — and it was the platform's second producer of these names.
-           * `MONGODB_DB_NAME` is what that cost: §8 requires it, the block injected
-           * only the catalogue's `envVar`, and every deployed app wrote to a database
-           * called `app` while two Docker tests set the variable themselves and
-           * passed. The block is deleted rather than extended, and
-           * `grep -rn MANIFEST_APP_URL src --include='*.ts'` outside the tests now
-           * finds `spec/injection.ts` alone.
-           */
-          env: renderInjection({
-            resolved,
-            environmentKind: environment.kind,
+      const started = await driver.ensureInstances(
+        members.map((member) => {
+          const ai = aiFor(member.id)
+          return {
+            name: nameOf(member.id),
+            instanceId: member.id,
+            // §23 assigned it and this function holds the environment row, so the driver is
+            // HANDED it rather than re-deriving it (P4c Task 2).
             hostname: environment.hostname,
             projectSlug,
-            idp: config.idp,
-            // D21's rehearsal (P6a Task 14): production in every respect except the IdP it
-            // is pointed at, because §8 sends a production app to real UBC Shibboleth and
-            // C1 puts that out of reach. `injection.ts`'s `purpose` carries the measurement
-            // that found it.
-            ...(input.purpose === undefined ? {} : { purpose: input.purpose }),
-            ...(registration !== undefined ? { spEntity: registration.entity } : {}),
-            secrets: { sessionSecret, appEnv },
-            services: boundServices,
-            ...(ai === undefined ? {} : { ai }),
-          }),
-          ...(files.length > 0 ? { files } : {}),
-          port: resolved.port,
-          healthPath: resolved.health,
-          resources: {
-            cpu: resolved.resources.cpu,
-            memoryMi: toMebibytes(resolved.resources.memory),
-            pids: resolved.resources.pids,
-            diskMi: toMebibytes(resolved.resources.disk),
-          },
-          services: serviceHandles,
-          egressAllow: resolved.egressAllow,
-          // §10's gateway joins the app's network only for an app that declares models
-          // (P4b Task 8). `?.` because a release frozen before `ResolvedConfig.ai` existed
-          // has no `ai` key at all (pre-flight 64).
-          needsAiGateway: models.length > 0,
-        },
-      ])
-      handle = started!
-      const health = await waitForHealth(driver, handle.id, healthWait)
-      healthy = health.healthy
-      if (!health.healthy) {
-        failedCheck = `health: GET ${resolved.health} on port ${resolved.port} — ${health.why}`
+            environmentKind: environment.kind,
+            releaseId: release.id,
+            image: { digest, repository },
+            /**
+             * §8's ENTIRE contract, from one function. Nothing is added here.
+             *
+             * P3 built an ad-hoc block in this position — the app's own env, then PORT,
+             * MANIFEST_ENV, MANIFEST_PROJECT_SLUG, MANIFEST_APP_URL, then the service
+             * endpoints — and it was the platform's second producer of these names.
+             * `MONGODB_DB_NAME` is what that cost: §8 requires it, the block injected
+             * only the catalogue's `envVar`, and every deployed app wrote to a database
+             * called `app` while two Docker tests set the variable themselves and
+             * passed. The block is deleted rather than extended, and
+             * `grep -rn MANIFEST_APP_URL src --include='*.ts'` outside the tests now
+             * finds `spec/injection.ts` alone.
+             */
+            env: renderInjection({
+              resolved,
+              environmentKind: environment.kind,
+              hostname: environment.hostname,
+              projectSlug,
+              idp: config.idp,
+              // D21's rehearsal (P6a Task 14): production in every respect except the IdP it
+              // is pointed at, because §8 sends a production app to real UBC Shibboleth and
+              // C1 puts that out of reach. `injection.ts`'s `purpose` carries the measurement
+              // that found it.
+              ...(input.purpose === undefined ? {} : { purpose: input.purpose }),
+              ...(registration !== undefined ? { spEntity: registration.entity } : {}),
+              secrets: { sessionSecret, appEnv },
+              services: boundServices,
+              ...(ai === undefined ? {} : { ai }),
+            }),
+            ...(files.length > 0 ? { files } : {}),
+            port: resolved.port,
+            healthPath: resolved.health,
+            // The SHAPE's resources (`shapeFor`): each member at the manifest's own numbers for
+            // the environment the shape names — today always this one's.
+            resources: {
+              cpu: resources.cpu,
+              memoryMi: toMebibytes(resources.memory),
+              pids: resources.pids,
+              diskMi: toMebibytes(resources.disk),
+            },
+            services: serviceHandles,
+            egressAllow: resolved.egressAllow,
+            // §10's gateway joins the app's network only for an app that declares models
+            // (P4b Task 8). `?.` because a release frozen before `ResolvedConfig.ai` existed
+            // has no `ai` key at all (pre-flight 64).
+            needsAiGateway: models.length > 0,
+          }
+        }),
+      )
+      handles = members.map((_, index) => started[index])
+      /**
+       * A HEALTH WAIT FOR EACH, all at once — a set of three must not take three timeouts to
+       * fail — and the FIRST member, in the set's order, that did not pass is the deploy's
+       * failure: its check is §14's failing check, its Incident the one captured.
+       */
+      const health = await Promise.all(
+        started.map((handle) => waitForHealth(driver, handle.id, healthWait)),
+      )
+      failedIndex = health.findIndex((result) => !result.healthy)
+      const failed = health[failedIndex]
+      if (failed !== undefined && !failed.healthy) {
+        failedCheck = `health: GET ${resolved.health} on port ${resolved.port} — ${failed.why}`
       }
     } catch (error) {
       if (error instanceof InstanceNotReadyError) {
         /**
-         * A driver that STARTED the instance and could not make it ready says so with
-         * the handle (P4b Task 13), and that is a failed deploy — recorded like the one
-         * above, as a row in `failed` and an Incident, not thrown. The instance exists,
-         * and a failure a faculty member cannot see is the one §14 exists to prevent.
-         * Until this, the Docker driver's refusal — the commonest real failure, an app
-         * that crashes as it starts — left the row parked in `provisioning`, a state
-         * nothing moves it out of, with no record of why.
+         * A driver that STARTED the set and could not make a member ready says so with
+         * the handles (P4b Task 13; A1 Task 4: `handle` the member that failed, `handles`
+         * every member in the order asked for, none routed), and that is a failed deploy —
+         * recorded like the one above, as rows in `failed` and an Incident, not thrown.
+         * The instances exist, and a failure a faculty member cannot see is the one §14
+         * exists to prevent. Until this, the Docker driver's refusal — the commonest real
+         * failure, an app that crashes as it starts — left the row parked in
+         * `provisioning`, a state nothing moves it out of, with no record of why.
          */
-        handle = error.handle
-        healthy = false
+        handles = members.map((_, index) => error.handles[index])
+        failedIndex = Math.max(
+          0,
+          handles.findIndex((handle) => handle?.id === error.handle.id),
+        )
+        handles[failedIndex] ??= error.handle
         failedCheck = error.check
       } else {
-        // The instance never started, or its health could not be read. The previous
-        // container still holds its own key and keeps it; this instance's key is
-        // revoked by NAME, because it is recorded — a failed revoke then leaves the
-        // record for the next retire. THE ORIGINAL ERROR IS WHAT THE CALLER GETS.
-        if (minted !== undefined) {
-          await revokeInstanceKeyQuietly(deps.ai, db, {
-            projectId: environment.projectId,
-            kind: environment.kind,
-            instanceId,
-          })
-        }
+        // The set never started, or a health could not be read. The previous set still
+        // holds its own keys and keeps them; this set's keys are revoked by NAME, because
+        // they are recorded — a failed revoke then leaves the record for the next retire.
+        // THE ORIGINAL ERROR IS WHAT THE CALLER GETS.
+        await revokeMintedKeys(deps.ai, db, environment, minted)
         throw error
       }
     }
+    const healthy = failedIndex === -1
+    const startedIds = handles.flatMap((handle) =>
+      handle === undefined ? [] : [handle.id],
+    )
     /**
-     * THE ROUTE MOVED AND THE CONTAINER THEN FAILED ITS OWN HEALTH CHECK (Decision 18).
+     * THE ROUTE MOVED AND A MEMBER THEN FAILED ITS OWN HEALTH CHECK (Decision 18).
      *
-     * `ensureInstances` resolves once the EDGE reaches the new instance; Docker's
+     * `ensureInstances` resolves once the EDGE reaches every new member; Docker's
      * HEALTHCHECK runs on its own interval and can disagree a second later. §13: deploying
      * a release never takes down the one it replaces — so the hostname goes back to the
      * set that was serving when this deploy started. A readiness refusal never gets
-     * here, because that one leaves the route where it was.
+     * here with the route moved, because that one leaves the route where it was.
      */
     let routeDialsFailed =
       !healthy &&
-      (await driver.servingInstances(environment.hostname)).includes(handle.id)
+      (await driver.servingInstances(environment.hostname)).some((id) =>
+        startedIds.includes(id),
+      )
     if (routeDialsFailed && previous.length > 0) {
       routeDialsFailed = await driver
         .restoreRoute(previous)
@@ -825,7 +938,7 @@ export async function deployRelease(
           console.error(
             JSON.stringify({
               level: 'error',
-              msg: 'the previous instance could not be put back after a failed health check; the app is serving a failed instance',
+              msg: 'the previous instances could not be put back after a failed health check; the app is serving a failed set',
               environmentId: environment.id,
               error: (error as { code?: string }).code ?? (error as Error).name,
             }),
@@ -834,44 +947,60 @@ export async function deployRelease(
         })
     }
 
-    // Stored above, before the driver started the instance; health decides the rest.
+    /**
+     * EVERY MEMBER'S ROW, by what its deploy did. Healthy: each `healthy`. Failed: each `failed` —
+     * the member whose check failed, and every sibling with it, because none of them was ever the
+     * set the hostname kept (§11: a failed member fails the set; `failed` is *"never served"*).
+     * Stored above as `starting`, before the driver started the set; health decides the rest.
+     */
     const starting = 'starting' as const
     const state = nextState(starting, healthy ? 'health_passed' : 'health_failed')
-
-    const [updated] = await db
-      .update(instances)
-      .set({ state, handle: handle.id, lastSeenAt: new Date() })
-      .where(eq(instances.id, row!.id))
-      .returning()
+    const updatedRows = await Promise.all(
+      members.map(async (member, index) => {
+        const [updated] = await db
+          .update(instances)
+          .set({
+            state,
+            handle: handles[index]?.id ?? null,
+            ...(handles[index] === undefined ? {} : { lastSeenAt: new Date() }),
+          })
+          .where(eq(instances.id, member.id))
+          .returning()
+        return updated!
+      }),
+    )
 
     if (healthy) {
       /**
        * THE PLATFORM'S RECORD OF WHAT SERVES — §6's `Route`, specified since P2 and
        * built in P4c Task 6. Boot re-applies the edge's routes from these rows (§12,
-       * Task 9), `GET /v1/environments/:environmentId` reports the instance they name
+       * Task 9), `GET /v1/environments/:environmentId` reports the set they name
        * rather than the newest deploy, and the retirer reads them to know whether the
        * environment's pre-P4c key is still somebody's.
        *
-       * REPLACED AS A SET (A1 Task 3): the hostname's rows become exactly the instances it
-       * now reaches, in one transaction — a set of one until A1's Task 5 deploys N. An
-       * upsert on the hostname is refused `42P10` since the key became (hostname, instance).
+       * REPLACED AS A SET (A1 Tasks 3 and 5): the hostname's rows become exactly the
+       * instances it now reaches, every member of this deploy, in one transaction.
        */
       await replaceRouteSet(db, {
         hostname: environment.hostname,
         listener: listenerFor(environment.kind),
-        instanceIds: [instanceId],
+        instanceIds: memberIds,
       })
 
       /**
-       * Every other instance of this environment is on its way out (Decision 17). The
-       * ROWS are how a console sees what is happening; the CONTAINERS are what the
-       * retirer actually reads, and it reads them from the driver.
+       * Every instance of this environment NOT IN THE NEW SET is on its way out (Decision 17;
+       * A1 Decision 6 — with N, "every other instance" would have reaped the siblings this
+       * deploy just started). The ROWS are how a console sees what is happening; the
+       * CONTAINERS are what the retirer actually reads, and it reads them from the driver.
        */
       const others = await db
         .select({ id: instances.id, state: instances.state })
         .from(instances)
         .where(
-          and(eq(instances.environmentId, environment.id), ne(instances.id, instanceId)),
+          and(
+            eq(instances.environmentId, environment.id),
+            notInArray(instances.id, memberIds),
+          ),
         )
       for (const other of others) {
         if (other.state === 'destroying' || other.state === 'gone') continue
@@ -884,48 +1013,53 @@ export async function deployRelease(
     }
 
     /**
-     * §14's Incident, for a deploy that did not become healthy — by either route above.
+     * §14's Incident, for a deploy that did not become healthy — by either route above — and
+     * ONE, for the member whose check failed (A1 Review Focus 4): its siblings were removed
+     * because of it, and an Incident each would send a reader to three containers for one cause.
      * The one moment Phase 1 has (Decision 13): a crash LOOP needs the reconciler, which
      * is Phase 4 (D10), and a deploy that never reached healthy is right here, with the
      * handle, the release and the failing check in hand.
      *
-     * AFTER the row records `failed` and its handle, because the Incident reads both from
+     * AFTER the rows record `failed` and their handles, because the Incident reads both from
      * the row. Redacted with `redact`, built from the app's OWN secret set before the mint —
      * by which point this deploy has stored every secret it stores, service credentials,
      * SESSION_SECRET and the SP key — so an app that prints its environment as it dies has
      * none of them persisted.
      *
-     * A capture that fails reaches the caller. The row already says `failed`, so the
-     * instance is recorded as what it is; a missing Incident is not swallowed.
+     * A capture that fails reaches the caller. The rows already say `failed`, so the
+     * instances are recorded as what they are; a missing Incident is not swallowed.
      *
      * D23.2's instance state transition, recorded and streamed (P4b Task 15) — carrying
      * the STATE, because a deploy is a `200` whether it worked or not (sitting 8, finding
-     * 146) and a client must never read "the call returned" as "the app is up".
+     * 146) and a client must never read "the call returned" as "the app is up". One per
+     * member: an `instance.*` event is an instance's (A1 Decision 10).
      */
-    const instanceDetail = {
-      instanceId: updated!.id,
-      releaseId: release.id,
-      environmentId: environment.id,
-      environment: environment.kind,
-      state: updated!.state,
-    }
     if (!healthy) {
-      await publishEvent(
-        db,
-        deps.bus,
-        {
-          projectId: environment.projectId,
-          subject: `instance:${updated!.id}`,
-          type: 'instance.failed',
-          machineDetail: { ...instanceDetail, failedCheck },
-          humanMessage: `${projectSlug} did not start in ${environment.kind}.`,
-        },
-        redact,
-      )
+      const failed = updatedRows[failedIndex]!
+      for (const [index, row] of updatedRows.entries()) {
+        await publishEvent(
+          db,
+          deps.bus,
+          {
+            projectId: environment.projectId,
+            subject: `instance:${row.id}`,
+            type: 'instance.failed',
+            machineDetail: {
+              ...detailOf(row.id, row.state),
+              failedCheck:
+                index === failedIndex
+                  ? failedCheck
+                  : `set: ${failed.id}, deployed with it, did not pass its check, so no member of this deploy serves — ${failedCheck}`,
+            },
+            humanMessage: `${projectSlug} did not start in ${environment.kind}.`,
+          },
+          redact,
+        )
+      }
       const incident = await captureIncident(
         db,
         driver,
-        { instanceId: updated!.id, failedCheck },
+        { instanceId: failed.id, failedCheck },
         redact,
       )
       // Announced once it EXISTS, and named, so a client that reacts by reading
@@ -942,7 +1076,7 @@ export async function deployRelease(
           type: 'incident.opened',
           machineDetail: {
             incidentId: incident.id,
-            instanceId: updated!.id,
+            instanceId: failed.id,
             releaseId: release.id,
             environment: environment.kind,
           },
@@ -953,37 +1087,41 @@ export async function deployRelease(
         redact,
       )
     } else {
-      await publishEvent(
-        db,
-        deps.bus,
-        {
-          projectId: environment.projectId,
-          subject: `instance:${updated!.id}`,
-          type: 'instance.healthy',
-          machineDetail: instanceDetail,
-          humanMessage: `${projectSlug} is running in ${environment.kind}.`,
-        },
-        redact,
-      )
+      for (const row of updatedRows) {
+        await publishEvent(
+          db,
+          deps.bus,
+          {
+            projectId: environment.projectId,
+            subject: `instance:${row.id}`,
+            type: 'instance.healthy',
+            machineDetail: detailOf(row.id, row.state),
+            humanMessage: `${projectSlug} is running in ${environment.kind}.`,
+          },
+          redact,
+        )
+      }
       // §13 D9: THE LAUNCH IS RECORDED BY THE DEPLOY THAT MAKES IT TRUE (P6b Decision 1). A
       // production deploy for purpose 'launch' that reached healthy — never a rehearsal,
       // whose instance serves production too while its sign-in runs, and must not read as a
-      // launch. Once per
-      // project, by `recordLaunch`'s own WHERE clause.
+      // launch. Once per project, by `recordLaunch`'s own WHERE clause — and once per deploy,
+      // naming the set's first (A1 Decision 6), the instance the deploy answers.
       if (environment.kind === 'production' && (input.purpose ?? 'launch') === 'launch')
         await recordLaunch(db, deps.bus, {
           projectId: environment.projectId,
           releaseId: release.id,
-          instanceId: updated!.id,
+          instanceId: updatedRows[0]!.id,
           imageDigest: digest,
           slug: projectSlug,
         })
-      if (minted !== undefined) {
+      for (const row of updatedRows) {
+        const key = minted.get(row.id)
+        if (key === undefined) continue
         /**
          * §10's rotation is complete at the moment the ROUTE MOVED — which is now, not
-         * at a commit that no longer exists (P4c). The new instance is serving with its
-         * own key; the previous instance keeps its own until the retirer revokes it,
-         * after its drain.
+         * at a commit that no longer exists (P4c). Each new member is serving with its
+         * own key; the previous set keeps its own until the retirer revokes each, after
+         * its drain.
          *
          * NEVER THE KEY, in either field. And the redactor holds it anyway: the set read
          * before the mint plus the key this instance was given — added by hand rather
@@ -995,67 +1133,108 @@ export async function deployRelease(
           deps.bus,
           {
             projectId: environment.projectId,
-            subject: `instance:${updated!.id}`,
+            subject: `instance:${row.id}`,
             type: 'ai.key_rotated',
             machineDetail: {
-              instanceId: updated!.id,
+              instanceId: row.id,
               environment: environment.kind,
               models: [...models],
             },
             humanMessage: `${projectSlug} was given a new AI access key for this release in ${environment.kind}.`,
           },
-          makeRedactor([...appSecretValues, minted]),
+          makeRedactor([...appSecretValues, key]),
         )
       }
     }
 
     if (!healthy) {
       /**
-       * §11: an instance that never becomes ready "is removed once its Incident is
-       * captured (§14)". The Incident above read its exit code and its last 200 log
-       * lines THROUGH this handle; now the container goes, and its `-files` volume with
-       * it — that volume holds the app's SP private key, so R5's "a failed deploy leaks
-       * nothing" is not merely tidiness.
+       * §11: a set any member of which never becomes ready "is removed once its Incident is
+       * captured (§14)". The Incident above read the failed member's exit code and its last
+       * 200 log lines THROUGH its handle; now EVERY member goes (A1 Task 4: the driver hands
+       * back every handle, none routed), each with its `-files` volume — that volume holds
+       * the app's SP private key, so R5's "a failed deploy leaks nothing" is not merely
+       * tidiness.
        *
        * TWO REMOVALS, because a retire never changes what a hostname reaches. When the
-       * route still dials this instance — a FIRST deploy of an environment, which has no
-       * previous instance to fall back on, or a restore that failed —  `retireInstance`
-       * refuses it with `INSTANCE_SERVING` and the container survives (sitting 5's
-       * correction 3). `destroyInstance` takes the route with the container, which leaves
-       * the hostname on the edge's wildcard: honest, and the app was never up.
+       * route still dials the new set — a FIRST deploy of an environment, which has no
+       * previous set to fall back on, or a restore that failed — `retireInstance`
+       * refuses each with `INSTANCE_SERVING` and the containers survive (sitting 5's
+       * correction 3). `destroyInstance` takes each member's own upstream out of the route
+       * and the route with the last, which leaves the hostname on the edge's wildcard:
+       * honest, and the app was never up.
        */
-      const removed = routeDialsFailed
-        ? driver.destroyInstance(handle.id)
-        : driver.retireInstance(handle.id, { drainMs: 0 })
-      await removed.catch((error: unknown) => {
-        console.error(
-          JSON.stringify({
-            level: 'error',
-            msg: 'a failed instance could not be removed; the next deploy or boot will retire it',
-            instanceId,
-            error: (error as { code?: string }).code ?? (error as Error).name,
-          }),
-        )
-      })
-      if (minted !== undefined) {
-        await revokeInstanceKeyQuietly(deps.ai, db, {
-          projectId: environment.projectId,
-          kind: environment.kind,
-          instanceId,
+      for (const [index, handle] of handles.entries()) {
+        if (handle === undefined) continue
+        const removed = routeDialsFailed
+          ? driver.destroyInstance(handle.id)
+          : driver.retireInstance(handle.id, { drainMs: 0 })
+        await removed.catch((error: unknown) => {
+          console.error(
+            JSON.stringify({
+              level: 'error',
+              msg: 'a failed instance could not be removed; the next deploy or boot will retire it',
+              instanceId: members[index]!.id,
+              error: (error as { code?: string }).code ?? (error as Error).name,
+            }),
+          )
         })
       }
+      await revokeMintedKeys(deps.ai, db, environment, minted)
     } else {
       /**
        * THE CALLER TASKS 5, 6 AND 7 WERE BUILT FOR. Every instance of this environment
-       * that does not serve — the one this deploy replaced, and the backlog from before
+       * that does not serve — the set this deploy replaced, and the backlog from before
        * P4c (R7) — is drained and removed in the background. `schedule` returns at once;
        * the pass takes this environment's lock itself, so it waits for this deploy to
        * finish rather than racing it.
        */
       deps.retirer.schedule(environment.id)
     }
-    return updated!
+
+    /**
+     * WHAT IT ANSWERS (A1 Decision 6): the set in `(created_at, id)` order, read back in the
+     * database's own order — the order every read of the set uses — and the member that failed,
+     * or the set's first.
+     */
+    const set = await db
+      .select()
+      .from(instances)
+      .where(inArray(instances.id, memberIds))
+      .orderBy(asc(instances.createdAt), asc(instances.id))
+    return {
+      instances: set,
+      answer: healthy ? set[0]! : set.find((row) => row.id === members[failedIndex]!.id)!,
+    }
   })
+}
+
+/**
+ * Two instance ids in the order Postgres's `uuid` sorts them — byte by byte, which for the
+ * canonical lowercase form is the strings' own order. The set's order is `(created_at, id)`.
+ */
+function compareIds(a: string, b: string): number {
+  return a < b ? -1 : a > b ? 1 : 0
+}
+
+/**
+ * Revokes, by NAME, every key this deploy minted and stored — for a set that never served. Each
+ * through `revokeInstanceKeyQuietly`, so one gateway failure neither stops the others nor replaces
+ * the deploy's own failure; a key whose revoke failed stays recorded for the next retire.
+ */
+async function revokeMintedKeys(
+  ai: AiKeyService,
+  db: Db,
+  environment: { projectId: string; kind: InstanceKeyScope['kind'] },
+  minted: ReadonlyMap<string, string>,
+): Promise<void> {
+  for (const instanceId of minted.keys()) {
+    await revokeInstanceKeyQuietly(ai, db, {
+      projectId: environment.projectId,
+      kind: environment.kind,
+      instanceId,
+    })
+  }
 }
 
 /**
