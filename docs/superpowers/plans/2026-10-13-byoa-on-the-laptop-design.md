@@ -355,3 +355,31 @@ it**, and its acceptance says so: every agent in it runs on the laptop.
 4. **What an outside agent thinks with (§5.2)**: *"Unchanged; measure at Task 1 (Recommended)"* — Claude Code over `/v1/messages`, and
    Codex's configuration, measured; Spec action F dropped.
 5. **The rest**: *"Approve as written (Recommended)"* — §2, §3a–b with the correction, §5.1 and 5.3–5.5, §6, §7 and §8.
+
+---
+
+## Annotations after BR's review (2026-10-13, ~21:35 PDT) — the approved text above is unchanged
+
+*Added by `manifest-byoa-plan` when the plan was revised to BR's fresh review (`1fa72d6`) and Rich's X1 (a) (`327ca2f`). They correct or
+qualify the approved words without rewriting them; the plan's *What the review found, and where it went* has each in full.*
+
+- **§8, the FE-32 prerequisite (BP-M12).** *"its allowlist stops an outside agent committing any lockfile"* over-states it: FE-32 refuses at
+  its operation and at the build's gate, not at `createCommit`. An agent can still COMMIT any lockfile; it cannot BUILD one that names an
+  unlisted direct dependency or remaps a tarball. The placement after FE-32 stands on that.
+- **§0, Done 1 (BP-M11).** *"the token never in its model's context"* — read *"never put in its model's context by Manifest"*: the client keeps
+  the token in its own configuration, which the agent could read with its own file tools; the guides tell it never to.
+- **§2, the tools (BP-I6; Rich named at approval).** Three operations a token may call are not tools — the WebSocket, `startAgentSession`
+  (it answers a model key) and `getOpenApiDocument` (1.2 MB) — published in the contract's `x-manifest-alongside` with their reasons (X3).
+  The OpenAPI document is not a resource either.
+- **§2, the hints (BP-I8).** *"DELETE → destructiveHint; every mutation idempotentHint"* — the plan claims only what is true: read-only and
+  idempotent for a `GET`; nothing for a write, and never `destructiveHint: false`.
+- **§2, `waitForBuild` (D14).** *"bounded at ten minutes"* — short and resumable instead (`{ done: false }`, call again), below every
+  client's measured timeout and an edge reload.
+- **§2, the `401` (BP-M9).** `WWW-Authenticate: Bearer` stays only if Task 1 finds Claude Code does not start OAuth discovery from it; and
+  `initialize` now checks the token with one read, so a dead token never shows *"connected"*.
+- **§3c and §3b.** Unchanged in substance; the revoke declares `members:manage` so §26's codes are derived (BP-I5), and the quotas' window is
+  on the database's clock (BP-M6).
+- **§4 (X1, Rich's (a)).** *"The blueprint's pack keeps what is its skeleton's own and points to a toolkit for the rest"* stands — **after**
+  the front end's building agent reads each toolkit's pack (F7's new sitting 4); until then `AGENTS.md` stays whole.
+- **§6 (BP-I9).** What a provider sees also includes members' PUIDs and emails, the launch records, administrators' reasons, and what the
+  client keeps on the person's machine.
