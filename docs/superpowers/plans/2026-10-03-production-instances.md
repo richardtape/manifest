@@ -1537,7 +1537,7 @@ sweep `6eb15e0` (both Rich's, from staged scripts), Task 5 `163f42c`, and this c
     user was an unheld demo's). The script's sanity guard reads a truly empty LiteLLM as a broken read — harmless (it changes
     nothing), and the next demo's user ends it; a later sitting may teach the guard the difference.
 
-### Sitting 5 — 2026-10-13/14, 22:32–00:20 PDT (`manifest-a1-s5`, the second coordinated run's job S5): Task 6, the replay's clock order, FE-59 and FE-60
+### Sitting 5 — 2026-10-13/14, 22:32–00:16 PDT (`manifest-a1-s5`, the second coordinated run's job S5): Task 6, the replay's clock order, FE-59 and FE-60
 
 **Opened** by `manifest-coord3`'s GO (22:32), relaying Rich's decisions of 16:01 (`c0f969e`: answer 3 put the event replay's clock order
 in Task 6; answer 6 inline) and his words since — FE-59 (`40c0f82`), FE-60 (`71928a2`), his standing delegation to `manifest-coord3`
