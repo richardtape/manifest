@@ -3203,10 +3203,12 @@ describe('deployRelease replaces an instance without interrupting it (P4c Task 8
         .select()
         .from(routes)
         .where(eq(routes.hostname, staging.hostname))
-      // UPSERT, not a second row: one hostname reaches one instance.
+      // REPLACED AS A SET (A1 Task 3), not a second row beside the first: the hostname
+      // reaches exactly the instance this deploy made. The row is a new one — nothing refers
+      // to a Route by its id, and an upsert on the hostname is refused since the key became
+      // (hostname, instance).
       expect(afterSecond).toHaveLength(1)
       expect(afterSecond[0]!.instanceId).toBe(second.id)
-      expect(afterSecond[0]!.id).toBe(afterFirst[0]!.id)
     })
   })
 

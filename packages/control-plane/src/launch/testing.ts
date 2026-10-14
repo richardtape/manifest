@@ -9,7 +9,7 @@ import {
   privacyAssessments,
   projects,
   releases,
-  routes,
+  replaceRouteSet,
   type Db,
 } from '../db/index.js'
 import { manifestSchema } from '../spec/index.js'
@@ -279,9 +279,12 @@ export async function stagedRelease(
       state: 'healthy',
     })
     .returning()
-  await db
-    .insert(routes)
-    .values({ instanceId: instance!.id, hostname: env.hostname, listener: 'internal' })
-    .onConflictDoUpdate({ target: routes.hostname, set: { instanceId: instance!.id } })
+  // STAGING'S SET IS THIS ONE INSTANCE — the earlier release's row replaced, as a deploy replaces it
+  // (an upsert on `routes.hostname` is refused `42P10` since A1's Task 3 keyed routes on the pair).
+  await replaceRouteSet(db, {
+    hostname: env.hostname,
+    listener: 'internal',
+    instanceIds: [instance!.id],
+  })
   return { releaseId: release!.id, imageDigest }
 }

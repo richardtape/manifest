@@ -6,7 +6,7 @@ import {
   instances,
   projects,
   releases,
-  routes,
+  replaceRouteSet,
   withEnvironmentLock,
 } from '../db/index.js'
 import { offeredRefs, type BlueprintRegistry } from '../blueprints/index.js'
@@ -843,18 +843,15 @@ export async function deployRelease(
        * rather than the newest deploy, and the retirer reads them to know whether the
        * environment's pre-P4c key is still somebody's.
        *
-       * Upserted on the HOSTNAME: one hostname reaches one instance, and a redeploy
-       * moves the row it already has rather than adding a second.
+       * REPLACED AS A SET (A1 Task 3): the hostname's rows become exactly the instances it
+       * now reaches, in one transaction — a set of one until A1's Task 5 deploys N. An
+       * upsert on the hostname is refused `42P10` since the key became (hostname, instance).
        */
-      await db
-        .insert(routes)
-        .values({
-          instanceId,
-          hostname: environment.hostname,
-          listener: listenerFor(environment.kind),
-          kind: 'canonical',
-        })
-        .onConflictDoUpdate({ target: routes.hostname, set: { instanceId } })
+      await replaceRouteSet(db, {
+        hostname: environment.hostname,
+        listener: listenerFor(environment.kind),
+        instanceIds: [instanceId],
+      })
 
       /**
        * Every other instance of this environment is on its way out (Decision 17). The

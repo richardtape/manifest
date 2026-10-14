@@ -357,9 +357,11 @@ export const routeKind = pgEnum('route_kind', ['canonical', 'custom'])
  * route that outlived its instance would be a hostname dialling a container that is
  * gone, which is the 502 P4c exists to remove.
  *
- * Unique on `hostname` alone: one hostname reaches one instance, and that uniqueness
- * is what makes the takeover an UPDATE rather than a second row nothing can choose
- * between.
+ * **ONE ROW PER (hostname, instance) — A HOSTNAME REACHES A SET** (A1 Task 3, Decision 5).
+ * It was unique on `hostname` alone — one hostname, one instance — and production now runs
+ * as many instances as its audience needs behind one route. A hostname's rows are replaced
+ * as a set, never upserted one by one: `replaceRouteSet` (`db/routes.ts`) is their one
+ * writer, so a set is never half the old and half the new.
  */
 export const routes = pgTable(
   'routes',
@@ -372,7 +374,7 @@ export const routes = pgTable(
     listener: routeListener('listener').notNull(),
     kind: routeKind('kind').notNull().default('canonical'),
   },
-  (t) => [uniqueIndex('routes_hostname_key').on(t.hostname)],
+  (t) => [uniqueIndex('routes_hostname_instance_key').on(t.hostname, t.instanceId)],
 )
 
 export const serviceInstances = pgTable('service_instances', {
