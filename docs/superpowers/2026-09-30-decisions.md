@@ -1694,3 +1694,14 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
     clicked half — is skipped or parked, the session carrying on with everything that does not depend on it, and each is listed
     for him in the morning report with its exact command; nothing is worked around. His delegation (~19:38) still decides the
     questions.
+
+    And at ~22:40 PDT, DECIDED BY manifest-coord3 UNDER RICH'S DELEGATION OF 2026-10-13 ~19:38 — FOR HIS REVIEW: W2's note on
+    launch/records.ts drawnFrom (the claim "the release serving staging cannot ask for what UBC has not registered — its build is
+    refused until UBC registers it" is false for a release built before production's registeredAt was set and for a moved
+    auth.callback/logout). manifest-a1-s5 found it in THREE places: (a) drawnFrom's comment; (b) the published WARNING string in
+    drawnFrom's `warnings` (and its copy in packages/mock/src/launch.ts:476, pinned by the mock's scripted.test.ts:831); (c) the
+    draftIamRegistration operation's published DESCRIPTION (api/routes/launch.ts ~307 → openapi.json). CHOSEN: (B) — reword all
+    three, text only, no shape change, inside contract 1.9.0's notice (S5's G3 notice). Why: (b) and (c) are published and false in
+    the same two cases; the front end never reads the platform's warnings text (FE-9, pinned by manifest-app's
+    screens/going-live/stale.test.ts:183) nor copies the sentence (checked), so nothing of ours moves. Rejected: (A) the comment
+    only, leaving a published false sentence.
