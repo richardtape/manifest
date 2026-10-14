@@ -1991,3 +1991,8 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
     (sha256 c62152499d3d2540…) and restarted 7100 at 11:35:12; one call answered "ready" on gpt-6-luna, no fallback. For after the
     demo: the front end's stall guard is tuned to luna's steady stream; sol pauses mid-answer — a front-end finding, then sol retried.
     topic-choice and its repository stay in place.
+
+    At ~11:39–11:42 PDT, in chat to manifest-coord4: "Can you give me another student and instructor account please from our local
+    cwl?" — told: the laptop IdP has four (student, instructor, colleague — the second faculty member, operator — staff); then "yes
+    please add the second student." So `student2:student2` (Test Student Two, student2@student.ubc.ca, PUID stu000002, student) is
+    added to infra/idp/config/authsources.php by manifest-a1-s8, written in place (the file is a single-file bind mount), no restart.
