@@ -1972,3 +1972,14 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
     the same call then answered "ready" on gpt-6-luna, no fallback attempted. "registered" proves LiteLLM accepted the entry, not that
     the gateway serves the model: only a call proves that. Sol's name on UBC's gateway (or its availability to his key) is open, for
     after the demo. Plans on the capable model (7105 restarted 11:16:24 with MANIFEST_APP_PLAN_MODEL=default-chat-large) stand.
+
+    At ~11:23–11:27 PDT, in chat to manifest-coord4: "I think I added gpt-6.1-sol to the litellm on ai-gateway can you test? I'd also
+    like us to investigate (later, not in time for my demo) NOT using the ai-gateway when developing locally like we are now, and
+    instead using our local copy of LiteLLM." TESTED (manifest-coord4, from inside manifest-litellm, the gateway key read from that
+    container's environment and never printed): the gateway's /v1/models lists gpt-5.4-mini, gpt-5.6-luna, gpt-5.6-terra, gpt-6-luna,
+    gpt-6.1-sol; one chat call to gpt-6.1-sol answered "ready" (200, 17 tokens). Asked through the question tool, his answer: "Switch
+    now; I'll test on sol (Recommended)" — the repoint again (MANIFEST_CAPABLE_MODEL=ubc-ai-gateway/gpt-6.1-sol), proved by one call
+    through our LiteLLM before he test-builds on it; luna back in ~1 min if the build misbehaves. Not "Wait — my luna build is
+    running", not "Keep luna for the demo". AND, FOR LATER (after the demo): an investigation of running the laptop's capable model
+    through our own LiteLLM straight to the provider rather than through UBC's AI Gateway — what it costs (the provider key, its
+    data retention and so the `high` attestation, prices, the gateway's spend view) and what it keeps (production's shape at UBC).
