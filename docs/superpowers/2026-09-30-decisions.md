@@ -1777,3 +1777,12 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
     replacement brings it back). OPEN FOR RICH (a product question, not decided overnight): a production member that stopped with
     replacing stopped while the rest of the set still serves is told to nobody — as before A1 — though the app now runs one copy short
     until it is deployed again.
+
+    At ~02:42 PDT, W4's WORDS QUESTION — decided by manifest-coord3 under Rich's delegation, for his review. W4 (contract 1.9.0's
+    adoption) holds our own watch's outage email while the platform replaces a production member, and sends it if the app is still
+    down when replacing STOPS (three replacements this hour, or one refused). Today that email says "Starting it again usually fixes
+    it." CHOSEN: when replacing has stopped, the email does NOT say that sentence — three restarts did not fix it — and points the
+    owner to the problem itself (its [Give this to your agent] and the Incident's own words, which say the platform stopped
+    replacing it), still offering [Start it again] once the owner has changed something. The words are ours, drafted by W4, marked
+    "Ours, for Rich". Rejected: keep the sentence (untrue after three tries); drop the offer altogether (a person may still want it
+    after a fix).
