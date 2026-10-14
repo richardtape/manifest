@@ -1236,7 +1236,7 @@ export const releaseRoutes = [
     tag: 'delivery',
     summary: 'An environment’s incidents',
     description:
-      'The environment’s Incidents, newest first: each failed deploy’s exit, last 200 log lines, failing check and diff since the last healthy release, with a repair prompt. A delegated token is refused the staging and production Incidents of a project whose data is `high` or `very-high` (`INCIDENT_LOG_CONFIDENTIAL`); a session reads them, and any token reads the sandbox’s.',
+      'The environment’s Incidents, newest first: each failed deploy’s exit — and each production instance that stopped while it was serving (`cause`) — its last 200 log lines, failing check and diff since the last healthy release, with a repair prompt. A delegated token is refused the staging and production Incidents of a project whose data is `high` or `very-high` (`INCIDENT_LOG_CONFIDENTIAL`); a session reads them, and any token reads the sandbox’s.',
     params: EnvironmentParams,
     query: NO_QUERY,
     body: NO_BODY,
@@ -1258,6 +1258,7 @@ export const releaseRoutes = [
             diffSinceHealthy:
               'This app has never been healthy in staging, so there is no working release to compare this one with.',
             createdAt: '2026-09-26T21:47:38.803Z',
+            cause: 'deploy',
             prompt:
               'The application "chem-labs" failed to start in its staging environment.\n\nWhat the platform checked: health: GET /healthz on port 3000 — the driver reported the instance as failed\nHow it ended: the platform reports the instance as failed\n\nWhat changed since the last time it starte …',
           },

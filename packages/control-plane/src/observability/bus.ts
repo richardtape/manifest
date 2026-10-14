@@ -227,10 +227,12 @@ export async function publishEvent(
  * The replay: a project's newest `limit` events, returned OLDEST FIRST — a build's
  * events read newest first are a build that fails before it starts.
  *
- * Ordered by `created_at`, which is `clock_timestamp()` rather than `now()` (migration
- * 0007): `now()` is the transaction's start, so every event one transaction wrote
- * carried the same instant and came back in whatever order the index held. `id` breaks
- * a tie at the microsecond, so the order is at least stable.
+ * **ORDERED BY `seq`, THE ORDER THEY WERE RECORDED IN — NEVER BY A CLOCK** (A1 Task 6; migration
+ * 0055). It read `created_at` — `clock_timestamp()` since migration 0007, because `now()` gave
+ * every event of one transaction the same instant — and that clock can step BACK: `manifest-p9`'s
+ * `pnpm test` (2026-10-13) replayed the 4th of four events below the 2nd and dropped the 3rd from
+ * the window. `seq` is an identity assigned at the insert. `created_at` is still the time each
+ * frame shows.
  */
 export async function recentFramesFor(
   db: Db,
@@ -255,7 +257,7 @@ export async function recentFramesFor(
     .leftJoin(users, eq(users.id, events.actorUserId))
     .leftJoin(delegatedTokens, eq(delegatedTokens.id, events.actorTokenId))
     .where(eq(events.projectId, projectId))
-    .orderBy(desc(events.createdAt), desc(events.id))
+    .orderBy(desc(events.seq))
     .limit(limit)
   return newestFirst
     .reverse()

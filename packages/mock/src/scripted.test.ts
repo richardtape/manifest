@@ -828,7 +828,7 @@ describe('the launch path plan’s Task 13 — the records by stage, the sign-of
       acsUrl: live.acsUrl,
     })
     expect(change.package!.warnings).toEqual([
-      'A change to a live registration is drawn from the newest valid manifest: the release serving staging cannot ask for what UBC has not registered.',
+      'A change to a live registration is drawn from the newest valid manifest: that is where the change is being made.',
     ])
     expect(Date.parse(change.package!.generatedAt)).toBeGreaterThan(
       Date.parse(live.package!.generatedAt),

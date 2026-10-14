@@ -1,5 +1,6 @@
 import { sql } from 'drizzle-orm'
 import {
+  bigint,
   boolean,
   check,
   index,
@@ -15,6 +16,7 @@ import {
   unique,
   uniqueIndex,
   uuid,
+  type AnyPgColumn,
 } from 'drizzle-orm/pg-core'
 
 export const userRole = pgEnum('user_role', ['admin', 'member'])
@@ -333,6 +335,18 @@ export const instances = pgTable(
      * `created_at` — the earliest the instance could have been made.
      */
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    /**
+     * THE MEMBER THIS INSTANCE WAS STARTED TO REPLACE (A1 Task 6, Decision 11): set on every member of the set
+     * watcher's redeploy (`purpose: 'replacement'`) to the production instance that exited, null on every
+     * deploy a person made. It is how the watcher's backoff and cap are DERIVED from rows rather than kept in
+     * memory: the replacements this hour are the distinct replacement deploys — each one statement, so one
+     * `created_at` — since the later of an hour ago and the environment's last deploy that replaced nothing,
+     * so a restart neither forgets the cap nor counts twice, a failed replacement counts (its rows exist), and
+     * a person's deploy starts the count again.
+     */
+    replacing: uuid('replacing').references((): AnyPgColumn => instances.id, {
+      onDelete: 'set null',
+    }),
   },
   (t) => [index('instances_environment_idx').on(t.environmentId)],
 )
@@ -1291,8 +1305,20 @@ export const events = audit.table(
     createdAt: timestamp('created_at', { withTimezone: true })
       .notNull()
       .default(sql`clock_timestamp()`),
+    /**
+     * THE ORDER EVENTS WERE RECORDED IN (A1 Task 6; the roadmap's tracked defect *"an event replay is ordered
+     * by the database's wall clock"*). `created_at` is the server's `clock_timestamp()`, and that clock can
+     * step BACK — Postgres runs in Docker Desktop's VM — so a replay ordered by it once returned the 4th of
+     * four events below the 2nd and dropped the 3rd from its window (`manifest-p9`, 2026-10-13). An identity
+     * is assigned at the insert and never goes backwards: the replay is ordered by THIS, and `created_at`
+     * stays the time a person is shown. Existing rows were numbered in the table's own order when the column
+     * arrived (migration 0055) — append-only, so the order they were written.
+     */
+    seq: bigint('seq', { mode: 'number' }).notNull().generatedAlwaysAsIdentity(),
   },
   (t) => [
+    /** The replay's read: a project's newest events by `seq` (`observability/bus.ts`'s `recentFramesFor`). */
+    index('events_project_seq_idx').on(t.projectId, t.seq),
     /**
      * The closed set, enforced by the database as well as by `observability/`'s
      * `EVENT_TYPES` (P4b Task 15). Written out HERE rather than imported, on purpose:
@@ -1301,7 +1327,7 @@ export const events = audit.table(
      */
     check(
       'events_type_known',
-      sql`${t.type} IN ('sso.registered', 'sso.acs_changed', 'build.started', 'build.succeeded', 'build.failed', 'instance.provisioning', 'instance.starting', 'instance.healthy', 'instance.failed', 'incident.opened', 'ai.key_rotated', 'ai.models_withdrawn', 'instance.retiring', 'instance.retired', 'instance.retire_failed', 'project.created', 'repository.seeded', 'spec.validated', 'token.minted', 'pending_action.created', 'pending_action.confirmed', 'pending_action.rejected', 'pending_action.expired', 'iam_registration.recorded', 'privacy_assessment.recorded', 'iam_registration.submitted', 'privacy_assessment.submitted', 'iam_registration.sent', 'privacy_assessment.sent', 'iam_registration.returned', 'privacy_assessment.returned', 'iam_registration.drafted', 'privacy_assessment.drafted', 'rehearsal.completed', 'release.approved', 'release.approval_rejected', 'approval.requested', 'project.launched', 'repository.pushed', 'repository.history_rewritten', 'repository.visibility_enforced', 'repository.secret_detected', 'repository.scan_incomplete', 'repository.protection_unavailable', 'repository.committed', 'repository.secret_refused', 'app_secret.set', 'app_secret.cleared', 'project.renamed', 'member.added', 'member.removed', 'agent_session.started', 'agent_session.narrowed', 'agent_session.ended', 'sso.deregistered', 'project.archived', 'project.restored', 'project.deleted')`,
+      sql`${t.type} IN ('sso.registered', 'sso.acs_changed', 'build.started', 'build.succeeded', 'build.failed', 'instance.provisioning', 'instance.starting', 'instance.healthy', 'instance.failed', 'incident.opened', 'ai.key_rotated', 'ai.models_withdrawn', 'instance.retiring', 'instance.retired', 'instance.retire_failed', 'project.created', 'repository.seeded', 'spec.validated', 'token.minted', 'pending_action.created', 'pending_action.confirmed', 'pending_action.rejected', 'pending_action.expired', 'iam_registration.recorded', 'privacy_assessment.recorded', 'iam_registration.submitted', 'privacy_assessment.submitted', 'iam_registration.sent', 'privacy_assessment.sent', 'iam_registration.returned', 'privacy_assessment.returned', 'iam_registration.drafted', 'privacy_assessment.drafted', 'rehearsal.completed', 'release.approved', 'release.approval_rejected', 'approval.requested', 'project.launched', 'repository.pushed', 'repository.history_rewritten', 'repository.visibility_enforced', 'repository.secret_detected', 'repository.scan_incomplete', 'repository.protection_unavailable', 'repository.committed', 'repository.secret_refused', 'app_secret.set', 'app_secret.cleared', 'project.renamed', 'member.added', 'member.removed', 'agent_session.started', 'agent_session.narrowed', 'agent_session.ended', 'sso.deregistered', 'project.archived', 'project.restored', 'project.deleted', 'instance.exited')`,
     ),
     /**
      * §26, held by the database as well as by `assertCapability` (the faculty-ready plan's Task 10):
@@ -1393,10 +1419,23 @@ export const incidents = audit.table(
     failedCheck: text('failed_check').notNull(),
     diffSinceHealthy: text('diff_since_healthy').notNull(),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    /**
+     * WHAT THE INCIDENT IS ABOUT (A1 Task 6), which its repair prompt opens with: `deploy` — a deploy that
+     * never became healthy, every Incident before this column; `exit` — a production member that stopped
+     * while it was serving, and is being replaced; `exit_stopped` — the same, with replacing STOPPED: three
+     * replacements this hour, or one refused. The prompt is built when it is read, so the row must say which.
+     */
+    cause: text('cause', { enum: ['deploy', 'exit', 'exit_stopped'] })
+      .notNull()
+      .default('deploy'),
   },
-  // Postgres does not index a foreign key's referencing column by itself, and the
-  // environment's incident list joins on it.
-  (t) => [index('incidents_instance_idx').on(t.instanceId)],
+  (t) => [
+    // Postgres does not index a foreign key's referencing column by itself, and the
+    // environment's incident list joins on it.
+    index('incidents_instance_idx').on(t.instanceId),
+    // `text(…, { enum })` types the column and creates nothing in the database (`build_logs`' reason).
+    check('incidents_cause_known', sql`${t.cause} IN ('deploy', 'exit', 'exit_stopped')`),
+  ],
 )
 
 /**

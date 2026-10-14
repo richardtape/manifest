@@ -209,6 +209,24 @@ A replaced instance could not be retired, and will be tried again — never sile
 }
 ```
 
+## `instance.exited`
+
+A production instance stopped while it was serving — its process ended, it disappeared, or it failed its health check for a minute — and an Incident records why. The app is deployed again as a set beside what still serves, backing off; after three replacements in an hour replacing stops until the app is deployed again, and the Incident says so.
+
+```json
+{
+  "instanceId": "6f1c1d2e-8a4b-4c3d-9e2f-1a2b3c4d5e6f",
+  "releaseId": "6f1c1d2e-8a4b-4c3d-9e2f-1a2b3c4d5e6f",
+  "environmentId": "6f1c1d2e-8a4b-4c3d-9e2f-1a2b3c4d5e6f",
+  "environment": "production",
+  "reason": "exited",
+  "exitCode": 137,
+  "attempt": 1,
+  "replacement": "scheduled",
+  "nextInSeconds": 0
+}
+```
+
 ## `project.created`
 
 A project and its three environments were created. `repository.seeded` and `spec.validated` follow.
@@ -343,7 +361,8 @@ An administrator recorded what UBC IAM registered for the app’s staging or pro
   "environment": "production",
   "entityId": "https://manifest.internal/sp/chem-labs/production",
   "externalTicketRef": "IAM-2026-0412",
-  "attributeCount": 2
+  "attributeCount": 2,
+  "changeRequestedFrom": null
 }
 ```
 
@@ -367,7 +386,8 @@ The Manifest team submitted the app’s staging or production registration reque
   "environment": "staging",
   "sentAt": "2026-09-29",
   "externalTicketRef": "IAM-2026-0500",
-  "changeRequest": false
+  "changeRequest": false,
+  "requestedAttributes": null
 }
 ```
 
@@ -388,8 +408,13 @@ The owner sent the app’s staging or production registration to the Manifest te
 
 ```json
 {
-  "environment": "staging",
-  "sentFrom": "draft"
+  "environment": "production",
+  "sentFrom": "active",
+  "requestedAttributes": [
+    "ubcEduCwlPuid",
+    "mail",
+    "eduPersonAffiliation"
+  ]
 }
 ```
 

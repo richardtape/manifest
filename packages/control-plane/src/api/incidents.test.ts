@@ -25,6 +25,7 @@ async function incidentIn(
   ctx: TestProject,
   environmentId: string,
   classification?: Classification,
+  cause?: 'deploy' | 'exit' | 'exit_stopped',
 ): Promise<void> {
   const [spec] = await ctx.db
     .select({ id: appSpecs.id })
@@ -69,6 +70,7 @@ async function incidentIn(
     logTail: LOG_TAIL,
     failedCheck: 'health: GET /healthz on port 3000',
     diffSinceHealthy: 'This app has never been healthy here.',
+    ...(cause === undefined ? {} : { cause }),
   })
 }
 
@@ -267,6 +269,32 @@ describe('listIncidents — a high or very-high project’s staging and producti
         code: 'INCIDENT_LOG_CONFIDENTIAL',
       })
       expect(tailOf(await read(ctx, ctx.stagingEnvironmentId, {}))).toEqual([LOG_TAIL])
+    })
+  })
+})
+
+describe('listIncidents — what each Incident is ABOUT (A1 Task 6; Incident.cause)', () => {
+  it('answers each Incident’s cause from the record — `deploy` for one written before exits were watched — and a prompt that opens with it', async () => {
+    await withSetting('capable', async (ctx) => {
+      await incidentIn(ctx, ctx.productionEnvironmentId)
+      await incidentIn(ctx, ctx.productionEnvironmentId, undefined, 'exit')
+      await incidentIn(ctx, ctx.productionEnvironmentId, undefined, 'exit_stopped')
+      const res = await read(ctx, ctx.productionEnvironmentId, {})
+      expect(res.statusCode).toBe(200)
+      const listed = (res.json() as { incidents: { cause: string; prompt: string }[] })
+        .incidents
+      // Newest first — each said by its own field, never left for a client to read off the prose.
+      expect(listed.map((incident) => incident.cause).sort()).toEqual([
+        'deploy',
+        'exit',
+        'exit_stopped',
+      ])
+      const opening = Object.fromEntries(
+        listed.map((incident) => [incident.cause, incident.prompt.split('\n')[0]]),
+      )
+      expect(opening.deploy).toMatch(/failed to start in its production environment/)
+      expect(opening.exit).toMatch(/stopped while it was serving/)
+      expect(opening.exit_stopped).toMatch(/has stopped replacing it/)
     })
   })
 })

@@ -332,9 +332,10 @@ export async function recordIamRegistration(
     .returning()
 
   /**
-   * §14 and Decision 14. **THE TICKET REFERENCE IS IN THE EVENT AND THE ATTRIBUTES ARE
-   * NOT**: a list of requested CWL attributes on a project's public stream is more than
-   * the stream needs to carry, and `getLaunchRecords` is where a member reads them.
+   * §14 and Decision 14. **THE TICKET REFERENCE IS IN THE EVENT, AND WHAT UBC REGISTERED IS A
+   * COUNT**: `getLaunchRecords` is where a member reads the list. **And where a change request came
+   * from, as the row holds it** (FE-59, A1 sitting 5): without it UBC's questions to the owner and a
+   * change an administrator filed with UBC read the same to a client watching the stream.
    */
   await publishEvent(
     db,
@@ -349,6 +350,7 @@ export async function recordIamRegistration(
         entityId: row!.entityId,
         externalTicketRef: row!.externalTicketRef ?? null,
         attributeCount: input.registeredAttributes.length,
+        changeRequestedFrom: row!.changeRequestedFrom ?? null,
       },
       humanMessage:
         `${await personName(db, input.actor.id)} recorded this app's ${environment} UBC IAM registration as ${state}` +
@@ -734,7 +736,13 @@ export async function sendIamRegistration(
       projectId: input.projectId,
       subject: `iam-registration:${row.id}`,
       type: 'iam_registration.sent',
-      machineDetail: { environment: input.environment, sentFrom: row.sentFrom! },
+      // WHAT IT ASKS FOR, as the row has it after the send (FE-60, A1 sitting 5): a change names its
+      // attributes, so one detail's wait is told from another's; null for a first registration.
+      machineDetail: {
+        environment: input.environment,
+        sentFrom: row.sentFrom!,
+        requestedAttributes: row.requestedAttributes ?? null,
+      },
       humanMessage:
         row.sentFrom === 'active'
           ? `${name} asked for a change to this app's ${input.environment} registration, sent to the Manifest team to file with UBC IAM.`
@@ -914,6 +922,8 @@ export async function recordIamSubmission(
         sentAt: day,
         externalTicketRef: row.externalTicketRef ?? null,
         changeRequest,
+        // FE-60: what the filed change asks for, as the row keeps it while UBC considers it.
+        requestedAttributes: row.requestedAttributes ?? null,
       },
       humanMessage: changeRequest
         ? `${await personName(db, input.actor.id)} recorded that the Manifest team filed a change request for this app's ${input.environment} registration with UBC IAM on ${vancouverDayInWords(vancouverNoon(day))} (ticket ${input.reference}).`
@@ -1207,17 +1217,21 @@ async function drawnFrom(
   existing: Pick<IamRegistrationRow, 'state' | 'registeredAt'> | undefined,
 ): Promise<{ auth: ManifestSpec['auth']; commit: string; warnings: string[] }> {
   // A CHANGE TO A LIVE REGISTRATION (FE-47; Decision 21), for either environment, is drawn from the NEWEST
-  // VALID MANIFEST: the release serving staging cannot ask for what UBC has not registered — its build is
-  // refused until UBC registers it — so the candidate would only ever ask for what UBC already has. LIVE is
-  // UBC's registration in force, not only `active`: a change UBC sent back with questions (`change_requested`
-  // from `submitted`) is drafted again as the change it is (the whole-branch review's I1).
+  // VALID MANIFEST, because that is where the change is being made. The release serving staging is not a
+  // reliable source of it: once UBC's production registration is in force, a build asking for an attribute
+  // UBC has not registered is refused (`assertAttributesRegistered`), so the candidate usually asks for only
+  // what UBC already has — but NOT ALWAYS (W2's note, A1 sitting 5): a release built before production's
+  // `registered_at` was set was never checked, and the build check never reads `auth.callback` or
+  // `auth.logout`, so the candidate can carry part of a change, or a stale one. LIVE is UBC's registration in
+  // force, not only `active`: a change UBC sent back with questions (`change_requested` from `submitted`) is
+  // drafted again as the change it is (the whole-branch review's I1).
   if (existing !== undefined && registrationInForce(existing)) {
     const newest = await newestValidSpec(db, projectId, 'a change to a registration')
     return {
       auth: newest.spec.auth,
       commit: newest.commit,
       warnings: [
-        'A change to a live registration is drawn from the newest valid manifest: the release serving staging cannot ask for what UBC has not registered.',
+        'A change to a live registration is drawn from the newest valid manifest: that is where the change is being made.',
       ],
     }
   }

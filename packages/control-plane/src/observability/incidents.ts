@@ -41,7 +41,16 @@ export interface CaptureIncidentInput {
   instanceId: string
   /** What the platform checked and how that ended, in words: §14's "the failing check". */
   failedCheck: string
+  /**
+   * What the Incident is about (A1 Task 6) — `deploy` when absent: a deploy that never became healthy.
+   * `exit` and `exit_stopped` are the set watcher's: a production member that stopped while it was
+   * serving, being replaced, or with replacing stopped. Its repair prompt opens with which.
+   */
+  cause?: IncidentCause
 }
+
+/** What an Incident is about — `incidents.cause` (A1 Task 6). */
+export type IncidentCause = 'deploy' | 'exit' | 'exit_stopped'
 
 /**
  * §14's Incident, captured: the exit reason, the last 200 log lines, the failing check
@@ -93,6 +102,7 @@ export async function captureIncident(
       logTail: String(redact(logTail)),
       failedCheck: String(redact(input.failedCheck)),
       diffSinceHealthy: String(redact(diffSinceHealthy)),
+      cause: input.cause ?? 'deploy',
     })
     .returning()
   return row!
@@ -126,11 +136,18 @@ export async function listIncidents(
  * does not.
  */
 export function incidentPrompt(
-  incident: Pick<Incident, 'exitReason' | 'failedCheck' | 'logTail' | 'diffSinceHealthy'>,
+  incident: Pick<
+    Incident,
+    'exitReason' | 'failedCheck' | 'logTail' | 'diffSinceHealthy'
+  > & {
+    /** Absent on an Incident built before A1 Task 6 — every one of them a deploy's. */
+    cause?: IncidentCause
+  },
   ctx: { slug: string; environmentKind: string },
 ): string {
+  const { opening, ask } = PROMPT_BY_CAUSE[incident.cause ?? 'deploy'](ctx)
   return [
-    `The application "${ctx.slug}" failed to start in its ${ctx.environmentKind} environment.`,
+    opening,
     '',
     `What the platform checked: ${incident.failedCheck}`,
     `How it ended: ${incident.exitReason}`,
@@ -141,9 +158,36 @@ export function incidentPrompt(
     'The last lines the application printed:',
     incident.logTail,
     '',
-    'Change the application code or manifest.yaml so that this check passes, and',
+    ...ask,
     'explain the change in one sentence a non-engineer can read.',
   ].join('\n')
+}
+
+/**
+ * HOW EACH KIND OF INCIDENT OPENS, AND WHAT IT ASKS FOR (A1 Task 6). A deploy that never started asks for
+ * the check to pass; an exit asks for an app that keeps running — the platform has already started it again,
+ * or, past three in an hour, has stopped doing so, and the agent is told which.
+ */
+const PROMPT_BY_CAUSE: Record<
+  IncidentCause,
+  (ctx: { slug: string; environmentKind: string }) => { opening: string; ask: string[] }
+> = {
+  deploy: (ctx) => ({
+    opening: `The application "${ctx.slug}" failed to start in its ${ctx.environmentKind} environment.`,
+    ask: ['Change the application code or manifest.yaml so that this check passes, and'],
+  }),
+  exit: (ctx) => ({
+    opening:
+      `The application "${ctx.slug}" stopped while it was serving in its ${ctx.environmentKind} environment. ` +
+      'The platform is starting it again; the rest of its copies, if any, kept serving.',
+    ask: ['Change the application code so that it keeps running, and'],
+  }),
+  exit_stopped: (ctx) => ({
+    opening:
+      `The application "${ctx.slug}" keeps stopping in its ${ctx.environmentKind} environment, so the platform ` +
+      'has stopped replacing it: nothing more is started until the app is deployed again.',
+    ask: ['Change the application code so that it keeps running, deploy it again, and'],
+  }),
 }
 
 /** A code or a class name — never a message, which can carry text the app printed. */

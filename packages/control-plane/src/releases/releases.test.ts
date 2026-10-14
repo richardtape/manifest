@@ -3873,3 +3873,211 @@ describe('deployRelease across N — production runs as many instances as its au
     })
   })
 })
+
+/**
+ * A1 TASK 6 — THE SET WATCHER'S REDEPLOY, `purpose: 'replacement'`: the release production already serves,
+ * deployed again as a set beside the survivors when a member exits. It skips the route's §13 checklist
+ * (Rich, *"Skip the checklist"*) and KEEPS the approval's digest check (Review Focus 8) — the condition is
+ * `purpose !== 'rehearsal'`, so no purpose added after this one can skip it by being new.
+ */
+describe('deployRelease for a REPLACEMENT — the set watcher’s redeploy (A1 Task 6)', () => {
+  /** A `class` project, its release approved, launched on two instances. */
+  async function launchedPair(
+    db: Parameters<typeof createProject>[0],
+    driver: Driver,
+    deps: DeployDeps = deployDeps,
+    resolvedConfig: ResolvedConfigSet = RESOLVED,
+  ) {
+    const { user, project, appSpec, byKind } = await fixture(db)
+    await db
+      .update(projects)
+      .set({ audience: { ...testAudience(user.id), scale: 'class' } })
+      .where(eq(projects.id, project.id))
+    const build = await buildToEnd(
+      { db, driver, bus },
+      {
+        projectId: project.id,
+        projectSlug: project.slug,
+        appSpecId: appSpec.id,
+        commitSha: appSpec.commitSha,
+        blueprintRef: project.blueprintRef,
+        repoPath: '/tmp/chem-labs.git',
+      },
+    )
+    const release = await createRelease(db, {
+      projectId: project.id,
+      buildId: build.id,
+      appSpecId: appSpec.id,
+      createdBy: user.id,
+      resolvedConfig,
+    })
+    await approveFor(db, release, user, build.imageDigest!)
+    const launched = await deployReleaseSet(db, driver, config, deps, {
+      releaseId: release.id,
+      environmentId: byKind.production!.id,
+    })
+    return { user, project, build, release, production: byKind.production!, launched }
+  }
+
+  it('is checked against the approval as a launch is: a release REJECTED since is refused RELEASE_DIGEST_NOT_APPROVED, and nothing is started', async () => {
+    await withRollback(async (db) => {
+      const driver = createFakeDriver()
+      const { user, build, release, production, launched } = await launchedPair(
+        db,
+        driver,
+      )
+      const rowsBefore = await db
+        .select({ id: instances.id })
+        .from(instances)
+        .where(eq(instances.environmentId, production.id))
+      await approveFor(db, release, user, build.imageDigest!, 'rejected')
+      // LATER than the approval, as an administrator's second decision is: inside one transaction both
+      // would carry its start, and the newest decision is then a coin toss on their ids.
+      await db
+        .update(approvals)
+        .set({ decidedAt: new Date(Date.now() + 60_000) })
+        .where(
+          and(eq(approvals.releaseId, release.id), eq(approvals.decision, 'rejected')),
+        )
+
+      await expect(
+        deployRelease(db, driver, config, deployDeps, {
+          releaseId: release.id,
+          environmentId: production.id,
+          purpose: 'replacement',
+          replacing: launched.instances[0]!.id,
+        }),
+      ).rejects.toMatchObject({ code: 'RELEASE_DIGEST_NOT_APPROVED' })
+      // NOTHING STARTED: no row, and the set serving is the one launched.
+      expect(
+        await db
+          .select({ id: instances.id })
+          .from(instances)
+          .where(eq(instances.environmentId, production.id)),
+      ).toEqual(rowsBefore)
+      expect((await driver.servingInstances(production.hostname)).sort()).toEqual(
+        launched.instances.map((member) => member.handle!).sort(),
+      )
+    })
+  })
+
+  it('redeploys the set — production’s count, each member recording the instance it replaces — and records NO launch', async () => {
+    await withRollback(async (db) => {
+      const driver = createFakeDriver()
+      const { project, release, production, launched } = await launchedPair(db, driver)
+      const at = await launchedAt(db, project.id)
+      const dead = launched.instances[0]!
+
+      const replaced = await deployReleaseSet(db, driver, config, deployDeps, {
+        releaseId: release.id,
+        environmentId: production.id,
+        purpose: 'replacement',
+        replacing: dead.id,
+      })
+
+      expect(replaced.instances.map((member) => member.state)).toEqual([
+        'healthy',
+        'healthy',
+      ])
+      expect(replaced.instances.map((member) => member.replacing)).toEqual([
+        dead.id,
+        dead.id,
+      ])
+      // A person's deploy replaces nothing.
+      expect(launched.instances.map((member) => member.replacing)).toEqual([null, null])
+      expect((await driver.servingInstances(production.hostname)).sort()).toEqual(
+        replaced.instances.map((member) => member.handle!).sort(),
+      )
+      // The launch is the person's, once: a replacement is not one.
+      expect(await launchedAt(db, project.id)).toEqual(at)
+      expect(
+        await db
+          .select({ id: events.id })
+          .from(events)
+          .where(
+            and(eq(events.projectId, project.id), eq(events.type, 'project.launched')),
+          ),
+      ).toHaveLength(1)
+    })
+  })
+
+  it('signs people in with production’s identity provider, exactly as the launch it replaces — never the rehearsal’s', async () => {
+    await withRollback(async (db) => {
+      const driver = createFakeDriver()
+      const sso = {
+        registerServiceProvider: async (_db: unknown, input: SpRegistrationInput) => ({
+          entity: {
+            entityId: `https://manifest.internal/sp/${input.slug}/${input.environmentKind}`,
+            acsUrl: `https://${input.hostname}${input.auth.callback}`,
+            sloUrl: `https://${input.hostname}${input.auth.logout}`,
+            attributes: [...input.auth.attributes],
+          },
+          keypair: {
+            privateKeyPem: '',
+            certificatePem: '',
+            certData: '',
+            fingerprint: '',
+            expiresAt: new Date(),
+          },
+          changed: true,
+        }),
+        idpSigningCertificate: async () =>
+          '-----BEGIN CERTIFICATE-----\nRECORDER\n-----END CERTIFICATE-----\n',
+      }
+      const deps = { ...deployDeps, sso }
+      const { release, production, launched } = await launchedPair(
+        db,
+        driver,
+        deps,
+        RESOLVED_WITH_CWL,
+      )
+      const seen: InstanceSpec[][] = []
+      const ensure = driver.ensureInstances.bind(driver)
+      vi.spyOn(driver, 'ensureInstances').mockImplementation(async (specs) => {
+        seen.push([...specs])
+        return ensure(specs)
+      })
+      await deployReleaseSet(db, driver, config, deps, {
+        releaseId: release.id,
+        environmentId: production.id,
+        purpose: 'replacement',
+        replacing: launched.instances[0]!.id,
+      })
+      expect(seen).toHaveLength(1)
+      expect(seen[0]!.map((spec) => spec.env.SAML_ENVIRONMENT)).toEqual([
+        'PRODUCTION',
+        'PRODUCTION',
+      ])
+    })
+  })
+
+  it('takes `replacing` only with purpose replacement, and a replacement only with `replacing` — refused before anything starts', async () => {
+    await withRollback(async (db) => {
+      const driver = createFakeDriver()
+      const { release, production, launched } = await launchedPair(db, driver)
+      const count = async () =>
+        (
+          await db
+            .select({ id: instances.id })
+            .from(instances)
+            .where(eq(instances.environmentId, production.id))
+        ).length
+      const before = await count()
+      await expect(
+        deployRelease(db, driver, config, deployDeps, {
+          releaseId: release.id,
+          environmentId: production.id,
+          replacing: launched.instances[0]!.id,
+        }),
+      ).rejects.toThrow(/only a replacement/)
+      await expect(
+        deployRelease(db, driver, config, deployDeps, {
+          releaseId: release.id,
+          environmentId: production.id,
+          purpose: 'replacement',
+        }),
+      ).rejects.toThrow(/names the instance it replaces/)
+      expect(await count()).toBe(before)
+    })
+  })
+})

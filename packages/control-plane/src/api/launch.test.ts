@@ -2036,13 +2036,13 @@ describe('the assessment’s draft against what launches, and on GitHub (Task 11
 /**
  * A CHANGE TO A LIVE REGISTRATION, THROUGH THE MANIFEST TEAM, THROUGH THE ROUTES (the FE-46/47/5 plan's Task 7,
  * Decision 21; FE-47): an app whose two registrations UBC has registered, launched, asks for one more attribute.
- * The owner drafts production's registration again — drawn from the NEWEST VALID MANIFEST, since the release
- * serving staging cannot ask for what UBC has not registered — and sends it; the team files it; UBC's answer is
+ * The owner drafts production's registration again — drawn from the NEWEST VALID MANIFEST, where the change is
+ * being made (the release serving staging is no reliable source of it) — and sends it; the team files it; UBC's answer is
  * recorded. Before the manifest changes, a send that asks for nothing new is refused `LAUNCH_CHANGE_EMPTY`.
  */
 describe('a change to a live registration, through the Manifest team (FE-46/47/5 plan Task 7; FE-47)', () => {
   const CHANGE_DRAWN =
-    'A change to a live registration is drawn from the newest valid manifest: the release serving staging cannot ask for what UBC has not registered.'
+    'A change to a live registration is drawn from the newest valid manifest: that is where the change is being made.'
 
   it('drafted from the newest valid manifest, sent, filed by the team, answered by UBC — the live release met throughout; nothing new is LAUNCH_CHANGE_EMPTY', async () => {
     await withCwlProject(['ubcEduCwlPuid', 'mail'], async (ctx) => {

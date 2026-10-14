@@ -98,6 +98,9 @@ const PUBLISHED_ELSEWHERE = {
   // release's level no longer allows — this lifecycle never boots a control plane over such a key.
   'ai.models_withdrawn':
     'ai/app-key-sweep.test.ts — withdrawLoweredAppModels, and boot.docker.test.ts through the booted entry point',
+  // A1 Task 6: published by the set watcher when a PRODUCTION member stops while it serves, which this lifecycle —
+  // one app to a deploy, no watcher — never reaches.
+  'instance.exited': 'releases/watch.test.ts — the set watcher, every way a member stops',
   // The faculty-ready plan's Task 13 (FE-52): a person's act ending a token that is waiting on a
   // question — this lifecycle's token asks nothing it then revokes.
   'pending_action.expired':

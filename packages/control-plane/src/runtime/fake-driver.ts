@@ -29,6 +29,8 @@ interface FakeInstance {
   logs: LogLine[]
   /** Requests the contract's drain tests are holding open against this instance. */
   inFlight: number
+  /** The process's exit code once it has ENDED (`crash`) — absent while it runs, as a real driver reports it. */
+  exitCode?: number
 }
 interface FakeService {
   binding: ServiceBinding
@@ -47,6 +49,18 @@ export interface FakeDriverOptions {
 export type FakeDriver = Driver & {
   /** Test affordance: advance a starting instance to healthy. */
   markHealthy(id: string): void
+  /**
+   * Test affordance (A1 Task 6): the instance's process ENDS with `exitCode` — Docker's `exited` — or,
+   * given none, KEEPS RUNNING with its health check failing (Docker's `unhealthy`). Either way its
+   * status reads `failed`, and the route is untouched: an edge routes around a dead member, it does
+   * not forget one. On the fake alone.
+   */
+  crash(id: string, exitCode?: number): void
+  /**
+   * Test affordance (A1 Task 6): the container is removed behind the platform's back (`docker rm`) —
+   * its status reads `gone`, and the route still names it. On the fake alone.
+   */
+  vanish(id: string): void
   instanceCount(): number
   /** Holds one request in flight to whatever serves `hostname` — its set's first — for `ms`. */
   holdRequest(hostname: string, ms: number): Promise<{ ok: boolean }>
@@ -396,7 +410,12 @@ export function createFakeDriver(options: FakeDriverOptions = {}): FakeDriver {
     async status(id: string): Promise<InstanceStatus> {
       const instance = instances.get(id)
       if (!instance) return { id, state: 'gone', healthy: false }
-      return { id, state: instance.state, healthy: instance.state === 'healthy' }
+      return {
+        id,
+        state: instance.state,
+        healthy: instance.state === 'healthy',
+        ...(instance.exitCode === undefined ? {} : { exitCode: instance.exitCode }),
+      }
     },
 
     async *logs(id: string, opts: LogOpts): AsyncIterable<RuntimeLogLine> {
@@ -486,7 +505,26 @@ export function createFakeDriver(options: FakeDriverOptions = {}): FakeDriver {
 
     markHealthy(id: string) {
       const instance = instances.get(id)
-      if (instance) instance.state = 'healthy'
+      if (instance) {
+        instance.state = 'healthy'
+        delete instance.exitCode
+      }
+    },
+
+    crash(id: string, exitCode?: number) {
+      const instance = instances.get(id)
+      if (!instance) throw new Error(`fake driver: no instance '${id}' to crash`)
+      instance.state = 'failed'
+      if (exitCode === undefined) delete instance.exitCode
+      else instance.exitCode = exitCode
+    },
+
+    vanish(id: string) {
+      const instance = instances.get(id)
+      if (!instance) throw new Error(`fake driver: no instance '${id}' to remove`)
+      // Not through `route`: the edge still names it, as a container removed by hand leaves it.
+      byName.delete(`instance:${instance.spec.name}`)
+      instances.delete(id)
     },
 
     instanceCount: () => instances.size,

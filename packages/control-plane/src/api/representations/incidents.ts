@@ -7,7 +7,9 @@ export const Incident = representation(
   z
     .object({
       id: Uuid.describe('The Incident.'),
-      instanceId: Uuid.describe('The instance that failed.'),
+      instanceId: Uuid.describe(
+        'The instance that failed, or stopped while it was serving.',
+      ),
       releaseId: Uuid.describe('The release it ran (`getRelease`).'),
       exitReason: z
         .string()
@@ -24,6 +26,11 @@ export const Incident = representation(
           'What changed in manifest.yaml since the last release that was healthy here — often the cause.',
         ),
       createdAt: Timestamp.describe('When it was recorded.'),
+      cause: z
+        .enum(['deploy', 'exit', 'exit_stopped'])
+        .describe(
+          'What it is about: `deploy` — a deploy that never became healthy; `exit` — a production instance that stopped while it was serving, which the platform is replacing (its `instance.exited` says when); `exit_stopped` — the same, with replacing stopped (three replacements this hour, or one refused), so nothing more is started until the app is deployed again. Incidents recorded before exits were watched read `deploy`.',
+        ),
       prompt: z
         .string()
         .describe(
@@ -31,7 +38,7 @@ export const Incident = representation(
         ),
     })
     .describe(
-      'A failed deploy, as the platform records it: how it ended, what the platform checked, what the app printed, and what changed since it last worked.',
+      'A failed deploy — or a production instance that stopped while it was serving (`instance.exited`) — as the platform records it: how it ended, what the platform checked, what the app printed, and what changed since it last worked. The prompt says which, and whether the platform is replacing it.',
     ),
 )
 
@@ -58,6 +65,7 @@ export function toIncident(
     failedCheck: row.failedCheck,
     diffSinceHealthy: row.diffSinceHealthy,
     createdAt: row.createdAt.toISOString(),
+    cause: row.cause,
     prompt,
   }
 }

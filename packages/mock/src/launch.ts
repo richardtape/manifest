@@ -473,7 +473,7 @@ export function draftRegistration(
 
 /** The warning on a change's package — the platform's words (`launch/records.ts`'s `drawnFrom`). */
 const CHANGE_DRAWN =
-  'A change to a live registration is drawn from the newest valid manifest: the release serving staging cannot ask for what UBC has not registered.'
+  'A change to a live registration is drawn from the newest valid manifest: that is where the change is being made.'
 
 /** `draftPrivacyAssessment`: drafted until it is sent; refused while submitted or approved. */
 export function draftAssessment(o: LaunchOptions, now: number): Assessment {

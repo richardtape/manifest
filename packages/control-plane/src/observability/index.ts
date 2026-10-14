@@ -63,6 +63,7 @@ export {
   listIncidents,
   type CaptureIncidentInput,
   type Incident,
+  type IncidentCause,
   type IncidentSource,
 } from './incidents.js'
 export {

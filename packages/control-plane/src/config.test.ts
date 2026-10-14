@@ -541,6 +541,19 @@ describe('configuration', () => {
     ).toBe(5000)
   })
 
+  // A1 Task 6: how often the set watcher reads production's members. 15 s by default; below 5 s it would
+  // read every member's status faster than a health check can change it.
+  it('watches production’s sets every 15 s by default, an operator may change it, and below 5 s it is CONFIG_INVALID', () => {
+    expect(loadConfig({ ...base }).setWatchSeconds).toBe(15)
+    expect(
+      loadConfig({ ...base, MANIFEST_SET_WATCH_SECONDS: '30' }).setWatchSeconds,
+    ).toBe(30)
+    for (const value of ['4', '0', '-1', '7.5', 'soon'])
+      expect(() => loadConfig({ ...base, MANIFEST_SET_WATCH_SECONDS: value })).toThrow(
+        expect.objectContaining({ code: 'CONFIG_INVALID' }),
+      )
+  })
+
   it('derives §23 zones per environment kind, one setting each', () => {
     const config = loadConfig({ ...base, MANIFEST_ENV: 'development' })
     expect(zoneFor(config, 'sandbox')).toBe('sandbox.manifest.internal')

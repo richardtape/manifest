@@ -1,4 +1,4 @@
-import { and, eq } from 'drizzle-orm'
+import { and, asc, eq } from 'drizzle-orm'
 import { describe, expect, it, vi } from 'vitest'
 import { events, iamRegistrations, privacyAssessments, type Db } from '../db/index.js'
 import { withProject } from '../db/testing.js'
@@ -265,9 +265,10 @@ describe('§9’s IAM registration, as an administrator records it (R1)', () => 
         entityId: IAM.entityId,
         externalTicketRef: 'IAM-2026-0412',
         attributeCount: 2,
+        // FE-59: where a change request came from — null outside `change_requested`.
+        changeRequestedFrom: null,
       })
-      // A list of requested CWL attributes on a project's stream is more than the stream
-      // needs to carry; `getLaunchRecords` is where a member reads them.
+      // What UBC REGISTERED is a count on the stream; `getLaunchRecords` is where a member reads it.
       expect(JSON.stringify(event?.machineDetail)).not.toContain('displayName')
       // The recorder BY NAME, never the PUID (the authoring API plan's Task 12).
       expect(event?.humanMessage).toContain('Test Owner')
@@ -734,6 +735,8 @@ describe('the owner sends a registration to the Manifest team (FE-46/47/5 plan T
       expect(event?.machineDetail).toEqual({
         environment: 'production',
         sentFrom: 'draft',
+        // FE-60: what a change asks for, as the record has it — null for a first registration.
+        requestedAttributes: null,
       })
       expect(event?.humanMessage).toBe(
         "Test Owner sent this app's production registration to the Manifest team, to submit to UBC IAM.",
@@ -1252,6 +1255,7 @@ describe('the Manifest team submits what it was sent to UBC (FE-46/47/5 plan Tas
         sentAt: today,
         externalTicketRef: 'IAM-2026-0500',
         changeRequest: false,
+        requestedAttributes: null,
       })
       expect(event?.humanMessage).toBe(
         `Platform Admin recorded that the Manifest team submitted this app's staging registration to UBC IAM on ${vancouverDayInWords(vancouverNoon(today))} (ticket IAM-2026-0500).`,
@@ -1717,6 +1721,40 @@ describe('no way around the team’s step (FE-46/47/5 plan Task 5; Review Focus 
  * INTO the state and cleared by any move out of it, and the queue reads it. One test per arrow.
  */
 describe('where a change request came from (Task 12, Spec action 10)', () => {
+  it('FE-59: iam_registration.recorded carries changeRequestedFrom as the record holds it — UBC’s questions `submitted`, a filed change `active`', async () => {
+    await withProject(async (db, { projectId, ownerId }) => {
+      const actor = { ...ACTOR, id: ownerId }
+      // In the order they were recorded — the stream's own order (`events.seq`).
+      const recorded = async () =>
+        (
+          await eventsOf(db, projectId, 'iam_registration.recorded').orderBy(
+            asc(events.seq),
+          )
+        ).map(
+          (event) =>
+            (event.machineDetail as { changeRequestedFrom: unknown }).changeRequestedFrom,
+        )
+      for (const state of ['submitted', 'change_requested'] as const)
+        await recordIamRegistration(db, bus, { ...IAM, projectId, state, actor })
+      // UBC came back with questions on the request: the owner's to answer.
+      expect(await recorded()).toEqual([null, 'submitted'])
+      for (const state of ['submitted', 'active'] as const)
+        await recordIamRegistration(db, bus, { ...IAM, projectId, state, actor })
+      await recordIamRegistration(db, bus, {
+        ...IAM,
+        projectId,
+        state: 'change_requested',
+        requestedAttributes: ['displayName', 'mail', 'sn'],
+        actor,
+      })
+      // An administrator filed a change with UBC: UBC's to answer — the record and the event agree.
+      expect(await recorded()).toEqual([null, 'submitted', null, null, 'active'])
+      expect(
+        (await getIamRegistration(db, projectId, 'production'))?.changeRequestedFrom,
+      ).toBe('active')
+    })
+  })
+
   it('UBC asking for changes (submitted → change_requested) records `submitted`; a ticket correction keeps it', async () => {
     await withProject(async (db, { projectId, ownerId }) => {
       const actor = { ...ACTOR, id: ownerId }
@@ -1932,7 +1970,12 @@ describe('a change to a live registration (FE-46/47/5 plan Task 7; FE-47)', () =
       })
       expect(row.registeredAt?.toISOString()).toBe(registered.registeredAt?.toISOString())
       const [event] = await eventsOf(db, projectId, 'iam_registration.sent')
-      expect(event?.machineDetail).toEqual({ environment: 'staging', sentFrom: 'active' })
+      // FE-60: the change names what it asks for, so one detail's wait is told from another's.
+      expect(event?.machineDetail).toEqual({
+        environment: 'staging',
+        sentFrom: 'active',
+        requestedAttributes: ['ubcEduCwlPuid', 'mail', 'sn'],
+      })
       expect(event?.humanMessage).toBe(
         "Test Owner asked for a change to this app's staging registration, sent to the Manifest team to file with UBC IAM.",
       )
@@ -2010,6 +2053,7 @@ describe('a change to a live registration (FE-46/47/5 plan Task 7; FE-47)', () =
         sentAt: today,
         externalTicketRef: 'IAM-CHG-1',
         changeRequest: true,
+        requestedAttributes: ['ubcEduCwlPuid', 'mail', 'sn'],
       })
       expect(event?.humanMessage).toBe(
         `Platform Admin recorded that the Manifest team filed a change request for this app's staging registration with UBC IAM on ${vancouverDayInWords(vancouverNoon(today))} (ticket IAM-CHG-1).`,

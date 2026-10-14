@@ -311,6 +311,12 @@ const envSchema = z.object({
    * that never hangs up.
    */
   MANIFEST_DRAIN_TIMEOUT_MS: z.coerce.number().int().positive().default(120_000),
+  /**
+   * A1 Task 6: how often the set watcher reads the status of every production set's members (Decision 11).
+   * 15 s by default — four passes, the minute after which a member running but unhealthy counts as stopped.
+   * At least 5: faster reads a status more often than a health check (every 5 s) can change it.
+   */
+  MANIFEST_SET_WATCH_SECONDS: z.coerce.number().int().min(5).default(15),
   // Every backing-service credential is derived from this by HMAC (Task 6), so it
   // is the single secret behind every app's database password. Optional here and
   // required outside development below, for the same two reasons the build
@@ -606,6 +612,8 @@ export interface Config {
   readinessTimeoutMs: number
   /** §11's drain bound, in milliseconds. `MANIFEST_DRAIN_TIMEOUT_MS`, 120 s default. */
   drainTimeoutMs: number
+  /** A1 Task 6: the set watcher's pass, in seconds. `MANIFEST_SET_WATCH_SECONDS`, 15 by default, at least 5. */
+  setWatchSeconds: number
   /** Task 6 derives every service credential from this by HMAC. */
   masterSecret: string
   /**
@@ -939,6 +947,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     secretsMasterKeyPath: fromRepoRoot(raw.MANIFEST_SECRETS_MASTER_KEY),
     readinessTimeoutMs: raw.MANIFEST_READINESS_TIMEOUT_MS,
     drainTimeoutMs: raw.MANIFEST_DRAIN_TIMEOUT_MS,
+    setWatchSeconds: raw.MANIFEST_SET_WATCH_SECONDS,
     masterSecret,
     masterSecretGenerated,
     dockerSocket: raw.MANIFEST_DOCKER_SOCKET ?? resolveSocketPath(),

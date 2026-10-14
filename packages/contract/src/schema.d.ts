@@ -233,7 +233,7 @@ export interface paths {
         };
         /**
          * An environment’s incidents
-         * @description The environment’s Incidents, newest first: each failed deploy’s exit, last 200 log lines, failing check and diff since the last healthy release, with a repair prompt. A delegated token is refused the staging and production Incidents of a project whose data is `high` or `very-high` (`INCIDENT_LOG_CONFIDENTIAL`); a session reads them, and any token reads the sandbox’s.
+         * @description The environment’s Incidents, newest first: each failed deploy’s exit — and each production instance that stopped while it was serving (`cause`) — its last 200 log lines, failing check and diff since the last healthy release, with a repair prompt. A delegated token is refused the staging and production Incidents of a project whose data is `high` or `very-high` (`INCIDENT_LOG_CONFIDENTIAL`); a session reads them, and any token reads the sandbox’s.
          */
         get: operations["listIncidents"];
         put?: never;
@@ -783,7 +783,7 @@ export interface paths {
         put?: never;
         /**
          * Draft a registration request for UBC IAM
-         * @description Manifest generates what the project’s owner sends UBC IAM to register the staging or production environment of an app that signs people in with CWL, and keeps it on the record as `package`: the entity ID and the sign-in and sign-out addresses for that environment; the certificate the app signs with there (never its private key, which stays with Manifest); every attribute the app asks for, with its purpose and the lines of the app’s code that read it; the contacts; the privacy assessment’s PIA number once it is approved; and the SAML metadata, built from the same values. An attribute nothing reads is flagged, so it can be removed before it is asked for. Production’s is drawn from the release serving staging — or, while nothing serves staging, from the newest valid manifest, and the package says so — and staging’s from the newest valid manifest. Drafting again replaces the draft until it is sent: once the registration is with the Manifest team (`sent`), `submitted`, or holds a change request the team filed with UBC IAM, what was sent is kept and drafting is `409 LAUNCH_RECORD_SUBMITTED` — until the team hands it back, UBC IAM answers, or the registration lapses. **A registration UBC registered (`active`) is drafted again as a change**, from the newest valid manifest, whichever environment — the release serving staging cannot ask for what UBC has not registered — and the package says so; the record keeps what UBC registered. An app that signs nobody in with CWL, or asks for no attribute, is `409 LAUNCH_NOT_CWL`. The project’s owner, a collaborator, a platform administrator, or an agent on a token holding `launch:draft`, may draft — a draft sends nothing and decides nothing. Sending it to the Manifest team is `sendIamRegistration`.
+         * @description Manifest generates what the project’s owner sends UBC IAM to register the staging or production environment of an app that signs people in with CWL, and keeps it on the record as `package`: the entity ID and the sign-in and sign-out addresses for that environment; the certificate the app signs with there (never its private key, which stays with Manifest); every attribute the app asks for, with its purpose and the lines of the app’s code that read it; the contacts; the privacy assessment’s PIA number once it is approved; and the SAML metadata, built from the same values. An attribute nothing reads is flagged, so it can be removed before it is asked for. Production’s is drawn from the release serving staging — or, while nothing serves staging, from the newest valid manifest, and the package says so — and staging’s from the newest valid manifest. Drafting again replaces the draft until it is sent: once the registration is with the Manifest team (`sent`), `submitted`, or holds a change request the team filed with UBC IAM, what was sent is kept and drafting is `409 LAUNCH_RECORD_SUBMITTED` — until the team hands it back, UBC IAM answers, or the registration lapses. **A registration UBC registered (`active`) is drafted again as a change**, from the newest valid manifest, whichever environment — that is where the change is being made — and the package says so; the record keeps what UBC registered. An app that signs nobody in with CWL, or asks for no attribute, is `409 LAUNCH_NOT_CWL`. The project’s owner, a collaborator, a platform administrator, or an agent on a token holding `launch:draft`, may draft — a draft sends nothing and decides nothing. Sending it to the Manifest team is `sendIamRegistration`.
          */
         post: operations["draftIamRegistration"];
         delete?: never;
@@ -2978,6 +2978,77 @@ export interface components {
              * @description What happened. Switch on it: each type has one `machineDetail` shape.
              * @constant
              */
+            type: "instance.exited";
+            /** @description What happened, in words for a person. Never parse it. */
+            humanMessage: string;
+            /** @description A production instance stopped while it was serving — its process ended, it disappeared, or it failed its health check for a minute — and an Incident records why. The app is deployed again as a set beside what still serves, backing off; after three replacements in an hour replacing stops until the app is deployed again, and the Incident says so. */
+            machineDetail: {
+                /**
+                 * Format: uuid
+                 * @description The production instance that stopped (`listInstances`).
+                 */
+                instanceId: string;
+                /**
+                 * Format: uuid
+                 * @description The release it ran — the one its replacement deploys again (`getRelease`).
+                 */
+                releaseId: string;
+                /**
+                 * Format: uuid
+                 * @description Its environment (`getEnvironment`).
+                 */
+                environmentId: string;
+                /**
+                 * @description Which of the project’s three environments.
+                 * @enum {string}
+                 */
+                environment: "sandbox" | "staging" | "production";
+                /**
+                 * @description How it stopped: `exited` — its process ended, and `exitCode` says how; `gone` — it no longer exists; `unhealthy` — it kept running, failing its health check, for a minute.
+                 * @enum {string}
+                 */
+                reason: "exited" | "gone" | "unhealthy";
+                /** @description The process’s exit code; null when it is gone or still running. */
+                exitCode: number | null;
+                /** @description Which replacement this hour this exit asks for: 1, 2 or 3 while replacing goes on; when it has stopped, one more than were started. */
+                attempt: number;
+                /**
+                 * @description `scheduled` — the app is being deployed again beside the rest of its set; `stopped` — it is not, because three replacements have been started this hour (the app keeps stopping) or one was refused, and nothing more is started until the app is deployed again.
+                 * @enum {string}
+                 */
+                replacement: "scheduled" | "stopped";
+                /** @description How long until the replacement starts — 0, then 60, then 240 within an hour; null when replacing has stopped. */
+                nextInSeconds: number | null;
+            };
+            /**
+             * Format: date-time
+             * @description When it was recorded.
+             */
+            createdAt: string;
+            /** @description Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, retiring the instances a deploy replaced, or a push to GitHub (even one that a request’s own sync found). An event that a request’s work publishes later, such as a build ending, names who started it. */
+            actor: components["schemas"]["EventActor"] | null;
+        } | {
+            /**
+             * @description An audit event.
+             * @constant
+             */
+            kind: "event";
+            /**
+             * Format: uuid
+             * @description The event’s id; a replay after a reconnect repeats it, so a client can drop what it has seen.
+             */
+            id: string;
+            /**
+             * Format: uuid
+             * @description The project the event belongs to.
+             */
+            projectId: string;
+            /** @description What the event is about — `build:<id>`, `instance:<id>`. Opaque. */
+            subject: string;
+            /**
+             * @description What happened. Switch on it: each type has one `machineDetail` shape.
+             * @constant
+             */
             type: "project.created";
             /** @description What happened, in words for a person. Never parse it. */
             humanMessage: string;
@@ -3414,6 +3485,8 @@ export interface components {
                 externalTicketRef: string | null;
                 /** @description How many attributes are registered; `getLaunchRecords` lists them. */
                 attributeCount: number;
+                /** @description For `change_requested`, where it came from, as the record holds it: `submitted` — UBC came back to the owner with questions about the request, theirs to answer; `active` — an administrator filed a change to the live registration with UBC IAM, UBC’s to answer. Null in any other state. */
+                changeRequestedFrom: ("submitted" | "active") | null;
             };
             /**
              * Format: date-time
@@ -3502,6 +3575,8 @@ export interface components {
                 externalTicketRef: string | null;
                 /** @description True when the team filed it as a change to a live registration; false for a registration UBC has yet to make. */
                 changeRequest: boolean;
+                /** @description What the registration asks UBC IAM for beyond what it registered, as the record has it — for a change to a live registration, every attribute the change asks for; null when nothing is asked beyond the registration (a first registration, or a renewal). */
+                requestedAttributes: string[] | null;
             };
             /**
              * Format: date-time
@@ -3586,6 +3661,8 @@ export interface components {
                  * @enum {string}
                  */
                 sentFrom: "draft" | "change_requested" | "expired" | "active";
+                /** @description What the registration asks UBC IAM for beyond what it registered, as the record has it — for a change to a live registration, every attribute the change asks for; null when nothing is asked beyond the registration (a first registration, or a renewal). */
+                requestedAttributes: string[] | null;
             };
             /**
              * Format: date-time
@@ -5166,7 +5243,7 @@ export interface components {
              */
             updatedAt: string;
         };
-        /** @description A failed deploy, as the platform records it: how it ended, what the platform checked, what the app printed, and what changed since it last worked. */
+        /** @description A failed deploy — or a production instance that stopped while it was serving (`instance.exited`) — as the platform records it: how it ended, what the platform checked, what the app printed, and what changed since it last worked. The prompt says which, and whether the platform is replacing it. */
         Incident: {
             /**
              * Format: uuid
@@ -5175,7 +5252,7 @@ export interface components {
             id: string;
             /**
              * Format: uuid
-             * @description The instance that failed.
+             * @description The instance that failed, or stopped while it was serving.
              */
             instanceId: string;
             /**
@@ -5196,6 +5273,11 @@ export interface components {
              * @description When it was recorded.
              */
             createdAt: string;
+            /**
+             * @description What it is about: `deploy` — a deploy that never became healthy; `exit` — a production instance that stopped while it was serving, which the platform is replacing (its `instance.exited` says when); `exit_stopped` — the same, with replacing stopped (three replacements this hour, or one refused), so nothing more is started until the app is deployed again. Incidents recorded before exits were watched read `deploy`.
+             * @enum {string}
+             */
+            cause: "deploy" | "exit" | "exit_stopped";
             /** @description Shaped to be handed straight to an agent as a repair request — except a `high` or `very-high` project’s staging or production Incident: it carries the log tail, which a delegated token is refused (`INCIDENT_LOG_CONFIDENTIAL`), so show it to the person and never hand it to a model. */
             prompt: string;
         };
@@ -7450,6 +7532,7 @@ export interface operations {
                      *           "failedCheck": "health: GET /healthz on port 3000 — the driver reported the instance as failed",
                      *           "diffSinceHealthy": "This app has never been healthy in staging, so there is no working release to compare this one with.",
                      *           "createdAt": "2026-09-26T21:47:38.803Z",
+                     *           "cause": "deploy",
                      *           "prompt": "The application \"chem-labs\" failed to start in its staging environment.\n\nWhat the platform checked: health: GET /healthz on port 3000 — the driver reported the instance as failed\nHow it ended: the platform reports the instance as failed\n\nWhat changed since the last time it starte …"
                      *         }
                      *       ]

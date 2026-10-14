@@ -31,6 +31,36 @@ export async function withEnvironmentLock<T>(
 }
 
 /**
+ * THE ENVIRONMENT'S LOCK, IF NOBODY HOLDS IT — `undefined` at once when a deploy, a retire pass or an archive
+ * does (A1 Task 6). The set watcher's read of *"a deploy is mid-way"*: rows a deploy left `provisioning` or
+ * `starting` say so only while it runs — one that THREW leaves them until the next boot (A1 sitting 4's F7),
+ * which would have the watcher skip a production app with a dead member until a restart. Under this lock no
+ * deploy is in flight, by construction. `withEnvironmentLock`'s key and pool, so the two exclude each other;
+ * a try, because a watcher that waited would stall every other environment's pass behind one deploy.
+ */
+export async function tryWithEnvironmentLock<T>(
+  environmentId: string,
+  fn: () => Promise<T>,
+): Promise<T | undefined> {
+  const key = `manifest:environment:${environmentId}`
+  const client = await lockPool.connect()
+  try {
+    const { rows } = await client.query<{ held: boolean }>(
+      'SELECT pg_try_advisory_lock(hashtextextended($1, 0)) AS held',
+      [key],
+    )
+    if (rows[0]?.held !== true) return undefined
+    try {
+      return await fn()
+    } finally {
+      await client.query('SELECT pg_advisory_unlock(hashtextextended($1, 0))', [key])
+    }
+  } finally {
+    client.release()
+  }
+}
+
+/**
  * One archive, restore or delete per PROJECT at a time (§11's *Ending an app*; the front-end
  * enablement plan's Task 11) — `withEnvironmentLock`'s shape exactly, under its own key, so a
  * project and an environment that happened to share an id could never wait on each other.

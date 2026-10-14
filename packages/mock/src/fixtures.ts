@@ -635,6 +635,7 @@ export const INCIDENTS: Schemas['IncidentList'] = {
       failedCheck: 'GET /healthz from inside the edge',
       diffSinceHealthy: 'runtime.health: /healthz → /never-ready',
       createdAt: ISO,
+      cause: 'deploy',
       prompt:
         'The app did not answer its health path. Check runtime.health in manifest.yaml.',
     },

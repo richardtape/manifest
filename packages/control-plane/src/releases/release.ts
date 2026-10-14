@@ -7,6 +7,7 @@ import {
   projects,
   releases,
   replaceRouteSet,
+  routes,
   withEnvironmentLock,
 } from '../db/index.js'
 import { offeredRefs, type BlueprintRegistry } from '../blueprints/index.js'
@@ -204,14 +205,42 @@ export interface DeployInput {
    * a rehearsal — the opposite default would make every future caller an exemption nobody
    * wrote down.
    *
+   * `'replacement'` is the set watcher's redeploy of a production set a member of which exited (A1
+   * Task 6, `releases/watch.ts`): the release production already serves, deployed again beside the
+   * survivors. It skips the route's §13 checklist — the watcher calls this function, never the route
+   * (Rich, *"Skip the checklist"*) — and it is held to the approval's digest check as a launch is:
+   * **the check's condition is `purpose !== 'rehearsal'`**, so no purpose added after this one can
+   * skip it by being new (Review Focus 8). It records no launch.
+   *
    * It is also what `shapeFor` reads, beside the kind and the audience, to give the deploy its
-   * count — a rehearsal is ONE instance (A1 Decision 8). **`'replacement'` is not accepted yet**:
-   * the set watcher (A1 Task 6) widens this together with the approval check's condition below,
-   * which reads `'launch'` only and would let a new purpose skip the digest check by being new.
-   * And there is NO `instances` or `resources` field, deliberately: a caller never chooses a
-   * deploy's shape (`shape.test.ts` holds it, as a type test).
+   * count — a rehearsal is ONE instance (A1 Decision 8), a replacement production's count. And
+   * there is NO `instances` or `resources` field, deliberately: a caller never chooses a deploy's
+   * shape (`shape.test.ts` holds it, as a type test).
    */
-  purpose?: Exclude<DeployPurpose, 'replacement'>
+  purpose?: DeployPurpose
+  /**
+   * THE EXITED MEMBER A REPLACEMENT IS FOR — required with `purpose: 'replacement'`, refused with any
+   * other. Under the environment's lock the deploy first reads that it is still a Route row: a
+   * person's deploy since has already replaced the set, and the replacement then starts nothing
+   * (`NothingToReplaceError`, after an operator line). Each instance it starts records it in
+   * `instances.replacing`, which is how the watcher's backoff and cap are counted from rows.
+   */
+  replacing?: string
+}
+
+/**
+ * A REPLACEMENT THAT FOUND NOTHING TO REPLACE (A1 Task 6): under the environment's lock, the member it was
+ * for is no longer in the set the hostname reaches — a person's deploy since replaced the set. Nothing was
+ * started and an operator line says so. A plain `Error`, not a `ReleaseError`: only the set watcher's
+ * redeploy can meet it, and no client receives it.
+ */
+export class NothingToReplaceError extends Error {
+  constructor(readonly replacing: string) {
+    super(
+      `instance '${replacing}' is no longer one the hostname reaches: nothing to replace`,
+    )
+    this.name = 'NothingToReplaceError'
+  }
 }
 
 /**
@@ -276,6 +305,14 @@ export async function deployReleaseSet(
   input: DeployInput,
   healthWait: HealthWait = DEFAULT_HEALTH_WAIT,
 ): Promise<DeployedSet> {
+  // A REPLACEMENT AND THE MEMBER IT REPLACES COME TOGETHER, OR NOT AT ALL — refused before anything is read.
+  // Plain `Error`s: the set watcher is the one caller that names either, and no client can reach them.
+  if (input.replacing !== undefined && input.purpose !== 'replacement')
+    throw new Error(
+      '`replacing` names the member a replacement is for: only a replacement takes it',
+    )
+  if (input.purpose === 'replacement' && input.replacing === undefined)
+    throw new Error('a replacement names the instance it replaces (`replacing`)')
   const [release] = await db
     .select()
     .from(releases)
@@ -333,8 +370,13 @@ export async function deployReleaseSet(
    * rule, `approvalRequirementFor`). For a self-serve release the integrity property is that
    * promotion never rebuilds (§13, P6b Decision 2): `builds.image_digest` is written once and
    * the registry refuses pushes from app and sandbox contexts.
+   *
+   * **EVERY PURPOSE BUT THE REHEARSAL** (A1 Task 6, Review Focus 8): it read `'launch'` only, so a purpose
+   * added later — the set watcher's `'replacement'` first — would have skipped the digest check by being
+   * new. Now a replacement is held to it as a launch is: a release an administrator rejected since is
+   * never deployed again by the watcher.
    */
-  if (environment.kind === 'production' && (input.purpose ?? 'launch') === 'launch') {
+  if (environment.kind === 'production' && input.purpose !== 'rehearsal') {
     // §13 D9 AS ONE RULE (P6b Task 5): an approval covering this digest is required for a
     // first launch and for a launched app's sensitive change, never for anything else — and
     // a release an administrator rejected is never deployed (Decision 7).
@@ -501,6 +543,35 @@ export async function deployReleaseSet(
       throw projectStateRefusal(environment.projectId, current?.state ?? 'deleted')
 
     /**
+     * A REPLACEMENT RE-READS WHAT IT REPLACES, UNDER THE LOCK (A1 Task 6, Decision 11): the set watcher saw
+     * `replacing` exit and released this lock to call here, and a person's deploy may have taken it in
+     * between and replaced the whole set. Then there is nothing to replace: nothing is started, and the
+     * operator line says why.
+     */
+    if (input.purpose === 'replacement') {
+      const [stillServing] = await db
+        .select({ instanceId: routes.instanceId })
+        .from(routes)
+        .where(
+          and(
+            eq(routes.hostname, environment.hostname),
+            eq(routes.instanceId, input.replacing!),
+          ),
+        )
+      if (stillServing === undefined) {
+        console.error(
+          JSON.stringify({
+            level: 'info',
+            msg: 'a replacement found nothing to replace: a deploy since replaced the set, so nothing was started',
+            environmentId: environment.id,
+            replacing: input.replacing,
+          }),
+        )
+        throw new NothingToReplaceError(input.replacing!)
+      }
+    }
+
+    /**
      * THE SET'S ROWS, ONE STATEMENT (A1 Task 5): every member shares the statement's `created_at`, so
      * the set's order — `(created_at, id)`, the order `Environment.instance` takes its first by — is
      * the ids' order, here and in every read of the set.
@@ -514,6 +585,8 @@ export async function deployReleaseSet(
           driver: driver.name,
           kind: 'web' as const,
           state: 'provisioning' as const,
+          // The exited member this set replaces — null for every deploy a person makes (A1 Task 6).
+          replacing: input.purpose === 'replacement' ? input.replacing! : null,
         })),
       )
       .returning()
@@ -843,8 +916,10 @@ export async function deployReleaseSet(
               // D21's rehearsal (P6a Task 14): production in every respect except the IdP it
               // is pointed at, because §8 sends a production app to real UBC Shibboleth and
               // C1 puts that out of reach. `injection.ts`'s `purpose` carries the measurement
-              // that found it.
-              ...(input.purpose === undefined ? {} : { purpose: input.purpose }),
+              // that found it. ONLY the rehearsal says so: a replacement (A1 Task 6) signs people
+              // in exactly as the launch it replaces — `injection.ts` reads anything but
+              // `'launch'` as the rehearsal's IdP, so `'replacement'` must never reach it.
+              ...(input.purpose === 'rehearsal' ? { purpose: 'rehearsal' as const } : {}),
               ...(registration !== undefined ? { spEntity: registration.entity } : {}),
               secrets: { sessionSecret, appEnv },
               services: boundServices,

@@ -60,6 +60,12 @@ export const EVENT_TYPES = [
   'instance.retired',
   /** It could not be, and will be tried again — never a silent retry (§11). */
   'instance.retire_failed',
+  /**
+   * §11 as A1's Spec action A amended it (Task 6): a PRODUCTION instance stopped while it was serving — its
+   * process ended, it disappeared, or it failed its health check for a minute. Recorded once per exit, with
+   * an Incident, by the set watcher, which redeploys the set — backing off, and stopping after three in an hour.
+   */
+  'instance.exited',
   /** §22 step 3 (P5a Task 11): a project and its three environments exist. */
   'project.created',
   /** Its repository exists, seeded from the skeleton and the starter. */

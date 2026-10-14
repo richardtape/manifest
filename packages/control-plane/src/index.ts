@@ -21,6 +21,9 @@ import {
 import {
   createBuildRunner,
   createRetirer,
+  createSetWatcher,
+  databaseClock,
+  deployRelease,
   finishTeardowns,
   recoverAtBoot,
 } from './releases/index.js'
@@ -440,6 +443,34 @@ const recovery = await recoverAtBoot({
 })
 
 /**
+ * THE THIRD BACKGROUND WORK (A1 Task 6, Decision 11): a PRODUCTION instance that exits is replaced. Started
+ * HERE, after `recoverAtBoot` — whose pass 1 restored each set and left out a member whose container is gone
+ * (naming it), and whose pass 3 asked for the retire passes — so the first thing it replaces is what the
+ * recovery could not route. Its redeploy is the deploy the route makes, with the same dependencies, for
+ * `purpose: 'replacement'`: the approval's digest check kept, §13's checklist not asked (Rich, *"Skip the
+ * checklist"*). The database's clock for the hour; `MANIFEST_SET_WATCH_SECONDS` between passes.
+ */
+const setWatcher = createSetWatcher({
+  db,
+  driver,
+  bus,
+  appSecrets,
+  redeploy: async (input) => {
+    await deployRelease(
+      db,
+      driver,
+      config,
+      { secrets, appSecrets, sso, blueprints, ai, catalogue, bus, retirer },
+      { ...input, purpose: 'replacement' },
+    )
+  },
+  now: () => databaseClock(db),
+  delay: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+  intervalSeconds: config.setWatchSeconds,
+})
+setWatcher.start()
+
+/**
  * §6'S FOURTH `PendingAction` STATE, APPLIED (P5b Task 10) — and this line is the caller
  * the sweeper exists for. A module with no call site is not built, and it has shipped
  * that way four times in this project.
@@ -607,6 +638,8 @@ console.log(
     teardownsFailed: recovery.teardowns.failed.length,
     rehearsalsTakenDown: recovery.rehearsalsTakenDown.takenDown.length,
     rehearsalsNotTakenDown: recovery.rehearsalsTakenDown.failed.length,
+    // A1 Task 6: the set watcher is running, and how often it reads production's members.
+    setWatchSeconds: config.setWatchSeconds,
     // Task 10: how many questions nobody answered in time. A sweep nobody can see is
     // indistinguishable from one that never ran, which is what the line above says
     // about the recovery and is why this is beside it.

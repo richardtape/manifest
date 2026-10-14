@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto'
 import { sql } from 'drizzle-orm'
 import { describe, expect, it } from 'vitest'
 import { db } from './client.js'
-import { withEnvironmentLock, withProjectLock } from './locks.js'
+import { tryWithEnvironmentLock, withEnvironmentLock, withProjectLock } from './locks.js'
 
 /** Resolves on the next turn of the event loop, repeatedly, until `predicate` holds. */
 async function waitUntil(predicate: () => boolean, ms = 5_000): Promise<void> {
@@ -150,6 +150,43 @@ describe('withEnvironmentLock (P4c Task 6)', () => {
  * PROJECT. The environment's lock is what serialises an archive against a deploy; this one
  * serialises two archives, an archive and a restore, or an archive and a delete.
  */
+describe('tryWithEnvironmentLock (A1 Task 6)', () => {
+  it('answers undefined at once while a deploy holds the environment, runs fn and answers it otherwise — and lets the next holder in after', async () => {
+    // The set watcher's read of "a deploy is mid-way": the lock, not the rows a thrown deploy leaves.
+    const environmentId = randomUUID()
+    let holding = false
+    let release = (): void => {}
+    const mayFinish = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    const deploy = withEnvironmentLock(environmentId, async () => {
+      holding = true
+      await mayFinish
+    })
+    await waitUntil(() => holding)
+
+    const started = Date.now()
+    let ran = false
+    expect(
+      await tryWithEnvironmentLock(environmentId, async () => {
+        ran = true
+        return 'ran'
+      }),
+    ).toBeUndefined()
+    expect(ran).toBe(false)
+    // At once — never queued behind the holder.
+    expect(Date.now() - started).toBeLessThan(1_000)
+    // Another environment is not held.
+    expect(await tryWithEnvironmentLock(randomUUID(), async () => 'other')).toBe('other')
+
+    release()
+    await deploy
+    expect(await tryWithEnvironmentLock(environmentId, async () => 'ran')).toBe('ran')
+    // ...and released after it: a blocking holder gets in.
+    await withEnvironmentLock(environmentId, async () => undefined)
+  })
+})
+
 describe('withProjectLock (Task 11)', () => {
   it('lets more NESTED holders than the lock pool has connections finish — a project lock, then an environment lock inside it (sitting 12, the review’s I2)', async () => {
     // F1 MOVED THE LOCKS TO A POOL OF THEIR OWN, AND NESTING COULD STILL EXHAUST IT: an archive or a

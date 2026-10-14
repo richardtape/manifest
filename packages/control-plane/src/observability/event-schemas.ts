@@ -370,6 +370,56 @@ export const EVENT_DETAIL_SCHEMAS = {
   }).describe(
     'A replaced instance could not be retired, and will be tried again — never silently.',
   ),
+  /**
+   * A1 Task 6 (Decision 11): ONE per exit, by the set watcher. `attempt`, `replacement` and `nextInSeconds` are
+   * the watcher's decision at that moment, derived from the rows (`instances.replacing`); a replacement that
+   * then fails or is refused says so in an Incident, never in a second `instance.exited` — a person is told
+   * of one exit once.
+   */
+  'instance.exited': z
+    .strictObject({
+      instanceId: Uuid.describe(
+        'The production instance that stopped (`listInstances`).',
+      ),
+      releaseId: Uuid.describe(
+        'The release it ran — the one its replacement deploys again (`getRelease`).',
+      ),
+      environmentId: Uuid.describe('Its environment (`getEnvironment`).'),
+      environment: Kind,
+      reason: z
+        .enum(['exited', 'gone', 'unhealthy'])
+        .describe(
+          'How it stopped: `exited` — its process ended, and `exitCode` says how; `gone` — it no longer exists; `unhealthy` — it kept running, failing its health check, for a minute.',
+        ),
+      exitCode: z
+        .number()
+        .int()
+        .nullable()
+        .describe('The process’s exit code; null when it is gone or still running.'),
+      attempt: z
+        .number()
+        .int()
+        .positive()
+        .describe(
+          'Which replacement this hour this exit asks for: 1, 2 or 3 while replacing goes on; when it has stopped, one more than were started.',
+        ),
+      replacement: z
+        .enum(['scheduled', 'stopped'])
+        .describe(
+          '`scheduled` — the app is being deployed again beside the rest of its set; `stopped` — it is not, because three replacements have been started this hour (the app keeps stopping) or one was refused, and nothing more is started until the app is deployed again.',
+        ),
+      nextInSeconds: z
+        .number()
+        .int()
+        .nonnegative()
+        .nullable()
+        .describe(
+          'How long until the replacement starts — 0, then 60, then 240 within an hour; null when replacing has stopped.',
+        ),
+    })
+    .describe(
+      'A production instance stopped while it was serving — its process ended, it disappeared, or it failed its health check for a minute — and an Incident records why. The app is deployed again as a set beside what still serves, backing off; after three replacements in an hour replacing stops until the app is deployed again, and the Incident says so.',
+    ),
   'project.created': z
     .strictObject({
       slug: z
@@ -543,10 +593,11 @@ export const EVENT_DETAIL_SCHEMAS = {
       'manifest.yaml at a commit was validated — by a commit through the API, a push, or `validateSpec` — valid or not.',
     ),
   /**
-   * §9 and R1 (P6a Task 6). **THE TICKET REFERENCE IS HERE AND THE ATTRIBUTES ARE NOT**:
-   * a list of requested CWL attributes on a project's stream is more than the stream needs
-   * to carry, so the COUNT goes here and `getLaunchRecords` is where a member reads the
-   * list itself. `projectId` is the event's own column, as everywhere else in this map.
+   * §9 and R1 (P6a Task 6). **THE TICKET REFERENCE IS HERE, AND WHAT UBC REGISTERED IS A COUNT**:
+   * `getLaunchRecords` is where a member reads the list itself. `projectId` is the event's own column,
+   * as everywhere else in this map. **And where a change request came from** (FE-59; Rich, 2026-10-13
+   * ~18:14, A1 sitting 5): a change UBC has (`active`) and UBC's questions to the owner (`submitted`)
+   * read the same without it, so a client watching the stream told whose wait it was wrongly.
    */
   'iam_registration.recorded': z
     .strictObject({
@@ -566,6 +617,12 @@ export const EVENT_DETAIL_SCHEMAS = {
         .int()
         .positive()
         .describe('How many attributes are registered; `getLaunchRecords` lists them.'),
+      changeRequestedFrom: z
+        .enum(['submitted', 'active'])
+        .nullable()
+        .describe(
+          'For `change_requested`, where it came from, as the record holds it: `submitted` — UBC came back to the owner with questions about the request, theirs to answer; `active` — an administrator filed a change to the live registration with UBC IAM, UBC’s to answer. Null in any other state.',
+        ),
     })
     .describe(
       'An administrator recorded what UBC IAM registered for the app’s staging or production sign-in.',
@@ -607,6 +664,12 @@ export const EVENT_DETAIL_SCHEMAS = {
         .describe(
           'True when the team filed it as a change to a live registration; false for a registration UBC has yet to make.',
         ),
+      requestedAttributes: z
+        .array(z.string())
+        .nullable()
+        .describe(
+          'What the registration asks UBC IAM for beyond what it registered, as the record has it — for a change to a live registration, every attribute the change asks for; null when nothing is asked beyond the registration (a first registration, or a renewal).',
+        ),
     })
     .describe(
       'The Manifest team submitted the app’s staging or production registration request to UBC IAM — or filed a change to its live registration with UBC IAM as a change request (`changeRequest`) — and an administrator recorded it. It now waits for UBC’s answer, which an administrator records.',
@@ -627,8 +690,9 @@ export const EVENT_DETAIL_SCHEMAS = {
       'The Manifest team submitted the app’s privacy impact assessment to UBC’s Privacy Office, and an administrator recorded it. It now waits for the Office’s answer, which an administrator records.',
     ),
   /**
-   * THE OWNER'S SEND TO THE MANIFEST TEAM (Decision 15): counts and where it came from, never the
-   * package, the attributes or an answer.
+   * THE OWNER'S SEND TO THE MANIFEST TEAM (Decision 15): where it came from, never the package or an
+   * answer — and WHAT A CHANGE ASKS FOR (FE-60; Rich, 2026-10-13 ~18:41, A1 sitting 5): without it a
+   * client watching the stream could not tell one detail's change from another's while it waits.
    */
   'iam_registration.sent': z
     .strictObject({
@@ -639,6 +703,12 @@ export const EVENT_DETAIL_SCHEMAS = {
         .enum(['draft', 'change_requested', 'expired', 'active'])
         .describe(
           'Where it was sent from: a draft, UBC’s questions to the owner, a lapsed registration, or a live one to change. A hand-back returns it there.',
+        ),
+      requestedAttributes: z
+        .array(z.string())
+        .nullable()
+        .describe(
+          'What the registration asks UBC IAM for beyond what it registered, as the record has it — for a change to a live registration, every attribute the change asks for; null when nothing is asked beyond the registration (a first registration, or a renewal).',
         ),
     })
     .describe(

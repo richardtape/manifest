@@ -1,6 +1,6 @@
 import { sql } from 'drizzle-orm'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { projects } from '../db/index.js'
+import { events, projects } from '../db/index.js'
 import { withProject } from '../db/testing.js'
 import {
   createEventBus,
@@ -161,6 +161,46 @@ describe('recentFramesFor — the replay a new connection starts with', () => {
       expect((distinct.rows[0] as { n: number }).n).toBe(3)
       const frames = await recentFramesFor(db, projectId, 50)
       expect(frames.map((f) => f.id)).toEqual([first.id, second.id, third.id])
+    })
+  })
+
+  it('orders the replay by when each event was RECORDED, never by the clock — a clock that steps back reorders nothing (the replay’s clock order)', async () => {
+    // `created_at` is the database server's `clock_timestamp()`, and that clock can step BACK
+    // (Postgres runs in Docker Desktop's VM): `manifest-p9` measured the 4th of four events
+    // replayed BELOW the 2nd, and the 3rd dropped from the window. Simulated here by writing the
+    // 4th with a time before the 1st's — what a clock that stepped back would have stamped.
+    await withProject(async (db, { projectId }) => {
+      const first = await record(db, projectId, 'sso.registered')
+      const second = await record(db, projectId, 'sso.acs_changed')
+      const third = await record(db, projectId, 'instance.failed')
+      const [fourth] = await db
+        .insert(events)
+        .values({
+          projectId,
+          subject: 's',
+          type: 'sso.registered',
+          machineDetail: EXAMPLE_DETAILS['sso.registered'],
+          humanMessage: 'Something happened.',
+          createdAt: new Date(first.createdAt.getTime() - 60_000),
+        })
+        .returning()
+      // The newest three, as they were recorded — the 4th the newest, though its clock says oldest.
+      expect((await recentFramesFor(db, projectId, 3)).map((f) => f.id)).toEqual([
+        second.id,
+        third.id,
+        fourth!.id,
+      ])
+      expect((await recentFramesFor(db, projectId, 50)).map((f) => f.id)).toEqual([
+        first.id,
+        second.id,
+        third.id,
+        fourth!.id,
+      ])
+      // The time SHOWN is still the clock's: the order changed, the record did not.
+      const replayed = (await recentFramesFor(db, projectId, 1))[0]
+      expect(replayed?.kind === 'event' && replayed.createdAt).toBe(
+        fourth!.createdAt.toISOString(),
+      )
     })
   })
 

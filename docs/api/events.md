@@ -128,6 +128,7 @@ Each type, and the one sentence that says what it means; *Event types* has an ex
 | `instance.retiring` | An instance a deploy replaced is finishing the requests it already had, before it stops. |
 | `instance.retired` | A replaced instance finished: its container is gone and its AI key is revoked. |
 | `instance.retire_failed` | A replaced instance could not be retired, and will be tried again — never silently. |
+| `instance.exited` | A production instance stopped while it was serving — its process ended, it disappeared, or it failed its health check for a minute — and an Incident records why. The app is deployed again as a set beside what still serves, backing off; after three replacements in an hour replacing stops until the app is deployed again, and the Incident says so. |
 | `project.created` | A project and its three environments were created. `repository.seeded` and `spec.validated` follow. |
 | `repository.seeded` | The project’s repository was created and its first commit made, from the blueprint’s skeleton and starter. |
 | `spec.validated` | manifest.yaml at a commit was validated — by a commit through the API, a push, or `validateSpec` — valid or not. |
