@@ -1848,3 +1848,9 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
     delegation — for his review", its commit alone, and listed in the report to him. Unchanged: what only he can DO (S8's clicked
     half, sudo, his credentials, a command a classifier refused, his Docker Desktop step, a time for each imitated-load run) still
     comes to him as an action, flagged. Rejected: "No — ask me each one"; "Routine only".
+
+    At ~08:57 PDT, in chat to manifest-coord4, THE RUNS MAY CONTINUE THROUGH HIS 09:00 CALL — his words: "the machine is stable now,
+    so the runs can continue when I start my meeting in 5 mins." This lifts the pause agreed with manifest-a1-s8 at ~08:41 (nothing
+    heavy from driver 1's ci-acceptance's end until he said his meeting was over). So A1's sitting 8 continues at once: driver 2 (the
+    .env swap, cmp-restored), make reset, make ci-acceptance on the GitHub fake, demo-launch re-use twice, then the clicked half
+    staged on driver 1 — which waits for HIM (a person's click), after the call.
