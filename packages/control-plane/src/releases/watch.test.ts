@@ -126,8 +126,16 @@ afterEach(() => {
 
 type Scale = 'solo' | 'class' | 'large_course' | 'public'
 
-/** A project of `scale`, its release approved and LAUNCHED — production's set serving, by a person's deploy. */
-async function launched(driver: FakeDriver, scale: Scale = 'class') {
+/**
+ * A project of `scale`, its release approved and LAUNCHED — production's set serving, by a person's deploy.
+ * `{ rehearsal: true }` deploys production as D21's rehearsal does instead (`purpose: 'rehearsal'`): ONE
+ * instance, and the project NOT launched.
+ */
+async function launched(
+  driver: FakeDriver,
+  scale: Scale = 'class',
+  opts: { rehearsal?: boolean } = {},
+) {
   const [user] = await db
     .insert(users)
     .values({ ubcCwlPuid: 'o', email: 'o@ubc.ca', displayName: 'O', role: 'member' })
@@ -188,6 +196,7 @@ async function launched(driver: FakeDriver, scale: Scale = 'class') {
   const set = await deployReleaseSet(db, driver, config, deps, {
     releaseId: release.id,
     environmentId: production.id,
+    ...(opts.rehearsal === true ? { purpose: 'rehearsal' as const } : {}),
   })
   expect(set.instances.map((member) => member.state)).toEqual(
     set.instances.map(() => 'healthy'),
@@ -722,6 +731,32 @@ describe('the set watcher — a production member that exits is replaced (A1 Tas
       })
       await round(f, watcher)
       expect(await exitedOf(f.project.id)).toHaveLength(1)
+    })
+
+    /**
+     * F12 OF SITTING 5, CHOSEN IN SITTING 6: A PROJECT NOT LAUNCHED. Before a launch nothing serves production but
+     * D21's rehearsal (`takeDownLeftRehearsals`' own rule), which puts ONE instance up and takes exactly it down —
+     * and whose take-down leaves a row that is not `healthy` alone. Read here, a member exiting mid-rehearsal was
+     * recorded `scheduled`, its replacement refused (no approval before a launch) and its Route row left behind.
+     */
+    it('a project NOT LAUNCHED — its production set is D21’s rehearsal’s, which takes itself down — recorded by nothing, replaced by nothing', async () => {
+      const driver = createFakeDriver()
+      const f = await launched(driver, 'class', { rehearsal: true })
+      // THE POSITIVE HALF: the rehearsal's ONE member serves production, and the project has not launched.
+      expect((await servingSet(f)).map((row) => row.id)).toEqual([f.set[0]!.id])
+      const [project] = await db
+        .select({ launchedAt: projects.launchedAt })
+        .from(projects)
+        .where(eq(projects.id, f.project.id))
+      expect(project!.launchedAt).toBeNull()
+      driver.crash(f.set[0]!.handle!, 1)
+      const { watcher, redeploys } = watcherFor(f, driver)
+      await round(f, watcher)
+      expect(await exitedOf(f.project.id)).toEqual([])
+      expect(await incidentsOf(f.set[0]!.id)).toEqual([])
+      // Still `healthy`, so the rehearsal's own take-down takes it down.
+      expect(await stateOf(f.set[0]!.id)).toBe('healthy')
+      expect(redeploys).toEqual([])
     })
 
     it('a member asleep (A2’s hibernation): its status reads hibernated, never failed', async () => {

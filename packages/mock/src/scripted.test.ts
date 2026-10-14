@@ -645,6 +645,58 @@ describe('Task 13 — the states the document’s examples cannot show', () => {
     expect(await codeOf(refused)).toBe('PROJECT_LAUNCHED_NOT_DELETABLE')
   })
 
+  /**
+   * PRODUCTION'S SET (A1, contract 1.9.0): a LAUNCHED `mock-app` — its audience `class` — reaches TWO
+   * instances in production, everywhere the platform says so: `instance` the set's first, `instances` both,
+   * and `listInstances` marking both serving. Not launched, production reaches none.
+   */
+  it('a LAUNCHED app’s production reaches a set of two; one not launched reaches none', async () => {
+    const launched = await serve({ launched: true })
+    const productionOf = async (base: string) => {
+      const project = (await (
+        await fetch(`${base}/v1/projects/${f.PROJECT_ID}?expand=environments`, {
+          headers: SESSION,
+        })
+      ).json()) as {
+        environments: {
+          kind: string
+          instance: { id: string } | null
+          instances: { id: string }[]
+        }[]
+      }
+      const listed = (await (
+        await fetch(`${base}/v1/projects/${f.PROJECT_ID}/environments`, {
+          headers: SESSION,
+        })
+      ).json()) as { kind: string; instances: { id: string }[] }[]
+      const instances = (await (
+        await fetch(`${base}/v1/environments/${f.PRODUCTION_ID}/instances`, {
+          headers: SESSION,
+        })
+      ).json()) as { instances: { id: string; serving: boolean }[] }
+      const production = project.environments.find((e) => e.kind === 'production')!
+      return {
+        instance: production.instance?.id ?? null,
+        instances: production.instances.map((i) => i.id),
+        listed: listed.find((e) => e.kind === 'production')!.instances.map((i) => i.id),
+        serving: instances.instances.filter((i) => i.serving).map((i) => i.id),
+      }
+    }
+    const set = [f.PRODUCTION_INSTANCE_ID, f.PRODUCTION_INSTANCE_2_ID]
+    expect(await productionOf(launched)).toEqual({
+      instance: f.PRODUCTION_INSTANCE_ID,
+      instances: set,
+      listed: set,
+      serving: set,
+    })
+    expect(await productionOf(origin)).toEqual({
+      instance: null,
+      instances: [],
+      listed: [],
+      serving: [],
+    })
+  })
+
   it('answers a base64 read of its file as base64 of the same bytes', async () => {
     const tree = (await (
       await fetch(`${origin}/v1/projects/${f.PROJECT_ID}/tree`, { headers: SESSION })

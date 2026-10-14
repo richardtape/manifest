@@ -9,13 +9,21 @@ import {
   users,
   type Db,
 } from '../db/index.js'
-import { servingInstanceOf, type Project, type StoredAudience } from './repository.js'
+import {
+  answeringMemberOf,
+  servingInstancesOf,
+  type Project,
+  type StoredAudience,
+} from './repository.js'
 import type { ReservedLabels } from './reserved-labels.js'
 
 export interface FleetEnvironment {
   kind: 'sandbox' | 'staging' | 'production'
   hostname: string
+  /** What serves, as one state: `healthy` while any member of the set is (A1 Task 7). */
   state: string | null
+  /** How many instances the hostname reaches — the set `Environment.instances` names (A1 Task 7). */
+  instances: number
   releaseId: string | null
   imageDigest: string | null
   lastDeployAt: string | null
@@ -55,10 +63,13 @@ export async function listFleet(db: Db, reserved: ReservedLabels): Promise<Fleet
       .where(eq(environments.projectId, row.project.id))
     const fleetEnvs: FleetEnvironment[] = []
     for (const env of envs.sort((a, b) => a.kind.localeCompare(b.kind))) {
-      // The SERVING instance, not the newest row: a failed deploy writes a newer one, and
+      // The SERVING set, not the newest row: a failed deploy writes a newer one, and
       // reporting that told a faculty member their app was failed while it served
-      // perfectly (P4c Decision 20).
-      const serving = await servingInstanceOf(db, env)
+      // perfectly (P4c Decision 20). And the set's first HEALTHY member answers for it (A1 Task 7):
+      // since the set watcher, a member that stopped stays in the set, `failed`, until its
+      // replacement serves, while the rest serve on — the set's first may be that one.
+      const set = await servingInstancesOf(db, env)
+      const serving = answeringMemberOf(set)
       const [digest] =
         serving === undefined
           ? []
@@ -80,6 +91,7 @@ export async function listFleet(db: Db, reserved: ReservedLabels): Promise<Fleet
         kind: env.kind,
         hostname: env.hostname,
         state: serving?.state ?? null,
+        instances: set.length,
         releaseId: serving?.releaseId ?? null,
         imageDigest: digest?.imageDigest ?? null,
         lastDeployAt: last?.at?.toISOString() ?? null,

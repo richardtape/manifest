@@ -107,6 +107,8 @@ function FleetProject({ project }: { project: Schemas['Fleet'][number] }) {
               ) : (
                 <Pill tone={env.state === 'healthy' ? 'good' : 'plain'}>{env.state}</Pill>
               )}
+              {/* How many the hostname reaches (A1 Task 7): production runs its audience's count. */}
+              {env.instances > 1 && <> {env.instances} instances</>}
               {env.imageDigest !== null && (
                 <>
                   {' '}

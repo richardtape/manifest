@@ -116,7 +116,7 @@ export const projectReadRoutes = [
     tag: 'projects',
     summary: 'The projects I am a member of',
     description:
-      'Every project the caller owns or collaborates on, newest first — for administrators too (`listFleet` lists every app). A delegated token sees exactly the one project it is scoped to.',
+      'Every project the caller owns or collaborates on, newest first — for administrators too (`listFleet` lists every app). A delegated token sees exactly the one project it is scoped to. A project appears once its repository is made: from the moment `createProject` answers it.',
     params: NO_PARAMS,
     query: NO_QUERY,
     body: NO_BODY,
@@ -200,7 +200,10 @@ export const projectReadRoutes = [
         actor.credential === 'token'
           ? [actor.projectId]
           : (await listProjectsFor(deps.db, actor)).map((p) => p.id)
-      return (await projectViews(deps, ids)).map((view) => toProject(view))
+      // A project whose create is still making its repository is left out (FE-58), never a `500`.
+      return (await projectViews(deps, ids, { list: true })).map((view) =>
+        toProject(view),
+      )
     },
   }),
   defineRoute({

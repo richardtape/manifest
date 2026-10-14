@@ -758,6 +758,75 @@ describe('project reads answer representations (P5a Task 8)', () => {
 })
 
 /**
+ * A PROJECT IS NOT MADE UNTIL ITS REPOSITORY IS (A1 Task 7; the roadmap's tracked defect, the front
+ * end's FE-58). `POST /v1/projects` commits the project's rows, THEN makes the repository — seconds on
+ * real GitHub — and only then records it; A8's click (2026-10-13) met `GET /v1/projects` answering
+ * `500` for the WHOLE list one second after a create, because the list threw on the project with no
+ * repository row yet. The list leaves that project out until its repository is recorded.
+ */
+describe('GET /v1/projects while a project is still being made (FE-58)', () => {
+  it('answers every other project — the one whose repository is still being made is left out until it is — never a 500', async () => {
+    const deps = await testDeps()
+    let release: () => void = () => undefined
+    const held = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    let reached: () => void = () => undefined
+    const inside = new Promise<void>((resolve) => {
+      reached = resolve
+    })
+    const holding = {
+      ...deps,
+      source: {
+        ...deps.source,
+        // The second create waits INSIDE the repository step — its rows committed, its repository not
+        // yet recorded — until the test has read the list.
+        createRepository: async (
+          ...args: Parameters<typeof deps.source.createRepository>
+        ) => {
+          if (args[0] === 'second-app') {
+            reached()
+            await held
+          }
+          return deps.source.createRepository(...args)
+        },
+      },
+    }
+    const app = await buildServer(holding)
+    try {
+      const cookies = await loginAs(holding, 'bio_prof')
+      const post = (slug: string) =>
+        app.inject({ ...create(slug), cookies, headers: mutationHeaders(holding) })
+      expect(refusal(await post('first-app'))).toEqual({ status: 201, code: undefined })
+      const second = post('second-app')
+      await inside
+      // THE WINDOW IS OPEN — the positive half: the second project's rows are there.
+      expect(
+        await holding.db
+          .select({ slug: projects.slug })
+          .from(projects)
+          .where(eq(projects.slug, 'second-app')),
+      ).toEqual([{ slug: 'second-app' }])
+      const during = await app.inject({ method: 'GET', url: '/v1/projects', cookies })
+      expect(refusal(during)).toEqual({ status: 200, code: undefined })
+      expect((during.json() as { slug: string }[]).map((p) => p.slug)).toEqual([
+        'first-app',
+      ])
+      release()
+      expect(refusal(await second)).toEqual({ status: 201, code: undefined })
+      const after = await app.inject({ method: 'GET', url: '/v1/projects', cookies })
+      expect((after.json() as { slug: string }[]).map((p) => p.slug)).toEqual([
+        'second-app',
+        'first-app',
+      ])
+    } finally {
+      release()
+      await app.close()
+    }
+  })
+})
+
+/**
  * §23: "one function answers both". The check and creation must give the same answer
  * for the same name, and this is the test that makes that a fact rather than two
  * functions that happen to agree today (P5a Task 9, control (b)).

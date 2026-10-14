@@ -41,6 +41,10 @@ export async function candidateFor(
     .where(eq(environments.projectId, projectId))
     .then((rows) => rows.filter((e) => e.kind === 'staging'))
   const serving = staging === undefined ? undefined : await servingInstanceOf(db, staging)
+  // **THE SET'S, READ BY THE MEMBER THAT ANSWERS FOR IT** (A1 Task 7): staging is one instance, and N
+  // during B's load rehearsal, every member running one release — so the candidate is the set's release,
+  // read off its first HEALTHY member (`servingInstanceOf`), never a first member that has stopped.
+  //
   // **HEALTHY, OR IT IS NOT SERVING** (P6b Task 6). `servingInstanceOf` falls back to the
   // environment's NEWEST instance of ANY state when no Route record exists — its rule for
   // apps deployed before P4c — so a staging whose only deploy FAILED answered with the

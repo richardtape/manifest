@@ -52,7 +52,16 @@ export const Fleet = representation(
               state: z
                 .string()
                 .nullable()
-                .describe('The serving instance’s state; null before any deploy.'),
+                .describe(
+                  'What serves, as one state: `healthy` while any instance the hostname reaches is healthy — a production instance that stopped stays among them until its replacement serves — otherwise the first’s. Null before any deploy.',
+                ),
+              instances: z
+                .number()
+                .int()
+                .min(0)
+                .describe(
+                  'How many instances the hostname reaches — the set `getEnvironment` names in `instances`: production runs as many as its audience needs (two for `class`), sandbox and staging one. 0 before any deploy.',
+                ),
               releaseId: Uuid.nullable().describe(
                 'The release serving; null before any deploy.',
               ),

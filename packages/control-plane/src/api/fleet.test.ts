@@ -49,4 +49,33 @@ describe('the fleet (Task 12, M3)', () => {
       )
     })
   })
+
+  /**
+   * HOW MANY INSTANCES EACH ENVIRONMENT'S HOSTNAME REACHES (A1 Task 7) — a `class` app's production is two —
+   * published on every environment, `0` before any deploy.
+   */
+  it('says how many instances each environment reaches: 0 before any deploy', async () => {
+    await withProjectServer(async (ctx) => {
+      const admin = await loginAs(ctx.deps, 'platform_admin')
+      const res = await ctx.app.inject({
+        method: 'GET',
+        url: '/v1/fleet',
+        cookies: admin,
+      })
+      expect(res.statusCode, res.body).toBe(200)
+      const entry = (
+        res.json() as {
+          id: string
+          environments: { kind: string; state: string | null; instances: number }[]
+        }[]
+      ).find((p) => p.id === ctx.projectId)!
+      expect(
+        entry.environments.map((e) => [e.kind, e.state, e.instances]).sort(),
+      ).toEqual([
+        ['production', null, 0],
+        ['sandbox', null, 0],
+        ['staging', null, 0],
+      ])
+    })
+  })
 })

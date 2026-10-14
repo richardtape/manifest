@@ -438,6 +438,41 @@ describe('LaunchReadiness (§13, P5a Task 15; the two external records, P6a Task
     })
   })
 
+  /**
+   * THE CANDIDATE IS READ OFF STAGING'S SET (A1 Task 7): staging is one instance today, and N during B's load
+   * rehearsal — every member then runs one release, so the set's release is the candidate. Its FIRST member
+   * is not always one that serves (a member that stopped stays in a set, `failed`, until it is replaced), so
+   * the set's first HEALTHY member answers for it — the fleet's rule, one function.
+   */
+  it('the candidate is the release staging’s set serves — its first member stopped, the next still serving', async () => {
+    await withProject(async (tx, { projectId, ownerId }) => {
+      const releaseId = await serving(tx, projectId, ownerId, scan(0, false))
+      const [staging] = await tx
+        .select()
+        .from(environments)
+        .where(eq(environments.projectId, projectId))
+      // A member of the same release made a minute EARLIER — the set's first — that has stopped.
+      const [stopped] = await tx
+        .insert(instances)
+        .values({
+          environmentId: staging!.id,
+          releaseId,
+          driver: 'fake',
+          state: 'failed',
+          createdAt: new Date(Date.now() - 60_000),
+        })
+        .returning()
+      await tx.insert(routes).values({
+        instanceId: stopped!.id,
+        hostname: staging!.hostname,
+        listener: 'internal',
+      })
+      expect((await computeLaunchReadiness(tx, projectId)).candidateReleaseId).toBe(
+        releaseId,
+      )
+    })
+  })
+
   it('scans: met for the release serving staging, scanned fresh, naming the unfixable findings recorded', async () => {
     await withProject(async (tx, { projectId, ownerId }) => {
       const releaseId = await serving(tx, projectId, ownerId, scan(1, false))

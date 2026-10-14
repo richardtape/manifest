@@ -187,6 +187,14 @@ export interface ProjectView {
  * since migration 0024 — so it is THROWN, naming the project (a `500` and an operator line),
  * never answered without a link: `Project.repository` is required, and a client told nothing
  * about where the code lives would be told something false by omission.
+ *
+ * **EXCEPT IN A LIST, WHICH LEAVES IT OUT** (`{ list: true }`; A1 Task 7, the front end's FE-58).
+ * `POST /v1/projects` commits the project's rows, THEN makes its repository — seconds, on real
+ * GitHub — and only then records it, so a project its owner is a member of has no row for that
+ * long; a list that threw on it answered `500` for EVERY project in it (A8's click, 2026-10-13). A
+ * project is not made until its repository is, and its create answers it once it is. A read of
+ * ONE project still throws: nothing answers a project's id before its create does but the fleet,
+ * and a project whose repository never comes is the defect above.
  */
 export async function projectViews(
   deps: {
@@ -194,6 +202,7 @@ export async function projectViews(
     source: Pick<SourceDriver, 'identity' | 'repositoryFor' | 'lastVisibility'>
   },
   projectIds: readonly string[],
+  options: { list?: boolean } = {},
 ): Promise<ProjectView[]> {
   if (projectIds.length === 0) return []
   const { db, source } = deps
@@ -211,31 +220,33 @@ export async function projectViews(
     .where(and(inArray(projects.id, [...projectIds]), ne(projects.state, 'deleted')))
   const byId = new Map(
     await Promise.all(
-      rows.map(async (r): Promise<[string, ProjectView]> => {
-        if (r.repository === null) {
-          throw new Error(
-            `project '${r.project.slug}' (${r.project.id}) has no source_repositories row; every project has one since migration 0024`,
-          )
-        }
-        const link = linkOf(r.repository)
-        return [
-          r.project.id,
-          {
-            project: r.project,
-            owner: { id: r.ownerId, displayName: r.ownerName },
-            // The running driver's last read, from this machine — never the network. A project
-            // ANOTHER driver made is not this driver's to read (Decision 3): `null` — nor one
-            // another GitHub made, whose mirror is not this GitHub's (the launch path plan's Task 2).
-            repository: {
-              ...link,
-              visibility:
-                notMadeByRunning(r.repository, source.identity()) === null
-                  ? await source.lastVisibility(source.repositoryFor(r.project.slug))
-                  : null,
+      rows
+        .filter((r) => !(options.list === true && r.repository === null))
+        .map(async (r): Promise<[string, ProjectView]> => {
+          if (r.repository === null) {
+            throw new Error(
+              `project '${r.project.slug}' (${r.project.id}) has no source_repositories row; every project has one since migration 0024`,
+            )
+          }
+          const link = linkOf(r.repository)
+          return [
+            r.project.id,
+            {
+              project: r.project,
+              owner: { id: r.ownerId, displayName: r.ownerName },
+              // The running driver's last read, from this machine — never the network. A project
+              // ANOTHER driver made is not this driver's to read (Decision 3): `null` — nor one
+              // another GitHub made, whose mirror is not this GitHub's (the launch path plan's Task 2).
+              repository: {
+                ...link,
+                visibility:
+                  notMadeByRunning(r.repository, source.identity()) === null
+                    ? await source.lastVisibility(source.repositoryFor(r.project.slug))
+                    : null,
+              },
             },
-          },
-        ]
-      }),
+          ]
+        }),
     ),
   )
   return projectIds.flatMap((id) => byId.get(id) ?? [])
@@ -318,15 +329,29 @@ export async function servingInstancesOf(
 }
 
 /**
- * The SET'S FIRST, by `(created_at, id)` — the instance `Environment.instance` names and a healthy
- * deploy answers (A1 Decision 6). Until A1 it read one Route row with `.limit(1)` and no order, which
- * with a set of two would have named either member.
+ * THE MEMBER THAT ANSWERS FOR A SET (A1 Task 7): its first HEALTHY member, by `(created_at, id)` — or, none
+ * being healthy, its first. Every member of a set comes from one deploy and runs one release, so its release
+ * is the set's; but since the set watcher (Task 6) a production member that stopped stays in the set,
+ * `failed`, until its replacement serves while the rest serve on — so the set's FIRST is not always one that
+ * serves, and read alone it would tell a person their app had failed while it served (P4c Decision 20).
+ * `Environment.instance` still names the set's first (`toEnvironment`): the instance a deploy answered.
+ */
+export function answeringMemberOf<T extends { state: string }>(
+  set: readonly T[],
+): T | undefined {
+  return set.find((member) => member.state === 'healthy') ?? set[0]
+}
+
+/**
+ * The member that answers for what serves an environment (`answeringMemberOf` over `servingInstancesOf`) —
+ * for a reader that needs ONE: the launch candidate, the classification floor. Until A1 it read one Route
+ * row with `.limit(1)` and no order, which with a set of two would have named either member.
  */
 export async function servingInstanceOf(
   db: Pick<Db, 'select'>,
   environment: Environment,
 ): Promise<typeof instances.$inferSelect | undefined> {
-  return (await servingInstancesOf(db, environment))[0]
+  return answeringMemberOf(await servingInstancesOf(db, environment))
 }
 
 /**

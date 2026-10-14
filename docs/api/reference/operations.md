@@ -44,6 +44,7 @@ Answer, `200`:
         "kind": "production",
         "hostname": "p-7e7d49b6.manifest.internal",
         "state": null,
+        "instances": 0,
         "releaseId": null,
         "imageDigest": null,
         "lastDeployAt": null,
@@ -53,6 +54,7 @@ Answer, `200`:
         "kind": "sandbox",
         "hostname": "p-7e7d49b6.sandbox.manifest.internal",
         "state": null,
+        "instances": 0,
         "releaseId": null,
         "imageDigest": null,
         "lastDeployAt": null,
@@ -87,6 +89,7 @@ Answer, `200`:
         "kind": "production",
         "hostname": "p-15e91afe.manifest.internal",
         "state": null,
+        "instances": 0,
         "releaseId": null,
         "imageDigest": null,
         "lastDeployAt": null,
@@ -96,6 +99,7 @@ Answer, `200`:
         "kind": "sandbox",
         "hostname": "p-15e91afe.sandbox.manifest.internal",
         "state": null,
+        "instances": 0,
         "releaseId": null,
         "imageDigest": null,
         "lastDeployAt": null,
@@ -4630,7 +4634,7 @@ Answer, `200`:
 
 `GET /v1/projects` · a session or a delegated token
 
-Every project the caller owns or collaborates on, newest first — for administrators too (`listFleet` lists every app). A delegated token sees exactly the one project it is scoped to.
+Every project the caller owns or collaborates on, newest first — for administrators too (`listFleet` lists every app). A delegated token sees exactly the one project it is scoped to. A project appears once its repository is made: from the moment `createProject` answers it.
 
 Answer, `200`:
 

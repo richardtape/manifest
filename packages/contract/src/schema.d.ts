@@ -497,7 +497,7 @@ export interface paths {
         };
         /**
          * The projects I am a member of
-         * @description Every project the caller owns or collaborates on, newest first — for administrators too (`listFleet` lists every app). A delegated token sees exactly the one project it is scoped to.
+         * @description Every project the caller owns or collaborates on, newest first — for administrators too (`listFleet` lists every app). A delegated token sees exactly the one project it is scoped to. A project appears once its repository is made: from the moment `createProject` answers it.
          */
         get: operations["listProjects"];
         put?: never;
@@ -5150,8 +5150,10 @@ export interface components {
                 kind: "sandbox" | "staging" | "production";
                 /** @description Its hostname: `<slug>.<zone for this kind>`. */
                 hostname: string;
-                /** @description The serving instance’s state; null before any deploy. */
+                /** @description What serves, as one state: `healthy` while any instance the hostname reaches is healthy — a production instance that stopped stays among them until its replacement serves — otherwise the first’s. Null before any deploy. */
                 state: string | null;
+                /** @description How many instances the hostname reaches — the set `getEnvironment` names in `instances`: production runs as many as its audience needs (two for `class`), sandbox and staging one. 0 before any deploy. */
+                instances: number;
                 /** @description The release serving; null before any deploy. */
                 releaseId: string | null;
                 /** @description The image that release runs; null before any deploy. */
@@ -7811,6 +7813,7 @@ export interface operations {
                      *             "kind": "production",
                      *             "hostname": "p-7e7d49b6.manifest.internal",
                      *             "state": null,
+                     *             "instances": 0,
                      *             "releaseId": null,
                      *             "imageDigest": null,
                      *             "lastDeployAt": null,
@@ -7820,6 +7823,7 @@ export interface operations {
                      *             "kind": "sandbox",
                      *             "hostname": "p-7e7d49b6.sandbox.manifest.internal",
                      *             "state": null,
+                     *             "instances": 0,
                      *             "releaseId": null,
                      *             "imageDigest": null,
                      *             "lastDeployAt": null,
@@ -7854,6 +7858,7 @@ export interface operations {
                      *             "kind": "production",
                      *             "hostname": "p-15e91afe.manifest.internal",
                      *             "state": null,
+                     *             "instances": 0,
                      *             "releaseId": null,
                      *             "imageDigest": null,
                      *             "lastDeployAt": null,
@@ -7863,6 +7868,7 @@ export interface operations {
                      *             "kind": "sandbox",
                      *             "hostname": "p-15e91afe.sandbox.manifest.internal",
                      *             "state": null,
+                     *             "instances": 0,
                      *             "releaseId": null,
                      *             "imageDigest": null,
                      *             "lastDeployAt": null,

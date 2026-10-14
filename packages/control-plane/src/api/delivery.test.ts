@@ -1371,6 +1371,7 @@ describe('who may run D21’s rehearsal (§13, D24)', () => {
     slug: string,
     probe?: (inner: CwlSignInProbe, deps: ServerDeps) => CwlSignInProbe,
     driver?: Driver,
+    scale?: 'solo' | 'class',
   ) {
     const base = driver === undefined ? await testDeps() : await depsWithDriver(driver)
     const fakes = cwlFakes(base)
@@ -1381,7 +1382,10 @@ describe('who may run D21’s rehearsal (§13, D24)', () => {
     const created = await app.inject({
       method: 'POST',
       url: '/v1/projects',
-      payload: projectBody(slug, { blueprint: 'node-ts-mongo@1' }),
+      payload: projectBody(slug, {
+        blueprint: 'node-ts-mongo@1',
+        ...(scale === undefined ? {} : { scale }),
+      }),
       cookies,
       headers: mutationHeaders(deps),
     })
@@ -1790,6 +1794,55 @@ describe('who may run D21’s rehearsal (§13, D24)', () => {
         expect(read.json()).toMatchObject({
           instance: { id: body.evidence.instanceId, state: 'gone' },
         })
+      } finally {
+        await ctx.deps.builds.idle()
+        await ctx.app.close()
+      }
+    })
+
+    /**
+     * D21'S REHEARSAL STAYS ONE INSTANCE (A1 Decision 8, Task 7): it measures a sign-in, not load, and its
+     * take-down removes exactly what it put up — on a `class` app too, whose production runs TWO once it
+     * launches. `shapeFor`'s rehearsal row is what holds it; this is where it is read through the route.
+     */
+    it('on a `class` app — two instances once it launches — the rehearsal puts up ONE and takes exactly it down', async () => {
+      let during: { rows: number; serving: string[] } | 'never asked' = 'never asked'
+      const ctx: Ctx = await stagedCwlProject(
+        'tk-class',
+        (inner, deps) => ({
+          signIn: async (input) => {
+            during = {
+              rows: (await productionInstances(ctx)).length,
+              serving: await deps.driver.servingInstances(input.hostname),
+            }
+            return inner.signIn(input)
+          },
+        }),
+        undefined,
+        'class',
+      )
+      try {
+        // THE POSITIVE HALF: the audience a launch would run two for.
+        const [stored] = await ctx.deps.db
+          .select({ audience: projects.audience })
+          .from(projects)
+          .where(eq(projects.id, ctx.project.id))
+        expect((stored!.audience as { scale: string }).scale).toBe('class')
+        const res = await rehearse(ctx, { cookies: await stepped(ctx) })
+        expect(refusal(res)).toEqual({ status: 200, code: undefined })
+        const body = res.json() as { passed: boolean; evidence: { instanceId: string } }
+        expect(body.passed).toBe(true)
+        const all = await productionInstances(ctx)
+        // ONE, while its sign-in ran — one row, and the name reaching exactly it.
+        expect(during).toEqual({ rows: 1, serving: [all[0]!.handle] })
+        // And exactly it taken down: gone, nothing serving, no Route row.
+        expect(all).toEqual([
+          { id: body.evidence.instanceId, state: 'gone', handle: expect.any(String) },
+        ])
+        expect(
+          await ctx.deps.driver.servingInstances(productionOf(ctx).hostname),
+        ).toEqual([])
+        expect(await productionRoutes(ctx)).toEqual([])
       } finally {
         await ctx.deps.builds.idle()
         await ctx.app.close()

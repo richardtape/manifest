@@ -98,6 +98,8 @@ export async function classificationFloor(
     )
     .limit(1)
   if (production === undefined) return declared
+  // The member that answers for production's set (A1 Task 7): every member of a set runs one release, so
+  // its frozen level is the set's.
   const serving = await servingInstanceOf(db, production)
   if (serving === undefined) return declared
   const [release] = await db

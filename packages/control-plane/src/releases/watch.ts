@@ -1,4 +1,4 @@
-import { and, asc, eq, sql } from 'drizzle-orm'
+import { and, asc, eq, isNotNull, sql } from 'drizzle-orm'
 import {
   environments,
   instances,
@@ -189,8 +189,18 @@ export function createSetWatcher(deps: SetWatcherDeps): SetWatcher {
       .innerJoin(projects, eq(projects.id, environments.projectId))
       .innerJoin(routes, eq(routes.hostname, environments.hostname))
       // PRODUCTION ONLY (Decision 11): staging and sandbox keep §11's "a crash becomes failed and an Event"
-      // for a person to act on. An archived project's environments are its owner's, switched off.
-      .where(and(eq(environments.kind, 'production'), eq(projects.state, 'active')))
+      // for a person to act on. An archived project's environments are its owner's, switched off. AND ONLY A
+      // LAUNCHED PROJECT'S (a ruling of A1 sitting 6, sitting 5's F12): before a launch nothing serves production
+      // but D21's rehearsal (`takeDownLeftRehearsals`' own rule), which puts one instance up and takes exactly it
+      // down — a take-down that leaves a row it did not find `healthy` alone — and whose replacement would be
+      // refused anyway, with no approval before a launch.
+      .where(
+        and(
+          eq(environments.kind, 'production'),
+          eq(projects.state, 'active'),
+          isNotNull(projects.launchedAt),
+        ),
+      )
     for (const environment of watched) {
       try {
         await watch(environment)

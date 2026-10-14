@@ -5,6 +5,7 @@ import { setAdminReason } from '../admin-reason'
 import { href, navigate, type Route } from '../router'
 import { useProjectStream } from '../stream'
 import { deleteRefusalAdvice, RESTORE_SENTENCE } from '../ending-state'
+import { servingWords } from '../instances-state'
 import { Instant, Field, Panel, Pill, Refusal, useAsync, Warnings } from '../ui'
 import { Builds } from './builds'
 import { Code } from './code'
@@ -332,22 +333,26 @@ function Overview({
           {/*
             §23's three hostnames, from `?expand=environments` (D23.1). `instance` is null
             before any deploy, which is the truthful reading of a project this new — Task 8
-            is what puts a state and a URL worth clicking here.
+            is what puts a state and a URL worth clicking here. Production is a SET (A1 Task 7):
+            "2 instances, healthy", read by `servingWords`, never off the set's first alone.
           */}
           <Field label="Environments">
             <ul>
-              {(project.environments ?? []).map((e) => (
-                <li key={e.id}>
-                  <code>{e.hostname}</code> <Pill tone="plain">{e.kind}</Pill>{' '}
-                  {e.instance === null ? (
-                    'never deployed'
-                  ) : (
-                    <Pill tone={e.instance.state === 'healthy' ? 'good' : 'plain'}>
-                      {e.instance.state}
-                    </Pill>
-                  )}
-                </li>
-              ))}
+              {(project.environments ?? []).map((e) => {
+                const serving = servingWords(e)
+                return (
+                  <li key={e.id}>
+                    <code>{e.hostname}</code> <Pill tone="plain">{e.kind}</Pill>{' '}
+                    {serving.state === null ? (
+                      'never deployed'
+                    ) : (
+                      <Pill tone={serving.state === 'healthy' ? 'good' : 'plain'}>
+                        {serving.text}
+                      </Pill>
+                    )}
+                  </li>
+                )
+              })}
             </ul>
           </Field>
         </>

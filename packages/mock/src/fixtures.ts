@@ -99,6 +99,7 @@ const ENVIRONMENT = (
   id: string,
   kind: Schemas['Environment']['kind'],
   instance: Schemas['Environment']['instance'],
+  set: Schemas['Environment']['instances'] = instance === null ? [] : [instance],
 ): Schemas['Environment'] => ({
   id,
   projectId: PROJECT_ID,
@@ -113,8 +114,9 @@ const ENVIRONMENT = (
       : `https://mock-app.${kind}.manifest.internal`,
   instance,
   // Every instance the hostname reaches (1.9.0): sandbox and staging run one; the mock's production
-  // is not deployed, so it reaches none.
-  instances: instance === null ? [] : [instance],
+  // is not deployed, so it reaches none — until it is LAUNCHED (`LAUNCHED_ENVIRONMENTS`), when its
+  // `class` audience runs two.
+  instances: set,
 })
 
 /**
@@ -165,6 +167,18 @@ export const PRODUCTION_INSTANCE: Schemas['Instance'] = {
   environmentId: PRODUCTION_ID,
 }
 
+/**
+ * PRODUCTION'S SET OF TWO (A1, contract 1.9.0): what a LAUNCHED `mock-app` reaches in production —
+ * `MANIFEST_MOCK_LAUNCHED=1`, or the `change-with-team` stage, whose story is a launched app's. Its
+ * audience is `class`, which runs two; both members come from one deploy, so they run one release and
+ * share a `createdAt`, and the set's order is `(createdAt, id)` — `instance` names the first.
+ */
+export const PRODUCTION_INSTANCE_2_ID = '66666666-6666-4666-8666-666666666664'
+export const PRODUCTION_SET: Schemas['Instance'][] = [
+  PRODUCTION_INSTANCE,
+  { ...PRODUCTION_INSTANCE, id: PRODUCTION_INSTANCE_2_ID },
+]
+
 /** `MANIFEST_MOCK_FAIL=1`'s ending of a SANDBOX deploy — the same rule as `FAILED_INSTANCE`. */
 export const FAILED_SANDBOX_INSTANCE: Schemas['Instance'] = {
   ...SANDBOX_INSTANCE,
@@ -179,6 +193,20 @@ export const ENVIRONMENTS: Schemas['EnvironmentList'] = [
 ]
 
 export const STAGING: Schemas['Environment'] = ENVIRONMENTS[1]!
+
+/** A LAUNCHED `mock-app`'s environments: production reaches its set of two (`PRODUCTION_SET`). */
+export const LAUNCHED_ENVIRONMENTS: Schemas['EnvironmentList'] = [
+  ENVIRONMENTS[0]!,
+  ENVIRONMENTS[1]!,
+  ENVIRONMENT(PRODUCTION_ID, 'production', PRODUCTION_INSTANCE, PRODUCTION_SET),
+]
+
+/** A LAUNCHED `mock-app`'s production instances: both members of its set, both serving. */
+export const LAUNCHED_PRODUCTION_INSTANCES: Schemas['InstanceList'] = {
+  environmentId: PRODUCTION_ID,
+  instances: PRODUCTION_SET.map((instance) => ({ ...instance, serving: true })),
+  truncated: false,
+}
 
 /**
  * EACH ENVIRONMENT'S OWN INSTANCES (FE-27): what `listInstances` answers, keyed on the environment
@@ -1078,6 +1106,8 @@ export const FLEET: Schemas['Fleet'] = [
         kind: 'staging',
         hostname: 'mock-app.staging.manifest.internal',
         state: 'healthy',
+        // How many instances the hostname reaches (1.9.0): staging runs one.
+        instances: 1,
         releaseId: RELEASE_ID,
         imageDigest: BUILD.imageDigest,
         lastDeployAt: ISO,
@@ -1719,6 +1749,8 @@ export const FIXTURES: [string, unknown][] = [
   ['SpecValidation', SPEC_VALIDATION],
   ['Environment', STAGING],
   ['EnvironmentList', ENVIRONMENTS],
+  ['EnvironmentList', LAUNCHED_ENVIRONMENTS],
+  ['InstanceList', LAUNCHED_PRODUCTION_INSTANCES],
   ['Instance', INSTANCE],
   ['Instance', FAILED_INSTANCE],
   ['Instance', SANDBOX_INSTANCE],

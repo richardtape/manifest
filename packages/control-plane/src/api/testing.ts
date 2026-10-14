@@ -763,13 +763,18 @@ export async function launchedCwlProject(slug: string) {
  */
 export function projectBody(
   slug: string,
-  options: { blueprint?: string; starter?: string } = {},
+  options: {
+    blueprint?: string
+    starter?: string
+    /** §24's answer — `solo` unless a test is about what a bigger audience runs (A1 Task 7). */
+    scale?: 'solo' | 'class' | 'large_course' | 'public'
+  } = {},
 ): Record<string, unknown> {
   return {
     slug,
     blueprint: options.blueprint ?? 'fixture-node@1',
     ...(options.starter === undefined ? {} : { starter: options.starter }),
-    audience: { scale: 'solo', burst: 'steady' },
+    audience: { scale: options.scale ?? 'solo', burst: 'steady' },
   }
 }
 

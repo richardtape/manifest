@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { EventFrame, Schemas, StreamFrame } from '@manifest/contract'
 import type { Api } from '../api'
+import { exitedFramesFor, servingWords } from '../instances-state'
 import { Instant, Field, Panel, Pill, Refusal, useAsync } from '../ui'
 
 /**
@@ -81,7 +82,11 @@ function deployFrames(
       out.push({ id: f.id, at: f.createdAt, label: f.type, message: f.humanMessage })
     }
   }
-  return out
+  // A production instance that STOPPED while it served (A1 Task 7), in the platform's words — beside
+  // the deploy's own frames, because its replacement is a deploy too.
+  return [...out, ...exitedFramesFor(frames, env)].sort((a, b) =>
+    a.at.localeCompare(b.at),
+  )
 }
 
 function stateTone(state: Schemas['Instance']['state']): string {
@@ -111,7 +116,11 @@ function stateTone(state: Schemas['Instance']['state']): string {
  * happening the count never changes and nothing is re-read.
  */
 export function instanceFrameCount(frames: StreamFrame[]): number {
-  return frames.filter(isDeployFrame).length
+  // An exit changes what serves too (A1 Task 7): its member is `failed` until its replacement serves.
+  return (
+    frames.filter(isDeployFrame).length +
+    frames.filter((f) => f.kind === 'event' && f.type === 'instance.exited').length
+  )
 }
 
 /** The outcome of the most recent deploy ATTEMPT on this environment, or undefined. */
@@ -226,8 +235,10 @@ function EnvironmentPanel({
   // a failed deploy just as it does for a healthy one, so a `state` decides — and it is the
   // ENVIRONMENT's, re-read above when a frame says it moved, because a failed deploy leaves
   // the previous instance serving. `instance` is this tab's own answer and is only a
-  // fallback for the moment before the re-read lands.
-  const serving = env.instance?.state ?? instance?.state ?? null
+  // fallback for the moment before the re-read lands. Production is a SET (A1 Task 7): the state that
+  // answers for it is its first HEALTHY member's, and the words say how many.
+  const words = servingWords(env)
+  const serving = words.state ?? instance?.state ?? null
   const attempt = lastAttempt(frames, env)
 
   async function go() {
@@ -250,7 +261,9 @@ function EnvironmentPanel({
         {serving === null ? (
           <Pill tone="plain">never deployed</Pill>
         ) : (
-          <Pill tone={stateTone(serving)}>{serving}</Pill>
+          <Pill tone={stateTone(serving)}>
+            {words.state === null ? serving : words.text}
+          </Pill>
         )}{' '}
         {/*
           THE ATTEMPT, BESIDE WHAT IS SERVING — and only when the two disagree, which is

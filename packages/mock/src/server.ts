@@ -270,10 +270,15 @@ function assertHeld(params: Record<string, string>): void {
  * `mock-app` as asked: launched when `MANIFEST_MOCK_LAUNCHED=1` says so (Task 13) — and at the
  * `change-with-team` stage, whose story is a launched app's (a change is asked of a LIVE registration).
  */
-const projectOf = (ctx: Context): typeof f.PROJECT =>
+const isLaunched = (ctx: Context): boolean =>
   ctx.options.launched || ctx.options.records === 'change-with-team'
-    ? { ...f.PROJECT, launchedAt: '2026-09-18T12:00:00.000Z' }
-    : f.PROJECT
+
+const projectOf = (ctx: Context): typeof f.PROJECT =>
+  isLaunched(ctx) ? { ...f.PROJECT, launchedAt: '2026-09-18T12:00:00.000Z' } : f.PROJECT
+
+/** A launched app's production reaches its set of two (A1, contract 1.9.0); otherwise none. */
+const environmentsOf = (ctx: Context): typeof f.ENVIRONMENTS =>
+  isLaunched(ctx) ? f.LAUNCHED_ENVIRONMENTS : f.ENVIRONMENTS
 
 const bodyOf = <T>(ctx: Context): Partial<T> => (ctx.body ?? {}) as Partial<T>
 
@@ -446,9 +451,15 @@ const ANSWERS: Record<string, Answerer> = {
     }
     return ok('Instance', ctx.options.fail ? f.FAILED_INSTANCE : f.INSTANCE)
   },
-  // EACH ENVIRONMENT'S OWN INSTANCES (FE-27), agreeing with `getProject`'s environments.
+  // EACH ENVIRONMENT'S OWN INSTANCES (FE-27), agreeing with `getProject`'s environments — a launched
+  // app's production its set of two, both serving (A1, contract 1.9.0).
   listInstances: (ctx) =>
-    ok('InstanceList', f.INSTANCE_LISTS[ctx.params.environmentId ?? '']),
+    ok(
+      'InstanceList',
+      ctx.params.environmentId === f.PRODUCTION_ID && isLaunched(ctx)
+        ? f.LAUNCHED_PRODUCTION_INSTANCES
+        : f.INSTANCE_LISTS[ctx.params.environmentId ?? ''],
+    ),
   /**
    * THE SANDBOX INSTANCE'S LINES, AND EVERY OTHER INSTANCE REFUSED BY ITS OWN CODE (Task 13): the
    * failed one no longer runs (`409 INSTANCE_OUTPUT_UNAVAILABLE`, as the platform answers a failed
@@ -543,7 +554,7 @@ const ANSWERS: Record<string, Answerer> = {
     ok(
       'Project',
       ctx.query.get('expand') === 'environments'
-        ? { ...projectOf(ctx), environments: f.ENVIRONMENTS }
+        ? { ...projectOf(ctx), environments: environmentsOf(ctx) }
         : projectOf(ctx),
     ),
   /**
@@ -589,7 +600,7 @@ const ANSWERS: Record<string, Answerer> = {
   listBuilds: (ctx) => ok('BuildList', [ctx.buildIsRunning ? f.BUILD_RUNNING : f.BUILD]),
   // `202` WITH THE BUILD `running` (Rich's R6): the answer that arrived is not the answer.
   startBuild: () => ({ status: 202, schema: 'Build', body: f.BUILD_RUNNING }),
-  listEnvironments: () => ok('EnvironmentList', f.ENVIRONMENTS),
+  listEnvironments: (ctx) => ok('EnvironmentList', environmentsOf(ctx)),
   // The stream is an upgrade, handled below. A plain GET is what the platform answers 426
   // to, and the code is in the document.
   streamProjectEvents: () => {
