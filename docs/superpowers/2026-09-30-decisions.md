@@ -1929,3 +1929,12 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
     the click until after 12:00; A1's click now, then A1 EXECUTED and 7100 on real GitHub from .env (G4); then W5's walk, re-scoped
     to the demo's preparation (7105 in edge mode, one real private repository, an app built and tried on the real model, nothing
     committed), finished and frozen by ~11:30.
+
+    At ~10:23 PDT, A1's CLICKED HALF — SEEN BY RICH, his words to manifest-coord4: (on step 1, ~10:11) "1. yes does that. Now kill
+    one." and (on steps 2–5, ~10:23) "all of that happened, both new instances serving". Staged by manifest-a1-s8 on driver 1
+    (launch-app, release e3e77146, members ec98ecb5-… and 7cb03007-…); at his "kill one" it ran `docker kill
+    mf-launch-app-production-e3e77146-ec98ecb5-app` at 10:11:59 (exit 137); incident.opened and instance.exited at 10:12:11; a new
+    pair (c1c1204b-…, 455d8fd4-…) serving by 10:12:15; the old pair retired at 10:12:17. Rich saw, in the console without a reload,
+    Activity's two lines, the exit under Incidents, the killed member failed beside two new serving, Environments "2 instances,
+    healthy", and the app answering in both browsers throughout with the new ids after. The sign-in line was dropped at his "drop
+    it" (da77f93). So A1's last step is DONE: A1 is EXECUTED.
