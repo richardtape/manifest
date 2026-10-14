@@ -1471,3 +1471,10 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
          Rejected: (b) leave them.
       6. Housekeeping stays his, as listed (the .env line, the offline acceptance, the gateway key's rotation and the PROBE
          key; P1's F3 and F16 to be placed in a later plan).
+
+    And at ~18:41 PDT, in chat to manifest-coord3, FE-60's PLACEMENT (manifest-app 3ba0cab, written by W6 for m177:
+    iam_registration.sent and .submitted carry no requestedAttributes, though the record holds them, so the front end cannot
+    tell one detail's change from another's while it waits). Put to him with a recommendation: beside FE-59 in A1's sitting 5
+    (Task 6 edits the same launch events, inside contract 1.9.0). His words: "yes, put FE-60 in sitting 5". So sitting 5 makes
+    iam_registration.sent and .submitted carry requestedAttributes, as the record has them, beside FE-59's changeRequestedFrom
+    on .recorded. Rejected: a fix after A1; leave it tracked.
