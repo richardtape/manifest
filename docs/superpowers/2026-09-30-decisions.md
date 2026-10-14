@@ -1938,3 +1938,9 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
     Activity's two lines, the exit under Incidents, the killed member failed beside two new serving, Environments "2 instances,
     healthy", and the app answering in both browsers throughout with the new ids after. The sign-in line was dropped at his "drop
     it" (da77f93). So A1's last step is DONE: A1 is EXECUTED.
+
+    At ~10:33 PDT, in chat to manifest-coord4, THE DEMO-PREP BUILD ALLOWED — his words: "I allow it." — after manifest-coord4
+    explained what manifest-app-walk's refused step was ([Production Deploy], ~10:25: pressing "Start something new" on
+    app.manifest.internal as instructor, to create one app, let the building agent build it, and run it on trying-out on this laptop;
+    one new private repository in Manifest-local-dev; AI usage on his gateway key). A classifier lifts only on the person's word in the
+    refused session's own tab, so he is asked to type it there; this entry records that he allowed it.
