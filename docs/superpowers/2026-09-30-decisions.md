@@ -1705,3 +1705,11 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
     the same two cases; the front end never reads the platform's warnings text (FE-9, pinned by manifest-app's
     screens/going-live/stale.test.ts:183) nor copies the sentence (checked), so nothing of ours moves. Rejected: (A) the comment
     only, leaving a published false sentence.
+
+    And at ~22:56 PDT, DECIDED BY manifest-coord3 UNDER RICH'S DELEGATION OF 2026-10-13 ~19:38 — FOR HIS REVIEW: Incident.cause
+    in contract 1.9.0. manifest-a1-s5 (A1 sitting 5) stores incidents.cause (deploy | exit | exit_stopped, migration 0055) and
+    offered to publish it, "not added unasked". CHOSEN: publish it — an additive, required-nullable-or-enum field on Incident, inside
+    1.9.0, in S5's G3 notice. Why: the front end's W4 must make sure a person is never told twice, nor offered a redeploy the
+    platform is already doing (FE-4's overlap); with `cause` it tells an exit's Incident from a failed deploy's from the record
+    itself, never by parsing the prompt's prose or correlating events by instance id — an API gap left now would be a finding
+    later. Rejected: leave it unpublished.
