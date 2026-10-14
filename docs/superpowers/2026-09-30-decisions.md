@@ -1963,3 +1963,12 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
          (Recommended)" — our server on 7105 restarted with MANIFEST_APP_PLAN_MODEL=default-chat-large (plans had been written on
          `default-chat`, the laptop's small local model), not "No, leave plans as they are"; and "I build a small app now
          (Recommended)" — he builds one himself as the test and rehearsal, not the walk session, not "No test".
+
+    At ~11:17 PDT, THE SOL REPOINT REVERTED (manifest-coord4, within his ~11:15 answer, which kept luna when sol would not serve):
+    repointed at 11:15:47 (7100 restarted 11:16:03; boot capableModel "registered", /model/info openai/gpt-6.1-sol, priced), but ONE
+    call through LiteLLM to default-chat-large answered 400 — UBC's gateway: "Invalid model name passed in model=gpt-6.1-sol. Call
+    `/v1/models` to view available models for your key." — and the on-prem fallback refused as malformed, so every build would have
+    failed. manifest-a1-s8 restored the .env line (sha256 c62152499d3d2540…, byte-identical to before) and restarted 7100 at 11:17:08;
+    the same call then answered "ready" on gpt-6-luna, no fallback attempted. "registered" proves LiteLLM accepted the entry, not that
+    the gateway serves the model: only a call proves that. Sol's name on UBC's gateway (or its availability to his key) is open, for
+    after the demo. Plans on the capable model (7105 restarted 11:16:24 with MANIFEST_APP_PLAN_MODEL=default-chat-large) stand.
