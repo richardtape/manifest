@@ -1801,3 +1801,10 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
          the minor spec label 1c3066c (§21's "`IamRegistration` in force (§9)", under answer 9); and this run's new words of ours
          (manifest-app ORIENTATION's For Rich row: W2's, W6's and W4's) — accepted as built.
       Item 1 (the clicked half's sign-in line) and item 2 (the click itself, not yet staged) were not answered in this message.
+
+    And at ~07:33 PDT, item 1 — A1's CLICKED HALF's SIGN-IN LINE — his words: "drop it." So the clicked half (A1's *What Rich does* 3)
+    no longer asks him to "sign in on one and stay signed in on the other": a launched production app on the laptop signs in at UBC's
+    real IdP (spec/injection.ts:185, 466-477), and the sign-in across instances stays proven by Task 8a's Docker case
+    (node-ts-mongo.docker.test.ts: a real CWL sign-in crossing two instances, both orders, a replay refused) and by the sessions in the
+    app's own Mongo. ede301c's (A) is confirmed by him. Rejected: (B) a laptop-only setting pointing a launched app at the Manifest IdP
+    (a §8 spec action, if ever, for a later plan). And he opened the tab manifest-app-w7 for item 3's front-end follow-up.
