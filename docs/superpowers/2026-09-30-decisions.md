@@ -2020,3 +2020,7 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
         documents only, after W8 (sol's pauses are part of it).
       Rejected: the gentler test tiers' suites first (they would empty office-hour-slots, W8's proof case); W8 after F7 (the loop
       makes every change round unreliable, F7 included).
+
+    At ~13:28 PDT, through manifest-coord4's question tool: TABS — "Opened all three" (manifest-app-w8, manifest-app-f7-s1,
+    manifest-gt-s1); THE GENTLER TEST TIERS' IMITATED-LOAD RUN (sitting 1) — "Whenever it's ready today", with a notification ~5 min
+    before it starts (not "Only after 17:00", "Overnight", "Ask me at the time").
