@@ -143,7 +143,9 @@ export interface MockOptions {
    * or hand back (the FE-46/47/5 plan's Task 8a); both registrations drafted;
    * `=assessed` — the assessment approved, both registrations drafted carrying its PIA number;
    * `=approved` — everything approved and registered, so the checklist is ready and a production
-   * deploy answers production's own instance (FE-40 (1)). Unset, `sent`: the story every other
+   * deploy answers production's own instance (FE-40 (1)); `=change-with-team` — `approved`'s records on a
+   * LAUNCHED app with a change to production's registration with the Manifest team (Task 8b);
+   * `=change-before-launch` — the same change on an app NOT launched, met and ready (F16(b)). Unset, `sent`: the story every other
    * fixture tells — both registrations active, the assessment sent again and with the Privacy Office.
    * Each draft and send is answered as the platform answers it from that stage.
    */
@@ -418,7 +420,7 @@ const ANSWERS: Record<string, Answerer> = {
   // staging's. Production still answers staging's fixture — the mock scripts no launch.
   //
   // PRODUCTION (FE-40, the launch path plan's Task 13): step-up first when scripted, and production's
-  // own instance once the checklist is ready (`MANIFEST_MOCK_RECORDS=approved`). Otherwise production
+  // own instance once the checklist is ready (`MANIFEST_MOCK_RECORDS=approved`, or `=change-before-launch`). Otherwise production
   // still answers staging's fixture — the default does not move (FE-40), and that is a known lie.
   deploy: (ctx) => {
     if (ctx.params.environmentId === f.SANDBOX_ID)
@@ -1265,6 +1267,7 @@ export function createMockServer(options: MockOptions = {}): Server {
         'assessed',
         'approved',
         'change-with-team',
+        'change-before-launch',
       ].includes(process.env.MANIFEST_MOCK_RECORDS ?? '')
         ? (process.env.MANIFEST_MOCK_RECORDS as RecordsStage)
         : 'sent'),

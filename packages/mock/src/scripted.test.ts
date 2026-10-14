@@ -1180,6 +1180,52 @@ describe('the launch path plan’s Task 13 — the records by stage, the sign-of
     })
   })
 
+  /**
+   * F16(b) (Rich, 2026-10-09; the platform since A1's sitting 2): BEFORE THE FIRST LAUNCH, a change to production's
+   * registration — which UBC holds in force — with the Manifest team does not hold the launch back. `approved`'s
+   * records, production's registration `sent` from `active` (as `change-with-team`), on an app NOT launched: the
+   * item met, saying where the change is, the checklist ready, and a production deploy answering production's own
+   * instance.
+   */
+  it('MANIFEST_MOCK_RECORDS=change-before-launch — a first launch with a change the Manifest team holds: met, ready, and it deploys (F16(b))', async () => {
+    // THE ENVIRONMENT NAMES IT: on the allow-list, never silently `sent`.
+    const was = process.env.MANIFEST_MOCK_RECORDS
+    process.env.MANIFEST_MOCK_RECORDS = 'change-before-launch'
+    let at: string
+    try {
+      at = await serve()
+    } finally {
+      if (was === undefined) delete process.env.MANIFEST_MOCK_RECORDS
+      else process.env.MANIFEST_MOCK_RECORDS = was
+    }
+    const production = (await records(at)).iamRegistration as Registration & {
+      sentFrom: string | null
+      requestedAttributes: string[] | null
+    }
+    expect(production).toMatchObject({ state: 'sent', sentFrom: 'active' })
+    expect(production.requestedAttributes).toContain('eduPersonAffiliation')
+    const project = (await (
+      await fetch(`${at}/v1/projects/${f.PROJECT_ID}`, { headers: SESSION })
+    ).json()) as { launchedAt: string | null }
+    expect(project.launchedAt).toBeNull()
+    const checklist = (await readiness(at)) as unknown as {
+      launched: boolean
+      ready: boolean
+    }
+    expect(checklist).toMatchObject({ launched: false, ready: true })
+    const iam = await item(at, 'iam-registration')
+    expect(iam.state).toBe('met')
+    expect(iam.why).toMatch(
+      /A change is with the Manifest team since [A-Z][a-z]+ \d{1,2}, \d{4} \(asking for .*eduPersonAffiliation.*\); until UBC registers it, releases are checked against what it registered\.$/,
+    )
+    const deployed = (await (
+      await post(at, `/v1/environments/${f.PRODUCTION_ID}/deploy`, {
+        releaseId: f.RELEASE_ID,
+      })
+    ).json()) as { environmentId: string }
+    expect(deployed.environmentId).toBe(f.PRODUCTION_ID)
+  })
+
   it('MANIFEST_MOCK_RECORDS=approved is FE-40 (1) — every blocking item met, and a production deploy answers a production instance of its own', async () => {
     const deployProduction = (at: string) =>
       post(at, `/v1/environments/${f.PRODUCTION_ID}/deploy`, { releaseId: f.RELEASE_ID })

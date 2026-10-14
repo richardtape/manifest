@@ -25,13 +25,23 @@ import { MockRefusal } from './refusal.js'
  * - `change-with-team` — `approved`'s records on a LAUNCHED app, with production's registration `sent`
  *   from `active`: a change asking for `eduPersonAffiliation`, sent to the Manifest team yesterday (the
  *   FE-46/47/5 plan's Task 8b). The team can file it with UBC IAM or hand it back; the live item stays met.
+ * - `change-before-launch` — `change-with-team`'s records on an app NOT launched (F16(b), Rich, 2026-10-09; the
+ *   platform since A1's sitting 2): a change to a registration UBC holds in force does not hold the FIRST launch
+ *   back — the item met, saying where the change is, the checklist ready, and a production deploy answering.
  *
  * **WHAT IT CANNOT DO**: remember. A draft or a send answers as the platform would, and the next read
  * answers the stage again — exactly as `recordIamRegistration` always has.
  */
 
 export type RecordsStage =
-  'none' | 'drafted' | 'with-team' | 'assessed' | 'sent' | 'approved' | 'change-with-team'
+  | 'none'
+  | 'drafted'
+  | 'with-team'
+  | 'assessed'
+  | 'sent'
+  | 'approved'
+  | 'change-with-team'
+  | 'change-before-launch'
 export type ApprovalState = 'approved' | 'pending' | 'rejected'
 
 export interface LaunchOptions {
@@ -244,6 +254,7 @@ export function launchRecords(o: LaunchOptions, now: number): Schemas['LaunchRec
         privacyAssessment: approvedAssessment(APPROVED_ON),
       }
     case 'change-with-team':
+    case 'change-before-launch':
       return {
         ...f.LAUNCH_RECORDS,
         privacyAssessment: approvedAssessment(APPROVED_ON),
@@ -681,7 +692,17 @@ const ticket = (ref: string | null) => (ref === null ? '' : ` (ticket ${ref})`)
 
 /** Production's registration, as the checklist reads it at a stage. */
 function iamItem(o: LaunchOptions, base: Item, now: number): Item {
-  const row = registrationOf(o, 'production', now)
+  return iamItemOf(registrationOf(o, 'production', now), base)
+}
+
+/**
+ * THE ITEM FROM PRODUCTION'S REGISTRATION — exported for its own tests, because no stage holds every state it
+ * reads. UBC'S REGISTRATION IN FORCE IS MET (F16(b), Rich, 2026-10-09; the platform's `registrationInForce` since
+ * A1's sitting 2): recorded `active` once and not lapsed since, and a change asked for, filed, or sent back with
+ * UBC's questions does not unregister it — saying where the change is, in the platform's words
+ * (`changeRequestOnFile`). The mock's stages ask nothing UBC has not registered, so in force is covered.
+ */
+export function iamItemOf(row: Registration | null, base: Item): Item {
   if (row === null)
     return {
       ...base,
@@ -689,14 +710,10 @@ function iamItem(o: LaunchOptions, base: Item, now: number): Item {
       why: 'Every production app that signs people in with CWL needs its own registration with UBC IAM, and it takes weeks. Production’s is drafted (draftIamRegistration) and sent to the Manifest team (sendIamRegistration) once the privacy assessment is approved and staging’s registration is active; the team submits it to UBC IAM. An administrator records UBC IAM’s answer, with its ticket reference.',
       since: null,
     }
-  if (row.state === 'active') return base
-  // A CHANGE WITH THE MANIFEST TEAM (Task 8b): UBC's registration still stands, so a launched app's live
-  // item stays met — saying where the change is, in the platform's words (`changeRequestOnFile`).
-  if (row.state === 'sent' && row.sentFrom === 'active')
-    return {
-      ...base,
-      why: `${base.why} A change is with the Manifest team since ${dayInWords(new Date(row.sentAt!))} (asking for ${[...(row.requestedAttributes ?? [])].sort().join(', ')}); until UBC registers it, releases are checked against what it registered.`,
-    }
+  if (row.registeredAt !== null && row.state !== 'expired') {
+    if (row.state === 'active') return base
+    return { ...base, why: `${base.why}${changeOnFile(row)}` }
+  }
   // WITH THE MANIFEST TEAM SINCE THE SEND (the FE-46/47/5 plan's Task 6) — who has it, and since when.
   const withTeam = row.state === 'sent' && row.sentAt !== null
   return {
@@ -705,6 +722,17 @@ function iamItem(o: LaunchOptions, base: Item, now: number): Item {
     why: `${withTeam ? `It was sent to the Manifest team on ${dayInWords(new Date(row.sentAt!))}, to submit to UBC IAM. ` : ''}The registration is '${row.state}'${ticket(row.externalTicketRef)} and must be 'active' before a first production launch.`,
     since: withTeam ? row.sentAt : null,
   }
+}
+
+/** A change to a registration in force, said once — the platform's `changeRequestOnFile`. */
+function changeOnFile(row: Registration): string {
+  if (row.requestedAttributes === null) return ''
+  const asked = [...row.requestedAttributes].sort().join(', ')
+  if (row.state === 'sent')
+    return ` A change is with the Manifest team since ${dayInWords(new Date(row.sentAt!))} (asking for ${asked}); until UBC registers it, releases are checked against what it registered.`
+  if (row.state === 'change_requested' && row.changeRequestedFrom === 'submitted')
+    return ` UBC IAM asked for changes to the change request (asking for ${asked}): draft it again and send it to the Manifest team (sendIamRegistration); until UBC registers it, releases are checked against what it registered.`
+  return ` A change request is on file ('${row.state}'${ticket(row.externalTicketRef)}, asking for ${asked}); until UBC registers it, releases are checked against what it registered.`
 }
 
 function piaItem(o: LaunchOptions, base: Item, now: number): Item {
