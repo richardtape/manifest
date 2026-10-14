@@ -2803,6 +2803,12 @@ human decision by construction.
 | Edge rate limiting | default | default | tuned | tuned, plus abuse controls |
 | Extra launch gate | — | — | load rehearsal | load rehearsal + security review |
 
+**Instances are exactly 1, 2, 3 and 3**, each at the manifest's own resources —
+*headroom* is the third instance, which carries the app while another is replaced or
+has died. Production's count is read from the audience at each deploy; a faculty app
+runs correctly on several because it keeps nothing a person needs in its process's
+memory — its sessions are in its own database (§8, the blueprint).
+
 `burst: synchronised` additionally pre-warms capacity ahead of a window the owner
 declares, because **wake-on-request (§11) is correct for `solo` and wrong here** —
 a cold start is invisible to one person checking a tool on Thursday and is a failed
