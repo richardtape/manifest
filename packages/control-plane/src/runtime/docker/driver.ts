@@ -19,7 +19,7 @@ import {
   restoreRouteTo,
   servingRoute,
   upstreamsInUse,
-  waitForIdentity,
+  waitForIdentities,
   waitForReady,
   type RoutingDeps,
 } from '../../routing/index.js'
@@ -515,9 +515,16 @@ export async function createDockerDriver(options: DockerDriverOptions): Promise<
       const previous = await servingRoute(options.routing, spec.hostname)
       await applyRoute(options.routing, {
         hostname: spec.hostname,
-        upstream,
         kind: spec.environmentKind,
-        instanceId: spec.instanceId,
+        upstreams: [{ dial: upstream, instanceId: spec.instanceId }],
+        /**
+         * A SET OF ONE, AND NO HEALTH POLICY YET — today's route in all but the header,
+         * which now names the instance that answered (A1 Task 2). A1's Task 4 gives this
+         * driver its set and `appHealthPolicy(spec.healthPath)` together, with the
+         * contract cases that prove both; until then a one-instance route keeps exactly
+         * the behaviour every Docker case here was written against.
+         */
+        health: 'none',
       })
 
       /**
@@ -527,9 +534,9 @@ export async function createDockerDriver(options: DockerDriverOptions): Promise<
        * for any path — but THIS instance's own identity, off the header the route
        * sets and nothing else sets (Decision 7).
        */
-      const verified = await waitForIdentity({
+      const verified = await waitForIdentities({
         url: handle.url,
-        expected: spec.instanceId,
+        expected: [spec.instanceId],
         probe: edgeIdentityProbe(
           engine,
           spec.hostname,
@@ -542,7 +549,7 @@ export async function createDockerDriver(options: DockerDriverOptions): Promise<
              * (P6a Decision 15). The probe runs from a container, where both of the
              * edge's servers are at one address and only the port tells them apart —
              * so without this a production probe reads `srv0`, finds no route, and
-             * `waitForIdentity` refuses the wildcard.
+             * `waitForIdentities` refuses the wildcard.
              *
              * A CONDITIONAL SPREAD, never `port: cond ? n : undefined`:
              * `exactOptionalPropertyTypes` is on and the second form is a type error.
@@ -653,7 +660,9 @@ export async function createDockerDriver(options: DockerDriverOptions): Promise<
     async servingInstance(hostname: string): Promise<string | undefined> {
       const serving = await servingRoute(options.routing, hostname)
       if (serving === undefined) return undefined
-      return containerForUpstream(engine, serving.upstream)
+      // THE FIRST, because every route this driver writes dials ONE until A1's Task 4
+      // gives it a set (and `servingInstances`, which answers every member).
+      return containerForUpstream(engine, serving.upstreams[0]!)
     },
 
     /**
@@ -729,7 +738,13 @@ export async function createDockerDriver(options: DockerDriverOptions): Promise<
             'app deployed before it gets its Route record at its next deploy.',
         )
       }
-      await applyRoute(options.routing, { hostname, upstream, kind, instanceId })
+      await applyRoute(options.routing, {
+        hostname,
+        kind,
+        upstreams: [{ dial: upstream, instanceId }],
+        // As `ensureInstance` writes it until A1's Task 4: a set of one, no health policy.
+        health: 'none',
+      })
     },
 
     /**

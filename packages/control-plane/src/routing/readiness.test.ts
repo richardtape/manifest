@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { waitForIdentity, waitForReady } from './readiness.js'
+import { waitForIdentities, waitForReady } from './readiness.js'
 
 describe('readiness polling', () => {
   it('returns ready on the first 200', async () => {
@@ -80,11 +80,11 @@ describe('readiness polling', () => {
  * instance from the previous one, from the wildcard, or from an app that never
  * started. The identity header the route sets can, and only the route sets it.
  */
-describe('waitForIdentity (P4c)', () => {
+describe('waitForIdentities (P4c; A1 Task 2 — a set)', () => {
   it('is ready when the edge answers 200 AS THIS INSTANCE', async () => {
-    const result = await waitForIdentity({
+    const result = await waitForIdentities({
       url: 'https://x/',
-      expected: 'inst-a',
+      expected: ['inst-a'],
       timeoutMs: 1000,
       intervalMs: 10,
       probe: async () => ({ status: 200, instance: 'inst-a' }),
@@ -96,9 +96,9 @@ describe('waitForIdentity (P4c)', () => {
 
   it('keeps trying while the edge is still answering as the previous instance', async () => {
     let calls = 0
-    const result = await waitForIdentity({
+    const result = await waitForIdentities({
       url: 'https://x/',
-      expected: 'inst-a',
+      expected: ['inst-a'],
       timeoutMs: 2000,
       intervalMs: 5,
       probe: async () => ({
@@ -111,9 +111,9 @@ describe('waitForIdentity (P4c)', () => {
   })
 
   it('is NOT ready when a 200 carries no identity — that is the edge’s wildcard', async () => {
-    const result = await waitForIdentity({
+    const result = await waitForIdentities({
       url: 'https://x/',
-      expected: 'inst-a',
+      expected: ['inst-a'],
       timeoutMs: 60,
       intervalMs: 10,
       probe: async () => ({ status: 200, instance: undefined }),
@@ -123,9 +123,9 @@ describe('waitForIdentity (P4c)', () => {
   })
 
   it('is NOT ready when the edge still answers as another instance, and says which', async () => {
-    const result = await waitForIdentity({
+    const result = await waitForIdentities({
       url: 'https://x/',
-      expected: 'inst-a',
+      expected: ['inst-a'],
       timeoutMs: 60,
       intervalMs: 10,
       probe: async () => ({ status: 200, instance: 'inst-b' }),
@@ -137,9 +137,9 @@ describe('waitForIdentity (P4c)', () => {
   // The right instance answering the wrong thing is not ready either: a 502 carrying
   // this instance's header is the edge reaching a container that is not serving.
   it('is NOT ready for a non-200, whatever identity it carries', async () => {
-    const result = await waitForIdentity({
+    const result = await waitForIdentities({
       url: 'https://x/',
-      expected: 'inst-a',
+      expected: ['inst-a'],
       timeoutMs: 60,
       intervalMs: 10,
       probe: async () => ({ status: 502, instance: 'inst-a' }),
@@ -150,9 +150,9 @@ describe('waitForIdentity (P4c)', () => {
   })
 
   it('treats a throwing probe as not-ready and reports the error, not a status', async () => {
-    const result = await waitForIdentity({
+    const result = await waitForIdentities({
       url: 'https://x/',
-      expected: 'inst-a',
+      expected: ['inst-a'],
       timeoutMs: 60,
       intervalMs: 10,
       probe: async () => {
@@ -162,5 +162,79 @@ describe('waitForIdentity (P4c)', () => {
     expect(result.ready).toBe(false)
     expect(result.lastStatus).toBeUndefined()
     expect(result.reason).toContain('could not resolve host')
+  })
+
+  /**
+   * A1's SET (Task 2): a route moved to two instances is shown to reach EACH — round robin
+   * means one probe sees one member, so the wait collects identities until every expected id
+   * has answered. Seeing one is not enough: a member the edge cannot reach (ejected by its
+   * health check, or a dial that goes nowhere) would leave the set serving on fewer than it
+   * was given, and a deploy would call that a success.
+   */
+  it('is ready once EVERY instance of the set has answered', async () => {
+    const answers = ['inst-a', 'inst-a', 'inst-b']
+    let calls = 0
+    const result = await waitForIdentities({
+      url: 'https://x/',
+      expected: ['inst-a', 'inst-b'],
+      timeoutMs: 2000,
+      intervalMs: 5,
+      probe: async () => ({ status: 200, instance: answers[calls++ % answers.length] }),
+    })
+    expect(result.ready).toBe(true)
+    expect(result.attempts).toBe(3)
+    expect(result.reason).toContain('inst-a')
+    expect(result.reason).toContain('inst-b')
+  })
+
+  /**
+   * ONE NEVER SEEN — AND SAID BY NAME, WITHOUT WAITING OUT THE TIMEOUT. Once the edge has
+   * answered as a member of the set (the move is live), round robin must show every member
+   * within `4 × N` answers — N for the rotation, the rest for whatever else is using the route
+   * meanwhile. A member still unseen by then is not being reached, and the deploy is told which.
+   */
+  it('is NOT ready when one member never answers within 4 × N, and names it', async () => {
+    let calls = 0
+    const result = await waitForIdentities({
+      url: 'https://x/',
+      expected: ['inst-a', 'inst-b'],
+      timeoutMs: 60_000,
+      intervalMs: 1,
+      probe: async () => {
+        calls += 1
+        return { status: 200, instance: 'inst-a' }
+      },
+    })
+    expect(result.ready).toBe(false)
+    expect(result.reason).toContain('inst-b')
+    expect(result.reason).not.toMatch(/never answered as inst-a/)
+    // The first answer from the set, then 4 × 2 more: the window, not the minute.
+    expect(calls).toBe(1 + 4 * 2)
+  })
+
+  it('names every member it never saw when the timeout comes first', async () => {
+    const result = await waitForIdentities({
+      url: 'https://x/',
+      expected: ['inst-a', 'inst-b'],
+      timeoutMs: 60,
+      intervalMs: 10,
+      probe: async () => ({ status: 200, instance: 'inst-old' }),
+    })
+    expect(result.ready).toBe(false)
+    expect(result.reason).toContain('inst-old')
+    expect(result.reason).toContain('inst-a')
+    expect(result.reason).toContain('inst-b')
+  })
+
+  it('refuses an empty set — a caller with nothing to wait for has a defect, not a deploy', async () => {
+    await expect(
+      waitForIdentities({
+        url: 'https://x/',
+        expected: [],
+        timeoutMs: 60,
+        intervalMs: 10,
+        probe: async () => ({ status: 200, instance: 'inst-a' }),
+      }),
+    ).rejects.toThrow(/no instance/)
   })
 })

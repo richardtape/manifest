@@ -12,7 +12,7 @@ import { createCaddyClient } from './caddy.js'
 import {
   edgeIdentityProbe,
   edgeProbe,
-  waitForIdentity,
+  waitForIdentities,
   waitForReady,
 } from './readiness.js'
 import { applyRoute, removeRoute } from './routes.js'
@@ -46,12 +46,13 @@ describeDocker('edgeProbe — readiness through the edge, from a container', () 
     // side effect of the first one, which is the ordering shape behind five of P2's.
     await run('docker', ['rm', '-f', APP]).catch(() => undefined)
     // A real HTTP server, never `nc`, which answers before it is asked (`stubAppArgs`).
-    await run('docker', stubAppArgs(APP, 'ok'))
+    // Under its instance's alias: the edge names an answer by the alias it dialled (A1 Task 2).
+    await run('docker', stubAppArgs(APP, 'ok', {}, { aliases: [`mf-i-${INSTANCE}`] }))
     await applyRoute(deps, {
       hostname: HOST,
-      upstream: `${APP}:8080`,
       kind: 'staging',
-      instanceId: INSTANCE,
+      upstreams: [{ dial: `mf-i-${INSTANCE}:8080`, instanceId: INSTANCE }],
+      health: 'none',
     })
   }, 60_000)
 
@@ -116,16 +117,16 @@ describeDocker('edgeProbe — readiness through the edge, from a container', () 
    * 200 from the Caddyfile wildcard — for any path, measured 2026-09-15 — so a
    * status-only readiness check passes against an app that never started (P4b
    * finding 193, Task 1 finding 11). The wildcard carries no identity, and that is
-   * the difference `waitForIdentity` exists to read.
+   * the difference `waitForIdentities` exists to read.
    */
-  it('answers 200 with NO identity for an unrouted hostname, and waitForIdentity refuses it', async () => {
+  it('answers 200 with NO identity for an unrouted hostname, and waitForIdentities refuses it', async () => {
     const seen = await edgeIdentityProbe(engine, UNROUTED, '/', CA)()
     expect(seen.status).toBe(200)
     expect(seen.instance).toBeUndefined()
 
-    const refused = await waitForIdentity({
+    const refused = await waitForIdentities({
       url: `https://${UNROUTED}/`,
-      expected: INSTANCE,
+      expected: [INSTANCE],
       probe: edgeIdentityProbe(engine, UNROUTED, '/', CA),
       timeoutMs: 1,
       intervalMs: 10,
@@ -145,9 +146,9 @@ describeDocker('edgeProbe — readiness through the edge, from a container', () 
   }, 60_000)
 
   it('waits until the edge answers as the instance it was given', async () => {
-    const ready = await waitForIdentity({
+    const ready = await waitForIdentities({
       url: `https://${HOST}/`,
-      expected: INSTANCE,
+      expected: [INSTANCE],
       probe: edgeIdentityProbe(engine, HOST, '/', CA),
       timeoutMs: 30_000,
       intervalMs: 500,
@@ -156,9 +157,9 @@ describeDocker('edgeProbe — readiness through the edge, from a container', () 
 
     // The same edge, the same 200, a different instance asked for: not ready, and it
     // says which instance actually answered.
-    const wrong = await waitForIdentity({
+    const wrong = await waitForIdentities({
       url: `https://${HOST}/`,
-      expected: 'deadbeef-0000-4000-8000-000000000000',
+      expected: ['deadbeef-0000-4000-8000-000000000000'],
       probe: edgeIdentityProbe(engine, HOST, '/', CA),
       timeoutMs: 1,
       intervalMs: 10,

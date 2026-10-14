@@ -456,7 +456,7 @@ describeDocker('the first production deploy (§13, P6a Task 15)', () => {
 
     // AND THE EDGE ITSELF, on the public listener: the instance's own identity header,
     // which the wildcard does not set (Decision 7). This is the assertion that the
-    // deploy's own `waitForIdentity` also makes, repeated here because the route can be
+    // deploy's own `waitForIdentities` also makes, repeated here because the route can be
     // moved afterwards and because a status alone proves nothing.
     const onPublic = await askEdge(s, PUBLIC_PORT)
     expect({ status: onPublic.status, instance: onPublic.instance }).toEqual({

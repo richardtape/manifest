@@ -1,6 +1,12 @@
 import { createServer, type Server } from 'node:http'
 import { afterEach, describe, expect, it } from 'vitest'
-import { buildRoute, createCaddyClient, INSTANCE_HEADER } from './caddy.js'
+import {
+  appHealthPolicy,
+  buildRoute,
+  createCaddyClient,
+  INSTANCE_HEADER,
+  type HealthPolicy,
+} from './caddy.js'
 
 let server: Server | undefined
 afterEach(() => server?.close())
@@ -49,9 +55,14 @@ function fakeAdmin(
 describe('the Caddy route shape', () => {
   const route = buildRoute({
     hostname: 'chem-labs.staging.manifest.internal',
-    upstream: 'mf-i-a1a1a1a1-0000-4000-8000-000000000001:3000',
+    upstreams: [
+      {
+        dial: 'mf-i-a1a1a1a1-0000-4000-8000-000000000001:3000',
+        instanceId: 'a1a1a1a1-0000-4000-8000-000000000001',
+      },
+    ],
     routeId: 'mf-chem-labs-staging-manifest-internal',
-    instanceId: 'a1a1a1a1-0000-4000-8000-000000000001',
+    health: 'none',
   })
 
   it('matches on the host, proxies to the upstream, and terminates', () => {
@@ -87,10 +98,19 @@ describe('the Caddy route shape', () => {
 
   it('sets X-Manifest-Instance on every response, DEFERRED so an app cannot serve its own', () => {
     const headers = route.handle[2] as {
-      response: { set: Record<string, string[]>; deferred?: boolean }
+      response: {
+        set: Record<string, string[]>
+        replace?: Record<string, { search_regexp: string; replace: string }[]>
+        deferred?: boolean
+      }
     }
+    // FROM THE UPSTREAM THAT ANSWERED, its `mf-i-` alias taken off — exactly the bare
+    // instance id (A1 Task 1, [M2] (b)) — never one static value for the route.
     expect(headers.response.set[INSTANCE_HEADER]).toEqual([
-      'a1a1a1a1-0000-4000-8000-000000000001',
+      '{http.reverse_proxy.upstream.host}',
+    ])
+    expect(headers.response.replace?.[INSTANCE_HEADER]).toEqual([
+      { search_regexp: '^mf-i-', replace: '' },
     ])
     // Without this the upstream's own copy is ADDED beside the edge's, and a deploy
     // could be told the app it started is serving when it is not (Task 1, M2:
@@ -118,6 +138,208 @@ describe('the Caddy route shape', () => {
   })
 })
 
+/**
+ * A1's route (Task 2, Decision 4): EVERY instance of a set behind one route, round robin,
+ * health-checked, and each answer naming the instance that gave it. The JSON is the one
+ * A1's Task 1 measured in a throwaway Caddy 2.11.4 from the edge's own image
+ * (`docs/superpowers/spikes/instances-baseline/`, `[M2]`) — with the route's real rate
+ * limit, 600, where the throwaway raised it for its loops.
+ */
+describe('the Caddy route across N instances (A1 Task 2)', () => {
+  const A = 'a1a1a1a1-0000-4000-8000-000000000001'
+  const B = 'b2b2b2b2-0000-4000-8000-000000000002'
+  const set = [
+    { dial: `mf-i-${A}:8080`, instanceId: A },
+    { dial: `mf-i-${B}:8080`, instanceId: B },
+  ]
+  const ROUTE_ID = 'mf-chem-labs-manifest-internal'
+  const PROTECTIONS = {
+    'Strict-Transport-Security': ['max-age=31536000; includeSubDomains'],
+    'X-Content-Type-Options': ['nosniff'],
+    'Referrer-Policy': ['strict-origin-when-cross-origin'],
+    'Content-Security-Policy': ["frame-ancestors 'self'"],
+    'X-Manifest-Instance': ['{http.reverse_proxy.upstream.host}'],
+  }
+  /** Everything ahead of the proxy: §20's protections and the header, unchanged by the set. */
+  const ahead = [
+    { handler: 'request_body', max_size: 10_485_760 },
+    {
+      handler: 'rate_limit',
+      rate_limits: {
+        [ROUTE_ID]: {
+          match: [{ remote_ip: { ranges: ['0.0.0.0/0', '::/0'] } }],
+          key: '{http.request.remote.host}',
+          window: '1m',
+          max_events: 600,
+        },
+      },
+    },
+    {
+      handler: 'headers',
+      response: {
+        set: PROTECTIONS,
+        replace: { 'X-Manifest-Instance': [{ search_regexp: '^mf-i-', replace: '' }] },
+        deferred: true,
+      },
+    },
+  ]
+
+  it('dials every instance, round robin, with an app’s health policy — [M2]’s JSON exactly', () => {
+    const route = buildRoute({
+      hostname: 'chem-labs.manifest.internal',
+      routeId: ROUTE_ID,
+      upstreams: set,
+      health: appHealthPolicy('/healthz'),
+    })
+    expect(route).toEqual({
+      '@id': ROUTE_ID,
+      match: [{ host: ['chem-labs.manifest.internal'] }],
+      handle: [
+        ...ahead,
+        {
+          handler: 'reverse_proxy',
+          upstreams: [{ dial: `mf-i-${A}:8080` }, { dial: `mf-i-${B}:8080` }],
+          load_balancing: {
+            selection_policy: { policy: 'round_robin' },
+            try_duration: 3_000_000_000,
+            try_interval: 250_000_000,
+          },
+          health_checks: {
+            active: {
+              uri: '/healthz',
+              interval: 5_000_000_000,
+              timeout: 2_000_000_000,
+              expect_status: 200,
+              headers: { 'X-Manifest-Probe': ['health'] },
+            },
+            passive: {
+              fail_duration: 10_000_000_000,
+              max_fails: 2,
+              unhealthy_status: [502, 504],
+            },
+          },
+          stream_close_delay: 3_600_000_000_000,
+        },
+      ],
+      terminal: true,
+    })
+  })
+
+  /**
+   * NEVER `503` (Decision 4, the review's I4). An app answering `503` is shedding load, and
+   * ejecting it moves that load onto its siblings — the cascade the passive policy must not
+   * start. `[M2]` (c′): with `503` left out, a member answering `503` to everything stayed in
+   * rotation (97 of 292 answers); with it in, the member was ejected after two. The TYPE holds
+   * this too (`readonly (502 | 504)[]`); this is the pin on the value the edge receives.
+   */
+  it('counts dial failures, 502 and 504 against a member — and never 503', () => {
+    expect(appHealthPolicy('/healthz').passive.unhealthyStatus).toEqual([502, 504])
+    const route = buildRoute({
+      hostname: 'chem-labs.manifest.internal',
+      routeId: ROUTE_ID,
+      upstreams: set,
+      health: appHealthPolicy('/healthz'),
+    })
+    const proxy = route.handle.at(-1) as {
+      health_checks: { passive: { unhealthy_status: number[] } }
+    }
+    expect(proxy.health_checks.passive.unhealthy_status).toEqual([502, 504])
+  })
+
+  /**
+   * `'none'` IS NOT A WEAKER POLICY, IT IS NO POLICY: no `health_checks` key and no retry.
+   * A2's waker is one address for many hostnames, and Caddy keeps health state per dial
+   * address across routes — so one app's checks would eject the waker for every other.
+   * `try_duration` without health is what `[M2]` (c)'s second run measured, and is left
+   * out with it.
+   */
+  it('with no health policy, writes no health checks and no retry', () => {
+    const route = buildRoute({
+      hostname: 'chem-labs.manifest.internal',
+      routeId: ROUTE_ID,
+      upstreams: set,
+      health: 'none',
+    })
+    const proxy = route.handle.at(-1) as Record<string, unknown>
+    expect(proxy).not.toHaveProperty('health_checks')
+    expect(proxy.load_balancing).toEqual({ selection_policy: { policy: 'round_robin' } })
+  })
+
+  /**
+   * A SET OF ONE IS TODAY'S ROUTE, except what this task changes: the selection policy, and
+   * the header read from the upstream rather than written as one value. A pin of everything
+   * else — §20's protections, the rate limit, the body cap, `stream_close_delay` — so a set
+   * cannot quietly cost a one-instance app (staging, sandbox, a `solo` production) one of them.
+   */
+  it('a set of one is today’s route but for the selection policy and the header', () => {
+    const route = buildRoute({
+      hostname: 'chem-labs.manifest.internal',
+      routeId: ROUTE_ID,
+      upstreams: [set[0]!],
+      health: 'none',
+    })
+    expect(route).toEqual({
+      '@id': ROUTE_ID,
+      match: [{ host: ['chem-labs.manifest.internal'] }],
+      handle: [
+        ...ahead,
+        {
+          handler: 'reverse_proxy',
+          upstreams: [{ dial: `mf-i-${A}:8080` }],
+          load_balancing: { selection_policy: { policy: 'round_robin' } },
+          stream_close_delay: 3_600_000_000_000,
+        },
+      ],
+      terminal: true,
+    })
+  })
+
+  /**
+   * THE HEADER IS ONLY AS TRUE AS THE DIAL. It is read off the upstream's host, so an
+   * upstream that does not dial its instance's own alias would answer with somebody else's
+   * name — or a container's — and a deploy's identity check would believe it.
+   */
+  it('refuses an upstream that does not dial its own instance’s alias', () => {
+    expect(() =>
+      buildRoute({
+        hostname: 'chem-labs.manifest.internal',
+        routeId: ROUTE_ID,
+        upstreams: [set[0]!, { dial: `mf-i-${A}:8080`, instanceId: B }],
+        health: 'none',
+      }),
+    ).toThrow(new RegExp(`mf-i-${A}:8080.*${B}`))
+    expect(() =>
+      buildRoute({
+        hostname: 'chem-labs.manifest.internal',
+        routeId: ROUTE_ID,
+        upstreams: [{ dial: 'mf-chem-labs-production-app:8080', instanceId: A }],
+        health: 'none',
+      }),
+    ).toThrow(/mf-chem-labs-production-app:8080/)
+  })
+
+  it('refuses a route that dials nothing', () => {
+    expect(() =>
+      buildRoute({
+        hostname: 'chem-labs.manifest.internal',
+        routeId: ROUTE_ID,
+        upstreams: [],
+        health: 'none',
+      }),
+    ).toThrow(/no upstream/)
+  })
+
+  it('an app’s health policy probes its own health path, saying it is a probe', () => {
+    const policy: HealthPolicy = appHealthPolicy('/up')
+    expect(policy.active).toEqual({
+      path: '/up',
+      interval: 5_000_000_000,
+      timeout: 2_000_000_000,
+      probeHeader: 'health',
+    })
+  })
+})
+
 describe('the Caddy admin client', () => {
   // PUT INSERTS at index 0; POST APPENDS, which lands the route BEHIND the wildcard
   // whose terminal:true then swallows it — the admin API reports success and the
@@ -126,7 +348,12 @@ describe('the Caddy admin client', () => {
     const { url, seen } = await fakeAdmin()
     await createCaddyClient(url).putRoute(
       'srv0',
-      buildRoute({ hostname: 'a.b', upstream: 'c:1', routeId: 'r1', instanceId: 'i1' }),
+      buildRoute({
+        hostname: 'a.b',
+        upstreams: [{ dial: 'mf-i-i1:1', instanceId: 'i1' }],
+        routeId: 'r1',
+        health: 'none',
+      }),
     )
     expect(seen[0]!.method).toBe('PUT')
     expect(seen[0]!.path).toBe('/config/apps/http/servers/srv0/routes/0')
@@ -145,7 +372,12 @@ describe('the Caddy admin client', () => {
     const { url, seen } = await fakeAdmin()
     await createCaddyClient(url).putRoute(
       'srv0',
-      buildRoute({ hostname: 'a.b', upstream: 'c:1', routeId: 'r1', instanceId: 'i1' }),
+      buildRoute({
+        hostname: 'a.b',
+        upstreams: [{ dial: 'mf-i-i1:1', instanceId: 'i1' }],
+        routeId: 'r1',
+        health: 'none',
+      }),
     )
     expect(Object.keys(seen[0]!.headers)).not.toContain('origin')
   })
@@ -163,7 +395,12 @@ describe('the Caddy admin client', () => {
     const present = await fakeAdmin({
       status: 200,
       body: JSON.stringify(
-        buildRoute({ hostname: 'a.b', upstream: 'c:1', routeId: 'r1', instanceId: 'i1' }),
+        buildRoute({
+          hostname: 'a.b',
+          upstreams: [{ dial: 'mf-i-i1:1', instanceId: 'i1' }],
+          routeId: 'r1',
+          health: 'none',
+        }),
       ),
     })
     const found = await createCaddyClient(present.url).getRoute('r1')
@@ -182,9 +419,9 @@ describe('the Caddy admin client', () => {
     const ok = await fakeAdmin({ status: 200, body: '' })
     const route = buildRoute({
       hostname: 'a.b',
-      upstream: 'mf-i-two:3000',
+      upstreams: [{ dial: 'mf-i-two:3000', instanceId: 'two' }],
       routeId: 'r1',
-      instanceId: 'two',
+      health: 'none',
     })
     await createCaddyClient(ok.url).patchRoute('r1', route)
     expect(ok.seen[0]!.method).toBe('PATCH')

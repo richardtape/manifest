@@ -65,65 +65,94 @@ export interface IdentityProbeResult {
 }
 
 /**
- * Waits until the public hostname answers 200 AS THIS INSTANCE.
+ * Waits until the public hostname answers 200 AS EACH INSTANCE OF THE SET.
  *
- * `waitForReady` asks whether something answered; this asks whether the thing that
- * answered is the instance we just started. A status alone cannot tell this instance
+ * `waitForReady` asks whether something answered; this asks whether the things that
+ * answered are the instances we just started. A status alone cannot tell this instance
  * from the previous one, or either from the edge's wildcard, so a status-only check
  * of a hostname whose route never moved passes while the app is unreachable — which
  * is exactly the failure Decision 7 exists to refuse.
  *
+ * **A SET, NOT ONE** (A1 Task 2): the route balances round robin, so one probe sees one
+ * member, and the wait collects identities until EVERY expected id has answered. Seeing
+ * one is not enough — a member the edge cannot reach would leave the hostname on fewer
+ * instances than it was given, and the deploy would call that a success. Once the edge has
+ * answered as any member (the move is live), every member must answer within **`4 × N`**
+ * more probes — N for the rotation, the rest for whatever else is using the route
+ * meanwhile, since every request advances the same rotation — and one still unseen is named
+ * then, rather than after the whole timeout.
+ *
  * Called by the Docker driver's `ensureInstance`, after the one in-place move.
  */
-export async function waitForIdentity(input: {
+export async function waitForIdentities(input: {
   url: string
-  expected: string
+  expected: readonly string[]
   probe: () => Promise<IdentityProbeResult>
   timeoutMs: number
   intervalMs: number
 }): Promise<ReadinessResult> {
+  if (input.expected.length === 0)
+    throw new Error(
+      `waitForIdentities at ${input.url} was given no instance to wait for — a move to an empty set is a caller's defect`,
+    )
+  const expected = new Set(input.expected)
+  const window = 4 * expected.size
+  const seen = new Set<string>()
   const deadline = Date.now() + input.timeoutMs
   let attempts = 0
+  /** The attempt at which the edge first answered as a member of the set. */
+  let firstSeenAt: number | undefined
   let lastStatus: number | undefined
   let reason = 'the edge was never asked'
+  const unseen = () => [...expected].filter((id) => !seen.has(id))
+  const others = new Set<string>()
 
   for (;;) {
     attempts += 1
     try {
-      const seen = await input.probe()
-      lastStatus = seen.status
-      if (seen.status !== 200) {
-        reason = `the edge answered ${seen.status} after ${attempts} attempt(s)`
-      } else if (seen.instance === undefined) {
+      const answer = await input.probe()
+      lastStatus = answer.status
+      if (answer.status !== 200) {
+        reason = `the edge answered ${answer.status} after ${attempts} attempt(s)`
+      } else if (answer.instance === undefined) {
         // A 200 with no identity is the WILDCARD, not the app: the route either does
         // not exist or is not the one we wrote.
         reason =
           `the edge answered 200 with no X-Manifest-Instance after ${attempts} ` +
           'attempt(s) — that is the edge’s wildcard, not a routed app'
-      } else if (seen.instance !== input.expected) {
+      } else if (!expected.has(answer.instance)) {
+        others.add(answer.instance)
         reason =
-          `the edge answered 200 as ${seen.instance}, not ${input.expected}, after ` +
-          `${attempts} attempt(s)`
+          `the edge answered 200 as ${[...others].join(', ')}, not ${[...expected].join(', ')}, ` +
+          `after ${attempts} attempt(s)`
       } else {
-        return {
-          ready: true,
-          attempts,
-          lastStatus: seen.status,
-          reason: `the edge served 200 as ${input.expected}`,
-        }
+        seen.add(answer.instance)
+        firstSeenAt ??= attempts
+        if (seen.size === expected.size)
+          return {
+            ready: true,
+            attempts,
+            lastStatus: answer.status,
+            reason: `the edge served 200 as each of ${[...expected].join(', ')}`,
+          }
+        reason = `the edge served 200 as ${[...seen].join(', ')} and never as ${unseen().join(', ')}`
       }
     } catch (error) {
       lastStatus = undefined
       reason = `the probe could not run: ${(error as Error).message}`
     }
-    if (Date.now() >= deadline) {
+    const windowSpent = firstSeenAt !== undefined && attempts - firstSeenAt >= window
+    if (windowSpent || Date.now() >= deadline) {
       // Conditional spread, not `lastStatus: … ?? undefined`: `lastStatus` is
       // optional on ReadinessResult and this repo sets exactOptionalPropertyTypes.
       return {
         ready: false,
         attempts,
         ...(lastStatus === undefined ? {} : { lastStatus }),
-        reason,
+        reason: windowSpent
+          ? `the edge served 200 as ${[...seen].join(', ')} and never as ${unseen().join(', ')} ` +
+            `within ${window} answers after the first (${attempts} attempt(s)) — round robin reaches every member within that`
+          : `${reason}; never answered as ${unseen().join(', ')}`,
       }
     }
     await new Promise((resolve) => setTimeout(resolve, input.intervalMs))
@@ -257,7 +286,7 @@ async function curlThroughEdge(
  * NOT FOR READINESS, AND NO PRODUCTION CALLER SINCE P4c TASK 4. It is kept, and
  * exported, because it is the CONTROL: `readiness.docker.test.ts` runs it against a
  * hostname the platform holds no route to and it answers **200**, from the edge's
- * wildcard, for any path — which is the whole reason `waitForIdentity` exists and
+ * wildcard, for any path — which is the whole reason `waitForIdentities` exists and
  * the reason a deploy that checked a status could report success against an app that
  * never started (P4b finding 193, measured again 2026-09-15).
  *
@@ -270,7 +299,7 @@ async function curlThroughEdge(
  * `curlThroughEdge` was factored out to prevent.
  *
  * If you are reaching for this to decide whether an app is up: you want
- * `edgeIdentityProbe` with `waitForIdentity`, or `privateProbe` if the route has not
+ * `edgeIdentityProbe` with `waitForIdentities`, or `privateProbe` if the route has not
  * moved yet.
  *
  * `port` is here for the same reason the function is (P6a Task 4): it is what lets
@@ -314,7 +343,7 @@ export function edgeProbe(
  * the edge's `:443` and needs no port; only a production app's probe carries one,
  * and the driver spreads it for `environmentKind === 'production'` alone. Without it
  * a production probe arrives at `manifest-caddy:443` — the INTERNAL server — finds no
- * route there, and `waitForIdentity` refuses the wildcard's answer loudly: *"the edge
+ * route there, and `waitForIdentities` refuses the wildcard's answer loudly: *"the edge
  * answered 200 with no X-Manifest-Instance … that is the edge's wildcard, not a
  * routed app"*. That loud refusal is what makes the port safe to get wrong.
  *

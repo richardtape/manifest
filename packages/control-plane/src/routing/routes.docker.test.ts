@@ -5,8 +5,15 @@ import { afterAll, beforeAll, expect, it } from 'vitest'
 // Through `runtime/`'s public TEST surface, not a deep path into runtime/docker/.
 // §5's boundary rule is enforced by `module-boundaries.test.ts`, which is why
 // `runtime/testing.ts` exists.
-import { describeDocker, REPO_ROOT } from '../runtime/testing.js'
-import { createCaddyClient } from './caddy.js'
+import {
+  createEngineClient,
+  describeDocker,
+  REPO_ROOT,
+  resolveSocketPath,
+} from '../runtime/testing.js'
+import { appHealthPolicy, buildRoute, createCaddyClient } from './caddy.js'
+import { routeIdFor } from './hostnames.js'
+import { edgeIdentityProbe, waitForIdentities } from './readiness.js'
 import { applyRoute, removeRoute, servingRoute } from './routes.js'
 import { stubAppArgs } from './testing.js'
 
@@ -21,6 +28,21 @@ const APP_B = 'mf-routetest-staging-app-b'
 const FORGER = 'mf-routetest-staging-forger'
 const INSTANCE_A = '11111111-1111-4111-8111-111111111111'
 const INSTANCE_B = '22222222-2222-4222-8222-222222222222'
+/** The forger's own instance — never another stub's, or two containers would share an alias. */
+const INSTANCE_F = '77777777-7777-4777-8777-777777777777'
+/**
+ * What a route dials for an instance: its `mf-i-<id>` alias, which each stub carries on the
+ * network. Since A1 (Task 2) the edge reads `X-Manifest-Instance` off the alias it dialled,
+ * so a stub reached by its container name would answer as no instance at all.
+ */
+const dial = (instanceId: string) => `mf-i-${instanceId}:8080`
+/** One instance's route — a set of one, no health policy — as the driver writes it today. */
+const routeTo = (instanceId: string) => ({
+  hostname: HOST,
+  kind: 'staging' as const,
+  upstreams: [{ dial: dial(instanceId), instanceId }],
+  health: 'none' as const,
+})
 /** The request loop that watches a move happen. */
 const LOOP = 'mf-routetest-staging-loop'
 const CA = join(REPO_ROOT, 'infra/ca/manifest-root.crt')
@@ -93,12 +115,7 @@ const APP_B_BODY = 'okay-b'
 /** What the Caddyfile wildcard says when NO route matches. The discriminator. */
 const FALLBACK = 'manifest OK host='
 
-const spec = {
-  hostname: HOST,
-  upstream: `${APP}:8080`,
-  kind: 'staging' as const,
-  instanceId: INSTANCE_A,
-}
+const spec = routeTo(INSTANCE_A)
 
 /**
  * A request every 25 ms from inside ONE container, classified by body AND by the
@@ -171,11 +188,22 @@ describeDocker('runtime routing through the Caddy admin API', () => {
     // Real HTTP servers, never `nc`: an `nc` stand-in answers before it is asked, and
     // the edge's pooled connection to it turned one request into an empty 502
     // (`stubAppArgs` has the measurement).
-    await run('docker', stubAppArgs(APP, APP_BODY))
-    await run('docker', stubAppArgs(APP_B, APP_B_BODY))
     await run(
       'docker',
-      stubAppArgs(FORGER, APP_BODY, { 'X-Manifest-Instance': 'forged' }),
+      stubAppArgs(APP, APP_BODY, {}, { aliases: [`mf-i-${INSTANCE_A}`] }),
+    )
+    await run(
+      'docker',
+      stubAppArgs(APP_B, APP_B_BODY, {}, { aliases: [`mf-i-${INSTANCE_B}`] }),
+    )
+    await run(
+      'docker',
+      stubAppArgs(
+        FORGER,
+        APP_BODY,
+        { 'X-Manifest-Instance': 'forged' },
+        { aliases: [`mf-i-${INSTANCE_F}`] },
+      ),
     )
     // A server needs a moment before it accepts; a probe of a container that has not
     // bound yet reads as the app being broken.
@@ -261,12 +289,7 @@ describeDocker('runtime routing through the Caddy admin API', () => {
     await new Promise((r) => setTimeout(r, 2000))
     for (let i = 1; i <= 20; i += 1) {
       const toB = i % 2 === 1
-      await applyRoute(deps, {
-        hostname: HOST,
-        upstream: toB ? `${APP_B}:8080` : `${APP}:8080`,
-        kind: 'staging',
-        instanceId: toB ? INSTANCE_B : INSTANCE_A,
-      })
+      await applyRoute(deps, routeTo(toB ? INSTANCE_B : INSTANCE_A))
       await new Promise((r) => setTimeout(r, 300))
     }
     await new Promise((r) => setTimeout(r, 1000))
@@ -324,14 +347,12 @@ describeDocker('runtime routing through the Caddy admin API', () => {
     ).stdout.toLowerCase()
     expect(direct).toContain('x-manifest-instance: forged')
 
-    await applyRoute(deps, {
-      hostname: HOST,
-      upstream: `${FORGER}:8080`,
-      kind: 'staging',
-      instanceId: INSTANCE_B,
-    })
+    await applyRoute(deps, routeTo(INSTANCE_F))
     const headers = await headersThroughEdge(HOST)
-    expect(headers).toContain(`x-manifest-instance: ${INSTANCE_B}`)
+    // EXACTLY the bare id, once — read off the alias the edge dialled, its `mf-i-` taken off.
+    expect(headers.match(/x-manifest-instance: .*/g)).toEqual([
+      `x-manifest-instance: ${INSTANCE_F}`,
+    ])
     expect(headers).not.toContain('forged')
   }, 120_000)
 
@@ -340,9 +361,166 @@ describeDocker('runtime routing through the Caddy admin API', () => {
   it('reports what the hostname reaches, from the edge’s own configuration', async () => {
     await applyRoute(deps, spec)
     const serving = await servingRoute(deps, HOST)
-    expect(serving?.upstream).toBe(`${APP}:8080`)
-    expect(serving?.instanceId).toBe(INSTANCE_A)
+    expect(serving?.upstreams).toEqual([dial(INSTANCE_A)])
+    expect(serving?.instanceIds).toEqual([INSTANCE_A])
     await removeRoute(deps, HOST, 'staging')
     expect(await servingRoute(deps, HOST)).toBeUndefined()
   })
+})
+
+/**
+ * A1's ROUTE ON THE REAL EDGE (Task 2, Decision 4): one hostname, a SET of instances behind
+ * it — round robin, an app's health policy, each answer naming exactly the instance that gave
+ * it. What Task 1 measured in a throwaway Caddy (`[M2]`), here on `manifest-caddy` itself,
+ * written by the code that writes every app's route. Its own hostname and stubs, so nothing
+ * above is disturbed and each case runs alone (`vitest -t`), which is how a negative control
+ * is watched.
+ */
+const SET_HOST = 'routeset.staging.manifest.internal'
+const SET_ONE = 'mf-routeset-staging-one'
+const SET_TWO = 'mf-routeset-staging-two'
+/** Answers `503` to everything but `/healthz` — an app shedding load (`[M2]` (c′)). */
+const SET_SHED = 'mf-routeset-staging-shed'
+const ONE_ID = '8a8a8a8a-0000-4000-8000-000000000001'
+const TWO_ID = '8b8b8b8b-0000-4000-8000-000000000002'
+const SHED_ID = '8c8c8c8c-0000-4000-8000-000000000003'
+const BODIES: Record<string, string> = {
+  [ONE_ID]: 'one',
+  [TWO_ID]: 'two',
+  [SHED_ID]: 'shed',
+}
+const engine = createEngineClient({ socketPath: resolveSocketPath() })
+
+const setOf = (...ids: string[]) => ({
+  hostname: SET_HOST,
+  kind: 'staging' as const,
+  upstreams: ids.map((instanceId) => ({ dial: dial(instanceId), instanceId })),
+  health: appHealthPolicy('/healthz'),
+})
+
+/**
+ * `n` requests through the edge, one after another, from ONE container — each classified by
+ * body, status and identity. Sequential, so round robin's order is the requests' order.
+ */
+const requestsThroughEdge = async (
+  host: string,
+  n: number,
+): Promise<{ body: string; status: number; instance: string }[]> => {
+  const { stdout } = await run('docker', [
+    'run',
+    '--rm',
+    '--network',
+    'manifest-platform',
+    '--dns',
+    '10.89.0.53',
+    '-v',
+    `${CA}:/ca.crt:ro`,
+    '--entrypoint',
+    'sh',
+    'curlimages/curl:8.11.1',
+    '-c',
+    `for i in $(seq ${n}); do ` +
+      "curl -s --cacert /ca.crt -m 5 -w '|%{http_code}|%header{x-manifest-instance}|END\\n' " +
+      `https://${host}/; done`,
+  ])
+  return stdout
+    .split('|END\n')
+    .filter((line) => line.includes('|'))
+    .map((line) => {
+      const [body = '', status = '0', instance = ''] = line.split('|')
+      return { body, status: Number(status), instance }
+    })
+}
+
+describeDocker('A1: one route, a set of instances, on the real edge (Task 2)', () => {
+  beforeAll(async () => {
+    await removeRoute(deps, SET_HOST, 'staging').catch(() => undefined)
+    await run('docker', ['rm', '-f', SET_ONE, SET_TWO, SET_SHED]).catch(() => undefined)
+    await run('docker', stubAppArgs(SET_ONE, 'one', {}, { aliases: [`mf-i-${ONE_ID}`] }))
+    await run('docker', stubAppArgs(SET_TWO, 'two', {}, { aliases: [`mf-i-${TWO_ID}`] }))
+    await run(
+      'docker',
+      stubAppArgs(SET_SHED, 'shed', {}, { aliases: [`mf-i-${SHED_ID}`], status: 503 }),
+    )
+    await new Promise((r) => setTimeout(r, 1500))
+  }, 120_000)
+
+  afterAll(async () => {
+    await removeRoute(deps, SET_HOST, 'staging').catch(() => undefined)
+    // Explicit names (P4b finding 192).
+    await run('docker', ['rm', '-f', SET_ONE, SET_TWO, SET_SHED]).catch(() => undefined)
+  })
+
+  /**
+   * THE SITTING'S STOP, AS A TEST: an N-upstream route applied to the real edge and READ BACK
+   * — the JSON the edge holds is the JSON written, health policy and all — and then asked.
+   */
+  it('a route of two reaches both, each answer naming exactly the instance that gave it', async () => {
+    await applyRoute(deps, setOf(ONE_ID, TWO_ID))
+    expect(await caddy.getRoute(routeIdFor(SET_HOST))).toEqual(
+      buildRoute({ ...setOf(ONE_ID, TWO_ID), routeId: routeIdFor(SET_HOST) }),
+    )
+    const serving = await servingRoute(deps, SET_HOST)
+    expect(serving?.upstreams).toEqual([dial(ONE_ID), dial(TWO_ID)])
+    expect(serving?.instanceIds).toEqual([ONE_ID, TWO_ID])
+
+    const seen = await requestsThroughEdge(SET_HOST, 10)
+    expect(seen).toHaveLength(10)
+    for (const answer of seen) {
+      expect(answer.status).toBe(200)
+      // EXACTLY one of the two ids — never the alias, never a list — and the one whose
+      // body came with it, so the header is the answering instance's and no other's.
+      expect([ONE_ID, TWO_ID]).toContain(answer.instance)
+      expect(answer.body).toBe(BODIES[answer.instance])
+    }
+    // Round robin, sequential requests: five each.
+    expect(seen.filter((a) => a.instance === ONE_ID)).toHaveLength(5)
+    expect(seen.filter((a) => a.instance === TWO_ID)).toHaveLength(5)
+
+    // And the deploy's own wait sees the whole set through the edge (its unit rows stub the
+    // probe, so they never see a route).
+    const both = await waitForIdentities({
+      url: `https://${SET_HOST}/`,
+      expected: [ONE_ID, TWO_ID],
+      probe: edgeIdentityProbe(engine, SET_HOST, '/', CA),
+      timeoutMs: 30_000,
+      intervalMs: 100,
+    })
+    expect(both).toMatchObject({ ready: true })
+  }, 180_000)
+
+  /**
+   * A MEMBER SHEDDING LOAD STAYS IN ROTATION (Decision 4, `[M2]` (c′)). Its health path
+   * answers `200` and everything else `503`; with `503` outside the passive policy it keeps
+   * its share — its load is not moved onto its sibling. Put `503` back in the list and it is
+   * ejected after two: this case's count goes to 2.
+   */
+  it('a member answering 503 stays in rotation — its load is not moved onto its sibling', async () => {
+    await applyRoute(deps, setOf(ONE_ID, SHED_ID))
+    const seen = await requestsThroughEdge(SET_HOST, 20)
+    expect(seen).toHaveLength(20)
+    const shed = seen.filter((a) => a.instance === SHED_ID)
+    expect(shed.every((a) => a.status === 503 && a.body === 'shed')).toBe(true)
+    expect(shed.length).toBeGreaterThanOrEqual(8)
+    expect(
+      seen.filter((a) => a.instance === ONE_ID && a.status === 200).length,
+    ).toBeGreaterThanOrEqual(8)
+  }, 120_000)
+
+  /**
+   * REVIEW FOCUS 2's FIRST HALF: one of two killed, and every request after it reaches the
+   * survivor — a dial that fails is retried on the other member within `try_duration`
+   * (`[M2]` (c): 0 of 391 failed with it, 3 without). LAST in the file: it kills a stub.
+   */
+  it('one member killed: every request reaches the survivor', async () => {
+    await applyRoute(deps, setOf(ONE_ID, TWO_ID))
+    const before = await requestsThroughEdge(SET_HOST, 4)
+    expect(new Set(before.map((a) => a.instance))).toEqual(new Set([ONE_ID, TWO_ID]))
+
+    await run('docker', ['kill', SET_TWO])
+    const after = await requestsThroughEdge(SET_HOST, 10)
+    expect(after.map((a) => `${a.status} ${a.instance}`)).toEqual(
+      Array.from({ length: 10 }, () => `200 ${ONE_ID}`),
+    )
+  }, 120_000)
 })

@@ -475,12 +475,16 @@ export function dockerContinuityFixtures(): ContinuityFixtures {
       }
       const deadline = Date.now() + 30_000
       for (;;) {
-        if (((await inFlightTo(CONTRACT_ROUTING, serving.upstream)) ?? 0) >= 1) break
+        // Against ANY member of the set: round robin chooses which one holds it.
+        const held = await Promise.all(
+          serving.upstreams.map((u) => inFlightTo(CONTRACT_ROUTING, u)),
+        )
+        if (held.some((n) => (n ?? 0) >= 1)) break
         if (Date.now() >= deadline) {
           // Never a silent timeout: a `holdRequest` that gave up and returned would
           // make every drain assertion below it meaningless.
           throw new Error(
-            `no request reached ${serving.upstream} within 30 s — ` +
+            `no request reached ${serving.upstreams.join(' or ')} within 30 s — ` +
               `${JSON.stringify(await done)}`,
           )
         }

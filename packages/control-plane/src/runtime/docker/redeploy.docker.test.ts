@@ -6,9 +6,11 @@ import { InstanceNotReadyError, instanceName } from '../driver.js'
 import { renderInjection } from '../../spec/index.js'
 import {
   applyRoute,
+  buildRoute,
   createCaddyClient,
-  instanceIdOf,
+  instanceIdsOf,
   removeRoute,
+  routeIdFor,
   servingRoute,
   type CaddyClient,
   type CaddyRoute,
@@ -332,7 +334,7 @@ describeDocker('a takeover, at the driver (§11 Redeploys)', () => {
     const first = await driver.ensureInstance(specFor(RELEASE_A, FIRST_ID))
     expect(first.name).toBe(nameOf(RELEASE_A, FIRST_ID))
     // The route reaches the first instance BY IDENTITY before anything is measured.
-    expect((await servingRoute(routing, HOST))?.instanceId).toBe(FIRST_ID)
+    expect((await servingRoute(routing, HOST))?.instanceIds).toEqual([FIRST_ID])
 
     // The loop starts AFTER the first instance serves: before that the wildcard
     // answers, and counting that would be counting the platform's normal state.
@@ -359,7 +361,7 @@ describeDocker('a takeover, at the driver (§11 Redeploys)', () => {
     // pass every assertion above.
     expect(seen.at(0)!.instance).toBe(FIRST_ID)
     expect(seen.at(-1)!.instance).toBe(SECOND_ID)
-    expect((await servingRoute(routing, HOST))?.instanceId).toBe(SECOND_ID)
+    expect((await servingRoute(routing, HOST))?.instanceIds).toEqual([SECOND_ID])
   }, 900_000)
 
   /**
@@ -368,7 +370,7 @@ describeDocker('a takeover, at the driver (§11 Redeploys)', () => {
    */
   it('an instance that never becomes ready leaves the route where it was', async () => {
     const before = await servingRoute(routing, HOST)
-    expect(before?.instanceId).toBe(SECOND_ID)
+    expect(before?.instanceIds).toEqual([SECOND_ID])
 
     const impatient = await dockerDriverForTests({ readinessTimeoutMs: 12_000 })
     /**
@@ -412,8 +414,8 @@ describeDocker('a takeover, at the driver (§11 Redeploys)', () => {
 
     // AND THE APP IS UNTOUCHED. This is the assertion the whole rule is for.
     const after = await servingRoute(routing, HOST)
-    expect(after?.instanceId).toBe(SECOND_ID)
-    expect(after?.upstream).toBe(before?.upstream)
+    expect(after?.instanceIds).toEqual([SECOND_ID])
+    expect(after?.upstreams).toEqual(before?.upstreams)
   }, 600_000)
 
   /**
@@ -432,13 +434,13 @@ describeDocker('a takeover, at the driver (§11 Redeploys)', () => {
    */
   it('a move the edge cannot confirm is put back', async () => {
     const before = await servingRoute(routing, HOST)
-    expect(before?.instanceId).toBe(SECOND_ID)
+    expect(before?.instanceIds).toEqual([SECOND_ID])
 
     const real = createCaddyClient(ADMIN)
     /** Breaks the upstream of a route naming THIS instance, and nothing else — so
      *  the rollback, which writes the PREVIOUS route, goes through untouched. */
     const sabotage = (route: CaddyRoute): CaddyRoute =>
-      instanceIdOf(route) !== LYING_ID
+      !instanceIdsOf(route).includes(LYING_ID)
         ? route
         : {
             ...route,
@@ -467,8 +469,8 @@ describeDocker('a takeover, at the driver (§11 Redeploys)', () => {
     // AND WHAT SERVED STILL SERVES, read from the REAL edge rather than from the
     // driver's own view of it.
     const after = await servingRoute(routing, HOST)
-    expect(after?.instanceId).toBe(SECOND_ID)
-    expect(after?.upstream).toBe(`${instanceAlias(SECOND_ID)}:${PORT}`)
+    expect(after?.instanceIds).toEqual([SECOND_ID])
+    expect(after?.upstreams).toEqual([`${instanceAlias(SECOND_ID)}:${PORT}`])
     // Through the wire too: the configuration being right is not the same fact as
     // the app answering.
     const { stdout } = await run('docker', [
@@ -503,8 +505,8 @@ describeDocker('a takeover, at the driver (§11 Redeploys)', () => {
    */
   it('routes to the instance alias, never to the container name', async () => {
     const serving = await servingRoute(routing, HOST)
-    expect(serving?.upstream).toBe(`${instanceAlias(SECOND_ID)}:${PORT}`)
-    expect(serving?.upstream).not.toContain(SLUG)
+    expect(serving?.upstreams).toEqual([`${instanceAlias(SECOND_ID)}:${PORT}`])
+    expect(serving?.upstreams.join()).not.toContain(SLUG)
 
     // And the alias really is what the edge resolves — asked from inside the edge,
     // which is where Caddy dials from.
@@ -534,11 +536,11 @@ describeDocker('a takeover, at the driver (§11 Redeploys)', () => {
     expect(await servingRoute(routing, HOST)).toBeUndefined()
     await applyRoute(routing, {
       hostname: HOST,
-      upstream: `${instanceAlias(SECOND_ID)}:${PORT}`,
       kind: KIND,
-      instanceId: SECOND_ID,
+      upstreams: [{ dial: `${instanceAlias(SECOND_ID)}:${PORT}`, instanceId: SECOND_ID }],
+      health: 'none',
     })
-    expect((await servingRoute(routing, HOST))?.instanceId).toBe(SECOND_ID)
+    expect((await servingRoute(routing, HOST))?.instanceIds).toEqual([SECOND_ID])
   }, 120_000)
 
   /**
@@ -570,7 +572,7 @@ describeDocker('a takeover, at the driver (§11 Redeploys)', () => {
     expect(await driver.listInstances(HOST)).not.toContain(retiring)
 
     // AND THE APP IS UNTOUCHED — a retire never changes what a hostname reaches.
-    expect((await servingRoute(routing, HOST))?.instanceId).toBe(SECOND_ID)
+    expect((await servingRoute(routing, HOST))?.instanceIds).toEqual([SECOND_ID])
   }, 300_000)
 
   /**
@@ -594,12 +596,21 @@ describeDocker('a takeover, at the driver (§11 Redeploys)', () => {
     await startPreP4cContainer(PRE_P4C_SERVING, 'release-oldserving')
     // The shape a pre-P4c route has: the CONTAINER NAME as the dial address, which
     // is what `ensureInstance` wrote until Task 4 (`${handle.name}:${spec.port}`).
-    await applyRoute(routing, {
+    // Written as the edge would still hold it, because `buildRoute` has refused a dial
+    // that is not an instance's own alias since A1 (the header is read off the alias).
+    const preP4c = buildRoute({
       hostname: OLD_HOST,
-      upstream: `${PRE_P4C_SERVING}:${PORT}`,
-      kind: KIND,
-      instanceId: 'pre-p4c-has-no-instance-id',
+      routeId: routeIdFor(OLD_HOST),
+      upstreams: [{ dial: `${instanceAlias('pre-p4c')}:${PORT}`, instanceId: 'pre-p4c' }],
+      health: 'none',
     })
+    preP4c.handle = preP4c.handle.map((handler) =>
+      (handler as { handler?: string }).handler === 'reverse_proxy'
+        ? { ...(handler as object), upstreams: [{ dial: `${PRE_P4C_SERVING}:${PORT}` }] }
+        : handler,
+    )
+    await removeRoute(routing, OLD_HOST, KIND)
+    await routing.caddy.putRoute(SERVERS.internal, preP4c)
     await expect(
       driver.retireInstance(PRE_P4C_SERVING, { drainMs: 0 }),
     ).rejects.toMatchObject({ code: 'INSTANCE_SERVING' })
@@ -622,7 +633,7 @@ describeDocker('a takeover, at the driver (§11 Redeploys)', () => {
     await driver.retireInstance(PRE_P4C, { drainMs: 0 })
     expect((await driver.status(PRE_P4C)).state).toBe('gone')
     expect(await driver.listInstances(HOST)).not.toContain(PRE_P4C)
-    expect((await servingRoute(routing, HOST))?.instanceId).toBe(SECOND_ID)
+    expect((await servingRoute(routing, HOST))?.instanceIds).toEqual([SECOND_ID])
   }, 300_000)
 
   /**
@@ -641,7 +652,7 @@ describeDocker('a takeover, at the driver (§11 Redeploys)', () => {
       needsAiGateway: true,
     })
     expect(await gatewayAttached()).toBe(true)
-    expect((await servingRoute(routing, HOST))?.instanceId).toBe(AI_ID)
+    expect((await servingRoute(routing, HOST))?.instanceIds).toEqual([AI_ID])
 
     // 2. POSITIVE CONTROL: retiring an instance that declares no models leaves the
     //    gateway attached, because the instance that DOES need it is still there.
@@ -654,7 +665,7 @@ describeDocker('a takeover, at the driver (§11 Redeploys)', () => {
     //    whose only instances predate the label silently loses its models.
     await startPreP4cContainer(PRE_P4C_KEEPER, 'release-oldgateway')
     await driver.ensureInstance(specFor(RELEASE_D, PLAIN_ID))
-    expect((await servingRoute(routing, HOST))?.instanceId).toBe(PLAIN_ID)
+    expect((await servingRoute(routing, HOST))?.instanceIds).toEqual([PLAIN_ID])
     await driver.retireInstance(ai.id, { drainMs: 0 })
     expect(await gatewayAttached()).toBe(true)
 
@@ -662,6 +673,6 @@ describeDocker('a takeover, at the driver (§11 Redeploys)', () => {
     await driver.retireInstance(PRE_P4C_KEEPER, { drainMs: 0 })
     expect(await gatewayAttached()).toBe(false)
     // The app is still up, on the release that replaced them all.
-    expect((await servingRoute(routing, HOST))?.instanceId).toBe(PLAIN_ID)
+    expect((await servingRoute(routing, HOST))?.instanceIds).toEqual([PLAIN_ID])
   }, 900_000)
 })

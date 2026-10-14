@@ -19,6 +19,11 @@
  * sitting 8, finding 74). Node reads a request before it answers and closes idle
  * connections itself, exactly as every app on the platform does.
  *
+ * `aliases` are its names on the network besides its own — an instance's `mf-i-<id>`,
+ * which is what a route dials and what the edge reads `X-Manifest-Instance` off since A1
+ * (Task 2). `status` answers every path but `/healthz`, which stays `200` — an app
+ * shedding load whose health check still passes (A1's `[M2]` (c′)).
+ *
  * `node:22-alpine` is pinned in `infra/images.lock` and present after `make seed`, so
  * this needs no network.
  */
@@ -26,9 +31,10 @@ export function stubAppArgs(
   name: string,
   body: string,
   headers: Record<string, string> = {},
+  options: { aliases?: readonly string[]; status?: number } = {},
 ): string[] {
   const server =
-    "const body = process.env.STUB_BODY; const extra = JSON.parse(process.env.STUB_HEADERS); require('node:http').createServer((req, res) => { req.resume(); res.writeHead(200, { 'Content-Length': Buffer.byteLength(body), ...extra }); res.end(body) }).listen(8080)"
+    "const body = process.env.STUB_BODY; const extra = JSON.parse(process.env.STUB_HEADERS); const status = Number(process.env.STUB_STATUS); require('node:http').createServer((req, res) => { req.resume(); res.writeHead(req.url === '/healthz' ? 200 : status, { 'Content-Length': Buffer.byteLength(body), ...extra }); res.end(body) }).listen(8080)"
   return [
     'run',
     '-d',
@@ -36,10 +42,13 @@ export function stubAppArgs(
     name,
     '--network',
     'manifest-platform',
+    ...(options.aliases ?? []).flatMap((alias) => ['--network-alias', alias]),
     '-e',
     `STUB_BODY=${body}`,
     '-e',
     `STUB_HEADERS=${JSON.stringify(headers)}`,
+    '-e',
+    `STUB_STATUS=${options.status ?? 200}`,
     'node:22-alpine',
     'node',
     '-e',

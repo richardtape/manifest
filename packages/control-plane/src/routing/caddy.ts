@@ -1,5 +1,6 @@
 import { request as httpRequest } from 'node:http'
 import { request as httpsRequest } from 'node:https'
+import { INSTANCE_ALIAS_PREFIX, instanceAlias } from '../runtime/index.js'
 
 export interface CaddyRoute {
   '@id': string
@@ -14,8 +15,11 @@ export interface CaddyRoute {
  * Set by the ROUTE, on every response, and by nothing else. A status cannot tell one
  * instance from another — or from the edge's own wildcard, which answers 200 for any
  * path on any hostname in the zone that holds no route (P4b finding 193, measured
- * again 2026-09-15). This header is what `waitForIdentity` reads to decide that a
+ * again 2026-09-15). This header is what `waitForIdentities` reads to decide that a
  * move actually happened, and what the acceptance classifies every response by.
+ *
+ * Since A1 (Task 2) it names the instance THAT ANSWERED — one member of the set a route
+ * dials — read off the upstream the edge chose, never one value written into the route.
  */
 export const INSTANCE_HEADER = 'X-Manifest-Instance'
 
@@ -29,6 +33,77 @@ export interface UpstreamStatus {
 }
 
 /**
+ * Caddy's JSON durations are NANOSECONDS (see `stream_close_delay` below). One second.
+ */
+const SECOND_NS = 1_000_000_000
+
+/**
+ * The request header every active health check carries, so anything behind a route can tell
+ * the edge's probe from a person (A1 Decision 4). Its value is the policy's `probeHeader`.
+ */
+export const PROBE_HEADER = 'X-Manifest-Probe'
+
+/**
+ * How the edge decides that a member of an app's set is unhealthy, and what it does then
+ * (A1 Decision 4, the review's I4). A PARAMETER of the route, never a constant inside it: an
+ * app's route takes `appHealthPolicy`; A2's waker route — one address for many hostnames,
+ * where Caddy's per-address health state would be shared across them all — takes `'none'`.
+ *
+ * Durations are Caddy's own unit, NANOSECONDS, because the edge receives them as they are
+ * here; `[M2]` measured this JSON, not a translation of it.
+ */
+export interface HealthPolicy {
+  /** Caddy's ACTIVE checks: a GET of the app's health path, `200` expected. */
+  active: { path: string; interval: number; timeout: number; probeHeader: string }
+  /**
+   * Caddy's PASSIVE checks, counted off real traffic. `unhealthyStatus`'s type cannot hold
+   * `503`: an app shedding load answers `503`, and ejecting it would move that load onto its
+   * siblings — the cascade this policy must never start (`[M2]` (c′)).
+   */
+  passive: {
+    failDuration: number
+    maxFails: number
+    unhealthyStatus: readonly (502 | 504)[]
+  }
+  /**
+   * How long a request may be retried on another member after a DIAL failure — Caddy retries
+   * nothing else by default, which is the point: a request an app has begun is never sent
+   * twice. `[M2]` (c): one member `docker kill`ed mid-loop failed 0 of 391 requests with 3 s,
+   * and 3 of 391 without (one after hanging 3,004 ms).
+   */
+  tryDuration: number
+  tryInterval: number
+}
+
+/**
+ * Decision 4's numbers for an app's route: probe `healthPath` every 5 s (2 s timeout); eject
+ * a member after 2 dial failures, `502`s or `504`s within 10 s; retry a dial failure on
+ * another member for up to 3 s, every 250 ms.
+ *
+ * Its caller is the Docker driver (A1 Task 4, which builds every route it applies with it).
+ */
+export function appHealthPolicy(healthPath: string): HealthPolicy {
+  return {
+    active: {
+      path: healthPath,
+      interval: 5 * SECOND_NS,
+      timeout: 2 * SECOND_NS,
+      probeHeader: 'health',
+    },
+    passive: { failDuration: 10 * SECOND_NS, maxFails: 2, unhealthyStatus: [502, 504] },
+    tryDuration: 3 * SECOND_NS,
+    tryInterval: SECOND_NS / 4,
+  }
+}
+
+/** One member of the set a route dials: the address, and the instance that address IS. */
+export interface RouteUpstream {
+  /** `mf-i-<instanceId>:<port>` — the instance's own network alias (`instanceAlias`). */
+  dial: string
+  instanceId: string
+}
+
+/**
  * §20: "Application code is untrusted, so baseline protections live where an app
  * cannot remove them. Caddy applies, ON EVERY ROUTE: security headers, per-app and
  * per-IP rate limits, request body size caps."
@@ -37,23 +112,39 @@ export interface UpstreamStatus {
  * API, so a route whose handler chain is `reverse_proxy` alone gets none of them —
  * and every app this driver deploys arrives that way. The protections are part of
  * the chain, ahead of the proxy, for exactly that reason.
+ *
+ * **EVERY INSTANCE OF A SET, ONE ROUTE** (A1 Task 2, Decision 4): the route dials each
+ * upstream, round robin, so a deploy's identity check sees each new instance within N
+ * requests and the load spreads evenly; the health policy is the caller's.
  */
 export function buildRoute(input: {
   hostname: string
-  upstream: string
   routeId: string
   /**
-   * The instance this route reaches, served back on every response as
-   * `X-Manifest-Instance`. REQUIRED: a route with no identity is a route a deploy
-   * cannot confirm it moved, and an optional field would default to exactly that
-   * for whichever caller forgot it.
+   * The set this route reaches. Each answer is stamped with the instance of the upstream
+   * that gave it — read off the dial's alias — so each dial MUST be its instance's own
+   * alias, and one that is not is refused here rather than served under the wrong name.
    */
-  instanceId: string
+  upstreams: readonly RouteUpstream[]
+  /** An app's route: `appHealthPolicy(healthPath)`. `'none'`: no checks and no retry. */
+  health: HealthPolicy | 'none'
   /** Requests per minute, per client IP. §20's "per-app and per-IP rate limits". */
   rateLimit?: number
   /** §20's "request body size caps". */
   maxBodyBytes?: number
 }): CaddyRoute {
+  if (input.upstreams.length === 0)
+    throw new Error(
+      `a route for ${input.hostname} with no upstream dials nothing — an app's route reaches at least one instance`,
+    )
+  for (const upstream of input.upstreams) {
+    if (!upstream.dial.startsWith(`${instanceAlias(upstream.instanceId)}:`))
+      throw new Error(
+        `the upstream ${upstream.dial} is not instance ${upstream.instanceId}'s own alias (${instanceAlias(upstream.instanceId)}:<port>): ` +
+          `the edge names each answer by the alias it dialled, so this route would answer as somebody else`,
+      )
+  }
+  const health = input.health
   return {
     '@id': input.routeId,
     match: [{ host: [input.hostname] }],
@@ -78,7 +169,23 @@ export function buildRoute(input: {
             'X-Content-Type-Options': ['nosniff'],
             'Referrer-Policy': ['strict-origin-when-cross-origin'],
             'Content-Security-Policy': ["frame-ancestors 'self'"],
-            [INSTANCE_HEADER]: [input.instanceId],
+            /**
+             * WHICH INSTANCE ANSWERED, NOT WHICH INSTANCE THE ROUTE WAS WRITTEN FOR (A1
+             * Decision 4). With a set behind one route, one static value would name one
+             * member on every member's answers. Caddy's placeholder is the host of the
+             * upstream it chose — `mf-i-<instanceId>` — and the `replace` below takes the
+             * alias's prefix off, so the header is EXACTLY the bare instance id. Measured
+             * (A1 Task 1, `[M2]` (b), Caddy 2.11.4): one value, the app's own gone; and a
+             * response the EDGE makes (every member down: `503` with checks on, `502`
+             * without) carries no header at all — the placeholder is empty and Caddy
+             * omits it — so "no header" still means "no app answered".
+             */
+            [INSTANCE_HEADER]: ['{http.reverse_proxy.upstream.host}'],
+          },
+          replace: {
+            [INSTANCE_HEADER]: [
+              { search_regexp: `^${INSTANCE_ALIAS_PREFIX}`, replace: '' },
+            ],
           },
           /**
            * DEFERRED, and that is what makes every header above a protection rather
@@ -92,14 +199,39 @@ export function buildRoute(input: {
            * `"edge-value, forged"` — so a deploy could be told the instance it
            * started is serving when it is not, and §20's four headers could be
            * doubled by the app they exist to constrain. With it, the response
-           * carries the edge's value alone.
+           * carries the edge's value alone. (And it is what lets the placeholder
+           * above be read at all: it is filled only once the proxy has chosen.)
            */
           deferred: true,
         },
       },
       {
         handler: 'reverse_proxy',
-        upstreams: [{ dial: input.upstream }],
+        upstreams: input.upstreams.map((u) => ({ dial: u.dial })),
+        load_balancing: {
+          selection_policy: { policy: 'round_robin' },
+          ...(health === 'none'
+            ? {}
+            : { try_duration: health.tryDuration, try_interval: health.tryInterval }),
+        },
+        ...(health === 'none'
+          ? {}
+          : {
+              health_checks: {
+                active: {
+                  uri: health.active.path,
+                  interval: health.active.interval,
+                  timeout: health.active.timeout,
+                  expect_status: 200,
+                  headers: { [PROBE_HEADER]: [health.active.probeHeader] },
+                },
+                passive: {
+                  fail_duration: health.passive.failDuration,
+                  max_fails: health.passive.maxFails,
+                  unhealthy_status: [...health.passive.unhealthyStatus],
+                },
+              },
+            }),
         /**
          * EVERY admin-API change reloads the edge's whole config, and a reload closes
          * every WebSocket the old config proxied with `1001 Going Away`. Without this,

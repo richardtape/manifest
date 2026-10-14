@@ -339,7 +339,7 @@ describeDocker('a redeploy through deployRelease (§11 Redeploys)', () => {
     expect(routeAfterFirst?.instanceId).toBe(first.id)
     // …and the edge agrees with it. Two producers of one value is this repository's
     // most expensive defect shape, so both are read.
-    expect((await servingRoute(routing, HOST))?.instanceId).toBe(first.id)
+    expect((await servingRoute(routing, HOST))?.instanceIds).toEqual([first.id])
     await retirer.idle()
 
     // THE REDEPLOY, under a request every 25 ms. Started after the first instance
@@ -410,11 +410,11 @@ describeDocker('a redeploy through deployRelease (§11 Redeploys)', () => {
     // the app's SP private key, so this is not tidiness.
     expect(await volumeExists(`${first.handle!}-files`)).toBe(false)
     // …and the app is still answering, as itself.
-    expect((await servingRoute(routing, HOST))?.instanceId).toBe(second.id)
+    expect((await servingRoute(routing, HOST))?.instanceIds).toEqual([second.id])
   }, 900_000)
 
   it('leaves the previous instance serving when a release never becomes ready, and removes the failed container', async () => {
-    const serving = (await servingRoute(routing, HOST))?.instanceId
+    const serving = (await servingRoute(routing, HOST))?.instanceIds[0]
     expect(serving, 'the previous test left an instance serving').toBeTruthy()
     const containersBefore = await appContainers()
     expect(containersBefore).toHaveLength(1)
@@ -431,7 +431,7 @@ describeDocker('a redeploy through deployRelease (§11 Redeploys)', () => {
     expect(failed.state).toBe('failed')
     // R5: THE APP IS UNTOUCHED. The route never moved, so there was nothing to put
     // back — and the Route row still names the instance that is serving.
-    expect((await servingRoute(routing, HOST))?.instanceId).toBe(serving)
+    expect((await servingRoute(routing, HOST))?.instanceIds).toEqual([serving])
     const [route] = await db.select().from(routes).where(eq(routes.hostname, HOST))
     expect(route!.instanceId).toBe(serving)
     // §14's Incident was captured THROUGH the handle, before the container went…
@@ -457,7 +457,7 @@ describeDocker('a redeploy through deployRelease (§11 Redeploys)', () => {
     // instances — after which a retire reads one of them and removes the other.
     const written = await db.select().from(routes).where(eq(routes.hostname, HOST))
     expect(written).toHaveLength(1)
-    const onTheEdge = (await servingRoute(routing, HOST))?.instanceId
+    const onTheEdge = (await servingRoute(routing, HOST))?.instanceIds[0]
     expect(written[0]!.instanceId).toBe(onTheEdge)
 
     // And the retirer reaps everything that is not it — including the instance the

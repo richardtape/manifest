@@ -1,12 +1,19 @@
 import { describe, expect, it } from 'vitest'
-import { buildRoute, type CaddyClient, type CaddyRoute } from './caddy.js'
+import {
+  appHealthPolicy,
+  buildRoute,
+  type CaddyClient,
+  type CaddyRoute,
+} from './caddy.js'
 import {
   applyRoute,
   applySwitchedOffRoute,
   inFlightTo,
+  instanceIdsOf,
   restoreRouteTo,
   servingRoute,
   upstreamsInUse,
+  upstreamsOf,
 } from './routes.js'
 
 /**
@@ -24,19 +31,25 @@ const SERVERS = { internal: 'srv0', public: 'srv1' } as const
 const HOST = 'app.staging.manifest.internal'
 const ROUTE_ID = 'mf-app-staging-manifest-internal'
 
+const SECOND = '00000000-0000-4000-8000-000000000002'
 const spec = {
   hostname: HOST,
-  upstream: 'mf-i-00000000-0000-4000-8000-000000000002:8080',
   kind: 'staging' as const,
-  instanceId: '00000000-0000-4000-8000-000000000002',
+  upstreams: [{ dial: `mf-i-${SECOND}:8080`, instanceId: SECOND }],
+  health: 'none' as const,
 }
 
 /** What the edge already holds for the hostname: the FIRST instance. */
 const existingRoute = buildRoute({
   hostname: HOST,
-  upstream: 'mf-i-00000000-0000-4000-8000-000000000001:8080',
+  upstreams: [
+    {
+      dial: 'mf-i-00000000-0000-4000-8000-000000000001:8080',
+      instanceId: '00000000-0000-4000-8000-000000000001',
+    },
+  ],
   routeId: ROUTE_ID,
-  instanceId: '00000000-0000-4000-8000-000000000001',
+  health: 'none',
 })
 
 function fakeCaddy(overrides: Partial<CaddyClient> = {}): {
@@ -95,7 +108,7 @@ describe('applyRoute (§12, S1, P4c)', () => {
     // 20 in-place PATCHes. A status-only check cannot see the difference.
     expect(calls).toEqual([`patch ${ROUTE_ID}`])
     const proxy = patches[0]!.handle.at(-1) as { upstreams: { dial: string }[] }
-    expect(proxy.upstreams[0]!.dial).toBe(spec.upstream)
+    expect(proxy.upstreams[0]!.dial).toBe(spec.upstreams[0]!.dial)
   })
 
   /**
@@ -132,9 +145,14 @@ describe('applyRoute (§12, S1, P4c)', () => {
   it('moves an existing route to the RIGHT listener when it is on the wrong one', async () => {
     const onInternal = buildRoute({
       hostname: PROD_HOST,
-      upstream: 'mf-i-00000000-0000-4000-8000-000000000001:8080',
+      upstreams: [
+        {
+          dial: 'mf-i-00000000-0000-4000-8000-000000000001:8080',
+          instanceId: '00000000-0000-4000-8000-000000000001',
+        },
+      ],
       routeId: PROD_ROUTE_ID,
-      instanceId: '00000000-0000-4000-8000-000000000001',
+      health: 'none',
     })
     const { client, calls, servers, puts } = fakeCaddy({
       getRoute: async () => onInternal,
@@ -163,14 +181,14 @@ describe('applyRoute (§12, S1, P4c)', () => {
   it('restores a production route to the PUBLIC server when the edge holds none', async () => {
     const previous = buildRoute({
       hostname: PROD_HOST,
-      upstream: 'mf-i-prod:8080',
+      upstreams: [{ dial: 'mf-i-prod:8080', instanceId: 'prod' }],
       routeId: PROD_ROUTE_ID,
-      instanceId: 'prod',
+      health: 'none',
     })
     const { client, calls, servers } = fakeCaddy({ getRoute: async () => undefined })
     await restoreRouteTo(
       { caddy: client, servers: SERVERS },
-      { route: previous, upstream: 'mf-i-prod:8080', instanceId: 'prod' },
+      { route: previous, upstreams: ['mf-i-prod:8080'], instanceIds: ['prod'] },
       PROD_HOST,
       'production',
     )
@@ -209,9 +227,57 @@ describe('what the edge is doing now (P4c)', () => {
   it('reports what a hostname reaches: the upstream and the instance', async () => {
     const { client } = fakeCaddy({ getRoute: async () => existingRoute })
     const serving = await servingRoute({ caddy: client, servers: SERVERS }, HOST)
-    expect(serving?.upstream).toBe('mf-i-00000000-0000-4000-8000-000000000001:8080')
-    expect(serving?.instanceId).toBe('00000000-0000-4000-8000-000000000001')
+    expect(serving?.upstreams).toEqual(['mf-i-00000000-0000-4000-8000-000000000001:8080'])
+    expect(serving?.instanceIds).toEqual(['00000000-0000-4000-8000-000000000001'])
     expect(serving?.route['@id']).toBe(ROUTE_ID)
+  })
+
+  /**
+   * A1's SET (Task 2): a route that dials two instances reaches BOTH, in the route's order —
+   * the answer `servingInstances` (Task 4) and boot recovery (Task 5) are built on. Read from
+   * the edge's own configuration, never the wire: round robin would show one per request.
+   */
+  it('reports EVERY instance a set’s route reaches, in the route’s order', async () => {
+    const pair = buildRoute({
+      hostname: HOST,
+      routeId: ROUTE_ID,
+      upstreams: [
+        { dial: 'mf-i-one:8080', instanceId: 'one' },
+        { dial: 'mf-i-two:8080', instanceId: 'two' },
+      ],
+      health: appHealthPolicy('/healthz'),
+    })
+    const { client } = fakeCaddy({ getRoute: async () => pair })
+    const serving = await servingRoute({ caddy: client, servers: SERVERS }, HOST)
+    expect(serving?.upstreams).toEqual(['mf-i-one:8080', 'mf-i-two:8080'])
+    expect(serving?.instanceIds).toEqual(['one', 'two'])
+    expect(upstreamsOf(pair)).toEqual(['mf-i-one:8080', 'mf-i-two:8080'])
+  })
+
+  /**
+   * WHICH INSTANCES A ROUTE NAMES, read off its dials' `mf-i-` aliases — the same place the
+   * header comes from, so the two cannot disagree. Three shapes are live on a running machine
+   * until each app's next deploy: A1's (the header read from the upstream), P4c's (the id
+   * written into the header, the dial its alias) and one from before P4c, whose dial is a
+   * CONTAINER NAME and which names no instance at all — an empty list, never a container
+   * name passed off as an id.
+   */
+  it('names the instances a route dials — and none for a route from before P4c', () => {
+    expect(instanceIdsOf(existingRoute)).toEqual(['00000000-0000-4000-8000-000000000001'])
+    const p4c = structuredClone(existingRoute)
+    const headers = p4c.handle[2] as {
+      response: { set: Record<string, string[]>; replace?: unknown }
+    }
+    headers.response.set['X-Manifest-Instance'] = ['00000000-0000-4000-8000-000000000001']
+    delete headers.response.replace
+    expect(instanceIdsOf(p4c)).toEqual(['00000000-0000-4000-8000-000000000001'])
+    const preP4c = structuredClone(existingRoute)
+    preP4c.handle[3] = {
+      handler: 'reverse_proxy',
+      upstreams: [{ dial: 'mf-app-staging-release1:8080' }],
+    }
+    expect(upstreamsOf(preP4c)).toEqual(['mf-app-staging-release1:8080'])
+    expect(instanceIdsOf(preP4c)).toEqual([])
   })
 
   it('reports a hostname with no route as undefined — nothing this platform named serves it', async () => {
@@ -250,9 +316,9 @@ describe('what the edge is doing now (P4c)', () => {
   it('lists every upstream any route dials, across both listeners, once each', async () => {
     const other = buildRoute({
       hostname: 'other.staging.manifest.internal',
-      upstream: 'mf-i-other:3000',
+      upstreams: [{ dial: 'mf-i-other:3000', instanceId: 'other' }],
       routeId: 'mf-other-staging-manifest-internal',
-      instanceId: 'other',
+      health: 'none',
     })
     const { client } = fakeCaddy({ getRoutes: async () => [existingRoute, other] })
     expect(await upstreamsInUse({ caddy: client, servers: SERVERS })).toEqual(
@@ -277,9 +343,9 @@ describe('what the edge is doing now (P4c)', () => {
   it('reads BOTH listeners — a production upstream and a staging one, in one set', async () => {
     const production = buildRoute({
       hostname: PROD_HOST,
-      upstream: 'mf-i-prod:8080',
+      upstreams: [{ dial: 'mf-i-prod:8080', instanceId: 'prod' }],
       routeId: PROD_ROUTE_ID,
-      instanceId: 'prod',
+      health: 'none',
     })
     const read: string[] = []
     const { client } = fakeCaddy({
@@ -312,6 +378,34 @@ describe('what the edge is doing now (P4c)', () => {
     })
     expect(read).toEqual(['only'])
   })
+
+  /**
+   * THE RETIRE GUARD'S HOLE, CLOSED (A1 Task 2). `upstreamOf` read `upstreams[0]` alone, so a
+   * route dialling a set of two left its SECOND member out of this set — and `retireInstance`,
+   * which refuses an instance in it, would have retired a member that was serving. Every
+   * upstream of every route, not the first of each.
+   */
+  it('holds EVERY member of a set — the second upstream too', async () => {
+    const pair = buildRoute({
+      hostname: PROD_HOST,
+      routeId: PROD_ROUTE_ID,
+      upstreams: [
+        { dial: 'mf-i-one:8080', instanceId: 'one' },
+        { dial: 'mf-i-two:8080', instanceId: 'two' },
+      ],
+      health: appHealthPolicy('/healthz'),
+    })
+    const { client } = fakeCaddy({
+      getRoutes: async (server) => (server === 'srv1' ? [pair] : [existingRoute]),
+    })
+    expect(await upstreamsInUse({ caddy: client, servers: SERVERS })).toEqual(
+      new Set([
+        'mf-i-00000000-0000-4000-8000-000000000001:8080',
+        'mf-i-one:8080',
+        'mf-i-two:8080',
+      ]),
+    )
+  })
 })
 
 describe('restoreRouteTo (P4c) — a move that could not be confirmed', () => {
@@ -321,8 +415,8 @@ describe('restoreRouteTo (P4c) — a move that could not be confirmed', () => {
       { caddy: client, servers: SERVERS },
       {
         route: existingRoute,
-        upstream: 'mf-i-00000000-0000-4000-8000-000000000001:8080',
-        instanceId: '00000000-0000-4000-8000-000000000001',
+        upstreams: ['mf-i-00000000-0000-4000-8000-000000000001:8080'],
+        instanceIds: ['00000000-0000-4000-8000-000000000001'],
       },
       HOST,
       'staging',
@@ -349,8 +443,8 @@ describe('restoreRouteTo (P4c) — a move that could not be confirmed', () => {
       { caddy: client, servers: SERVERS },
       {
         route: existingRoute,
-        upstream: 'mf-i-00000000-0000-4000-8000-000000000001:8080',
-        instanceId: '00000000-0000-4000-8000-000000000001',
+        upstreams: ['mf-i-00000000-0000-4000-8000-000000000001:8080'],
+        instanceIds: ['00000000-0000-4000-8000-000000000001'],
       },
       HOST,
       'staging',

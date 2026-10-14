@@ -57,6 +57,9 @@ export {
 } from './docker/engine.js'
 export type { EngineClient } from './docker/engine.js'
 export { demux } from './docker/logs.js'
+// What the edge dials to reach one instance, `mf-i-<instanceId>`. `routing/` reads it back off
+// the upstream that answered to name the instance in `X-Manifest-Instance` (A1 Task 2).
+export { INSTANCE_ALIAS_PREFIX, instanceAlias } from './docker/names.js'
 
 // The Docker driver itself. `src/index.ts` constructs it through this entry point
 // rather than by a deep path, which §5's boundary test enforces.

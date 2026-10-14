@@ -184,8 +184,9 @@ describeDocker('§12: a route bound to the wrong listener is simply unreachable'
  * production app is reachable on the public one and by nobody on the internal one".
  *
  * ONE STUB APP BEHIND BOTH ROUTES, with two different instance ids. The route sets
- * `X-Manifest-Instance` itself (`buildRoute`), so the same container can stand for
- * both without the test having to run two.
+ * `X-Manifest-Instance` itself (`buildRoute`) — off the alias it dials since A1 (Task 2) —
+ * so the same container, carrying both instances' aliases, can stand for both without the
+ * test having to run two.
  */
 const ROUTED_PRODUCTION_HOST = 'split-route.manifest.internal'
 const ROUTED_STAGING_HOST = 'split-route.staging.manifest.internal'
@@ -227,19 +228,33 @@ describeDocker('§12: the platform writes a route to the right listener', () => 
     // A real HTTP server, never `nc`: an `nc` stand-in answers before it is asked and
     // the edge's pooled connection to it turned one request into an empty 502
     // (`stubAppArgs` carries the measurement).
-    await run('docker', stubAppArgs(STUB_APP, STUB_BODY))
+    await run(
+      'docker',
+      stubAppArgs(
+        STUB_APP,
+        STUB_BODY,
+        {},
+        {
+          aliases: [`mf-i-${PRODUCTION_INSTANCE}`, `mf-i-${STAGING_INSTANCE}`],
+        },
+      ),
+    )
     await new Promise((r) => setTimeout(r, 1500))
     await applyRoute(deps, {
       hostname: ROUTED_PRODUCTION_HOST,
-      upstream: `${STUB_APP}:8080`,
       kind: 'production',
-      instanceId: PRODUCTION_INSTANCE,
+      upstreams: [
+        { dial: `mf-i-${PRODUCTION_INSTANCE}:8080`, instanceId: PRODUCTION_INSTANCE },
+      ],
+      health: 'none',
     })
     await applyRoute(deps, {
       hostname: ROUTED_STAGING_HOST,
-      upstream: `${STUB_APP}:8080`,
       kind: 'staging',
-      instanceId: STAGING_INSTANCE,
+      upstreams: [
+        { dial: `mf-i-${STAGING_INSTANCE}:8080`, instanceId: STAGING_INSTANCE },
+      ],
+      health: 'none',
     })
   }, 180_000)
 

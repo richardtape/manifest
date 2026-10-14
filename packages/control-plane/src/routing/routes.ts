@@ -1,8 +1,10 @@
+import { INSTANCE_ALIAS_PREFIX } from '../runtime/index.js'
 import {
   buildRoute,
-  INSTANCE_HEADER,
   type CaddyClient,
   type CaddyRoute,
+  type HealthPolicy,
+  type RouteUpstream,
 } from './caddy.js'
 import {
   type EnvironmentKind,
@@ -22,10 +24,14 @@ export interface RoutingDeps {
 
 export interface RouteSpec {
   hostname: string
-  upstream: string
   kind: EnvironmentKind
-  /** Whose route this is. Served back on every response; see `INSTANCE_HEADER`. */
-  instanceId: string
+  /**
+   * The set the hostname reaches — every instance, each by its own alias (A1 Task 2). Each
+   * answer is served back naming the one that gave it; see `INSTANCE_HEADER`.
+   */
+  upstreams: readonly RouteUpstream[]
+  /** `appHealthPolicy(healthPath)` for an app; `'none'` for no checks (`buildRoute`). */
+  health: HealthPolicy | 'none'
 }
 
 /**
@@ -137,38 +143,50 @@ export async function removeRoute(
   await deps.caddy.deleteRoute(deps.servers[listenerFor(kind)], routeIdFor(hostname))
 }
 
-/** The address a route dials, or `undefined` for a route that proxies nowhere. */
-export function upstreamOf(route: CaddyRoute): string | undefined {
+/**
+ * EVERY address a route dials, in the route's order — empty for a route that proxies nowhere
+ * (the switched-off page).
+ *
+ * Every one, never the first (A1 Task 2): this was `upstreamOf`, which read `upstreams[0]`, so
+ * `upstreamsInUse` — the retire guard's input — could not see a set's second member.
+ */
+export function upstreamsOf(route: CaddyRoute): string[] {
   for (const handler of route.handle) {
     const proxy = handler as { handler?: string; upstreams?: { dial?: string }[] }
-    if (proxy.handler === 'reverse_proxy') return proxy.upstreams?.[0]?.dial
+    if (proxy.handler === 'reverse_proxy')
+      return (proxy.upstreams ?? []).flatMap((u) =>
+        u.dial === undefined ? [] : [u.dial],
+      )
   }
-  return undefined
+  return []
 }
 
 /**
- * The instance a route names, read back off the header it sets.
+ * The instances a route dials, read off each dial's own alias — `mf-i-<instanceId>:<port>` —
+ * which is where the edge reads the `X-Manifest-Instance` it serves (A1 Task 2), so the two
+ * cannot disagree. It reads a P4c route (the id written into the header, the dial its alias)
+ * the same way.
  *
- * `undefined` for a route written before P4c, which is a real state on a running
- * machine until that app's next deploy — not an error.
+ * A dial that is not an alias names no instance and is left out: a route written before P4c
+ * dials a CONTAINER NAME, a real state on a running machine until that app's next deploy —
+ * not an error, and never a container name passed off as an instance id.
  */
-export function instanceIdOf(route: CaddyRoute): string | undefined {
-  for (const handler of route.handle) {
-    const headers = handler as {
-      handler?: string
-      response?: { set?: Record<string, string[]> }
-    }
-    if (headers.handler === 'headers') {
-      return headers.response?.set?.[INSTANCE_HEADER]?.[0]
-    }
-  }
-  return undefined
+export function instanceIdsOf(route: CaddyRoute): string[] {
+  return upstreamsOf(route).flatMap((dial) => {
+    const colon = dial.lastIndexOf(':')
+    const host = colon === -1 ? dial : dial.slice(0, colon)
+    return host.startsWith(INSTANCE_ALIAS_PREFIX)
+      ? [host.slice(INSTANCE_ALIAS_PREFIX.length)]
+      : []
+  })
 }
 
 export interface ServingRoute {
   route: CaddyRoute
-  upstream: string
-  instanceId: string | undefined
+  /** Every address the route dials, in its order. Never empty. */
+  upstreams: string[]
+  /** The instances those dials name (`instanceIdsOf`) — empty for a route from before P4c. */
+  instanceIds: string[]
 }
 
 /**
@@ -179,9 +197,9 @@ export interface ServingRoute {
  * into retiring nothing versus retiring the live app.
  *
  * `undefined` means nothing this platform can name serves the hostname — either no
- * route by that `@id`, or a route that proxies nowhere. A route this platform wrote
- * always dials exactly one upstream, so the second case is a route we did not write
- * and cannot restore; treating it as "nothing served" is what a rollback wants.
+ * route by that `@id`, or a route that proxies nowhere (the switched-off page). A route
+ * this platform wrote dials at least one upstream — the set's every member since A1 —
+ * so treating one that dials none as "nothing served" is what a rollback wants.
  */
 export async function servingRoute(
   deps: RoutingDeps,
@@ -189,12 +207,9 @@ export async function servingRoute(
 ): Promise<ServingRoute | undefined> {
   const route = await deps.caddy.getRoute(routeIdFor(hostname))
   if (route === undefined) return undefined
-  const upstream = upstreamOf(route)
-  if (upstream === undefined) return undefined
-  // `instanceId` is a UNION with undefined rather than an optional property, so a
-  // route written before P4c reads as `undefined` here without tripping
-  // exactOptionalPropertyTypes — and the absence is a fact the caller must see.
-  return { route, upstream, instanceId: instanceIdOf(route) }
+  const upstreams = upstreamsOf(route)
+  if (upstreams.length === 0) return undefined
+  return { route, upstreams, instanceIds: instanceIdsOf(route) }
 }
 
 /**
@@ -250,7 +265,7 @@ export async function inFlightTo(
 }
 
 /**
- * Every upstream any route dials, across every listener.
+ * Every upstream any route dials, across every listener — every member of every set.
  *
  * `retireInstance` refuses an instance whose address is in here (Decision 11) — the
  * second guard behind the control plane's own selection of what to retire. It reads
@@ -269,8 +284,7 @@ export async function upstreamsInUse(deps: RoutingDeps): Promise<Set<string>> {
   // Do not delete it as dead deduplication: it is load-bearing in both configurations.
   for (const server of new Set(Object.values(deps.servers))) {
     for (const route of await deps.caddy.getRoutes(server)) {
-      const upstream = upstreamOf(route)
-      if (upstream !== undefined) found.add(upstream)
+      for (const upstream of upstreamsOf(route)) found.add(upstream)
     }
   }
   return found
