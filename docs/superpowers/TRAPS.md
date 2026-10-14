@@ -2812,4 +2812,16 @@ directory — pointed at `node_modules/` alone it reads `0 matches` on a tree th
 `clock_timestamp()`, and `recentFramesFor` orders by it, so `observability/bus.test.ts` (*newest events, oldest first*) can go red on a
 whole-suite run with the 4th event written sorted below the 2nd — measured once, 2026-10-13, at load ~6–9, then green alone 6 of 6 and on
 the next whole run. Read the ids before calling it a tie: with `id DESC` as the tie-break, a tie puts the FIRST event first. A red there
-that is green alone is the roadmap's *Tracked defects found in use* row, not your change.
+that is green alone is the roadmap's *Tracked defects found in use* row, not your change. **FIXED 2026-10-13 by A1's sitting 5 (`68274fa`): the replay
+orders by `audit.events.seq`, an identity assigned at the insert (migration `0055`); `created_at` is still the time shown.** A red there now is
+real.
+
+**THE CONTROL PLANE ON 7100 READS WHAT THE TESTS WRITE — ITS SET WATCHER** (A1's Task 6, `68274fa`; the plan's *Sitting 5*, F2). Every
+`MANIFEST_SET_WATCH_SECONDS` (15) it reads every production Route row of an active project in `manifest_control` and asks its driver for each
+member's status — and the tests write that database. Before `cef3421` a `pnpm test` beside it would have had 7100 read the fake driver's
+`inst-N` handles as `gone`, record exits in test projects and start their "replacements" on real Docker; the watcher now reads only members
+its OWN driver started. **The Docker tier is not covered by that**: seven `*.docker.test.ts` files (`boot`, `delete`, `app-secrets`,
+`redeploy`, `lifecycle`, `recent-output`, `production`) commit docker-driver production sets and remove their containers, and 7100 would
+read each as an exit and redeploy it. **Stop 7100 before `pnpm test:docker`** (`lsof -nP -iTCP:7100 -sTCP:LISTEN -t` then `kill`) and
+start it from `.env` afterwards, as G4 already says. The tier's OWN booted control planes (`boot.docker.test.ts`) carry the watcher too;
+its production instance has no Route row, so they watch nothing.

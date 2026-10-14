@@ -303,8 +303,16 @@ red() { printf '\033[31m%s\033[0m' "$1"; }
 # two, one of three never ready, one of two failing after the move), `releases/recover.test.ts` +2 (a set restored in one route; a
 # gone member left out) and `releases/retire.test.ts` +1 (a serving SET never targeted). Measured 3593/216, 0 failed, twice on
 # `81d469c` (21:30-21:46, and run B).
-EXPECT_TESTS=3593
-EXPECT_FILES=216
+# EXPECT_TESTS 3593 -> 3620 and EXPECT_FILES 216 -> 217 (2026-10-13, A1's sitting 5, `manifest-a1-s5`): Task 6's set watcher — the
+# new `releases/watch.test.ts` (18: the backoff's table; an exit recorded once and the set replaced; gone; unhealthy for four passes;
+# a failed replacement and the stop after three; the cap and a restarted process; a person's deploy resetting it; three in ANY
+# hour; nothing to replace; the gate; staging, an archived project, the lock held, a member asleep; another driver's member; rows a
+# thrown deploy left; a solo set; the database's clock), `releases/releases.test.ts` +4 (a replacement's gate, its rows and no
+# launch, production's IdP, `replacing` paired), `launch/records.test.ts` +1 (FE-59's two origins), `observability/bus.test.ts` +1
+# (the replay by `seq`), `config.test.ts` +1, `db/locks.test.ts` +1 (`tryWithEnvironmentLock`), `api/incidents.test.ts` +1
+# (`Incident.cause`). Measured 3620/217, 0 failed, twice on `cef3421` (23:15:59-23:32:37, and 23:32:46-23:49:18), 7100 stopped.
+EXPECT_TESTS=3620
+EXPECT_FILES=217
 # EXPECT_DOCTOR 21 -> 22 (2026-10-03, the UBC AI Gateway plan's sitting 2, Task 2): the gateway key's expiry, a
 # check_warn — counted, never failing — from 14 days ahead (its Decision 11). Measured: 22 checks, 0 failed, 0 warnings.
 EXPECT_DOCTOR=22

@@ -82,6 +82,14 @@
 > self-serve redeploy across two under a request loop, the set changing once) and `make demo-redeploy` green. **What sitting 5
 > must read first** is the *SITTING 4 BUILT* note under Task 6. The story: *What executing this plan found*, *Sitting 4*.
 
+> **READ FIRST — WHAT SITTING 5 BUILT AND LEFT (2026-10-13, `manifest-a1-s5`, the second coordinated run).** **Task 6 is DONE**
+> (`68274fa`, its fix `cef3421`): a production member that exits is replaced — the set watcher, `instance.exited`, an Incident per exit
+> (`Incident.cause` published), the backoff and the cap derived from `instances.replacing`, the approval check kept for a replacement —
+> **and the event replay ordered by `audit.events.seq`, FE-59 and FE-60**, all inside contract `1.9.0` (migration `0055`). Through the
+> edge, a member of `launch-app`'s two `docker kill`ed was replaced with no request failing. **What sitting 6 must read first** is the
+> *SITTING 5 BUILT* note under Task 7 — a rehearsal's production set is watched too, and **7100 must be stopped for `pnpm test:docker`**
+> now that it runs the watcher. The story: *What executing this plan found*, *Sitting 5*.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: superpowers:executing-plans (inline) or superpowers:subagent-driven-development, **whichever Rich chooses**. Steps use checkbox (`- [ ]`) syntax for tracking. **Commit on `main`; no branch, no worktree, no push** — ORIENTATION §6 rule 9.
 
 **Goal:** **Production runs as many instances as its audience needs** — §24's table: `solo` 1, `class` 2, `large_course` 3, `public` 3 —
@@ -148,8 +156,8 @@ actually changes — production only*, l.2733-2745), §11 (*Driver interface* an
 | 2 | 2, 3, **F16(b)** | **The edge's route** for N upstreams, its health policy a parameter (`[M2]`'s JSON); **`routes` one row per (hostname, instance)**; **and F16(b)'s build** (Rich, 2026-10-13 answer 3, `c0f969e`): `launch/readiness.ts`'s `iamItem` → `registrationInForce(row)` — a change UBC holds in force no longer blocks a first launch (§13's row, applied `daf2ad0`) — and the mock's `iamItem`, its notice to the front end (G3); W2 starts on this sitting's close-out | Yes — `routing/`, `db/`, `launch/` | After the commits, with an N-upstream route applied to the real edge and read back, and F16(b)'s refusal gone through the edge | ✅ **DONE 2026-10-13** (`manifest-a1-s2`, the second coordinated run's job S2, inline): Task 2 `98a9a9f`, Task 3 `941789c`, F16(b) `3bcb269` + the mock `0c7a2a3` (G3 notice, landed on `manifest-coord3`'s word). A two-upstream route applied to the real edge and read back (`routing/routes.docker.test.ts`); F16(b) through the edge in `make demo-launch`'s step 8, driver 1, every check passed. The Docker tier 293/293. *What executing this plan found*, *Sitting 2* |
 | 3 | 4, **8a** | **Spec action A applied first** (approved 2026-10-13, answer 4). **The driver's set**: `ensureInstances`, `servingInstances`, `restoreRoute(ids)`, retire and destroy across a set; the driver contract; both drivers. **And Task 8a — the SAML request cache in the app's own Mongo** (Rich, ~16:28, `3487e68`: `[M3]` found a sign-in cannot cross instances), so it lands before sitting 4 puts every launch demo's `class` production on two | Yes — `runtime/`, `blueprints/` | After the commits, with the Docker contract cases green and the skeleton's sign-in crossing two instances | ✅ **DONE 2026-10-13** (`manifest-a1-s3`, the second coordinated run's job S3, inline): Spec action A `49b9a83` (applied by Rich from the session's staged script — the classifier refused its edit), Task 4 `a991345`, Task 8a `0ba9af8`. The Docker contract 40/40 on the real edge (a set of two answering as both; a second set taking over in ONE move with no old answer after the first new); the skeleton's sign-in crossing two instances, both orders, a replay refused (`node-ts-mongo.docker.test.ts` 7/7); three Task 4 controls and 8a's red exactly as predicted. *What executing this plan found*, *Sitting 3* |
 | 4 | 5 | **Spec action B applied first** (approved 2026-10-13, answer 5). **The deploy, retire and boot recovery across N**; `shapeFor`; the per-instance AI keys; what the deploy answers; **every client that reads `X-Manifest-Instance`**; **contract `1.9.0`** | Yes — `releases/`, `ai/`, `projects/` | After the commit, with a `class` app's production on two instances through the edge, `make demo-production` and `make demo-releases` green on it, and `make demo-redeploy` green (staging, one) | ✅ **DONE 2026-10-13** (`manifest-a1-s4`, the second coordinated run's job S4, inline): Spec action B `3d57fc3` (applied AND committed by Rich from staged scripts — the classifier refused the session's run and its commit) and the schematic's sweep `6eb15e0`, Task 5 `163f42c` (contract `1.9.0`, landed on `manifest-coord3`'s word) and a stale exact-shape test it left, `81d469c`. Through the edge, driver 1: `make demo-production` 62 `ok` (`launch-app` launched on TWO instances), `make demo-releases` 110 `ok` (the self-serve loop: 100 app answers, the set changed once, A → B), `make demo-redeploy` 24 `ok` (staging, one). Six controls red as predicted (one with two side-effect reds, explained). *What executing this plan found*, *Sitting 4* |
-| 5 | 6 | **A member that exits is replaced**: the set watcher, its backoff and cap, `instance.exited`, an Incident per exit; **and the event replay's clock order** (Rich, answer 3: `observability/bus.ts:258` reads `ORDER BY created_at`, a clock that can step back — an insertion order beside Task 6's migration; the roadmap's *Tracked defects*); **and FE-59** (Rich, 2026-10-13 ~18:14, *"go with the recommendations"*, `40c0f82`: `iam_registration.recorded` carries `changeRequestedFrom` as the record holds it — a change filed with UBC (`active`) and UBC's questions (`submitted`) read the same today — inside `1.9.0`, so W4's adoption picks it up and closes the front end's m178; `launch/records.ts`, `observability/event-schemas.ts`); **and FE-60** (Rich, 2026-10-13 ~18:41, *"yes, put FE-60 in sitting 5"*, `71928a2`: `iam_registration.sent` and `.submitted` carry `requestedAttributes` as the record has them — the front end cannot tell one detail's change from another's while it waits; the same files, inside `1.9.0`) | Yes — `releases/`, `observability/`, `launch/` | After the commit, with a member `docker kill`ed through the edge and replaced, quoted | ← **next** (read Task 6's *SITTING 4 BUILT* note first: `'replacement'` declared, not yet accepted; a thrown deploy's rows left `starting`; W2's `drawnFrom` note) |
-| 6 | 7, 8b | **The readers**: D21's rehearsal pinned to one; the API's and console's serving set; the fleet's count; **and the projects list's `500`** (Rich, answer 3: `GET /v1/projects` answers `500` while a project is between its rows and its repository, `projects/repository.ts:215` — the file Task 7 rewrites; the roadmap's *Tracked defects*); **Task 8b, the knowledge pack's no-state-in-memory rule**; **and the skeleton's development error page** (Rich, 2026-10-13 ~19:38, *"both."*, `028bb94` — sitting 3's F11): an error handler as the skeleton's last middleware (`console.error` the error, never a secret; `500` with one plain sentence, no stack) AND `ENV NODE_ENV=production` in `Dockerfile.tmpl`'s runtime stage after `npm ci` — beside Task 8b | Yes — `launch/`, `projects/`, `blueprints/` | After both commits, with the front-end told | |
+| 5 | 6 | **A member that exits is replaced**: the set watcher, its backoff and cap, `instance.exited`, an Incident per exit; **and the event replay's clock order** (Rich, answer 3: `observability/bus.ts:258` reads `ORDER BY created_at`, a clock that can step back — an insertion order beside Task 6's migration; the roadmap's *Tracked defects*); **and FE-59** (Rich, 2026-10-13 ~18:14, *"go with the recommendations"*, `40c0f82`: `iam_registration.recorded` carries `changeRequestedFrom` as the record holds it — a change filed with UBC (`active`) and UBC's questions (`submitted`) read the same today — inside `1.9.0`, so W4's adoption picks it up and closes the front end's m178; `launch/records.ts`, `observability/event-schemas.ts`); **and FE-60** (Rich, 2026-10-13 ~18:41, *"yes, put FE-60 in sitting 5"*, `71928a2`: `iam_registration.sent` and `.submitted` carry `requestedAttributes` as the record has them — the front end cannot tell one detail's change from another's while it waits; the same files, inside `1.9.0`) | Yes — `releases/`, `observability/`, `launch/` | After the commit, with a member `docker kill`ed through the edge and replaced, quoted | ✅ **DONE 2026-10-13** (`manifest-a1-s5`, the second coordinated run's job S5, inline): Task 6 `68274fa` (the set watcher; `instance.exited`; `Incident.cause`; the replay ordered by `audit.events.seq`; FE-59; FE-60; W2's rewording in all three places — contract `1.9.0`, landed on `manifest-coord3`'s word) and its fix `cef3421` (the watcher reads only its own driver's members). Through the edge, driver 1: `make demo-production` 62 `ok`, then a member of `launch-app`'s two `docker kill`ed under a 100 ms loop — 234 requests all the app, `instance.exited` 4.9 s after, two new members answering 6.6 s after. Eight controls red as predicted. *What executing this plan found*, *Sitting 5* |
+| 6 | 7, 8b | **The readers**: D21's rehearsal pinned to one; the API's and console's serving set; the fleet's count; **and the projects list's `500`** (Rich, answer 3: `GET /v1/projects` answers `500` while a project is between its rows and its repository, `projects/repository.ts:215` — the file Task 7 rewrites; the roadmap's *Tracked defects*); **Task 8b, the knowledge pack's no-state-in-memory rule**; **and the skeleton's development error page** (Rich, 2026-10-13 ~19:38, *"both."*, `028bb94` — sitting 3's F11): an error handler as the skeleton's last middleware (`console.error` the error, never a secret; `500` with one plain sentence, no stack) AND `ENV NODE_ENV=production` in `Dockerfile.tmpl`'s runtime stage after `npm ci` — beside Task 8b | Yes — `launch/`, `projects/`, `blueprints/` | After both commits, with the front-end told | ← **next** (read Task 7's *SITTING 5 BUILT* note first: the watcher reads a rehearsal's production set; stop 7100 for the Docker tier) |
 | 7 | 9 | **The acceptance's demo**: `make demo-capacity` — P4c's whole witness across two, a member killed and replaced, a crash loop stopped at its cap, a sign-in across instances — three times on each driver, every negative control seen red. **Alone** | No, unless a fix touches the owed list | After the commit, with the three runs on each driver quoted | |
 | 8 | 10 | **The rest of the acceptance**: every launch demo on two instances, three times on each driver; `make ci-acceptance`; the clicked half; the plan's one whole-branch review beside the Docker tier, and its one fix wave. **Alone, and last** | Yes — beside the reviewer | After the clicked half and the review's one fix wave | |
 
@@ -931,6 +939,22 @@ field — the same two files and their examples, inside `1.9.0`, in the same not
 > its callers `project-reads.ts:102`, `:370`, `instances.ts:168`, `fleet.ts:61`, `candidate.ts:43`, **`ai/models.ts:101`
 > (`classificationFloor`)** — no others.
 
+> **SITTING 5 BUILT (2026-10-13, `manifest-a1-s5`; Task 6 `68274fa` and its fix `cef3421`, contract `1.9.0`) — WHAT THIS TASK INHERITS:**
+> - **The set watcher** (`releases/watch.ts`, started by `src/index.ts` after boot recovery; `MANIFEST_SET_WATCH_SECONDS`, 15): it reads
+>   production's Route rows of ACTIVE projects, only members its own driver started, under `tryWithEnvironmentLock`. **`instance.exited`**
+>   is published once per exit — the console's *"an exit's line"* (Step 1) reads it: `{ instanceId, releaseId, environmentId,
+>   environment, reason: exited|gone|unhealthy, exitCode, attempt, replacement: scheduled|stopped, nextInSeconds }`, its sentence the
+>   platform's. **`Incident.cause`** (`deploy | exit | exit_stopped`) is published, and `incidentPrompt` opens by it.
+> - **A REHEARSAL'S PRODUCTION SET IS WATCHED TOO** (the plan's *Sitting 5*, F12) — this task owns D21's rehearsal: a member exiting
+>   during a rehearsal is recorded and its replacement refused (no approval before launch), and `takeDown` skips a non-`healthy` row,
+>   leaving its Route row. Choose: the watcher reads only launched projects (`launchedAt`), or the take-down takes a `failed` member
+>   down too — or both — test-first.
+> - **`DeployPurpose` is accepted whole** (`release.ts`): `'replacement'` with `replacing`; the approval check is `purpose !==
+>   'rehearsal'`; only a rehearsal passes `purpose` to injection. `shapeFor`'s rehearsal row is still one — this task's control.
+> - **7100 runs the watcher** from `68274fa`: stop 7100 before `pnpm test:docker` (ORIENTATION §4) — the Docker tier commits
+>   docker-driver production sets and removes their containers, which 7100 would read as exits. `pnpm test` is safe beside it since
+>   `cef3421` (fake-driver rows are not 7100's to read).
+
 - [ ] **Step 1: The failing tests**: D21's rehearsal on a `class` app puts up ONE instance and takes down exactly it, the launched set
   untouched (a launched app refuses the rehearsal anyway — the case is a first launch's production, before which nothing serves there);
   the candidate is read the same whether staging serves one instance or, during B's run, N — every member then runs the same release
@@ -1512,3 +1536,111 @@ sweep `6eb15e0` (both Rich's, from staged scripts), Task 5 `163f42c`, and this c
     reaches"* — and it is the state: LiteLLM's `/user/list` read directly answers `total: 0` (an empty 7100 holds no key; every
     user was an unheld demo's). The script's sanity guard reads a truly empty LiteLLM as a broken read — harmless (it changes
     nothing), and the next demo's user ends it; a later sitting may teach the guard the difference.
+
+### Sitting 5 — 2026-10-13/14, 22:32–00:20 PDT (`manifest-a1-s5`, the second coordinated run's job S5): Task 6, the replay's clock order, FE-59 and FE-60
+
+**Opened** by `manifest-coord3`'s GO (22:32), relaying Rich's decisions of 16:01 (`c0f969e`: answer 3 put the event replay's clock order
+in Task 6; answer 6 inline) and his words since — FE-59 (`40c0f82`), FE-60 (`71928a2`), his standing delegation to `manifest-coord3`
+(`028bb94`) and, at ~22:39, his overnight word (`676e872`: skip what needs him until morning). HEAD `c2aa81d`, clean but for an untracked
+`.claude/` that is not this sitting's. **The windows were the coordinator's**: *"7100 is yours"* for migration `0055` and single files
+(~22:42), the HOLD from 23:10:46 for Step 4, the controls, `pnpm test` twice and the Docker tier. **Two questions went to the coordinator
+and it decided both under Rich's delegation**, each recorded for his review: W2's `drawnFrom` wording in all three places (`af8db4d`) and
+`Incident.cause` published (`60ec46e`). Commits: Task 6 `68274fa`, its fix `cef3421`, and this close-out. Every decision is a `Ruling:`
+line in the plan's git-ignored ledger.
+
+1. **F1 — A REPLACEMENT WOULD HAVE SIGNED PRODUCTION'S PEOPLE IN AGAINST THE LAPTOP IdP.** `deployReleaseSet` handed `input.purpose` to
+   `renderInjection` whenever it was set, and `injection.ts` reads production's SAML settings only for `(ctx.purpose ?? 'launch') ===
+   'launch'` — so `'replacement'` through it is the REHEARSAL's IdP (`SAML_ENVIRONMENT=LOCAL`, the Manifest IdP's entry point). Only the
+   type (`InjectionContext.purpose` is `'launch' | 'rehearsal'`) stood between them. Now only a rehearsal passes `purpose`; the row
+   *"signs people in with production's identity provider"* was RED on the old `release.ts` (`['LOCAL', 'LOCAL']`) and its control (g)
+   red on that row alone. **A purpose is a closed set read in three places — the approval check, the launch record, the injection —
+   and each read `'launch'` its own way**; the first two are now `!== 'rehearsal'` and `=== 'launch'` deliberately, the third
+   rehearsal-only.
+2. **F2 — FOUND THROUGH THE EDGE AND FIXED (`cef3421`): THE WATCHER IN 7100 WOULD HAVE ACTED ON THE TESTS' ROWS.** One database, two
+   processes: `pnpm test` COMMITS fake-driver production sets (`watch`, `releases`, `api/agents`, `auth`, `subsequent-releases`,
+   `lifecycle`, `delivery`) to `manifest_control`, which 7100 watches every 15 s with the DOCKER driver — to which each `inst-N` is
+   `gone`. 7100 would have recorded exits in test projects and started their "replacements" on real Docker. **The watcher now reads
+   only members its own driver started** (`instances.driver`), test-first, control (f) red on that row alone. **NOT closed in code: the
+   Docker tier** — seven `*.docker.test.ts` files commit docker-driver production sets and remove their containers — so **7100 is
+   stopped for `pnpm test:docker`** (ORIENTATION §4's new trap; this sitting stopped it at 23:14:06 for all its runs).
+3. **F3 — STEP 4, THROUGH THE EDGE, DRIVER 1** (7100 on `68274fa`, `gateway-controls.sh start local`, boot line `setWatchSeconds: 15`):
+   `make demo-production` green, 62 `ok` (*"production runs TWO instances"*); then a 100 ms loop on
+   `https://launch-app.manifest.internal/healthz` (the public listener) and `docker kill mf-launch-app-production-21dbb689-98c3d1c5-app`:
+   **234 requests, every one the app, max 340 ms — none failed**; `instance.exited` `{ reason: exited, exitCode: 137, attempt: 1,
+   replacement: scheduled, nextInSeconds: 0 }` **4.9 s after the kill** (the database's clock 54 ms behind the host's); its Incident
+   (`cause: exit`, *"the process exited with code 137"*); the replacement deploy's first event 27 ms later; **two new members**
+   (`replacing` = the killed id) healthy 5.4 s after the exit and **both answering through the edge 6.6 s after the kill**; the killed
+   member and the survivor retired after the drain; no second `project.launched`. The script and its output are the ledger's
+   (`s5-step4.log`).
+4. **F4 — RULING: "MID-WAY" IS THE ENVIRONMENT'S LOCK, NOT THE ROWS** (sitting 4's F7 asked it to be decided). A deploy holds
+   `withEnvironmentLock` from its first row to its Route rows, so under the lock nothing is mid-way — and rows a deploy that THREW left
+   `starting` would otherwise hide a dead member until the next boot. `tryWithEnvironmentLock` (`db/locks.ts`, new): held by a deploy, a
+   retire pass or an archive, the pass leaves the environment to the next. Control (e) — the rows instead — red on the thrown-deploy row
+   alone. **What it cost**: the first run of `watch.test.ts` was 4/17 red because the launch's own retire pass still held the lock when
+   the test's first pass ran — a fixture race (the fixture now awaits that pass), and the reason a pass that skips must be harmless.
+5. **F5 — RULING: STOPPED STAYS STOPPED UNTIL A PERSON DEPLOYS.** The hour's count is Decision 11's (replacements started since the
+   later of an hour ago and the last deploy that replaced nothing, distinct by `created_at`, from `instances.replacing`), but a sliding
+   hour alone would resume at three an hour for ever — the loop Decision 11 exists to stop (*"nothing more started"*). The stop, once
+   SAID (an `exit_stopped` Incident since the last person's deploy), holds; an hour after three replacements with no stop said, the
+   count starts again (*"three in ANY hour"*).
+6. **F6 — RULING: ONE `instance.exited` PER EXIT; A REPLACEMENT THAT FAILS OR IS REFUSED SAYS SO IN AN INCIDENT.** Its `replacement`
+   field is the decision at the exit; a failed replacement is the deploy's own failure (its Incident, the dead member kept in the set,
+   the next attempt after the backoff, counted because its rows exist); past the cap with no new exit, and on a REFUSAL (*"threw, and
+   no row names the member since the call"*), an `exit_stopped` Incident and `incident.opened` — never a second `instance.exited`, so
+   the front end's W4 tells a person of one exit once (FE-4's overlap). The gate case: a release rejected since is refused
+   `RELEASE_DIGEST_NOT_APPROVED`, nothing started, the code in the stop Incident.
+7. **F7 — THE EVENT REPLAY'S CLOCK ORDER, FIXED** (the roadmap's tracked defect, deleted there): `audit.events.seq`, `bigint GENERATED
+   ALWAYS AS IDENTITY` with `(project_id, seq)` indexed (migration `0055`), and `recentFramesFor` orders by it. The new row — a 4th event
+   stamped a minute before the 1st, what a clock that stepped back writes — was RED on the old order (the 4th dropped from a window of
+   three) and its control (h) red on it alone. `manifest_app`'s INSERT needs no grant on the identity's sequence (measured: the test
+   inserts as it). Existing rows were numbered in the table's own order, append-only.
+8. **F8 — FE-59 AND FE-60** (`launch/records.ts`, `observability/event-schemas.ts`, inside `1.9.0`): `iam_registration.recorded` carries
+   `changeRequestedFrom`; `.sent` and `.submitted` carry `requestedAttributes` — **the ROW's after the move** (a ruling: FE-60 asks for
+   *"the record's"*, which can be set for UBC's questions on a first registration too), null otherwise. Six exact-shape rows and one new
+   row (both origins, read off the EVENT in `seq` order) red first.
+9. **F9 — `Incident.cause`** (`deploy | exit | exit_stopped`; `audit.incidents.cause`, `NOT NULL DEFAULT 'deploy'`, so every older Incident
+   reads `deploy`): the prompt is built when it is READ, so the row must say which — an exit's opens *"stopped while it was serving"*, a
+   stopped one *"has stopped replacing it"*. Offered to the coordinator *"not added unasked"*; **published** at its decision (`60ec46e`,
+   for W4: never a person told twice, nor offered a redeploy the platform is doing), a required enum.
+10. **F10 — W2'S NOTE: THE FALSE CLAIM WAS IN THREE PLACES, NOT ONE.** *"The release serving staging cannot ask for what UBC has not
+    registered"* — false for a release built before production's `registered_at` and for a moved `auth.callback`/`logout` — was
+    `drawnFrom`'s comment, the package's published WARNING (and the mock's copy, pinned by its scripted test and by `api/launch.test.ts`,
+    which the first grep missed because it searched `dist/`) and `draftIamRegistration`'s DESCRIPTION. All three reworded (the
+    coordinator's decision B, `af8db4d`): *"…drawn from the newest valid manifest: that is where the change is being made."*
+11. **F11 — A ROLLED-BACK TRANSACTION FREEZES THE CLOCK THE WATCHER COUNTS BY.** Inside `withRollback`, `now()` and every row's
+    `created_at` are the transaction's start, so no deploy could be told from another: `watch.test.ts` commits (`resetDatabase` per
+    test). The same freeze made the replacement gate row a coin toss inside `releases.test.ts`: an approval and a rejection in one
+    transaction share `decided_at`, and `latestApprovalFor` breaks the tie on a random id (pre-existing; one request per decision in use)
+    — the rejection is stamped a minute later there.
+12. **F12 — FOR SITTING 6 (Task 7, D21's rehearsal), NOT FIXED: the watcher reads a REHEARSAL's production set too.** A rehearsal
+    deploys production through `deployRelease` and writes Route rows; its take-down deletes them under the lock, so a rehearsal that
+    ends normally is never read as an exit. But a rehearsal member that exits WHILE it runs is recorded (`instance.exited`, `scheduled`),
+    its replacement refused before launch (no approval — `RELEASE_DIGEST_NOT_APPROVED`, an `exit_stopped` Incident), and `takeDown`
+    then skips a row that is not `healthy`, leaving its Route row. Task 7 chooses: the watcher reads only LAUNCHED projects
+    (`launchedAt`), or the take-down takes a `failed` member down too — or both.
+13. **F13 — THE CONTROLS, EIGHT, ALL AS PREDICTED** (each break asserted to apply once, the file restored and `cmp`-equal; the ledger's
+    `s5-controls.txt`): **(a)** the approval condition back to `'launch'` → the deploy's gate row and the watcher's gate row; **(b)** no
+    cap → the table, the failed-replacement row and the fourth-exit row; **(c)** the hour counted in MEMORY → the restarted-process row
+    **and the person's-deploy row** (the plan predicted the first only: memory cannot see a person's deploy); **(d)** a running failed
+    member an exit at once → the four-passes row; **(e)** mid-way by rows → the thrown-deploy row; **(f)** every driver's members → the
+    other-driver row; **(g)** every purpose to injection → the SAML row; **(h)** the replay by the clock → the replay row.
+14. **F14 — THE GATES.** **`pnpm test` twice on the final code tree** (`cef3421`, under the HOLD, **7100 stopped**): **217 files,
+    3620 tests, all passed** (23:15:59–23:32:37 and 23:32:46–23:49:18) — +27 tests and +1 file: the new `releases/watch.test.ts` (18),
+    `releases/releases.test.ts` +4, `launch/records.test.ts` +1, `observability/bus.test.ts` +1, `config.test.ts` +1,
+    `db/locks.test.ts` +1, `api/incidents.test.ts` +1; `EXPECT_TESTS` 3593 → 3620 and `EXPECT_FILES` 216 → 217, counted in
+    `scripts/ci-acceptance.sh`'s comment. `bus.test.ts` cannot redden on the clock now. lint 0, typecheck clean (six packages),
+    `format:check` clean. **The Docker tier: 303/303 in 44 files, 1442 s** (23:50:00–00:14:04, on `cef3421`, 7100 stopped for it,
+    networks 14 → 21) — unmoved: this sitting added no Docker case (Step 4 is its through-the-edge witness). The working runs before
+    them, under *"7100 is yours"*: the changed control-plane files (612/612 in 33, then the three a rewording reddened, 136/136), the
+    packages project (275/275), the watcher's file three times in a row.
+15. **F15 — THE MACHINE.** As found: **21 containers, 60 images (`docker images -q`), 12 networks, 39 volumes** (sitting 4's close),
+    7100 PID 27304 on real GitHub, EMPTY. During: 7100 on driver 1 for Step 4 (`gateway-controls.sh start local`, PID 75887), then
+    **stopped from 23:14:06** for the controls, `pnpm test` twice and the Docker tier (F2). **At the close**: 7100 restarted from `.env`
+    on real GitHub (`start real`, **PID 4651**; the capable model `registered`, its fallback `set`, `ubc-qwen-27b` `registered`) and
+    EMPTY (the suite truncated what the demo made). **Removed**: the demo's 7 containers (`mf-launch-app-*` — production's two
+    replacement members, its db and egress proxy, staging's three; `docker rm -f -v` by name, ALLOWED), then the three scripts with
+    `--apply` — 9 dead networks (the demo's and the tier's), 6 volumes, 15 app images and 4 unheld LiteLLM users (the demo's two, the
+    intake budget, `p4b-probe-user`) — each re-read to zero. The driver-1 mirrors `launch-app.git` and `proof-app.git` existed before
+    the sitting and stay; the 12 orphan mirrors are Rich's, named by `dead-app-resources.sh`, untouched. **The machine as found: 21
+    containers, 60 images, 12 networks, 39 volumes. `make verify`: 67 checks, 0 failed, 0 warnings**, per-app resources 0/0/0.
+    `docker-simple-saml` clean but for its old untracked `cert.zip`.
