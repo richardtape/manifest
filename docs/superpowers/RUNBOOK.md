@@ -1119,7 +1119,7 @@ what those commands reported *on 2026-09-05*; P3 and then P4a have since added c
 and the current numbers are stated ONCE each (Rich, 2026-09-30): **`scripts/ci-acceptance.sh`'s `EXPECT_` lines** for
 `pnpm test`, `make doctor` and `make verify`, and **ORIENTATION §2's `pnpm test:docker` row** — this file states none of them. **The offline acceptance has not been
 re-run since 2026-09-05**, and P4a Task 15 owes it: it is Rich's to run, because
-disabling Wi-Fi cuts an agent off too. **It now has EIGHTEEN steps, 1 to 18, after step 0's offline check** (the U1 plan's Task 7 added step 18, `make demo-levels`; the faculty-ready plan's Task 11 step 17, `make demo-faculty-ready`; the launch path plan's Task 15 step 16, `make demo-launch`; the front-end enablement plan's Task 15 step 15, `make demo-frontend`; and the authoring API plan's Task 13 step 14, `make demo-authoring` — all five run on either driver; this line said SEVENTEEN until the U1 plan's sitting 3, SIXTEEN until the faculty-ready plan's sitting 7, FIFTEEN until the launch path plan's sitting 12, and FOURTEEN until its sitting 2's sweep) — P5a sitting 12 added `make demo-journey` as step 8,
+disabling Wi-Fi cuts an agent off too. **It now has NINETEEN steps, 1 to 19, after step 0's offline check** (A1's Task 10 added step 19, `make demo-capacity`, on either driver — it builds and deploys, so `make refresh-vulndb` first with the network on; the U1 plan's Task 7 added step 18, `make demo-levels`; the faculty-ready plan's Task 11 step 17, `make demo-faculty-ready`; the launch path plan's Task 15 step 16, `make demo-launch`; the front-end enablement plan's Task 15 step 15, `make demo-frontend`; and the authoring API plan's Task 13 step 14, `make demo-authoring` — all six run on either driver; this line said EIGHTEEN until A1's sitting 8, SEVENTEEN until the U1 plan's sitting 3, SIXTEEN until the faculty-ready plan's sitting 7, FIFTEEN until the launch path plan's sitting 12, and FOURTEEN until its sitting 2's sweep) — P5a sitting 12 added `make demo-journey` as step 8,
 P5b sitting 9 added `make demo-token` as step 9, P5c sitting 9 added the console's
 preflight as step 10 (2026-09-19), and P6a sitting 11 added `make demo-production` as step 11
 (2026-09-22), and P6b sitting 7 added `make demo-releases` as step 12 (2026-09-23) — whose
@@ -1418,6 +1418,11 @@ retry**: each reset is its own class, at most one per loop, a second a failure.
 
 **The failing releases fail only in production** (`MANIFEST_ENV`): production deploys only the release serving
 staging (`RELEASE_NOT_STAGED`), so a release that never became ready on staging could never be asked of production.
+
+**IT LEAVES ITS APP ON A SELF-SERVE RELEASE — so run no launch demo's RE-USE right after it** (A1 sitting 8): `make demo-launch`'s and `make
+demo-production`'s re-use paths assert *"the release production serves was approved"*, and a code-only release has no approval — both
+read `getApproval` `404` in seconds. `make reset` first, or run the launch demo before it; `make ci-acceptance` (step 12, last) never meets
+it. The demo fix is placed with the driver-2 sensitive-diff race fix, before B (the roadmap's *Tracked defects*, `1fe7d7f`).
 **It runs every phase and fails at the end**, naming each failed phase, and keeps its working directory (the loops'
 `.ndjson`, the state file) when red. **It leaves** the app on its good release in staging and production, two
 healthy members, four more commits in its repository (three releases and `server.js` back), and the crash loop's
@@ -1792,7 +1797,7 @@ of everything that is broken rather than a stop at the first thing. It runs, in 
 `make doctor`, `make verify`, `pnpm lint`, `pnpm typecheck`, `pnpm format:check`,
 `pnpm test`, the three package builds, then `make demo-journey`, `make demo-token`, `make demo-production`
 and — last of driver 1's, because it leaves `launch-app` on its leg C release — `make demo-releases`,
-then `make demo-github`, and then, on EITHER driver, `make demo-authoring`, `make demo-frontend`, `make demo-launch` and `make demo-faculty-ready`. *(This line named
+then `make demo-github`, and then, on EITHER driver, `make demo-authoring`, `make demo-frontend`, `make demo-launch`, `make demo-faculty-ready`, `make demo-levels` and — last, the longest — `make demo-capacity` (A1's Task 10, against `launch-app` on driver 1 and `launchpath-github` on driver 2). *(It named neither of the last two until A1's sitting 8 found it; this line named
 three demos until the D5 plan's sitting 8 found it; P6b sitting 7 had added `make demo-releases` to the script and not
 to this sentence — and the authoring API plan's Task 13 added `make demo-authoring` to the script and not to it, which
 the front-end enablement plan's Task 15 found when it added `make demo-frontend` to both.)*
@@ -1821,7 +1826,7 @@ that invoke it.
 |---|---|
 | The CLICKED journey | `make demo-console`, run by a person. The Chrome extension will not type a password, even a test user's (ORIENTATION §4) |
 | `pnpm test:docker` (~13 min) | Owed only by a change to `runtime/`, `routing/`, `services/`, `build/`, `releases/`, `identity/`, `sso/`, `secrets/`, `projects/`, `blueprints/`, `ai/`, `observability/`, `infra/` or a `*.docker.test.ts` |
-| The OFFLINE acceptance | `scripts/offline-acceptance.sh`, run by hand with the network off — its steps are numbered **0 to 15**, where 0 is the precondition (it read *0 to 13* after the authoring API plan added step 14; the front-end enablement plan's Task 15 added step 15, `make demo-frontend`). It is the only thing that runs `make demo-identity` and `make demo-ai` |
+| The OFFLINE acceptance | `scripts/offline-acceptance.sh`, run by hand with the network off — its steps are numbered **0 to 19**, where 0 is the precondition (it read *0 to 15* until A1's sitting 8 found it stale: the launch path plan's step 16, the faculty-ready plan's 17, the U1 plan's 18 and A1's 19, `make demo-capacity`; *0 to 13* after the authoring API plan added step 14; the front-end enablement plan's Task 15 added step 15, `make demo-frontend`). It is the only thing that runs `make demo-identity` and `make demo-ai` |
 | BOTH source drivers in one run | one driver per control-plane process: a run on driver 1 reads `make demo-github` NOT RUN, and a run on driver 2 reads the other four NOT RUN. Run it once on each |
 
 **`make demo-console` signs nobody in.** It builds the contract and the console, checks

@@ -232,7 +232,13 @@ sittings 6–8 land after it (the review's §3), so Task 1's `[M1]` re-reads eve
    (`releases/release.ts:26`, `launch/rehearsal.ts:16`). **`restoreRoute(ids)` rebuilds a SET's plain route** from the containers' labels,
    its health policy from their health-path label (`runtime/docker/driver.ts:774-818`), with no exemption. The route builder takes the
    health policy as a parameter (`routing/caddy.ts`, `appHealthPolicy`): active checks on the health path every 5 s, passive ones counting
-   dial failures, `502` and `504` — **never `503`**, so a member shedding load stays in rotation.
+   ~~dial failures, `502` and `504` — **never `503`**~~ **only the failures the edge meets reaching a member — a dial or transport failure —
+   and NO status the app answers, `502`, `503` and `504` included** (A1 sitting 8's whole-branch review, I1, `745def2`: a `502` or `504` an
+   app answers because its own dependency failed ejected it, and a shared outage every member), so a member shedding load, or answering
+   its model gateway's failure, stays in rotation. **And from the same fix wave:** a deploy's identity check waits for every member within
+   **`16 × N`** answers, not `4 × N` (M1: under live traffic a reached member went unseen for `4 × N` about 1 deploy in 256 at two and 1 in
+   65 at three — this plan's generator IS that traffic); and a replacement that fails before it starts anything is retried by the set
+   watcher's next pass, not stopped (I2) — only the gate's `ReleaseError` stops replacing.
 
 **Who may.**
 9. **`launch:rehearse`** is person-only (`projects/authz.ts:195-209`) and step-up-guarded, held by **the owner, a collaborator and an
