@@ -1786,3 +1786,18 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
     replacing it), still offering [Start it again] once the owner has changed something. The words are ours, drafted by W4, marked
     "Ours, for Rich". Rejected: keep the sentence (untrue after three tries); drop the offer altogether (a person may still want it
     after a fix).
+
+# Rich's decisions — 2026-10-14, 07:31 PDT (session manifest-coord3, the morning after the second run's night)
+
+    The morning report (~07:27) put four items to him. His words, in chat: "Re: 3: yes. Re: 4: all approved." So:
+      3. A STOPPED PRODUCTION MEMBER, REPLACING STOPPED, WHILE THE REST OF THE SET STILL SERVES (W4's open case, 67fa118) — YES:
+         the app's owners are told ONCE (an email and a quiet line on the page; no band need), in new words of ours, his to read
+         after. A small front-end follow-up of W4's (mock mode; the keeper reads instance.exited replacement 'stopped' and the set
+         still serving). Rejected: tell nobody (as before A1).
+      4. EVERYTHING PUT TO HIM FOR REVIEW — ALL APPROVED: manifest-coord3's decisions under his delegation — af8db4d (drawnFrom's
+         three places reworded), 60ec46e (Incident.cause published), 2f34041 (the stories page's class app: two copies), 0e9db93 (B
+         approved as revised), ede301c (demo-capacity without the sign-in halves; the launched app signs in at UBC's real IdP),
+         67fa118 (the keeper's inference meanwhile; FE-62 in B's Task 5), 3a94028 (no "usually fixes it" after replacing stopped);
+         the minor spec label 1c3066c (§21's "`IamRegistration` in force (§9)", under answer 9); and this run's new words of ours
+         (manifest-app ORIENTATION's For Rich row: W2's, W6's and W4's) — accepted as built.
+      Item 1 (the clicked half's sign-in line) and item 2 (the click itself, not yet staged) were not answered in this message.
