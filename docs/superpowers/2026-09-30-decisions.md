@@ -1724,3 +1724,21 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
     noticing." — carried in B's Spec action A's sweep, applied when B's sitting applies that Spec action. Why: §24 is the authority;
     the story's point (several copies for a synchronised class) stands. Rejected: (b) make the story's app a large course (a bigger
     edit, losing the class story); (c) let a class app run a voluntary rehearsal (needs a class load profile Rich never gave).
+
+    At ~00:47 PDT, B's APPROVAL — decided by manifest-coord3 under Rich's delegation, for his review. B, the load rehearsal
+    (docs/superpowers/plans/2026-10-03-load-rehearsal.md), had its SECOND fresh review as Rich asked on 2026-10-03 ("a second fresh
+    review when they are next in line"): manifest-review-b, 6f99611 (approve with fixes; 10 Important, 17 Minor), and B REVISED to it,
+    b25d7e3 (every finding fixed, none argued; FE-32's l. 51 reason line with it). manifest-coord3 spot-checked the revision first:
+    contract 1.10.0, the order A1 → B → FE-32 → BYOA on the laptop → Phase 3 → A2, seven sittings (Task 8 as 8a and 8b). CHOSEN:
+    "Approve as revised" (RB's recommendation) — inline (superpowers:executing-plans), one fresh session per sitting, as A1; 8 tasks in
+    seven sittings; starts after A1's sitting 8 closes. Its departures from what Rich approved on 2026-10-03 are ACCEPTED as within his
+    answers, each named by RB: (1) the users-to-rate rule (75/s for 60 s then 50/s for 5 min synchronised; 10–50/s a minute each steady;
+    three paths on arrival then one per 10 s; no assets); (2) "answered" = below 500 and not 429, in time, the per-path 2xx/3xx rule
+    dropped; (3) the generator held to ≥ 9/10 of the rate asked; (4) "instances healthy" = healthy throughout, no exit, no OOM exit
+    (InstanceStatus.outOfMemory, new); (5) 202 and a poll; (6) staging held — other staging deploys 409 LOAD_REHEARSAL_RUNNING; (7) one at
+    a time platform-wide; (8) person-only through launch:rehearse; (9) the exemption as a Driver verb; (10) a second platform-built image
+    (a NEW Spec action D); (11) a class app refused LOAD_REHEARSAL_NOT_NEEDED (with the stories page's line, 2f34041); (12) the paths /,
+    the health path and /login; (13) an 8-minute hard stop, no cancel. NOT decided here: B's Spec actions A–D stay DRAFTED — each is
+    decided, then applied, at its own sitting's open (C and D before sitting 2, A before 3, B before 4), A1's experience being that the
+    edit and its commit are applied by Rich from a staged guarded script. Still his as actions: vegeta's download (the network, sitting 2)
+    and the clicked half (sitting 7). Rejected: approve with changes; hold it.

@@ -10,9 +10,10 @@
 > that is built"*) and C moved to §20 (I6); the shared pages corrected, the stories page's class app given two copies rather than a rehearsal (I7 — decided (a) by `manifest-coord3`
 > under Rich's delegation, for his review, `2f34041`); the
 > D21 exclusion designed as a database invariant (I9); **SEVEN sittings** (the acceptance in two, I10). **The chain is Rich's order**:
-> A1 → **B** → FE-32 → BYOA on the laptop → Phase 3 → A2 — **contract `1.10.0`** (A1 took `1.9.0` at `163f42c`). **NOT YET APPROVED:**
-> B's approval is decided by `manifest-coord3` on the review's recommendation, under Rich's standing delegation (`028bb94`), and recorded
-> for his review. **A1's sittings 6–8 land after this revision** — the review's §3 lists what they change under this plan; Task 1 re-reads
+> A1 → **B** → FE-32 → BYOA on the laptop → Phase 3 → A2 — **contract `1.10.0`** (A1 took `1.9.0` at `163f42c`). **APPROVED AS REVISED, 2026-10-14 ~00:47 PDT,**
+> by `manifest-coord3` on the second review's recommendation (`6f99611`; revised `b25d7e3`), under Rich's standing delegation (`028bb94`),
+> recorded for his review in `docs/superpowers/2026-09-30-decisions.md` — inline, one fresh session per sitting, seven sittings, after A1's
+> sitting 8 closes; its Spec actions A–D still DRAFTED, each decided and applied at its sitting's open. **A1's sittings 6–8 land after this revision** — the review's §3 lists what they change under this plan; Task 1 re-reads
 > every one.
 
 > **WRITTEN 2026-10-03, AFTERNOON, BY THE PLANNING SESSION `manifest-c7`** (coordinated by `manifest-94`), after FE-32's plan and placed
