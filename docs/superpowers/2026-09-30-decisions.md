@@ -1586,3 +1586,44 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
 
     So BP'S DESIGN IS APPROVED WHOLE. BP writes the plan from it (docs/superpowers/plans/2026-10-13-byoa-on-the-laptop.md), and BF's
     GO is sent now (the brief's answer 3: BF starts on this approval), citing this entry.
+
+# Rich's decisions — 2026-10-13, 20:56 PDT (session manifest-byoa-coord, the BYOA planning run: BF's F7 design)
+
+    BF (manifest-app-byoa-plan) committed F7's design DRAFT at manifest-app e72bc00
+    (docs/plans/2026-10-13-f7-start-your-agent-design.md, sections 0-13, every one PROPOSED), built on BP's approved design
+    (e5a0c08) and three things BP's plan (1ae8c70, not yet reviewed) names at BF's asking: a token.revoked event {tokenId,
+    mintedBy, revokedBy} with Token.revokedBy; Token.usage with resetsAt; Task 1's "For the front end — word for word" block.
+    manifest-byoa-coord checked the premises first: the eleven capability names (projects/authz.ts:22-142); tokens/actor.ts's
+    TOUCH_INTERVAL_MS = 60_000; manifest-app's machineryIn (packages/web/src/screens/machinery.ts); F6b's "nothing ticked to
+    begin with" (its plan, l. 1533); CommitSummary.madeThrough carries tokenName and no tokenId
+    (api/representations/source.ts:125-140) — all hold.
+
+    Asked through the question tool in one round of four, each with its options and a recommendation first; answered ~20:56:
+      1. C3 AND THE SETUP (§1) — "A: their tool's language, in mono (Recommended)": our sentences stay ours and never say MCP,
+         server, endpoint, header, bearer, token, config or environment variable; what a person copies is their tool's own form
+         (Claude Code's command, Codex's settings table) exactly as BP's Task 1 measures it, in mono with [Copy], never explained,
+         shown once after [Make it] in the key's card; the laptop's certificate never on the screen. Rejected: B, a prompt that
+         sets the agent up with the key inside it; C, a settings file to download; D, today's two addresses and the guide (kept
+         inside A for "Another agent" only).
+      2. PRESET PERMISSIONS (§2b) — "Both layers (Recommended)": Layer 1, what the key may do — "Build and try it out" FIRST AND
+         CHOSEN (project:read, source:write, build:create, release:create, release:deploy, output:read; agent:session,
+         secret:write, project:write, launch:draft and approval:request left out, each one box away), "Only look at it"
+         (project:read, output:read), "Choose for yourself" (the eleven boxes) — THIS REPLACES F6b's approved "nothing ticked";
+         Layer 2, the agent tool's own rule letting Manifest's read tools run without asking (derived from the contract by BP's
+         rule, never the whole server), offered only if BP's Task 1 finds the client takes one. Rejected: Manifest's choices
+         only; the tool's rule only; neither, as built.
+      3. THEIR AGENT'S WORK (§5) — "Row + page in our words (Recommended)": a row per agent of theirs in Conversations (its
+         maker's name and the agent's, a chip of needs you / working / none), its own page of what it did in OUR words and never
+         its own commit messages, and "<Name>'s agent '<name>' is working on it too." beside our line while its key was used in
+         the last five minutes — never holding our line, ours never waiting for it; read from the keeper's history (actor.token.id),
+         ours told apart by kept ids (F6b D5). Rejected: the same with its commit messages quoted; only "working on it too".
+      4. THE REST, AS WRITTEN — "Approve as written (Recommended)": §0, §3 (the setup), §4 (the paste-in prompt, in the person's
+         voice, no key and no id, FE-51's retry told to the agent), §6 (an owner's [Revoke] on a colleague's agent, "We'll tell
+         <Name>", the maker emailed from token.revoked; the rate neither set nor shown; Token.usage as the last day's counts and a
+         spent quota with when it lifts), §7 (one read route on our server, nothing stored), §8-§13 (the setup and the prompt
+         built against the mock but NOT LANDED until BP's plan lands; FE-61 — a commit names its agent by token name, not id —
+         written up, option (b) leave it now, (a) madeThrough.tokenId if the platform touches CommitSummary). Rejected: approve
+         with changes; hold it.
+
+    So F7'S DESIGN IS APPROVED WHOLE. BF writes the plan (docs/plans/2026-10-13-f7-start-your-agent.md); BR's GO follows when it is
+    committed (both plans written); FE-61's line goes to manifest-coord3 for manifest-app's docs/api-findings.md.
