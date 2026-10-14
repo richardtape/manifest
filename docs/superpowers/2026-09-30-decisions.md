@@ -1627,3 +1627,25 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
 
     So F7'S DESIGN IS APPROVED WHOLE. BF writes the plan (docs/plans/2026-10-13-f7-start-your-agent.md); BR's GO follows when it is
     committed (both plans written); FE-61's line goes to manifest-coord3 for manifest-app's docs/api-findings.md.
+
+# Rich's decisions — 2026-10-13, 21:32 PDT (session manifest-byoa-coord, the BYOA planning run: BR's review, X1)
+
+    BR (manifest-byoa-review) committed its fresh review of both plans at 1fa72d6
+    (docs/superpowers/plans/2026-10-13-review-of-byoa-plans.md), read at manifest 163f42c (contract 1.9.0) and manifest-app
+    34c6b8d. Verdicts: BP's plan "approve with the fixes" (0 Critical, 10 Important, 13 Minor); BF's "approve with the fixes" (0
+    Critical, 0 Important of its own, 5 Minor); cross-plan 3 Important, 4 Minor. BP's named departures (D2, D9, D10, D14, port
+    7113, token.revoked's CHECK migration) all judged sound; D14 (a resumable waitForBuild, where the approved design said ten
+    minutes) and BP-I6's two new non-tools (startAgentSession, which answers a model key; getOpenApiDocument, 1.2 MB) to be named
+    to Rich at the plans' approval. One question raised. manifest-byoa-coord checked its premise first: manifest-app's building
+    agent reads getKnowledgePack alone (packages/server/src/platform/project.ts, PACK_CHARS = 24_000), and node-ts-mongo's
+    AGENTS.md:31 carries "Never write an origin into auth.callback" — holds.
+
+    Asked through the question tool, one question, the recommendation first; answered ~21:32:
+      X1. WHERE THE CWL AND MODEL KNOW-HOW LIVES ONCE TOOLKITS EXIST — "(a) F7 gains a task (Recommended)": the front end's
+          building agent reads each Blueprint.toolkits pack beside the blueprint's, as ONE NEW SMALL TASK IN F7, and BP's Task 6
+          change to node-ts-mongo's AGENTS.md (each library rule kept as its heading and one sentence, the detail moved to
+          toolkits/{cwl,models}/agents/*.md) WAITS FOR THAT F7 TASK TO LAND. This WIDENS F7's APPROVED SCOPE BY ONE TASK; design
+          §4's "points to a toolkit for the rest" stands. Rejected: (b) AGENTS.md left whole with the toolkit packs carrying the
+          same text, held equal by a test; (c) as written.
+
+    So BP and BF revise their plans to the review, X1 (a) included, through manifest-byoa-coord; then Rich approves both.
