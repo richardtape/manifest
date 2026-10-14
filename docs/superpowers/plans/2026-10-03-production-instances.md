@@ -100,6 +100,15 @@
 > `server.js` files and `ENV NODE_ENV=production` in every image. **What sitting 7 must read first** is the *SITTING 6 BUILT* note under
 > Task 9. The story: *What executing this plan found*, *Sitting 6*.
 
+> **READ FIRST — WHAT SITTING 7 BUILT AND LEFT (2026-10-14, `manifest-a1-s7`, the second coordinated run).** **Task 9 is DONE**
+> (`a336119`): **`make demo-capacity`**, either driver — two instances serve; a same- and a new-release redeploy across them under two
+> loops, nobody's request failing; a release that never becomes ready changing nothing; a member killed, recorded and replaced; a crash
+> loop stopped at its cap; green on both drivers, five controls red as predicted. **A launched app cannot sign anyone in on this laptop**
+> — it is sent to UBC's own IdP (`spec/injection.ts:457-477`) — so the demo's signed-in half and its sign-in across instances are NOT RUN,
+> held by Task 8a's Docker case (`manifest-coord3` under Rich's delegation, `ede301c`), and **sitting 8's clicked half meets the same
+> premise: Rich's, in the morning**. **Driver 2 needs the `.env` swap** (`require_fake_github` reads `.env`). **What sitting 8 must read
+> first** is the *SITTING 7 BUILT* note under Task 10. The story: *What executing this plan found*, *Sitting 7*.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: superpowers:executing-plans (inline) or superpowers:subagent-driven-development, **whichever Rich chooses**. Steps use checkbox (`- [ ]`) syntax for tracking. **Commit on `main`; no branch, no worktree, no push** — ORIENTATION §6 rule 9.
 
 **Goal:** **Production runs as many instances as its audience needs** — §24's table: `solo` 1, `class` 2, `large_course` 3, `public` 3 —
@@ -168,8 +177,8 @@ actually changes — production only*, l.2733-2745), §11 (*Driver interface* an
 | 4 | 5 | **Spec action B applied first** (approved 2026-10-13, answer 5). **The deploy, retire and boot recovery across N**; `shapeFor`; the per-instance AI keys; what the deploy answers; **every client that reads `X-Manifest-Instance`**; **contract `1.9.0`** | Yes — `releases/`, `ai/`, `projects/` | After the commit, with a `class` app's production on two instances through the edge, `make demo-production` and `make demo-releases` green on it, and `make demo-redeploy` green (staging, one) | ✅ **DONE 2026-10-13** (`manifest-a1-s4`, the second coordinated run's job S4, inline): Spec action B `3d57fc3` (applied AND committed by Rich from staged scripts — the classifier refused the session's run and its commit) and the schematic's sweep `6eb15e0`, Task 5 `163f42c` (contract `1.9.0`, landed on `manifest-coord3`'s word) and a stale exact-shape test it left, `81d469c`. Through the edge, driver 1: `make demo-production` 62 `ok` (`launch-app` launched on TWO instances), `make demo-releases` 110 `ok` (the self-serve loop: 100 app answers, the set changed once, A → B), `make demo-redeploy` 24 `ok` (staging, one). Six controls red as predicted (one with two side-effect reds, explained). *What executing this plan found*, *Sitting 4* |
 | 5 | 6 | **A member that exits is replaced**: the set watcher, its backoff and cap, `instance.exited`, an Incident per exit; **and the event replay's clock order** (Rich, answer 3: `observability/bus.ts:258` reads `ORDER BY created_at`, a clock that can step back — an insertion order beside Task 6's migration; the roadmap's *Tracked defects*); **and FE-59** (Rich, 2026-10-13 ~18:14, *"go with the recommendations"*, `40c0f82`: `iam_registration.recorded` carries `changeRequestedFrom` as the record holds it — a change filed with UBC (`active`) and UBC's questions (`submitted`) read the same today — inside `1.9.0`, so W4's adoption picks it up and closes the front end's m178; `launch/records.ts`, `observability/event-schemas.ts`); **and FE-60** (Rich, 2026-10-13 ~18:41, *"yes, put FE-60 in sitting 5"*, `71928a2`: `iam_registration.sent` and `.submitted` carry `requestedAttributes` as the record has them — the front end cannot tell one detail's change from another's while it waits; the same files, inside `1.9.0`) | Yes — `releases/`, `observability/`, `launch/` | After the commit, with a member `docker kill`ed through the edge and replaced, quoted | ✅ **DONE 2026-10-13** (`manifest-a1-s5`, the second coordinated run's job S5, inline): Task 6 `68274fa` (the set watcher; `instance.exited`; `Incident.cause`; the replay ordered by `audit.events.seq`; FE-59; FE-60; W2's rewording in all three places — contract `1.9.0`, landed on `manifest-coord3`'s word) and its fix `cef3421` (the watcher reads only its own driver's members). Through the edge, driver 1: `make demo-production` 62 `ok`, then a member of `launch-app`'s two `docker kill`ed under a 100 ms loop — 234 requests all the app, `instance.exited` 4.9 s after, two new members answering 6.6 s after. Eight controls red as predicted. *What executing this plan found*, *Sitting 5* |
 | 6 | 7, 8b | **The readers**: D21's rehearsal pinned to one; the API's and console's serving set; the fleet's count; **and the projects list's `500`** (Rich, answer 3: `GET /v1/projects` answers `500` while a project is between its rows and its repository, `projects/repository.ts:215` — the file Task 7 rewrites; the roadmap's *Tracked defects*); **Task 8b, the knowledge pack's no-state-in-memory rule**; **and the skeleton's development error page** (Rich, 2026-10-13 ~19:38, *"both."*, `028bb94` — sitting 3's F11): an error handler as the skeleton's last middleware (`console.error` the error, never a secret; `500` with one plain sentence, no stack) AND `ENV NODE_ENV=production` in `Dockerfile.tmpl`'s runtime stage after `npm ci` — beside Task 8b | Yes — `launch/`, `projects/`, `blueprints/` | After both commits, with the front-end told | ✅ **DONE 2026-10-14** (`manifest-a1-s6`, the second coordinated run's job S6, inline): Task 7 `59a540f` (the readers read the set — the fleet's `instances`, the set's first HEALTHY member answering for it; the projects list's `500` fixed; the watcher reads only launched projects, F12; the console's *"2 instances, healthy"*; the mock's production set of two — contract `1.9.0`, landed on `manifest-coord3`'s word) and Task 8b with the skeleton's error page `1d40042`. `node-ts-mongo.docker.test.ts` red on the old skeleton's replay body (the development page) and green after; eight controls red as predicted. *What executing this plan found*, *Sitting 6* |
-| 7 | 9 | **The acceptance's demo**: `make demo-capacity` — P4c's whole witness across two, a member killed and replaced, a crash loop stopped at its cap, a sign-in across instances — three times on each driver, every negative control seen red. **Alone** | No, unless a fix touches the owed list | After the commit, with the three runs on each driver quoted | ← **next** (read Task 9's *SITTING 6 BUILT* note first) |
-| 8 | 10 | **The rest of the acceptance**: every launch demo on two instances, three times on each driver; `make ci-acceptance`; the clicked half; the plan's one whole-branch review beside the Docker tier, and its one fix wave. **Alone, and last** | Yes — beside the reviewer | After the clicked half and the review's one fix wave | |
+| 7 | 9 | **The acceptance's demo**: `make demo-capacity` — P4c's whole witness across two, a member killed and replaced, a crash loop stopped at its cap, a sign-in across instances — three times on each driver, every negative control seen red. **Alone** | No, unless a fix touches the owed list | After the commit, with the three runs on each driver quoted | ✅ **DONE 2026-10-14** (`manifest-a1-s7`, the second coordinated run's job S7, inline): Task 9 `a336119` — `make demo-capacity` (`journey/src/capacity.ts`, `capacity-checks.ts` and its 14 tests, `scripts/demo-capacity.sh`, the Makefile target, the RUNBOOK's section). Green on driver 1 five times (fresh twice, re-use twice, from `make reset`: 692–754 s) and on driver 2, the fake through the `.env` swap, three times (re-use twice, from `make reset`: 708–956 s) after one red that found F6 — two greens on each driver on the committed tree; five controls red as predicted (RF1, RF2 twice, RF4, RF7; RF3, RF5, RF8 held at task level; RF6 not runnable). **A launched app signs in only against UBC's IdP**: the signed-in half and phase 6 NOT RUN, held by Task 8a's Docker case (`ede301c`). No Docker tier owed (no owed path changed). *What executing this plan found*, *Sitting 7* |
+| 8 | 10 | **The rest of the acceptance**: every launch demo on two instances, three times on each driver; `make ci-acceptance`; the clicked half; the plan's one whole-branch review beside the Docker tier, and its one fix wave. **Alone, and last** | Yes — beside the reviewer | After the clicked half and the review's one fix wave | ← **next** (read Task 10's *SITTING 7 BUILT* note first; its clicked sign-in is Rich's to re-decide) |
 
 **EVERY SITTING ENDS THE SAME WAY** — the four gates (`pnpm test` twice, alone, on the final tree), the Docker tier when owed, a dated
 *What executing this plan found*, this table, and ORIENTATION §6's sweep. **Three rules survive any re-cut:** Task 1 first and alone; Tasks
@@ -1041,7 +1050,7 @@ first when `launch-app` has not launched, as `demo-releases` does); `scripts/lib
 generalised from one instance id to a set only if they need it. `fixtures/` gains nothing: the crash-looping release is a commit the
 demo makes to `launch-app` (an exit a few seconds after `/healthz` first answers), built, and deployed self-serve.
 
-- [ ] **Step 1: The phases**, each ending `every check passed`, on either driver, against `launch-app` (a launched `class` app):
+- [x] **Step 1: The phases**, each ending `every check passed`, on either driver, against `launch-app` (a launched `class` app):
   1. **Two instances serve** — both ids, bare, seen within 8 requests; `getEnvironment`'s `instances` names the same two.
   2. **P4c's whole witness, across two** (Review Focus 1): a same-release redeploy, then a new-release one, each under a `/healthz` loop
      classified by body AND header AND a signed-in person's requests back to back (the app's signed-in page, and its questions where the
@@ -1058,10 +1067,10 @@ demo makes to `launch-app` (an exit a few seconds after `/healthz` first answers
      starts.)*
   6. **A sign-in across instances** (Review Focus 6): a CWL sign-in started and completed four times, so both orders of
      AuthnRequest-instance and assertion-instance occur, each signed in; a session made on one instance read on the other.
-- [ ] **Step 2: Green three times on each driver** (fresh, re-use, from `make reset`); quote each run's time.
-- [ ] **Step 3: The negative controls**, one per Review Focus line, each predicted, seen red, restored; a line that cannot be broken from
+- [x] **Step 2: Green three times on each driver** (fresh, re-use, from `make reset`); quote each run's time.
+- [x] **Step 3: The negative controls**, one per Review Focus line, each predicted, seen red, restored; a line that cannot be broken from
   the demo says so and names the task-level control that holds it.
-- [ ] **Step 4: Commit**:
+- [x] **Step 4: Commit**:
   ```bash
   git commit -m "feat(journey): make demo-capacity — two instances serve, a redeploy across them interrupts nobody, a dead one is replaced"
   ```
@@ -1071,6 +1080,26 @@ demo makes to `launch-app` (an exit a few seconds after `/healthz` first answers
 ## Task 10: The rest of the acceptance — every launch demo on two instances, and a person clicking it
 
 **Sitting 8. Alone, and last.**
+
+> **SITTING 7 BUILT (2026-10-14, `manifest-a1-s7`; Task 9 `a336119`) — WHAT THIS TASK INHERITS:**
+> - **`make demo-capacity` exists, either driver** (~12 minutes re-used, ~16 fresh on driver 2 with `make demo-launch` first): driver 1
+>   against `launch-app` (`make demo-production` first when it has not launched), driver 2 against `launchpath-github` (`make
+>   demo-launch` first). Step 1's `scripts/ci-acceptance.sh` step and `offline-acceptance.sh` step are this task's (neither has one yet).
+>   `DEMO_CAPACITY_PHASES` runs a subset — 1 always; a subset that skips phases 2 and 3 can meet a watcher count a recent replacement
+>   left (it reads attempt 2).
+> - **DRIVER 2 NEEDS THE `.env` SWAP** — `require_fake_github` (`scripts/lib/api.sh:114`) reads `.env`, never the running process, and
+>   refuses while its real-App block is live: a 0600 copy, the seven lines (26–32) commented, `gateway-controls.sh start fake`, and at
+>   the close `cmp` byte-identical and `start real` (sitting 7 did it twice; its script is the record's).
+> - **THE CLICKED HALF'S SIGN-IN CANNOT HAPPEN AS WRITTEN.** *What Rich does* 3 says *"sign in on one and stay signed in on the other"*
+>   on a launched `class` app — but a launched app sends `/login` to `authentication.ubc.ca` (`spec/injection.ts:457-477`), which no
+>   laptop completes. **Rich re-decides it** (ORIENTATION §8 *Open*): drop it from the clicked half (held by Task 8a's Docker case and the
+>   sessions in the app's Mongo — the recommendation, `ede301c`'s (A)), or (B) a laptop setting that points a launched app at the Manifest
+>   IdP (a §8 spec action, security-relevant). The rest of the clicked half stands: two `X-Manifest-Instance` values in DevTools, the
+>   console's two instances, the history after a member is killed.
+> - **An API read through the edge can meet §11's reset whenever ANY route changes** (sitting 7's F6): the demo's client asks a GET
+>   again once; a launch demo that polls across a background route move — the watcher's replacements now make those — may need the same.
+> - **The vulnerability database** is fresh until **2026-10-15 23:32 PDT**; sitting 8's runs after it need `make refresh-vulndb` first
+>   (the network on; Rich's standing yes) and the next build watched (FE-57).
 
 **Files:** `scripts/ci-acceptance.sh` (a `demo-capacity` step, either driver) and `scripts/offline-acceptance.sh` (a step); whatever the
 review's one fix wave touches.
@@ -1764,3 +1793,119 @@ coordinator's *"LAND IT"*), Task 8b and the error page `1d40042`, and this close
     app images — each re-read to zero. The 12 orphan mirrors are Rich's, named by `dead-app-resources.sh`, untouched. **The machine as
     found: 21 containers, 60 images, 12 networks, 39 volumes. `make verify`: 67 checks, 0 failed, 0 warnings**, per-app resources 0/0/0.
     `docker-simple-saml` clean but for its old untracked `cert.zip`.
+
+### Sitting 7 — 2026-10-14, 01:51–05:15 PDT (`manifest-a1-s7`, the second coordinated run's job S7): Task 9 — `make demo-capacity`
+
+**Opened** by `manifest-coord3`'s GO (01:50), relaying Rich's decisions of 16:01 (`c0f969e`: answer 6 — `make reset` in S7 and S8, the
+driver-2 runs unattended, inline), his standing delegation (`028bb94`) and his overnight word (`676e872`). HEAD `5d2fa93`, clean but for an
+untracked `.claude/` that is not this sitting's; `manifest-coord3` committed `ede301c`, `67fa118`, `517b8a9` and `3a94028` during it,
+nothing of theirs staged here. **The windows were the coordinator's**: *"7100 is yours"* and the HOLD from 02:11:22 for every run, the
+controls, both `make reset`s and `pnpm test` twice. **One question went to the coordinator** (F1), decided under Rich's delegation and
+recorded for his review (`ede301c`). Commits: Task 9 `a336119`, and this close-out. Every call is a `Ruling:` line in the plan's ledger.
+
+1. **F1 — A LAUNCHED APP CANNOT SIGN ANYONE IN ON THIS LAPTOP, SO TWO OF TASK 9'S HALVES CANNOT RUN HERE.** A production deploy for a
+   launch — and a replacement, sitting 5's F1 — injects `SAML_ENVIRONMENT=PRODUCTION` and UBC's own IdP (`spec/injection.ts:457-477`,
+   `UBC_PRODUCTION` at `:185`): through the edge, `GET /login` on every member answers **`302 Location:
+   https://authentication.ubc.ca/idp/profile/SAML2/Redirect/SSO?SAMLRequest=…`** (quoted by every run). Only D21's rehearsal points at the
+   Manifest IdP, and it is one instance and refused once launched. No demo had ever signed into a launched production app, so the plan's
+   phase 2 *"a signed-in person's requests … no `401`, every question answered"* and phase 6 *"a CWL sign-in … four times"* rested on a
+   premise nothing had tested. **Decided (A) by `manifest-coord3` under Rich's delegation, for his review (`ede301c`)**: phase 2 keeps
+   P4c's witness across two without the sign-in — a `/healthz` loop AND a loop on the app's own page (`Sign in with CWL`), each classified
+   by body and header; phase 6 and phase 2's signed-in half are **NOT RUN, and the demo says so in its own output**, held by Task 8a's
+   Docker case (`blueprints/node-ts-mongo.docker.test.ts`: a sign-in crossing two instances both ways, a replay refused) and the sessions
+   the skeleton keeps in the app's own database. *Rejected:* (B) a laptop setting that points a launched app at the Manifest IdP (a §8
+   spec action and a security-relevant knob — Rich's, not tonight); (C) a throwaway two-container set behind a throwaway Caddy (measures
+   the skeleton, not the platform). **The same premise is under sitting 8's clicked half** (*"sign in on one and stay signed in on the
+   other"*) — Rich's, in the morning (§7e).
+2. **F2 — RULING: DRIVER 2'S APP IS `launchpath-github`.** `make demo-production` and `make demo-releases` are driver 1's
+   (`require_driver local`), so `launch-app` cannot exist on the fake; on driver 2 the demo runs against `make demo-launch`'s launched
+   `class` app, running that demo first when it has not launched, and every commit goes through the authoring API on both drivers.
+   *Cost:* driver 2's app declares no model, so its runs count no keys.
+3. **F3 — FOUND: DRIVER 2 NEEDS THE `.env` SWAP, NOT `gateway-controls.sh start fake` ALONE.** `require_fake_github`
+   (`scripts/lib/api.sh:114`) reads `.env` itself, never the running process, and refuses while `MANIFEST_GITHUB_API_URL` names real GitHub —
+   `make demo-launch` calls it, and so does `make demo-capacity` on driver 2 (the driver-2 demos' house rule). The GO had said *"no .env
+   swap"*; the coordinator agreed the swap as Rich's answer 6 allows it. **Done**: a 0600 copy, the seven lines (26–32) commented
+   `#A1S7#`, no value printed (03:12); **restored 03:59 — `cmp .env <copy> — identical (-rw-------)`**, no commented line left.
+4. **F4 — RULING: THE FAILING RELEASES FAIL ONLY IN PRODUCTION.** §13 lets production deploy only the release serving staging
+   (`launch/gate.ts:96`, `RELEASE_NOT_STAGED`), so a release that never became ready on staging could never be asked of production at
+   all. The never-ready release answers `503` at `/healthz` when `MANIFEST_ENV === 'production'`; the crash-looping one exits (code 3)
+   15 s after its first health check there. Both are code-only commits — self-serve.
+5. **F5 — WHAT TASK 9 BUILT** (`a336119`): `packages/journey/src/capacity.ts` (nine phases: `status`, `serve`, `same`, `fresh`, `never`,
+   `kill`, `crash`, `recover`, `signin`), `packages/journey/src/capacity-checks.ts` — the reading of the loops and the watcher's events,
+   kept pure so each rule is watched failing in **`capacity-checks.test.ts` (14)** — `scripts/demo-capacity.sh` (either driver; every
+   phase runs and the run fails at the end; `DEMO_CAPACITY_PHASES` for a control's short run), the `Makefile` target and the RUNBOOK's
+   section. The phases: **1** two members, bare, within 8 requests; `/login` → UBC on each; three code-only commits built and released, then
+   `server.js` committed back; **2** a same-release and a new-release redeploy under the two loops — no answer but the app's, the SET
+   changing once, only the new pair after, the old pair retired (the stream), exactly two containers and two keys; **3** the never-ready
+   release: `failed`, the old pair serving every request, an Incident, nothing left; **4** one member `docker kill`ed: no failed request
+   but one in flight, `instance.exited` (137, attempt 1, at once) within the watcher's interval, a new pair; **5** the crash loop:
+   replacements at once, ≥ 60 s and ≥ 240 s after the exit before, the fourth exit `stopped`, nothing more, the pair left `failed`, the
+   stop Incident's prompt read — then the owner's good release and a kill replaced AT ONCE, attempt 1 (the count started again); **6** NOT
+   RUN (F1), and every member shown sending its sign-in to UBC. The helper's own controls: the gap's lower bound removed → its two
+   *"started before"* rows red; an unknown instance folded into its neighbour → the `setRuns` row red.
+6. **F6 — FOUND IN DRIVER 2'S FIRST RUN, AND RULED: AN API READ THROUGH THE EDGE MEETS §11'S RESET WHENEVER ANY ROUTE CHANGES.** Phase 4's
+   poll of the environment failed `fetch failed [cause UND_ERR_SOCKET]` as the watcher's replacement moved the route: every admin change
+   reloads Caddy's whole configuration, which closes the idle keep-alive sockets it held — the console's too, whichever app moved. The
+   request loops already count `reset` as its own class (P4c); no journey client had polled the API across a background route move. **The
+   demo's client asks a GET again ONCE on `UND_ERR_SOCKET`/`ECONNRESET`/`EPIPE`, and says so** (`resetSafeFetch`, through
+   `createManifestClient`'s `fetch`; its public-listener probe likewise) — never a mutation. *Cost if wrong:* one failed read hidden once.
+   **For B** (its generator reads through the same edge while instances move) and sitting 8. The red run is the control.
+7. **F7 — GREEN THREE TIMES ON EACH DRIVER, AND WHICH HARNESS EACH RAN** (each run's own last line; every log in the ledger). The harness
+   changed twice after the first runs, both times in the demo alone: F6's retry of a read on a reset (after driver 2's first run) and the
+   one-reset cap in phases 3 and 4 (after driver 1's fourth, F9). `manifest-coord3`'s ruling (~04:20): the earlier greens count, because
+   the changes since are harness-only and their logs show zero resets and no retry.
+
+   | Run | Driver | Path | Harness | Result | Resets in any loop | A read retried |
+   |---|---|---|---|---|---|---|
+   | 1 | 1 | fresh (`make demo-production` first), 02:12 | before F6 (and before `need()`'s silencing, output only) | **green, 747 s** | 0 | — (no retry existed) |
+   | 2 | 1 | re-use, 02:25 | before F6 | **green, 705 s** | 0 | — |
+   | 3 | 1 | from `make reset` (`make demo-production` first, cold cache), 02:59 | before F6 | **green, 754 s** | 0 | — |
+   | 4 | 2 | fresh (`make demo-launch` first), 03:12 | before F6 | **RED, 925 s** — phase 4 threw on the reset (F6) | 0 | — |
+   | 5 | 2 | re-use, 03:30 | F6 | **green, 710 s** | 0 | no |
+   | 6 | 2 | from `make reset` (`make demo-launch` first, cold cache), 03:43 | F6 | **green, 956 s** | 0 | no |
+   | 7 | 1 | fresh after the second reset (`make demo-production` first), 04:00 | F6 | **green, 744 s** | 0 | no |
+   | 8 | 2 | re-use, 04:13 | **final** (F6 + the cap) | **green, 708 s** | 0 | no |
+   | 9 | 1 | re-use, 04:25 | **final** | **green, 692 s** | 0 | no |
+
+   **Driver 1: five green** (fresh twice, re-use twice, from `make reset`), two on the final tree; **driver 2: three green** (re-use twice,
+   from `make reset` — its fresh path, cold), two on the final tree, and one red before F6. Every green run measured the same shape: a
+   redeploy answers in 5.4–7.1 s with 48–57 `/healthz` and 20–23 page answers, all the app, the set changing once; the never-ready deploy
+   fails at **91.2–91.8 s** (the readiness timeout, 90 s) with 473–477 and 191–192 answers all from the old pair; a kill is recorded
+   **0.0–14.5 s** after it (a 15 s pass) and a new pair is healthy **5.9–20.3 s** after, **0 failed requests in every run**; the crash loop
+   stops **412–421 s** after the owner's deploy, its replacements 0, 60 and 240 s after their exits, to the second.
+8. **F8 — THE CONTROLS, ONE PER REVIEW FOCUS LINE THE DEMO CAN BREAK, EACH PREDICTED IN THE LEDGER FIRST** (a one-match break of the
+   control plane's source, 7100 restarted on it, the run of only the phases it targets, restored `cmp`-equal; `s7-control-*.log`):
+   **c1 (RF1)** the route withdrawn while the new set starts (delete-then-insert) → red EXACTLY the four *"every answer was the app"*
+   lines (5 and 2 wildcard answers per redeploy), the set-runs lines green; **c2 (RF2)** the set watcher never started → red EXACTLY its
+   five (no exit, no new pair, the dead member never answers, no Incident, nothing retired) with the edge routing around (0 failed of
+   1,092); **c2b (RF2's first half)** no retry of a dial failure → red both loops' in-flight lines (one `502` each, after the kill) — and
+   one red NOT from the break: a run of phases 1 and 4 only had no owner's deploy since c2's restore-time replacement, so the watcher
+   correctly read attempt 2, a minute (the script's usage now says so); **c4 (RF4)** a failed set's members left → red EXACTLY its two
+   container lines, the keys green; **c7 (RF7)** no backoff → red the crash-loop line ONLY (*"exit 2 said 0 s, not 60 s; … 4 replacements,
+   not 3; the stopped exit was attempt 5, not 4"*). **Not broken from the demo, and why**: RF3 — the demo's deploys never destroy a member
+   of a serving route (a failed set that never moved the route is RETIRED, `release.ts:1243`), held by Task 4's Docker contract cases and
+   sitting 3's controls; RF5 — no restart in the demo, held by Task 5's recover test and sitting 4's control (d); RF8 — every release here is
+   self-serve, held by Task 6's gate row and sitting 5's control (a); RF6 — NOT RUNNABLE (F1), held by Task 8a's Docker case and sitting
+   3's control.
+9. **F9 — FOUND ANSWERING THE COORDINATOR, AND FIXED: PHASES 3 AND 4 DID NOT COUNT A LOOP'S RESETS.** Asked to confirm that the retry
+   never touches the witness loops (it does not: they are P4c's `redeploy-loop.mjs`, unchanged — a reset is recorded as its own class),
+   I found phase 2 capped a loop's resets at one (P4c's rule, §11's documented reload) while phases 3 and 4 let any number through as
+   *"not a failure"*. Now every loop in every phase allows at most one reset, counted, and a second fails the check (`resets()`); the
+   coordinator kept P4c's cap over zero tolerance, which would test the edge's reload rather than A1. No run so far met a reset.
+10. **F10 — THE GATES**, on the committed tree (`a336119`, under the HOLD, 7100 running on driver 1 beside it): **`pnpm test` twice —
+    220 files, 3652 tests, all passed** (04:37:29–04:53:59 and 04:53:59–05:10:38) — +14 tests and +1 file, the new
+    `capacity-checks.test.ts`, exactly as predicted; `EXPECT_TESTS` 3638 → 3652 and `EXPECT_FILES` 219 → 220 in `a336119`. lint 0,
+    typecheck clean (every package), `format:check` clean. **No Docker tier**: nothing on the owed list changed (the journey, a script,
+    the Makefile and documents); every control's break was restored `cmp`-equal before it (`git diff` of `packages/control-plane` empty).
+11. **F11 — THE MACHINE.** As found: **21 containers, 60 images (`docker images -q`), 12 networks, 39 volumes**, 7100 PID 35122 on real
+    GitHub, EMPTY; the GitHub fake NOT running. During: 7100 on driver 1 (`start local`) and on the fake (`start fake`, the `.env` swap
+    twice), restarted for each control; **two `make reset`s** (02:57:58 and 03:42:11), each followed by `make up`, the edge checked from the
+    host (`401`) and `make verify` 67/0/0. **At the close**: `.env` byte-identical (`cmp`, twice); 7100 restarted from `.env` on real
+    GitHub (`start real`, **PID 90727**, 05:11; `capableModel` and `ubc-qwen-27b` `unchanged` — registered at the first boot after the
+    reset, fallback set), EMPTY (the suite truncated). **Removed**: the demos' 17 containers (`mf-launch-app-*` ×7, `mf-launchpath-github-*`
+    ×10; `docker rm -f -v` by name, ALLOWED), the stopped `manifest-github-fake` container and its `manifest-github-fake-data` volume (the
+    fake was down and that volume absent when the sitting opened), c4's two leftover members and their `-files` volumes, then the three
+    scripts with `--apply` — 5 dead networks, 12 volumes, 3 unheld LiteLLM users (the two `launch-app` users and an agent budget the
+    driver-2 run made) and 49 app images — each re-read. The 12 orphan mirrors are Rich's, named by `dead-app-resources.sh`, untouched.
+    **The machine as found: 21 containers, 60 images, 12 networks, 39 volumes. `make verify`: 67 checks, 0 failed, 0 warnings**,
+    per-app resources 0/0/0. `docker-simple-saml` clean but for its old untracked `cert.zip`.
