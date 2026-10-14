@@ -1880,3 +1880,18 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
          min, which could meet the same race and says nothing more about A1). The plan's and the roadmap's line "make
          ci-acceptance green on EACH driver" is NOT written for driver 2; it says what ran. Rejected: a whole re-run until green
          (re-rolling a known race to get a green word); counting it green unqualified.
+
+    At ~09:49 PDT, DECIDED BY manifest-coord4 UNDER RICH'S DELEGATION — FOR HIS REVIEW: A1's OWN DEMO COLLISION (manifest-a1-s8, its stamp 09:52).
+    Both `make demo-launch` RE-USE runs on the fake were red in 7 s — "no call refused (getApproval) — 404 NOT_FOUND" — because
+    `make demo-capacity` (A1's Task 9, ci-acceptance's step 12, run just before) leaves production on its own code-only SELF-SERVE
+    release, which rightly has no approval, while the re-use paths of demo-launch and demo-production assert "the release
+    production serves was approved" (packages/journey/src/launch.ts:1712-1722, production.ts:350-359 — read by manifest-coord4).
+    The platform is right (since P6b a launched app may serve a self-serve release); two demos' re-use checks collide with A1's new
+    demo. ci-acceptance never meets it (its pnpm test truncates before the demos, so they run fresh).
+      CHOSEN: (C) — recorded as A1's finding (with the trap written where the next agent reads it: no demo-launch / demo-production
+      re-use right after demo-capacity until fixed); the demo fix — the re-use check becomes "a release of this project was
+      approved, and what serves is it or a self-serve release since" — placed WITH b967a8e's race fix, in the same small
+      out-of-plan session after the gentler test tiers and before B. A1's driver-2 demo-launch greens come from make reset →
+      fresh → re-use ×2 with no demo-capacity between. Rejected: (A) fix the two checks now (~1.5 h of gates and demo re-runs on an
+      otherwise final tree, delaying Rich's click and the gentler test tiers, for a check in a demo); (B) make demo-capacity put
+      its app back on the release it found (a new deploy path in a demo, the same cost).
