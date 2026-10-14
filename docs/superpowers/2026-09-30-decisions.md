@@ -1426,3 +1426,18 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
          skeleton's Docker tier, blueprints/) moves from sitting 6 into sitting 3, so it lands before sitting 4 puts every
          launch demo's class production on two instances. Task 8's knowledge-pack paragraph stays in sitting 6. Rejected: (b)
          its own sitting between S2 and S3; (c) sitting 2.
+
+    And at 18:13 PDT (the diff's own stamp), RICH RAN THE PERMISSION SCRIPT himself (`! bash …/apply-permissions.sh`, written by
+    manifest-coord3 after its own edit was refused [Self-Modification]), applying what he chose through the question tool at ~16:10
+    ("Apply all recommended (Recommended)"; rejected: show the JSON first; do it himself by hand). Backups at <file>.bak-2026-10-13.
+      - ~/.claude/settings.json autoMode.allow gained three lines (approved spec actions to docs/superpowers/specs/ and reading any
+        file in manifest and manifest-app; docker kill/stop/rm/restart of mf-* and session-made throwaways, and the three cleanup
+        scripts with --apply; scripts/admin-grant.sh grant opr000001); autoMode.environment's "Protected deployment namespaces"
+        line REPLACED by "Manifest's environments are LOCAL simulations…" (sandbox/staging/production are laptop simulations;
+        the only real external services GitHub's Manifest-local-dev and UBC's AI Gateway); soft_deny unchanged (the spec guard
+        kept). `claude auto-mode config` read the new allow lines back.
+      - manifest/.claude/settings.local.json permissions.allow gained: Bash(bash scripts/admin-grant.sh grant opr000001 *),
+        the three cleanup scripts, Bash(bash scripts/gateway-controls.sh start real), Bash(make refresh-vulndb), Bash(make reset),
+        mcp__claude-in-chrome__*; manifest-app's gained mcp__claude-in-chrome__*.
+      Rejected at the same time (recommended against, not offered to apply): an allow for security-weakening negative controls
+      (they stay a script he runs), and treating a coordinator's relay as his word.
