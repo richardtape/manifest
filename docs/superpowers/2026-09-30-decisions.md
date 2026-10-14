@@ -1826,3 +1826,15 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
       And IN THE PLAN, a step for HIM: Docker Desktop → 6 CPUs (Settings → Resources), after A1's click (it restarts Docker), with one
       Docker-tier run measured before and after. Not this plan: fewer runs at agreed times (the coordinator asks him first while he is
       at the machine — already the practice), the Docker tier's speed brief, CI off the laptop.
+
+    At ~08:48 PDT, THE GENTLER TEST TIERS PLAN APPROVED — decided by manifest-coord3 under Rich's delegation, for his review.
+    manifest-fix wrote docs/superpowers/plans/2026-10-14-gentler-test-tiers.md (7cb15c2; documents only; 7 tasks in 3 sittings) from
+    Rich's "yes to 1–4" (abdd01e); manifest-coord3 spot-checked it (its banner, the sittings table, Tasks 1–7, Rich's Docker Desktop
+    step in *What Rich does* and Task 7). CHOSEN: APPROVE as written, inline, one fresh session per sitting, AFTER A1 and BEFORE B,
+    with the writer's three calls: (a) THREE sittings — the third is his Docker Desktop step (6 CPUs, after A1's click) and one
+    Docker-tier run at 6, mergeable into sitting 2's tail if he is at the machine; (b) scaling all 58 explicit per-test limits (13
+    files) through scaled() is INSIDE his item-2 yes — the same policy, and without it ten of them would get less time than the
+    default under the scale; (c) B WAITS for this plan's sitting 3, because B measures on the Docker VM's CPUs. Still his as actions: a
+    time for each of the three imitated-load runs (twelve `yes` burners, ~20–40 min each: one in sitting 1, two in sitting 2 — his
+    machine is slow meanwhile), and the Docker Desktop setting itself. Rejected: one or two sittings (the Docker step would have to
+    wait inside one); scaling only the tier defaults (inverts the explicit limits).

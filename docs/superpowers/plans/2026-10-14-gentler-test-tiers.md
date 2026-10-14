@@ -7,6 +7,9 @@
 > fact in *Read this first* was read from the code at `abdd01e`** while A1's sitting 8 was running in the same checkout, so **Task 1
 > re-reads every one** — line numbers in `scripts/ci-acceptance.sh` and the test files move with A1's close-out.
 >
+> **APPROVED 2026-10-14 ~08:48 PDT by `manifest-coord3` under Rich's standing delegation (`028bb94`), for his review** — inline, one
+> fresh session per sitting; the writer's three calls accepted (three sittings; the 58 explicit limits scaled; B waits for sitting 3).
+>
 > **Placed as THE NEXT PLATFORM JOB: after A1 closes, before B** (the load rehearsal). B measures load on the Docker VM, so it starts
 > only after this plan's sitting 3 — Rich's Docker Desktop step — has set the VM's CPUs it will measure on.
 
