@@ -800,7 +800,7 @@ defect even when every test is green.**
   0**, when the gateway cannot say. Intake is session-only, a few a person a **Vancouver** day under a per-person lock.
   `scripts/litellm-orphans.sh` holds a budget user while it holds an unexpired key; reclaiming one resets that month here.
 - **THE CAPABLE MODEL IS ONE NAME, `default-chat-large`, AND ITS PRICE TRAVELS WITH IT** (the front-end enablement plan's sitting
-  9a; §7, §21, §26 as Spec action 7 amended them). `MANIFEST_CAPABLE_MODEL` (a LiteLLM model string — `openai/gpt-6-luna` today;
+  9a; §7, §21, §26 as Spec action 7 amended them). `MANIFEST_CAPABLE_MODEL` (a LiteLLM model string — `ubc-ai-gateway/gpt-6.1-sol` today, since 2026-10-14, `6fa660a`; `ubc-ai-gateway/gpt-6-luna` from 2026-10-03, `openai/gpt-6-luna` before;
   empty is unset) is made true by `ai/capable.ts` at every boot, **straight after `listen`** (a boot that fails before it serves
   changes nothing in the shared gateway): registered through `/model/new` at ITS LEVEL — `MANIFEST_CAPABLE_MODEL_CLASSIFICATION`,
   `medium` unset, `high` on Rich's laptop (the U1 plan's Task 4) — under an id the control plane CHOOSES (an
@@ -2125,7 +2125,7 @@ reasoning is recorded.**
   OFFICE** (raised 2026-09-27 as *"may `internal` data reach a model provider outside Canada?"*; reframed 2026-10-04 at the U1 plan's close,
   its Task 7 Step 6). Since the U1 plan the platform enforces it as Rich decided (2026-10-03 21:48): `very-high` data reaches only
   on-premise models; `high` data — student names, IDs, grades — may also reach a model whose every possible provider keeps nothing it is
-  sent, as the administrator attests (S1), which is how the capable model, OpenAI's `gpt-6-luna` through UBC's AI Gateway, is registered at
+  sent, as the administrator attests (S1), which is how the capable model, OpenAI's `gpt-6.1-sol` through UBC's AI Gateway (since 2026-10-14; `gpt-6-luna` before), is registered at
   `high` on Rich's laptop. **Rich's source**: *"it's been deemed okay as long as ZDR is enabled (which it is for our org on open ai)"* — a
   determination REPORTED to him, not yet a document the platform can cite. **For the Privacy Office**: whether that holds for FIPPA, which
   document records it, and whether the US-hosted vendor behind the gateway (and any gateway-side fallback — `qwen3.6-35b-a3b → gpt-6-luna`

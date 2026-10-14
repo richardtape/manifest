@@ -2841,3 +2841,9 @@ diff names data.classification"* red once on the fake, green on its re-run): the
 commit route answers, the observer records the NEW commit's valid spec, and the route's `sensitiveAgainstNewestValid`
 (`api/spec-validation.ts:58`) then compares the commit with itself. A race, pre-existing, tracked and placed (`b967a8e`); a red of that one
 check on driver 2 is it — read the project's `app_specs` rows (two for the same commit, the observer's first) before calling it yours.
+
+**A `registered` `capableModel` ON THE BOOT LINE PROVES LITELLM ACCEPTED THE ENTRY — NOT THAT THE GATEWAY SERVES THE MODEL** (2026-10-14,
+11:16; `2ab8dab`). `gateway-controls.sh start real` read `capableModel: "registered"` for `ubc-ai-gateway/gpt-6.1-sol` while UBC's gateway
+did not yet serve it: the first call through our LiteLLM answered `400 … Invalid model name passed in model=gpt-6.1-sol`, and every build
+would have failed. **Only a call proves it**: after any repoint, make one small chat call to `default-chat-large` through LiteLLM (the
+master key read from `.env`, never printed) before anyone builds on it — and check the gateway's own `/v1/models` lists the name first.

@@ -181,8 +181,8 @@ at UBC — and the boot sets it as `default-chat-large`'s fallback.
 
 1. **In `.env`, set the two lines `.env.example`'s section 2f documents**: `OPENAI_API_KEY=` (the provider's key — real money; it
    is yours, and no agent types, reads or prints it) and `MANIFEST_CAPABLE_MODEL=openai/gpt-6-luna` (a LiteLLM model string;
-   Rich's choice on 2026-09-28 — a more capable model, `openai/gpt-6-sol`, is a one-line REPOINT, never a fallback). **Since 2026-10-03
-   (Rich, 22:08) this laptop's line is `MANIFEST_CAPABLE_MODEL=ubc-ai-gateway/gpt-6-luna`** — the same model through UBC's AI Gateway, with
+   Rich's choice on 2026-09-28 — a more capable model, `openai/gpt-6-sol`, is a one-line REPOINT, never a fallback). **Since 2026-10-14
+   (Rich, ~14:19, `6fa660a`) this laptop's line is `MANIFEST_CAPABLE_MODEL=ubc-ai-gateway/gpt-6.1-sol`** — OpenAI's newer model through UBC's AI Gateway (from 2026-10-03, Rich 22:08, it was `ubc-ai-gateway/gpt-6-luna`, the model above through the gateway), with
    `MANIFEST_GATEWAY_MODELS=ubc-qwen-27b=ubc-ai-gateway/qwen3.8-27b@confidential` beside it (*Through UBC's AI Gateway*, below). Both are
    commented in `.env.example`, because `make doctor` reads every uncommented line there as a key every `.env` must have.
 2. **`make up`, with the network ON** — LiteLLM reads its environment only when it is CREATED (`docker restart` keeps the old
@@ -204,8 +204,8 @@ at UBC — and the boot sets it as `default-chat-large`'s fallback.
    `low`, `medium`, `high`, `very-high`, or an earlier name for one — and **the administrator's attestation of EVERYTHING that may answer
    it**, the vendor behind the gateway and any gateway fallback included: `high` only when every one of them keeps nothing it is sent (zero
    data retention), `very-high` only when every one runs on UBC's hardware. **`medium` when unset or empty** (the level it had before);
-   any other word refuses the boot (`CONFIG_INVALID`, naming the setting). **Rich's line is `high`** (OpenAI's `gpt-6-luna` through UBC's
-   gateway, ZDR on UBC's organisation). The boot line's `capableClassification` says which level is in force. **The ONE boot that changes
+   any other word refuses the boot (`CONFIG_INVALID`, naming the setting). **Rich's line is `high`** (OpenAI's `gpt-6.1-sol` through UBC's
+   gateway since 2026-10-14 — `gpt-6-luna` before — ZDR on UBC's organisation; the same vendor, his attestation, `e2377ab`). The boot line's `capableClassification` says which level is in force. **The ONE boot that changes
    it RE-REGISTERS the model** (`registered`, then `unchanged` at every boot after; a row registered at an earlier name is its level, so
    `internal` stored and `medium` asked re-creates nothing) — **and that re-registration needs LiteLLM's LAST START to have had the
    network**, because `gpt-6-*` is priced only by the list LiteLLM fetches at its own start. Restarted offline, LiteLLM prices it at `0`
@@ -248,7 +248,7 @@ the variable ABSENT from the container; the compose line now sets it EMPTY when 
 #### Through UBC's AI Gateway
 
 *Added 2026-10-03 (the UBC AI Gateway plan's Task 2; §7, §21 and §26 as its Spec action 1 amended them).* **`MANIFEST_CAPABLE_MODEL=ubc-ai-gateway/<model>`**
-names a model UBC's AI Gateway serves (`https://ai-gateway.apps.ltic.ubc.ca`, a LiteLLM proxy LTIC runs — `gpt-6-luna` is the one measured).
+names a model UBC's AI Gateway serves (`https://ai-gateway.apps.ltic.ubc.ca`, a LiteLLM proxy LTIC runs — `gpt-6-luna` the first measured; `gpt-6.1-sol` this laptop's since 2026-10-14, `6fa660a`).
 Manifest's own LiteLLM stays in front of it — per-person keys, budgets, the fallback guard — and registers `default-chat-large` as
 `openai/<model>` at the gateway's address (`MANIFEST_UBC_AI_GATEWAY_URL`, `https://ai-gateway.apps.ltic.ubc.ca/v1` when absent or empty;
 plain `http` is refused off loopback), **naming the key BY REFERENCE** — `api_key: os.environ/UBC_AI_GATEWAY_API_KEY` — which LiteLLM
