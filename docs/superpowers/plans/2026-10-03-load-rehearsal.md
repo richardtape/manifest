@@ -13,7 +13,14 @@
 > A1 → **B** → FE-32 → BYOA on the laptop → Phase 3 → A2 — **contract `1.10.0`** (A1 took `1.9.0` at `163f42c`). **APPROVED AS REVISED, 2026-10-14 ~00:47 PDT,**
 > by `manifest-coord3` on the second review's recommendation (`6f99611`; revised `b25d7e3`), under Rich's standing delegation (`028bb94`),
 > recorded for his review in `docs/superpowers/2026-09-30-decisions.md` — inline, one fresh session per sitting, seven sittings, after A1's
-> sitting 8 closes; its Spec actions A–D still DRAFTED, each decided and applied at its sitting's open. **A1's sittings 6–8 land after this revision** — the review's §3 lists what they change under this plan; Task 1 re-reads
+> sitting 8 closes; its Spec actions A–D still DRAFTED, each decided and applied at its sitting's open.
+>
+> **AND FE-62 IS PLACED IN THIS PLAN'S TASK 5** (contract `1.10.0`, its first schema change) — by `manifest-coord3` under Rich's delegation,
+> for his review (`67fa118`, 2026-10-14 ~02:02): **`incident.opened` carries `cause`** (`deploy` | `exit` | `exit_stopped`, as `Incident.cause`
+> does since A1's `60ec46e`/`68274fa`), **and a replacement's deploy says it is one**, so the front end's keeper — whose watch token is
+> refused a `high` app's production Incidents (S9) — can stop inferring an exit from the events' order (its W4, manifest-app
+> `docs/api-findings.md` FE-62). Additive. Task 1's `[M1]` re-reads where `incident.opened` is published (A1's sitting 5's watcher, the
+> deploy) and adds it to Task 5's Files. **A1's sittings 6–8 land after this revision** — the review's §3 lists what they change under this plan; Task 1 re-reads
 > every one.
 
 > **WRITTEN 2026-10-03, AFTERNOON, BY THE PLANNING SESSION `manifest-c7`** (coordinated by `manifest-94`), after FE-32's plan and placed
