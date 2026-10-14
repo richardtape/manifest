@@ -1944,3 +1944,22 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
     app.manifest.internal as instructor, to create one app, let the building agent build it, and run it on trying-out on this laptop;
     one new private repository in Manifest-local-dev; AI usage on his gateway key). A classifier lifts only on the person's word in the
     refused session's own tab, so he is asked to type it there; this entry records that he allowed it.
+
+    At ~11:12–11:15 PDT, in chat to manifest-coord4, before his 12:00 demo:
+      1. THE LEAD'S LOOP MUST BE FIXED — his words: "We definitely need to make a note to fix this behaviour. This seems fundamental to
+         the app working." The defect (manifest-app-walk's read-only diagnosis, ~11:05, spot-checked by manifest-coord4): in a change
+         round the front end's building agent (the lead) keeps only its last move's report (packages/server/src/runtime/run.ts), a
+         committed file is dropped from its view (build/round.ts:846-849), its rules make it re-read a file before rewriting it, and its
+         view says nothing of what it already committed this round, its only end rule "when the pages are written, answer done" — so
+         on office-hour-slots it committed the same correct fix (467d4bc) and 17 more, 40 moves, never done or built, until MAX_MOVES
+         (round.ts:114) stopped it, ROUND_MOVES (ref 7329-495E). PLACED by manifest-coord4 under his delegation: a front-end job right
+         after the demo, test-first, its proof a real-model change round on 7100.
+      2. THE CAPABLE MODEL — his words: "I'm also wondering if we can change the model used for the app creation. iirc we are using
+         luna as the model? I think we can change to use gpt-6.1-sol -- it is a fairly new model that is both VERY impressive and also
+         fairly good on costs. Can we make that change easily in time?" Asked through the question tool (~11:15), his answers: "Yes,
+         repoint to sol (Recommended)" — MANIFEST_CAPABLE_MODEL=ubc-ai-gateway/gpt-6.1-sol (was ubc-ai-gateway/gpt-6-luna), 7100
+         restarted from .env; a refused repoint keeps luna; MANIFEST_CAPABLE_MODEL_CLASSIFICATION stays `high` (his attestation:
+         the same vendor through UBC's gateway, zero data retention), not "No, keep luna for today"; "Yes, plans on the capable model
+         (Recommended)" — our server on 7105 restarted with MANIFEST_APP_PLAN_MODEL=default-chat-large (plans had been written on
+         `default-chat`, the laptop's small local model), not "No, leave plans as they are"; and "I build a small app now
+         (Recommended)" — he builds one himself as the test and rehearsal, not the walk session, not "No test".
