@@ -242,7 +242,8 @@ has decided that spec action (C before sitting 2; A, B and E before sitting 5; D
    rejecting a question is (`authz-contract.ts`'s confirm/reject pair). *Rejected:* a new capability (`token:revoke`) — a twelfth word for
    the owner's existing authority.
 8. **`token.revoked`, FOR EVERY REVOKE**, the minter's own included, in the revoke's transaction, naming who revoked whose
-   (`machineDetail: { tokenId, mintedBy, revokedBy }`). Today a revoke is visible only as its questions' ends. Needs the CHECK constraint
+   (`machineDetail: { tokenId, tokenName, mintedBy, revokedBy }` — the name because a reader on a token cannot `listTokens`, a person's
+   read, and the front end's keeper names the agent in its email; asked by BF). Today a revoke is visible only as its questions' ends. Needs the CHECK constraint
    widened by migration. **And `Token.revokedBy`** — a column stamped by every revoke, a removal's and an archive's too — so a page reading
    `listTokens` can say who stopped an agent, which an event alone cannot answer once the stream's replay has moved on (asked by the front
    end, BF). The event stays `revokeToken`'s alone: a removal and an archive already say so with their own.
@@ -928,7 +929,7 @@ git commit -m "feat(tokens): per-token daily quotas on builds, deploys, commits 
   by)` and `revokeTokensOfMember(tx, projectId, userId, by)` gain `by`; column `delegated_tokens.revoked_by` (uuid, nullable, `RESTRICT`, as
   the events' `actor_user_id`) and `Token.revokedBy: string | null` — **who revoked it, whichever way** (its minter, an owner, an
   administrator, the person who removed its minter, the person who switched the app off; the front end, BF, asked for it so a page can say
-  who); event `token.revoked` with `machineDetail: { tokenId: string; mintedBy: string; revokedBy: string }`, **published for a
+  who); event `token.revoked` with `machineDetail: { tokenId: string; tokenName: string; mintedBy: string; revokedBy: string }`, **published for a
   `revokeToken` alone** — a removal's revokes are said by `member.removed`, an archive's by `project.archived`, as today.
 
 - [ ] **Step 1: Write the failing tests** — `api/tokens.test.ts`:
@@ -952,7 +953,7 @@ describe('who may revoke a delegated token (FE-11 (b))', () => {
         method: 'GET', url: `/v1/projects/${ctx.projectId}`, headers: { authorization: `Bearer ${secret}` },
       }))).toEqual({ status: 401, code: 'UNAUTHENTICATED' })
       const [event] = await eventsOfType(ctx.db, ctx.projectId, 'token.revoked')
-      expect(event?.machineDetail).toEqual({ tokenId: token.id, mintedBy: expect.any(String), revokedBy: ctx.userId })
+      expect(event?.machineDetail).toEqual({ tokenId: token.id, tokenName: 'their agent', mintedBy: expect.any(String), revokedBy: ctx.userId })
       expect(event?.humanMessage).toMatch(/revoked .*'their agent'/)
       expect(revoked.json().revokedBy).toBe(ctx.userId)
     })
@@ -973,7 +974,7 @@ describe('who may revoke a delegated token (FE-11 (b))', () => {
       const { row } = await mintTestToken(ctx.db, { userId: ctx.userId, projectId: ctx.projectId, capabilities: ['project:read'] })
       await ctx.app.inject({ method: 'DELETE', url: `/v1/tokens/${row.id}`, cookies: ctx.ownerCookies, headers: mutationHeaders(ctx.deps) })
       const [own] = await eventsOfType(ctx.db, ctx.projectId, 'token.revoked')
-      expect(own?.machineDetail).toEqual({ tokenId: row.id, mintedBy: ctx.userId, revokedBy: ctx.userId })
+      expect(own?.machineDetail).toEqual({ tokenId: row.id, tokenName: row.name, mintedBy: ctx.userId, revokedBy: ctx.userId })
       // A removal revokes the removed person's tokens and stamps who removed them — and publishes no token.revoked.
       const colleague = await sessionFor(ctx, 'bio_colleague', 'collaborator')
       const theirs = (await ctx.app.inject({ method: 'POST', url: `/v1/projects/${ctx.projectId}/tokens`, cookies: colleague,
@@ -1045,7 +1046,7 @@ await recordEvent(tx, {
   projectId: row.projectId,
   subject: `token:${row.id}`,
   type: 'token.revoked',
-  machineDetail: { tokenId: row.id, mintedBy: row.userId, revokedBy: actor.userId },
+  machineDetail: { tokenId: row.id, tokenName: row.name, mintedBy: row.userId, revokedBy: actor.userId },
   humanMessage:
     row.userId === actor.userId
       ? `${await personName(tx, actor.userId)} revoked their delegated token '${row.name}'.`
@@ -1973,8 +1974,8 @@ its minter is removed from its project, or by an owner of the project or a platf
 - **Four names in Tasks 7–8's code were used and never defined** (`DocWithComponents`, `jsonBodySchema`, `McpOptions`, `WaitOptions`) — each
   is now declared where it is used.
 
-**Asked by the front end (BF, `manifest-app-byoa-plan`) while this plan was written, and taken in:** `Token.revokedBy`, stamped by every revoke
-(Decision 8, Task 4); `TokenUsage.resetsAt` (Task 3); the instructions naming `listProjects` (Task 8); Task 1's *"For the front end — word for
+**Asked by the front end (BF, `manifest-app-byoa-plan`) while this plan was written, and taken in:** `Token.revokedBy`, stamped by every revoke,
+and `tokenName` in `token.revoked`'s detail (Decision 8, Task 4); `TokenUsage.resetsAt` (Task 3); the instructions naming `listProjects` (Task 8); Task 1's *"For the front end — word for
 word"* block of each client's configuration, CA setting, timeout and permission rule (Step 4a), corrected through the real edge at Task 8.
 
 ---
