@@ -1165,13 +1165,13 @@ Everything the control plane may ask of infrastructure, and nothing more:
 interface Driver {
   buildImage(src: SourceRef, spec: AppSpec): Promise<ImageRef>
   ensureService(b: ServiceBinding): Promise<ServiceHandle>   // idempotent
-  ensureInstance(d: InstanceSpec): Promise<InstanceHandle>   // idempotent — see Redeploys
-  retireInstance(id: string, opts: { drainMs: number }): Promise<void>  // never the serving instance
-  servingInstance(hostname: string): Promise<string | undefined>
+  ensureInstances(d: InstanceSpec[]): Promise<InstanceHandle[]>   // one hostname; idempotent — see Redeploys
+  retireInstance(id: string, opts: { drainMs: number }): Promise<void>  // never one the hostname reaches
+  servingInstances(hostname: string): Promise<string[]>
   listInstances(hostname: string): Promise<string[]>
-  restoreRoute(id: string): Promise<void>        // re-point a hostname at a running instance
+  restoreRoute(ids: string[]): Promise<void>     // re-point a hostname at running instances
   stopInstance(id: string): Promise<void>       // hibernate — volumes survive
-  destroyInstance(id: string): Promise<void>
+  destroyInstance(id: string): Promise<void>   // its upstream out of the route; the route only with the last
   destroyService(id: string, opts: { deleteData: boolean }): Promise<void>
   status(id: string): Promise<InstanceStatus>
   logs(id: string, opts: LogOpts): AsyncIterable<LogLine>
@@ -1185,6 +1185,14 @@ Every call is idempotent and keyed by a deterministic name derived from
 `(project, environment, release, instance)`. That property is the entire reason
 reconciliation is safe to retry. A redeploy of the same release is a new instance
 beside the one serving, never a replacement of it.
+
+**Production runs as many instances as its audience needs (§24)**: a redeploy starts
+the whole new set beside the set serving, proves each, and moves the route to the new
+set in one change; the edge balances across a set and routes around a member that stops
+answering. **A production instance that exits is replaced**: the platform notices it,
+records it with an Incident and an Event, and redeploys the set — backing off, and
+stopping, and saying so, after three replacements in an hour. There is still no silent
+retry.
 
 **S1 exercised this interface against real Docker and it needed no revision.**
 `buildImage`, `ensureService`, `ensureInstance`, `stopInstance`, `destroyInstance`,
@@ -1252,17 +1260,17 @@ by API calls. Phase 4 wraps that same function in the loop.
 
 ### Redeploys
 
-**A redeploy does not interrupt the app.** `ensureInstance` starts the new instance
-beside the one serving and makes it ready without touching the route; the route then
-moves in one in-place change, and the call resolves only once the hostname is shown to
-reach the new instance **by its identity, never by a status** — the edge's wildcard
-answers `200` for a hostname it holds no route to. An instance that never becomes ready
-leaves the previous one serving, untouched, and is removed once its Incident is
-captured (§14). Every other instance of the environment is then retired in the
+**A redeploy does not interrupt the app.** `ensureInstances` starts the new set beside
+the set serving and makes each ready without touching the route; the route then moves
+in one in-place change, and the call resolves only once the hostname is shown to reach
+**each** new instance **by its identity, never by a status** — the edge's wildcard
+answers `200` for a hostname it holds no route to. A set any member of which never
+becomes ready leaves the previous set serving, untouched, and is removed once its
+Incident is captured (§14). Every other instance of the environment is then retired in the
 background: it drains until nothing is in flight to it, for at most a platform-wide
 120 s, and only then are its container, its files and its AI key (§10) removed. A
-retire never changes what a hostname reaches, and a driver refuses to retire the
-instance that is serving. Both releases share the database during the drain; the
+retire never changes what a hostname reaches, and a driver refuses to retire any
+instance the hostname reaches. Both releases share the database during the drain; the
 blueprint's knowledge pack teaches expand, migrate, contract (§25), and nothing in
 Phase 1 checks it. What remains is the connection reset an edge configuration reload
 causes — about one request in 300 per change, on any app, measured 2026-09-15 — which a
@@ -1342,8 +1350,8 @@ by `@id` — **never removed and re-added**: delete-then-insert leaves a gap the
 wildcard answers with a `200` (4 of 320 requests across 20 moves, measured 2026-09-15;
 S1's earlier 400 of 400 predates classifying responses by body), and every admin change
 reloads the configuration, which resets about one request in 300. Every route sets
-`X-Manifest-Instance`, which is how a deploy proves the edge reaches the instance it
-started (§11).
+`X-Manifest-Instance` to the instance that answered, which is how a deploy proves the
+edge reaches each instance it started (§11).
 Use `PUT` on `…/routes/0` to insert — `POST` appends, which lands the route *behind*
 the wildcard whose `terminal: true` then swallows it.
 
