@@ -319,8 +319,13 @@ red() { printf '\033[31m%s\033[0m' "$1"; }
 # set whose first member stopped), `projects/fleet.test.ts` +1 and `api/fleet.test.ts` +1 (the fleet's `instances`),
 # `blueprints/blueprints.test.ts` +1 (the knowledge pack's several-copies rule), `packages/mock/src/scripted.test.ts` +1 (a launched
 # app's production set of two). Measured 3638/219, 0 failed, on `1d40042` (00:48:57-01:05:47), 7100 stopped.
-EXPECT_TESTS=3638
-EXPECT_FILES=219
+# EXPECT_TESTS 3638 -> 3652 and EXPECT_FILES 219 -> 220 (2026-10-14, A1's sitting 7, `manifest-a1-s7`): one new file —
+# `packages/journey/src/capacity-checks.test.ts` (14: `make demo-capacity`'s reading of its loops and of the set watcher's events —
+# requests overlapping a window and in flight at a moment, the answers that were not the app, the sets the answers came from, the
+# replacement waves, and the crash loop's backoff and cap: at once, a minute, four minutes, then stopped). Measured 3652/220, 0 failed,
+# twice on the final tree (04:37:29-04:53:59 and 04:53:59-05:10:38), 7100 running on driver 1 beside it.
+EXPECT_TESTS=3652
+EXPECT_FILES=220
 # EXPECT_DOCTOR 21 -> 22 (2026-10-03, the UBC AI Gateway plan's sitting 2, Task 2): the gateway key's expiry, a
 # check_warn — counted, never failing — from 14 days ahead (its Decision 11). Measured: 22 checks, 0 failed, 0 warnings.
 EXPECT_DOCTOR=22

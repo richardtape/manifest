@@ -1383,6 +1383,46 @@ leg C, whose only change is `sn`, reads **`summarySource not-modelled`**: no mod
 staging and production, the registration `active` five-wide, two more approvals** (three on a fresh
 machine, counting the launch), **and three more commits in its repository** — one per leg.
 
+## `make demo-capacity` — A1's acceptance: a launched `class` app on two instances
+
+*Added by A1 sitting 7, 2026-10-14 (Task 9).*
+
+Production runs as many instances as its audience needs (§24: `class` 2), behind one edge route that balances across
+them. This proves it through the edge, **on either driver**: on driver 1 against `launch-app` (it runs `make
+demo-production` first when `launch-app` has not launched), on driver 2 — **the GitHub fake, through the `.env` swap,
+because `require_fake_github` reads `.env` itself** — against `launchpath-github` (it runs `make demo-launch` first). It
+needs what those need: `make up`, **`127.0.0.3` on `lo0`**, the control plane per *Running the control plane*, and a
+vulnerability database younger than seven days.
+
+```bash
+make demo-capacity                             # ~12 min; each phase ends `every check passed`, exit 0
+DEMO_CAPACITY_PHASES="1 5" make demo-capacity  # only these phases — 1 always runs: it builds the releases
+```
+
+| Phase | What must happen |
+|---|---|
+| **1** | production's two members both answer through the public listener, bare, within 8 requests; `GET /login` on each answers `302` to `authentication.ubc.ca`; three code-only commits through the authoring API (a good release, one that never becomes ready in production, one that crash-loops in production), each built and released, then `server.js` committed back as it was |
+| **2** | a SAME-release and a NEW-release redeploy, each under a `/healthz` loop and a loop on the app's page (`Sign in with CWL`), classified by body AND header: no answer but the app's (≤ 1 reset, §11's reload), the SET changing exactly once, only the new pair after, the old pair retired (said by the stream), exactly two app containers and — `launch-app` declares models — two live LiteLLM keys |
+| **3** | the never-ready release: the deploy answers `failed`, both loops see only the pair that was serving, an Incident (`cause: deploy`) names the member that failed, no container of it is left, still two keys |
+| **4** | one member `docker kill`ed under the loops: no failure but a request in flight at the kill; `instance.exited` (`exited`, 137, attempt 1, at once) within the watcher's interval; a NEW pair healthy; an Incident (`cause: exit`) |
+| **5** | the crash-looping release (it exits 15 s after its first health check, code 3): replacements at once, ≥ 60 s and ≥ 240 s after the exit before; the fourth exit `replacement: stopped`; nothing more started; the pair left `failed`; the `exit_stopped` Incident's prompt read. Then the owner's good release — two healthy members — and one killed is replaced AT ONCE, attempt 1: the count started again |
+| **6** | **NOT RUN, and it says so**: a launched app signs people in with UBC's production IdP, so no sign-in completes on a laptop — nor phase 2's signed-in half. Held by `blueprints/node-ts-mongo.docker.test.ts` (a sign-in crossing two instances both ways, a replay refused) and the sessions in the app's own database. It shows every member sending its sign-in to UBC |
+
+**Measured 2026-10-14** (sitting 7): **705–754 s** on driver 1 (fresh — `make demo-production` first — re-used, and from a `make
+reset` machine), **710 s** re-used on the fake and **956 s** from a `make reset` machine there (`make demo-launch` first, a cold build
+cache). The crash loop alone is ~7½ minutes; the never-ready deploy fails at the readiness timeout, ~91 s.
+
+**The demo's own reads ask once more on §11's reset** — an edge reload, which any route change makes, closes the idle keep-alive
+sockets, so an API read that reuses one fails `UND_ERR_SOCKET` (sitting 7, F6) — and say so in the output; **the witness loops never
+retry**: each reset is its own class, at most one per loop, a second a failure.
+
+**The failing releases fail only in production** (`MANIFEST_ENV`): production deploys only the release serving
+staging (`RELEASE_NOT_STAGED`), so a release that never became ready on staging could never be asked of production.
+**It runs every phase and fails at the end**, naming each failed phase, and keeps its working directory (the loops'
+`.ndjson`, the state file) when red. **It leaves** the app on its good release in staging and production, two
+healthy members, four more commits in its repository (three releases and `server.js` back), and the crash loop's
+Incidents in production's history.
+
 ## `make demo-github` — the D5 plan's acceptance: an application whose code is on GitHub
 
 *Added by the D5 plan's sitting 8, 2026-09-25 (Task 15).*
