@@ -291,8 +291,14 @@ red() { printf '\033[31m%s\033[0m' "$1"; }
 # `launch/readiness.test.ts` (+1: F16(b)'s case rewritten, and a release asking for what a change asks still waiting) and
 # `packages/mock/src/scripted.test.ts` (1: the change-before-launch stage). Measured 3560/214, 0 failed, twice on `0c7a2a3` (1019 s,
 # 970 s).
-EXPECT_TESTS=3560
-EXPECT_FILES=214
+# EXPECT_TESTS 3560 -> 3577 and EXPECT_FILES 214 -> 215 (2026-10-13, A1's sitting 3, `manifest-a1-s3`): Task 4's driver
+# contract restated for sets — `runtime/fake-driver.test.ts` 31 -> 38 (the set cases, and the fake's one-route-change case),
+# `routing/routes.test.ts` 22 -> 26 (`withdrawUpstream`), `runtime/docker/containers.test.ts` 7 -> 9 (the health path a set is
+# restored with) — and Task 8a's new `blueprints/saml-request-cache.test.ts` (4). Measured 3577/215, 0 failed, twice on `0ba9af8`
+# (19:12-19:29, and 19:50-20:06 — a run between them timed out 17 tests in two untouched files under load, 15-min average 7.3,
+# and is not counted; the two files alone 123/123).
+EXPECT_TESTS=3577
+EXPECT_FILES=215
 # EXPECT_DOCTOR 21 -> 22 (2026-10-03, the UBC AI Gateway plan's sitting 2, Task 2): the gateway key's expiry, a
 # check_warn — counted, never failing — from 14 days ahead (its Decision 11). Measured: 22 checks, 0 failed, 0 warnings.
 EXPECT_DOCTOR=22

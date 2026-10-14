@@ -63,6 +63,16 @@
 > it. `make demo-launch`'s step 8 now carries F16(b)'s witness (a change sent before the first launch; the launch goes ahead). The story:
 > *What executing this plan found*, *Sitting 2*.
 
+> **READ FIRST — WHAT SITTING 3 BUILT AND LEFT (2026-10-13, `manifest-a1-s3`, the second coordinated run).** **Spec action A is APPLIED**
+> (`49b9a83` — by Rich himself, from the session's staged script, after the classifier refused the session's own edit of the spec; sitting
+> 4's Spec action B should be staged the same way from the start), **Task 4 is DONE** (`a991345`: the driver runs a set on both drivers —
+> `ensureInstances`, `servingInstances`, a strict `restoreRoute(ids)` whose health policy comes off a new container label, a
+> `destroyInstance` that withdraws only its own upstream and throws a refused change) and **Task 8a is DONE** (`0ba9af8`: the skeleton's
+> SAML request cache in the app's own Mongo — a CWL sign-in crosses two instances, both orders, a replay refused; `configureCwl(client)`,
+> its client required). **What sitting 4 must read first** is the *SITTING 3 BUILT* note under Task 5: the callers are on sets of ONE,
+> `InstanceNotReadyError` carries every handle, `restoreRoute` refuses a set naming a gone member, and every app route now carries the
+> app's health policy. The story: *What executing this plan found*, *Sitting 3*.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: superpowers:executing-plans (inline) or superpowers:subagent-driven-development, **whichever Rich chooses**. Steps use checkbox (`- [ ]`) syntax for tracking. **Commit on `main`; no branch, no worktree, no push** — ORIENTATION §6 rule 9.
 
 **Goal:** **Production runs as many instances as its audience needs** — §24's table: `solo` 1, `class` 2, `large_course` 3, `public` 3 —
@@ -127,10 +137,10 @@ actually changes — production only*, l.2733-2745), §11 (*Driver interface* an
 |---|---|---|---|---|---|
 | 1 | 1 | **The measurements**: every fact re-read; Caddy's `reverse_proxy` with N upstreams, round robin, the health policy (passive without `503`, a dial failure retried), a fresh set PATCHed in under a loop with checks on, and a deferred header naming exactly the chosen upstream's instance id, in a THROWAWAY Caddy from the edge's image; a CWL sign-in started on one instance and finished on another; a WebSocket and a drain across N; the laptop's memory with three instances; the gate numbers | No | After Task 1's commit. **It stops and asks Rich** if `[M3]` finds a sign-in cannot cross instances (then the fork — sticky routing or a shared SAML cache — is his) | ✅ **DONE 2026-10-13** (`manifest-a1-s1`, the second coordinated run's job S1, inline): Task 1 `a70b94b` — [`spikes/instances-baseline/`](../spikes/instances-baseline/README.md). **`[M3]`'s stop FIRED**: a CWL sign-in cannot cross instances (`InResponseTo is not valid`); **Rich chose the SAML request cache in the app's own Mongo, built in sitting 3** (~16:28, `3487e68`). F16(b)'s Spec action applied (`daf2ad0`), §21's label beside it (`1c3066c`). *What executing this plan found*, *Sitting 1* |
 | 2 | 2, 3, **F16(b)** | **The edge's route** for N upstreams, its health policy a parameter (`[M2]`'s JSON); **`routes` one row per (hostname, instance)**; **and F16(b)'s build** (Rich, 2026-10-13 answer 3, `c0f969e`): `launch/readiness.ts`'s `iamItem` → `registrationInForce(row)` — a change UBC holds in force no longer blocks a first launch (§13's row, applied `daf2ad0`) — and the mock's `iamItem`, its notice to the front end (G3); W2 starts on this sitting's close-out | Yes — `routing/`, `db/`, `launch/` | After the commits, with an N-upstream route applied to the real edge and read back, and F16(b)'s refusal gone through the edge | ✅ **DONE 2026-10-13** (`manifest-a1-s2`, the second coordinated run's job S2, inline): Task 2 `98a9a9f`, Task 3 `941789c`, F16(b) `3bcb269` + the mock `0c7a2a3` (G3 notice, landed on `manifest-coord3`'s word). A two-upstream route applied to the real edge and read back (`routing/routes.docker.test.ts`); F16(b) through the edge in `make demo-launch`'s step 8, driver 1, every check passed. The Docker tier 293/293. *What executing this plan found*, *Sitting 2* |
-| 3 | 4, **8a** | **Spec action A applied first** (approved 2026-10-13, answer 4). **The driver's set**: `ensureInstances`, `servingInstances`, `restoreRoute(ids)`, retire and destroy across a set; the driver contract; both drivers. **And Task 8a — the SAML request cache in the app's own Mongo** (Rich, ~16:28, `3487e68`: `[M3]` found a sign-in cannot cross instances), so it lands before sitting 4 puts every launch demo's `class` production on two | Yes — `runtime/`, `blueprints/` | After the commits, with the Docker contract cases green and the skeleton's sign-in crossing two instances | ← **next** (read Task 4's *SITTING 2 BUILT* note first) |
-| 4 | 5 | **Spec action B applied first** (approved 2026-10-13, answer 5). **The deploy, retire and boot recovery across N**; `shapeFor`; the per-instance AI keys; what the deploy answers; **every client that reads `X-Manifest-Instance`**; **contract `1.9.0`** | Yes — `releases/`, `ai/`, `projects/` | After the commit, with a `class` app's production on two instances through the edge, `make demo-production` and `make demo-releases` green on it, and `make demo-redeploy` green (staging, one) | |
-| 5 | 6 | **A member that exits is replaced**: the set watcher, its backoff and cap, `instance.exited`, an Incident per exit; **and the event replay's clock order** (Rich, answer 3: `observability/bus.ts:258` reads `ORDER BY created_at`, a clock that can step back — an insertion order beside Task 6's migration; the roadmap's *Tracked defects*); **and FE-59** (Rich, 2026-10-13 ~18:14, *"go with the recommendations"*, `40c0f82`: `iam_registration.recorded` carries `changeRequestedFrom` as the record holds it — a change filed with UBC (`active`) and UBC's questions (`submitted`) read the same today — inside `1.9.0`, so W4's adoption picks it up and closes the front end's m178; `launch/records.ts`, `observability/event-schemas.ts`) | Yes — `releases/`, `observability/`, `launch/` | After the commit, with a member `docker kill`ed through the edge and replaced, quoted | |
-| 6 | 7, 8b | **The readers**: D21's rehearsal pinned to one; the API's and console's serving set; the fleet's count; **and the projects list's `500`** (Rich, answer 3: `GET /v1/projects` answers `500` while a project is between its rows and its repository, `projects/repository.ts:215` — the file Task 7 rewrites; the roadmap's *Tracked defects*); **Task 8b, the knowledge pack's no-state-in-memory rule** | Yes — `launch/`, `projects/`, `blueprints/` | After both commits, with the front-end told | |
+| 3 | 4, **8a** | **Spec action A applied first** (approved 2026-10-13, answer 4). **The driver's set**: `ensureInstances`, `servingInstances`, `restoreRoute(ids)`, retire and destroy across a set; the driver contract; both drivers. **And Task 8a — the SAML request cache in the app's own Mongo** (Rich, ~16:28, `3487e68`: `[M3]` found a sign-in cannot cross instances), so it lands before sitting 4 puts every launch demo's `class` production on two | Yes — `runtime/`, `blueprints/` | After the commits, with the Docker contract cases green and the skeleton's sign-in crossing two instances | ✅ **DONE 2026-10-13** (`manifest-a1-s3`, the second coordinated run's job S3, inline): Spec action A `49b9a83` (applied by Rich from the session's staged script — the classifier refused its edit), Task 4 `a991345`, Task 8a `0ba9af8`. The Docker contract 40/40 on the real edge (a set of two answering as both; a second set taking over in ONE move with no old answer after the first new); the skeleton's sign-in crossing two instances, both orders, a replay refused (`node-ts-mongo.docker.test.ts` 7/7); three Task 4 controls and 8a's red exactly as predicted. *What executing this plan found*, *Sitting 3* |
+| 4 | 5 | **Spec action B applied first** (approved 2026-10-13, answer 5). **The deploy, retire and boot recovery across N**; `shapeFor`; the per-instance AI keys; what the deploy answers; **every client that reads `X-Manifest-Instance`**; **contract `1.9.0`** | Yes — `releases/`, `ai/`, `projects/` | After the commit, with a `class` app's production on two instances through the edge, `make demo-production` and `make demo-releases` green on it, and `make demo-redeploy` green (staging, one) | ← **next** (read Task 5's *SITTING 3 BUILT* note first; stage Spec action B as a script) |
+| 5 | 6 | **A member that exits is replaced**: the set watcher, its backoff and cap, `instance.exited`, an Incident per exit; **and the event replay's clock order** (Rich, answer 3: `observability/bus.ts:258` reads `ORDER BY created_at`, a clock that can step back — an insertion order beside Task 6's migration; the roadmap's *Tracked defects*); **and FE-59** (Rich, 2026-10-13 ~18:14, *"go with the recommendations"*, `40c0f82`: `iam_registration.recorded` carries `changeRequestedFrom` as the record holds it — a change filed with UBC (`active`) and UBC's questions (`submitted`) read the same today — inside `1.9.0`, so W4's adoption picks it up and closes the front end's m178; `launch/records.ts`, `observability/event-schemas.ts`); **and FE-60** (Rich, 2026-10-13 ~18:41, *"yes, put FE-60 in sitting 5"*, `71928a2`: `iam_registration.sent` and `.submitted` carry `requestedAttributes` as the record has them — the front end cannot tell one detail's change from another's while it waits; the same files, inside `1.9.0`) | Yes — `releases/`, `observability/`, `launch/` | After the commit, with a member `docker kill`ed through the edge and replaced, quoted | |
+| 6 | 7, 8b | **The readers**: D21's rehearsal pinned to one; the API's and console's serving set; the fleet's count; **and the projects list's `500`** (Rich, answer 3: `GET /v1/projects` answers `500` while a project is between its rows and its repository, `projects/repository.ts:215` — the file Task 7 rewrites; the roadmap's *Tracked defects*); **Task 8b, the knowledge pack's no-state-in-memory rule**; **and the skeleton's development error page** (Rich, 2026-10-13 ~19:38, *"both."*, `028bb94` — sitting 3's F11): an error handler as the skeleton's last middleware (`console.error` the error, never a secret; `500` with one plain sentence, no stack) AND `ENV NODE_ENV=production` in `Dockerfile.tmpl`'s runtime stage after `npm ci` — beside Task 8b | Yes — `launch/`, `projects/`, `blueprints/` | After both commits, with the front-end told | |
 | 7 | 9 | **The acceptance's demo**: `make demo-capacity` — P4c's whole witness across two, a member killed and replaced, a crash loop stopped at its cap, a sign-in across instances — three times on each driver, every negative control seen red. **Alone** | No, unless a fix touches the owed list | After the commit, with the three runs on each driver quoted | |
 | 8 | 10 | **The rest of the acceptance**: every launch demo on two instances, three times on each driver; `make ci-acceptance`; the clicked half; the plan's one whole-branch review beside the Docker tier, and its one fix wave. **Alone, and last** | Yes — beside the reviewer | After the clicked half and the review's one fix wave | |
 
@@ -726,6 +736,32 @@ A, every answer after it from set B, and the set changing exactly once"*. `scrip
 > change before the launch** (F16(b)'s witness, `3bcb269`) — its probe of the public listener (`launch.ts`, step 8) is one of this task's
 > header readers.
 
+> **SITTING 3 BUILT (2026-10-13, `manifest-a1-s3`; Spec action A `49b9a83`, Task 4 `a991345`, Task 8a `0ba9af8`) — WHAT THIS TASK
+> INHERITS:**
+> - **The Driver is the set's** (§11 as Spec action A now reads): `ensureInstances(specs)` answers the handles in the specs' order;
+>   **`InstanceNotReadyError` is still ONE class** and now carries `handle` (the member the check failed for — the Incident's) AND
+>   `handles` (every member the call started, none routed) — **so the deploy's failure path destroys EVERY handle, not only `handle`**. A
+>   set of none, or of two hostnames, throws before anything starts (`assertOneHostname`, `runtime/driver.ts`); the Docker driver also
+>   refuses members that differ in slug, kind, health path or egress (one route, one network, one proxy).
+> - `servingInstances(hostname)` answers `[]` for none; the Docker one leaves out a member whose container is gone.
+> - **`restoreRoute(ids)` is STRICT**: an id the driver does not hold is `INSTANCE_NOT_FOUND`, naming each, and NOTHING changes — so this
+>   task's grouping in `recover.ts` checks each member first (`status(id)` → `gone`) and leaves a missing one out with its operator line
+>   (Review Focus 5) before it calls it. **Its health policy comes off a new container label, `manifest.health-path`**; a set whose
+>   members do not all carry one path (any container made before `a991345`) is restored with NO checks and an operator line.
+> - `destroyInstance` withdraws only its OWN upstream (`routing/`'s `withdrawUpstream`, the route JSON edited in place), removes the route
+>   with the last, leaves a route that does not dial it exactly as it is (the switched-off page included — the old code removed it), and
+>   **THROWS a refused route change, naming the hostname, before the container goes** (`release.ts`'s failed-instance removal already
+>   catches and logs it).
+> - **Every app route the Docker driver writes now carries `appHealthPolicy(spec.healthPath)`** — active checks every 5 s carrying
+>   `X-Manifest-Probe: health`, passive on dial failures, `502` and `504`, a dial failure retried for 3 s — sandbox and staging included
+>   (one builder). `make demo-launch` (driver 1, 161 `ok`) and the Docker tier ran on it.
+> - **The callers are on SETS OF ONE** — `release.ts` (`ensureInstances([spec])`; the PREVIOUS SET restored; `.includes(handle.id)`),
+>   `retire.ts` (targets = `listInstances` − the serving set; skip on `[]`; `servingIsRecorded` = every serving member recorded — already
+>   the set rule), `recover.ts` (`restoreRoute([row.handle])` per Route row — **this task groups by hostname**), `rehearsal.ts` (`:378`
+>   `.length > 0`; `:490` *"exactly `[handle]`"* — Task 7's set checks).
+> - **A sign-in crosses instances** (Task 8a): `configureCwl(client)` keeps each SAML request id in the app's own Mongo; every app made
+>   from the skeleton from `0ba9af8` on. An app made before keeps its own copy — on this laptop none survives a `pnpm test`.
+
 - [ ] **Step 1: The failing tests** (the fake driver; `releases/release.test.ts`, `retire.test.ts`, `recover.test.ts`, `shape.test.ts`):
   a `class` production deploy runs two instances, two AI keys stored per instance, two Route rows, one `instance.healthy` each, **and
   both rows `healthy` — neither `destroy_requested`** — after the retirer has run; a `large_course` one three; staging one; a redeploy of
@@ -766,7 +802,10 @@ migration lists, plus this one; the Incident's prompt for an exit and for a stop
 `[M1]` names it); `src/index.ts`; the four contract commands (`instance.exited`, still `1.9.0`); the mock's event example. **And FE-59**
 (Rich, 2026-10-13 ~18:14, `40c0f82`; the front end's `docs/api-findings.md`, FE-59): `launch/records.ts`'s `recordIamRegistration`
 publishes `iam_registration.recorded` with `changeRequestedFrom` as the record holds it, and `observability/event-schemas.ts` (with its
-example) gains the field — inside `1.9.0`, told to the front end in this sitting's notice (W4 adopts it; it closes their m178).
+example) gains the field — inside `1.9.0`, told to the front end in this sitting's notice (W4 adopts it; it closes their m178). **And
+FE-60** (Rich, 2026-10-13 ~18:41, *"yes, put FE-60 in sitting 5"*, `71928a2`; the front end's FE-60, written for its m177, manifest-app
+`3ba0cab`): `iam_registration.sent` and `iam_registration.submitted` carry `requestedAttributes` as the record has them, beside FE-59's
+field — the same two files and their examples, inside `1.9.0`, in the same notice.
 
 **Interfaces:**
 - Consumes: `Driver.status(id)` (`InstanceStatus`); `deployRelease` (Task 5) with `purpose: 'replacement'`; `servingInstances`.
@@ -866,7 +905,8 @@ example) gains the field — inside `1.9.0`, told to the front end in this sitti
 
 ## Task 8: A faculty app on several instances — 8a the SAML request cache in the app's Mongo (sitting 3), 8b the knowledge pack (sitting 6)
 
-**SPLIT BY RICH'S ANSWER TO `[M3]`** (2026-10-13, ~16:28, `3487e68`): sitting 1 measured that a sign-in started on one instance cannot finish
+**8a DONE 2026-10-13 (sitting 3, `0ba9af8`)** — *What executing this plan found*, *Sitting 3*. **SPLIT BY RICH'S ANSWER TO `[M3]`**
+(2026-10-13, ~16:28, `3487e68`): sitting 1 measured that a sign-in started on one instance cannot finish
 on another, and he chose the cache in the app's own Mongo, **built in sitting 3, beside Task 4** — before sitting 4 puts every launch demo's
 `class` production on two instances. **8a: sitting 3, after Task 4. 8b: sitting 6, after Task 7.** Decision 9.
 
@@ -876,7 +916,14 @@ on another, and he chose the cache in the app's own Mongo, **built in sitting 3,
 through, so the library is unchanged (`[M3]`'s `probes/m3-sp-shared.mjs` is the shape, measured). Its starter; the skeleton's Docker tier.
 **Its callers are every app made from the skeleton after it**; an app made before keeps the in-memory cache (on this laptop none survives
 sitting 1's `pnpm test`). **8b — Files:** `blueprints/node-ts-mongo/agents/AGENTS.md` (Decision 9's paragraph, after *What you write*);
-`blueprints/blueprints.test.ts` (the pack names the rule).
+`blueprints/blueprints.test.ts` (the pack names the rule). **And the skeleton's error page** (Rich, 2026-10-13 ~19:38, *"both."*,
+`028bb94`; sitting 3's F11 — a failed CWL sign-in, or any route that throws, shows the person Express's development page, a stack trace with
+the container's paths, because `skeleton/server.js` mounts no error handler and `NODE_ENV` is set nowhere): **`skeleton/server.js`** gains
+an error handler as its LAST middleware — `console.error` the error, never a secret; answer `500` with one plain sentence, no stack — and
+**`Dockerfile.tmpl`** sets `ENV NODE_ENV=production` in its runtime stage, AFTER `npm ci` (the install unchanged); its tests a blueprints-tier
+case (as `session-component.test.ts` runs the skeleton's own code) and a Docker-tier read of a refused sign-in's body
+(`node-ts-mongo.docker.test.ts` — the crossing case's control showed it). Apps made before keep their copy. *Rejected:* the handler only;
+`NODE_ENV` only; leave it tracked. No contract change.
 
 - [ ] **8a, Step 1: The failing tests** — the skeleton's Docker tier: **two instances of a skeleton app on ONE Mongo, an AuthnRequest from
   one answered on the other through the laptop IdP → signed in**, both orders; **a replay refused**; and `[M3]`'s two-process measurement
@@ -1226,3 +1273,103 @@ sitting inherits are in the *SITTING 2 BUILT* notes under Tasks 4 and 5.
     left for Rich, who is deleting them himself. **`make verify`: 67 checks, 0 failed, 0 warnings**, per-app resources 0/0/0. The machine:
     39 → 21 containers, 64 → 60 images, 18 → 12 networks, 57 → 39 volumes — every difference the two apps' removal. **And FE-59** (Rich,
     `40c0f82`) is placed in sitting 5's Task 6 — the sittings table and Task 6's Files carry it.
+
+### Sitting 3 — 2026-10-13, 18:22–20:45 PDT (`manifest-a1-s3`, the second coordinated run's job S3): Spec action A, Task 4 and Task 8a
+
+**Opened** by `manifest-coord3`'s GO (~18:20), relaying Rich's decisions of 16:01 (`c0f969e`: answer 4 approved Spec action A as drafted,
+answer 6 inline, answer 9 the night-shift spec rule), his standing permissions (~16:05, `1fb75f8`), the `[M3]` answer (~16:28, `3487e68`:
+the SAML request cache in sitting 3), his permission changes (18:13, `ac35573`) and ~18:14 (`40c0f82`). HEAD `14c24ad`, clean but for an
+untracked `.claude/` that is not this sitting's. **The windows were the coordinator's**: *"7100 is yours"* for single files (~18:40), the
+HOLD from 19:08:18 for `make demo-launch`, `pnpm test` twice and the Docker tier. Commits: Spec action A `49b9a83`, Task 4 `a991345`,
+Task 8a `0ba9af8`, and this close-out. Every decision is a `Ruling:` line in the plan's git-ignored ledger; what sitting 4 inherits is in
+the *SITTING 3 BUILT* note under Task 5.
+
+1. **F1 — SPEC ACTION A: THE CLASSIFIER REFUSED THIS SESSION'S EDIT OF THE SPEC, AND RICH APPLIED IT HIMSELF** (`49b9a83`). The edit — a
+   heredoc making the nine exact replacements, each asserted to match once — was refused `[Modify Shared Resources]` (~18:35), even with
+   Rich's 18:13 allow line for approved spec actions in place. Not retried another way: the same replacements were staged as a script
+   (`spec-action-a.py`, nothing written unless all nine match), sent to `manifest-coord3`, and **Rich ran it in his own terminal at
+   ~18:40** (*"Spec action A applied: 9 replacements"*). The diff read back is the nine replacements and nothing else; committed alone.
+   **The four shared pages checked: none restates the driver interface, a one-instance redeploy or the header** (D29 is the audience
+   question; the schematic draws no instance count) — unchanged. **Sitting 4's Spec action B is likely to meet the same refusal: stage
+   its script at the sitting's open.**
+2. **F2 — TASK 4: THE DRIVER RUNS A SET** (`a991345`). `ensureInstances(specs)` starts every member beside what serves, proves each
+   privately, moves the route ONCE to exactly the set, and resolves only once the edge answers as EACH (`waitForIdentities`, which now
+   names the members never seen, `unseen`); a member never ready moves nothing and throws `InstanceNotReadyError` with every handle.
+   `servingInstances`, `restoreRoute(ids)`, `retireInstance` refusing ANY member of the serving set, and `destroyInstance` withdrawing
+   only its own upstream (`routing/`'s new `withdrawUpstream`: the route the edge holds, edited in place) and the route only with the
+   last. **Rulings** (the ledger has each, with its cost): `InstanceNotReadyError` stays ONE class (`handle` the failed member, `handles`
+   every member) rather than the plan's sketched `InstancesNotReadyError`; the contract's set rule is *one hostname*, and the Docker
+   driver also refuses members differing in slug, kind, health path or egress; `restoreRoute(ids)` is strict (an unheld id refuses the
+   whole set, naming each; dropping a missing member is Task 5's `recover.ts`).
+3. **F3 — THE HEALTH PATH IS A CONTAINER LABEL NOW** (`manifest.health-path`) — the *SITTING 2 BUILT* note's open call. `restoreRoute`
+   runs at boot with nothing but ids, `runtime/` cannot read the Route rows (§5), and after an edge restart the edge holds no route to
+   read one from. **A set whose members do not all carry one path — any container made before `a991345` — is restored with no health
+   checks and an operator line**, rather than a guessed path that could eject members the edge reaches.
+4. **F4 — EVERY APP ROUTE THE DOCKER DRIVER WRITES CARRIES THE APP'S HEALTH POLICY FROM `a991345`** (Decision 4's numbers, sitting 2's
+   `appHealthPolicy`): active checks every 5 s carrying `X-Manifest-Probe: health`, passive on dial failures, `502` and `504`, a dial
+   failure retried 3 s — staging and sandbox included, because one builder writes them all. Through the real edge: the Docker contract,
+   `redeploy.docker.test.ts`, `roundtrip.docker.test.ts`, `make demo-launch` (driver 1) and the whole Docker tier ran on it.
+5. **F5 — `destroyInstance` USED TO REMOVE A HOSTNAME'S WHOLE ROUTE, WHATEVER IT DIALLED** — a switched-off page included (an archived
+   app's `410` would have gone to the wildcard on any destroy of one of its instances) — and swallowed a failure to do so
+   (`.catch(() => undefined)`). Both gone: the contract's switched-off case now destroys an instance and reads the page back unchanged.
+6. **F6 — THE CONTRACT'S FIRST DOCKER RUN WAS 36/40, AND ALL FOUR WERE THE TESTS' OWN.** The edge's header carries the INSTANCE id while a
+   Docker handle's id is the CONTAINER's name (the `watch` fixture now maps each answer to its container by the `manifest.instance`
+   label), and the contract had assumed a handle's name is its spec's (true of the fake only; Docker's is `mf-<name>-app`). Then 40/40.
+7. **F7 — TASK 4'S CONTROLS, EACH RED ON EXACTLY ITS PREDICTED CASES, ON THE FAKE AND THROUGH THE EDGE** (each from a backup, restored,
+   diff empty): **(a)** a move per member → the *"ONE move, no answer from the old set after the first from the new"* row (through the
+   edge: ten answers from the old set after the first from the new) and the fake's one-route-change row; the Docker form paced its moves
+   1.5 s apart (a ruling: un-paced, N PATCHes inside ~100 ms could fall between two of a 150 ms loop's requests and pass for a reason that
+   is not the code's). **(b)** `destroyInstance` removing the whole route → routed-away, destroy-one-member, never-routed and, on Docker,
+   the switched-off page (on the fake the page is a flag its route does not touch, so that row stayed green there — said, not hidden).
+   **(c)** the swallowed `.catch` back → the refused-update case only, its two neighbours green. The contract cases were written first
+   but not run red against the old drivers — the interface change made them unrunnable there, and a `TypeError` is no evidence; the
+   controls are the evidence (a ruling).
+8. **F8 — THE CALLERS ARE ON SETS OF ONE** (Task 5 gives a deploy its count): `release.ts`, `retire.ts` (whose `servingIsRecorded` is
+   already the set rule — every serving member recorded), `recover.ts` (per Route row; Task 5 groups by hostname), `rehearsal.ts`
+   (exactly `[handle]`; Task 7's set checks). ~100 test sites moved mechanically by a paren-matching rewrite — **whose first version did
+   not skip comments, broke `sso/testing.ts` on an apostrophe, and was reverted and re-run comment-aware** — and ~20 wrappers and spies by
+   hand; `tsc` was the guide.
+9. **F9 — TASK 8a: A SIGN-IN STARTED ON ONE INSTANCE FINISHES ON ANOTHER** (`0ba9af8`). `skeleton/auth/ubcshib.js`'s `configureCwl(client)`
+   hands the library a `cacheProvider` on the app's own Mongo — collection `saml_requests`, the request id as `_id`, a TTL index of eight
+   hours, an id older than that gone to the library before Mongo's once-a-minute sweep — answering exactly as node-saml 5.1.0's in-memory
+   cache does (read from its `in-memory-cache-provider.js` and `saml.js:628-638`), so a replayed assertion is still refused. **The client
+   is REQUIRED** (a ruling): the per-process fallback is the failure itself, and it would show only when a person's sign-in landed on
+   another copy. Every caller passes the client it holds — the skeleton, the proof-app starter, and **the three journey fixtures**
+   (`launch-path-app`, `bulletin-board`, `frontend-app`, which carry `server.js` only and run on the skeleton's `auth/`) — and the knowledge
+   pack's one line names the call (`AGENTS.md`, Task 8b's file; a signature fact, not 8b's paragraph). It closes sitting 1's F2 too: a
+   sign-in in flight across a redeploy with one instance.
+10. **F10 — 8a's TESTS AND CONTROL.** `blueprints/saml-request-cache.test.ts` — the cache's semantics over stub libraries and an
+    in-memory client, red first (no cache; no refusal without a client). **`[M3]`'s two-process form did not fit the blueprints tier**
+    (the libraries are not in the workspace, and the tier stubs them by design — a ruling). `node-ts-mongo.docker.test.ts` +2: a second
+    instance of the skeleton on the SAME Mongo, and a real CWL sign-in through the laptop IdP **crossing BOTH orders — read off each hop's
+    `X-Manifest-Instance`** (`sso/testing.ts`'s `idpLoginAcrossInstances`; a `nudge` request moves round robin on by one), the session
+    read back by whichever copy answers next, a replay refused: 7/7. **The control** (`cacheProvider` taken out): red EXACTLY the crossing
+    row — the callback `500`, *"Error: InResponseTo is not valid"*, `/me` `401` — and the same-instance sign-in and the sign-out green.
+11. **F11 — FOUND, PRE-EXISTING, NOT FIXED: THE SKELETON ANSWERS AN UNHANDLED ERROR WITH EXPRESS'S DEVELOPMENT ERROR PAGE** — the stack
+    trace, with the container's paths (`/app/node_modules/@node-saml/node-saml/lib/saml.js:638`), in the body a person sees (the control's
+    refused sign-in). `NODE_ENV` is set nowhere (`Dockerfile.tmpl`, `server.js`, `spec/injection.ts`) and the skeleton mounts no error
+    handler. Sent to `manifest-coord3` with a recommendation; **Rich, ~19:38: *"both."*** (`028bb94`) — an error handler as the skeleton's
+    last middleware AND `ENV NODE_ENV=production` in `Dockerfile.tmpl`, in **sitting 6 beside Task 8b** (row 6 and Task 8b carry it).
+12. **F12 — `make demo-launch`, ONCE, DRIVER 1** (19:08:55–19:12:27, `launchpath-local`, every check passed, 161 `ok`): the only thing that
+    runs the changed `launch-path-app` fixture, and the first launch through `ensureInstances` and the health-checked route.
+13. **F13 — THE GATES.** **`pnpm test` twice on the final code tree** (`0ba9af8`, under the HOLD): **215 files, 3577 tests, all
+    passed** (19:12–19:29 and 19:50–20:06) — +17 tests and +1 file: the fake driver's contract 31 → 38, `routing/routes.test.ts` 22 → 26,
+    `runtime/docker/containers.test.ts` 7 → 9, and the new `blueprints/saml-request-cache.test.ts` (4); `EXPECT_TESTS` 3560 → 3577 and
+    `EXPECT_FILES` 214 → 215, counted in `scripts/ci-acceptance.sh`'s comment. **A run between them (19:29–19:47) is NOT counted: 17 tests
+    timed out at 5 s in two files this sitting did not touch** (`api/agents.test.ts` 115 s against run 1's 66 s, `source/github/driver.test.ts`
+    123 s against 92 s), the 15-minute load average 7.3 at 19:47 (an app session's typecheck and lint beside it, the coordinator found); the two
+    files alone 123/123 at once, then the whole suite again. `bus.test.ts` did not redden. lint 0, typecheck clean (six packages),
+    `format:check` clean. **The Docker tier: 303/303 in 44 files, 1489 s** (20:06:55–20:31:44, networks 18 → 22, on `028bb94`, the code
+    `0ba9af8`'s) — +10: `runtime/docker/driver.docker.test.ts` 32 → 40, `node-ts-mongo.docker.test.ts` 5 → 7. ORIENTATION §2's row moves
+    293 → 303. The working runs before them: the DB-free files from a no-truncation scratch config (the fake contract, `routing/`,
+    `blueprints/`), the DB files the interface touched in one process (11 files, 1128/1128) and five Docker files alone, under *"7100 is
+    yours"*.
+14. **F14 — THE MACHINE.** As found: **21 containers, 60 images, 12 networks, 39 volumes** (sitting 2's close), 7100 PID
+    95289 on real GitHub, EMPTY. During: 7100 on driver 1 for the demo (`gateway-controls.sh start local`, `.env` untouched). **At the close**:
+    7100 restarted from `.env` on real GitHub (`start real`, PID 95884; the capable model and `ubc-qwen-27b` registered) and EMPTY (the
+    suite truncated what the demo made). **Removed**: the demo's own — 9 `mf-launchpath-local-*` containers (`docker rm -f -v` by name), 6
+    volumes, its driver-1 mirror `.manifest/repos/launchpath-local.git` (born 19:09, so not there before); its routes were already gone
+    (the tier restarts the edge); then the three scripts with `--apply` — 7 dead networks (the demo's 3 and the tier's), 1 volume, 3 unheld
+    LiteLLM users, 23 app images — each re-read to zero. **The machine as found: 21 containers, 60 images (`docker images -q`), 12 networks,
+    39 volumes. `make verify`: 67 checks, 0 failed, 0 warnings**, per-app resources 0/0/0. `docker-simple-saml` clean but for its old
+    untracked `cert.zip`.
