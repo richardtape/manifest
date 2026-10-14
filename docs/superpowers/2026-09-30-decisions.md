@@ -1742,3 +1742,20 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
     decided, then applied, at its own sitting's open (C and D before sitting 2, A before 3, B before 4), A1's experience being that the
     edit and its commit are applied by Rich from a staged guarded script. Still his as actions: vegeta's download (the network, sitting 2)
     and the clicked half (sitting 7). Rejected: approve with changes; hold it.
+
+    At ~01:57 PDT, A1 SITTING 7's PREMISE DEFECT — decided by manifest-coord3 under Rich's delegation, for his review.
+    manifest-a1-s7 found that a LAUNCHED production app on this laptop cannot sign anyone in: spec/injection.ts:466-477 points a
+    production deploy's SAML entry point, logout and metadata at UBC's real IdP (UBC_PRODUCTION, :185); only D21's rehearsal uses the
+    Manifest IdP, and it is pinned to one instance and refused once launched (checked in the code by manifest-coord3). So Task 9's
+    phase 2 signed-in half ("no 401, every question answered") and phase 6 (a CWL sign-in across instances, four times) cannot run
+    against launch-app's production, and sitting 8's clicked half's "sign in on one and stay signed in on the other" cannot either.
+    CHOSEN: (A) — phase 2 keeps P4c's witness across two without the sign-in (the /healthz loop by body and header, plus a second
+    back-to-back loop on the app's own page, both redeploys, the set changing once, new-set ids only after, exactly two containers,
+    two LiteLLM keys); the signed-in half and phase 6 are recorded as NOT RUNNABLE on a laptop against a launched production app, held
+    instead by Task 8a's Docker case (node-ts-mongo.docker.test.ts: a real CWL sign-in crossing two instances both orders, a replay
+    refused) and the skeleton's sessions in the app's own Mongo. Sitting 8's clicked sign-in goes to Rich as the same finding, with
+    (B) as the option for a later plan. Rejected: (B) a laptop-only setting pointing production sign-in at the Manifest IdP (a §8 spec
+    action and a security-relevant knob that, set at UBC, would send production sign-ins to a non-UBC IdP — Rich's, not decided
+    overnight); (C) a throwaway two-container set behind a throwaway Caddy (it measures the skeleton, not the platform). Also noted, not
+    objected to: S7's ruling that driver 2's demo-capacity runs against demo-launch's launched class app (launchpath-github), since
+    demo-production and demo-releases are driver 1's alone.
