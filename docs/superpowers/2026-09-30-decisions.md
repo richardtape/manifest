@@ -1649,3 +1649,40 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
           same text, held equal by a test; (c) as written.
 
     So BP and BF revise their plans to the review, X1 (a) included, through manifest-byoa-coord; then Rich approves both.
+
+# Rich's decisions — 2026-10-13, 21:50 PDT (session manifest-byoa-coord, the BYOA planning run: both plans approved)
+
+    Both plans revised to BR's review (1fa72d6) and Rich's X1 (a) (327ca2f):
+      - BP's, manifest 7493be1, docs/superpowers/plans/2026-10-13-byoa-on-the-laptop.md — 30 findings fixed, 0 argued, each in its
+        "What the review found, and where it went"; 10 tasks in NINE sittings (8 split into 8a and 8b, BP-M13); the design gains
+        appended "Annotations after BR's review", its approved text unchanged.
+      - BF's, manifest-app 28e9659, docs/plans/2026-10-13-f7-start-your-agent.md — 11 fixed, 0 argued; 10 tasks in SEVEN sittings
+        (X1's new Task 5 is its sitting 4); the design annotated under §6a (BF-M4).
+    manifest-byoa-coord spot-checked the fixes in both files first (BP: build.status, addMember, notTools, the hints,
+    CLAUDE_CONFIG_DIR, 8a/8b, the journey boundary; BF: its review table, CLAUDE_CONFIG_DIR, the Codex line) — present.
+
+    Asked through the question tool in one round of three, each with its options and a recommendation first; answered ~21:50:
+      1. BP's PLAN — "Approve; inline per sitting (Recommended)": "BYOA on the laptop" is APPROVED as revised, to run with
+         superpowers:executing-plans, one fresh session per sitting, as A1 and FE-46/47/5 ran; placed AFTER FE-32 and BEFORE PHASE 3
+         (0b17f87, answer 2); contract ~1.12.0; its spec actions A-E applied at their sittings, the shared pages swept. Approved WITH
+         ITS DEPARTURES from the design he approved, each named to him: D14 (waitForBuild short and resumable, not a ten-minute
+         wait); three operations not tools (the WebSocket; startAgentSession, which answers a model key; getOpenApiDocument, 1.2 MB),
+         published as notTools; D19 (tool hints: readOnly and idempotent for GET only, a write never marked non-destructive); D20 (no
+         OpenAPI resource); D21 (the 401's WWW-Authenticate dropped if Task 1 finds Claude Code starts OAuth discovery from it); D2
+         (the rate's bound the constant 600); D9 (/mcp declared in x-manifest-alongside); port 7113 (§21 reserves 7101); and two
+         additions — initialize checks the token with one read, and packages/journey's import boundary admits the MCP SDK's client
+         for byoa.ts alone. Rejected: subagent-driven; approve with changes; hold it.
+      2. F7's PLAN — "Approve; native (Recommended)": "F7 — Start your agent" is APPROVED as revised, to run natively
+         (superpowers:executing-plans), as F3-F6b ran, its sitting 7's whole-branch review the independent gate. Approved WITH ITS
+         ONE DEPARTURE from the design he approved: Codex's line is "and this in the same terminal, before you start Codex:" (not
+         "and this to your terminal's settings:"), and Codex is not offered if its key can only live in a profile; a client that
+         cannot keep the key out of ~/.zsh_history is recorded for him as a residual at sitting 6. Rejected: subagent-driven; approve
+         with changes; hold it.
+      3. F7's PLACE — "1-3 early, the rest with BP (Recommended)": F7's sittings 1-3 (their agent's work beside ours; the preset
+         permissions on today's mint; mock mode, contract 1.9.0 or later, nothing of BP's) become the front end's NEXT JOB AFTER THE
+         SECOND RUN's W4/W5; sittings 4-7 follow BP's plan as it executes (4 after BP's sitting 4; 5 after BP's 2-4; 6 after BP's
+         6-7 and its corrected Task 1 block; 7 in BP's 8b window, one click for both). Rejected: all of F7 waits for BP's plan.
+
+    So BOTH PLANS ARE APPROVED. Their status lines are marked by BP and BF; the roadmap and ORIENTATION lines go to manifest-coord3,
+    which applies them (manifest's roadmap, ORIENTATION §7e/§8, CLAUDE.md's State queue; manifest-app's roadmap and ORIENTATION).
+    Nothing executes in this run.
