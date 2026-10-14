@@ -1983,3 +1983,11 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
     running", not "Keep luna for the demo". AND, FOR LATER (after the demo): an investigation of running the laptop's capable model
     through our own LiteLLM straight to the provider rather than through UBC's AI Gateway — what it costs (the provider key, its
     data retention and so the `high` attestation, prices, the gateway's spend view) and what it keeps (production's shape at UBC).
+
+    At ~11:35 PDT, BACK TO LUNA FOR THE DEMO (within his 9bc0bf6, "revert to luna if the test build misbehaves"): his test build on
+    gpt-6.1-sol (project topic-choice, the seminar-questions description) failed MODEL_STALLED (ref 6AC4-EEB5, 18:34:26Z) — the sign-in
+    specialist's sol call succeeded in 57 s (10,447 in / 3,634 out); the lead's next call's first word came at 20 s, then the stream
+    went quiet and the front end's stall guard stopped it at 57.5 s ("stalled":"quiet"). manifest-a1-s8 restored the .env line
+    (sha256 c62152499d3d2540…) and restarted 7100 at 11:35:12; one call answered "ready" on gpt-6-luna, no fallback. For after the
+    demo: the front end's stall guard is tuned to luna's steady stream; sol pauses mid-answer — a front-end finding, then sol retried.
+    topic-choice and its repository stay in place.
