@@ -1498,3 +1498,46 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
     review). What it does NOT change: what only he can DO — run a command the classifier refused in a session, sudo, his own
     credentials, and a person's click (S8's clicked half is a person seeing it) — still comes to him as an action, flagged;
     a classifier refusal is still never worked around.
+
+# Rich's decisions — 2026-10-13, 20:15 PDT (session manifest-byoa-coord, the BYOA planning run)
+
+    Rich opened the bring-your-own-agent planning run of manifest-app's docs/plans/2026-10-13-byoa-planning.md (written
+    2026-10-13 ~20:10 by manifest-coord3 at his request, at manifest-app 686ee9f): four parked workers (manifest-byoa-plan,
+    manifest-app-byoa-plan, manifest-byoa-review, manifest-byoa-spare) and manifest-byoa-coord, started last with the brief's
+    prompt. A PARALLEL coordinator beside manifest-coord3's second run, DOCUMENTS ONLY: no tests, Docker, make, demo, server,
+    ports 7100-7199 or the platform-window flag. manifest-coord3's standing delegation (~19:38) is its own and does not extend
+    to this run. Measured first, 20:11: manifest HEAD 028bb94 (the second run's uncommitted ORIENTATION, roadmap, A1 plan and
+    ci-acceptance.sh in the tree — not this run's); manifest-app HEAD 686ee9f, clean but Rich's .claude/; contract 1.8.0.
+    THE BRIEF'S SURVEY RE-CHECKED — every line holds but two, each corrected here and in the GOs:
+      (a) the fixed 600 requests a minute is the column default delegated_tokens.rate_limit
+          (packages/control-plane/src/db/schema.ts:481), enforced in memory (api/server.ts:341); MintTokenRequest takes only
+          name, capabilities and expiresInDays (api/representations/tokens.ts:103-130). The brief's api/routes/tokens.ts:114 is
+          an example response.
+      (b) "an owner revoking a collaborator's agent" is FE-11's option (b), which Rich DECLINED on 2026-09-29 (he chose (a):
+          removing a member revokes their tokens — built by the launch path's Task 8; api/routes/tokens.ts:347-351). BP may
+          put it to him again with the new reason (an outside agent), never assume it.
+
+    Asked through the question tool in one round of four, each with its options and a recommendation first; answered ~20:15:
+      1. THE BRIEF — "Approve as written (Recommended)": the BYOA planning brief is APPROVED AS WRITTEN (its status line read
+         "Awaiting Rich's approval at your opening"), with the two survey corrections above. Rejected: change it.
+      2. THE SPLIT — "Split it, after FE-32 (Recommended)": a plan "BYOA on the laptop" — the MCP server (§22), FE-19 (a
+         toolkit's know-how served by the API), token controls (a rate limit set at mint, §20's per-token quotas, and FE-11
+         (b) re-asked) and whatever else its design finds — comes OUT of Phase 3 and is PLACED BETWEEN FE-32 AND PHASE 3:
+         ... A1 -> B -> FE-32 -> BYOA on the laptop -> Phase 3 -> A2 ... The reason given: FE-32 brings §12's package
+         allowlist; today any npm package is proxied, and an outside agent running npm on its own machine can commit any
+         lockfile. Its Spec action (§17's Phase 3 row; §22's "It lands in Phase 3, when sandboxes make the agent story real",
+         l. 2471) is DRAFTED in BP's plan, never applied by this run. Rejected: split it, before FE-32; leave MCP inside
+         Phase 3.
+      3. THE FRONT END'S HALF — "All of it, after BP's design (Recommended)": BF designs and plans the "Start your agent"
+         panel on the Agents screen (the address, how the key is sent, the guide, a prompt to paste, per-tool setup — an MCP
+         configuration for Claude Code; Codex — preset permissions, which powers come back as a question) AND their agent's
+         work shown beside ours (Conversations, who is working on the app); C3 holds. BF STARTS WHEN RICH APPROVES BP'S
+         DESIGN, so what it shows is what the platform will offer. Rejected: all of it, start BF now; the panel only; not now.
+      4. THE POLICY BRIEF — "Fold it into BP's plan" (NOT the recommendation, "its own file, for the Privacy Office"): there is
+         NO separate policy brief file. BP's plan carries it as a SECTION — what an outside agent's provider would see (code,
+         member names, build logs, redacted sandbox output, low/medium staging and production Incidents) and the questions
+         only Rich or UBC can answer (commercial agents on UBC app code and the platform PIA; ZDR widened to providers nobody
+         attests, S9; non-faculty agents, FE-39 "for now"; FE-24's tokens deploying to staging; commit author names reaching
+         GitHub). Rejected: its own file, for the Privacy Office; not now.
+
+    So BP's GO is sent now, citing this entry; BF's waits for Rich's approval of BP's design; BR's for both plans written.
