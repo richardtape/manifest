@@ -232,7 +232,7 @@ describeDocker('node-ts-mongo@1 builds, deploys and authenticates (Task 12)', ()
       projectSlug: SLUG,
       credentials: CREDENTIALS,
     })
-    const handle = await driver.ensureInstance(specFor())
+    const handle = (await driver.ensureInstances([specFor()]))[0]!
     expect(handle.url).toBe(`https://${HOST}`)
 
     // The SHAPE of the answer. `{status:'ok'}` alone would pass with no database:

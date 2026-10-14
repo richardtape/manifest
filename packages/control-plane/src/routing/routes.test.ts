@@ -14,6 +14,7 @@ import {
   servingRoute,
   upstreamsInUse,
   upstreamsOf,
+  withdrawUpstream,
 } from './routes.js'
 
 /**
@@ -510,5 +511,95 @@ describe('applySwitchedOffRoute (§11, Task 11)', () => {
     }
     expect(await servingRoute(deps, HOST)).toBeUndefined()
     expect(await upstreamsInUse(deps)).toEqual(new Set())
+  })
+})
+
+/**
+ * A1 Task 4: the Docker driver's `destroyInstance` takes ONE member out of a set's route —
+ * the rest of the route exactly as the edge held it — and the route only with the last; an
+ * instance the route does not dial leaves it untouched; and nothing is swallowed.
+ */
+describe('withdrawUpstream (A1 Task 4)', () => {
+  const ONE = '00000000-0000-4000-8000-0000000000a1'
+  const TWO = '00000000-0000-4000-8000-0000000000a2'
+  const setOfTwo = buildRoute({
+    hostname: HOST,
+    routeId: ROUTE_ID,
+    upstreams: [
+      { dial: `mf-i-${ONE}:3000`, instanceId: ONE },
+      { dial: `mf-i-${TWO}:3000`, instanceId: TWO },
+    ],
+    health: appHealthPolicy('/healthz'),
+  })
+  const isHost = (host: string) => (dial: string) => dial.startsWith(`${host}:`)
+
+  it('takes one member out IN PLACE — one PATCH — leaving everything else as the edge held it', async () => {
+    const { client, calls, patches } = fakeCaddy({ getRoute: async () => setOfTwo })
+    const deps = { caddy: client, servers: SERVERS }
+    expect(await withdrawUpstream(deps, HOST, 'staging', isHost(`mf-i-${ONE}`))).toBe(
+      'withdrawn',
+    )
+    expect(calls).toEqual([`patch ${ROUTE_ID}`])
+    const expected = buildRoute({
+      hostname: HOST,
+      routeId: ROUTE_ID,
+      upstreams: [{ dial: `mf-i-${TWO}:3000`, instanceId: TWO }],
+      health: appHealthPolicy('/healthz'),
+    })
+    expect(patches).toEqual([expected])
+  })
+
+  it('removes the route with its LAST member', async () => {
+    const lastOne = buildRoute({
+      hostname: HOST,
+      routeId: ROUTE_ID,
+      upstreams: [{ dial: `mf-i-${TWO}:3000`, instanceId: TWO }],
+      health: appHealthPolicy('/healthz'),
+    })
+    const { client, calls, servers } = fakeCaddy({ getRoute: async () => lastOne })
+    const deps = { caddy: client, servers: SERVERS }
+    expect(await withdrawUpstream(deps, HOST, 'staging', isHost(`mf-i-${TWO}`))).toBe(
+      'removed',
+    )
+    expect(calls).toEqual([`delete ${ROUTE_ID}`])
+    expect(servers).toEqual(['srv0'])
+  })
+
+  it('leaves a route that does not dial it — and no route at all — EXACTLY as it is', async () => {
+    const elsewhere = fakeCaddy({ getRoute: async () => setOfTwo })
+    expect(
+      await withdrawUpstream(
+        { caddy: elsewhere.client, servers: SERVERS },
+        HOST,
+        'staging',
+        isHost('mf-i-never-routed'),
+      ),
+    ).toBe('absent')
+    expect(elsewhere.calls).toEqual([])
+    const none = fakeCaddy()
+    expect(
+      await withdrawUpstream(
+        { caddy: none.client, servers: SERVERS },
+        HOST,
+        'staging',
+        isHost(`mf-i-${ONE}`),
+      ),
+    ).toBe('absent')
+    expect(none.calls).toEqual([])
+  })
+
+  it('THROWS a change the edge refuses — nothing swallowed', async () => {
+    const { client } = fakeCaddy({
+      getRoute: async () => setOfTwo,
+      patchRoute: () => Promise.reject(new Error('admin API refused')),
+    })
+    await expect(
+      withdrawUpstream(
+        { caddy: client, servers: SERVERS },
+        HOST,
+        'staging',
+        isHost(`mf-i-${ONE}`),
+      ),
+    ).rejects.toThrow('admin API refused')
   })
 })

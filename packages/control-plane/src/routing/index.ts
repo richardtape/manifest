@@ -26,6 +26,7 @@ export {
   SWITCHED_OFF_PAGE,
   upstreamsOf,
   upstreamsInUse,
+  withdrawUpstream,
 } from './routes.js'
 export type { IdentityProbeResult, ReadinessResult } from './readiness.js'
 export {

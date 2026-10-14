@@ -155,26 +155,30 @@ async function threeInstances(
 
   const driver = options.driver ?? createFakeDriver()
   const start = async (name: string): Promise<string> => {
-    const handle = await driver.ensureInstance({
-      instanceId: randomUUID(),
-      name,
-      hostname: staging.hostname,
-      image: { repository: 'local/chem-labs', digest: `sha256:${'0'.repeat(64)}` },
-      env: {},
-      port: 8080,
-      healthPath: '/healthz',
-      resources: { cpu: 1, memoryMi: 256, pids: 128, diskMi: 512 },
-      projectSlug: `chem-labs-${unique}`,
-      environmentKind: 'staging',
-      releaseId: release!.id,
-      services: [],
-      egressAllow: [],
-      needsAiGateway: false,
-    })
+    const handle = (
+      await driver.ensureInstances([
+        {
+          instanceId: randomUUID(),
+          name,
+          hostname: staging.hostname,
+          image: { repository: 'local/chem-labs', digest: `sha256:${'0'.repeat(64)}` },
+          env: {},
+          port: 8080,
+          healthPath: '/healthz',
+          resources: { cpu: 1, memoryMi: 256, pids: 128, diskMi: 512 },
+          projectSlug: `chem-labs-${unique}`,
+          environmentKind: 'staging',
+          releaseId: release!.id,
+          services: [],
+          egressAllow: [],
+          needsAiGateway: false,
+        },
+      ])
+    )[0]!
     return handle.id
   }
   // In this order, so the route ends on `serving` — the fake's edge is the last
-  // ensureInstance to resolve, exactly as the real one is.
+  // ensureInstances to resolve, exactly as the real one is.
   const oldHandle = await start(`chem-labs-${unique}-old`)
   const orphan = await start(`chem-labs-${unique}-orphan`)
   const servingHandle = await start(`chem-labs-${unique}-serving`)
@@ -242,7 +246,9 @@ describe('retireEnvironment (P4c Task 7)', () => {
       expect(outcome.retired.sort()).toEqual([rows.old.handle, orphan].sort())
       expect(outcome.failed).toEqual([])
       // R7: the one serving is untouched, and it is still what the hostname reaches.
-      expect(await driver.servingInstance(environment.hostname)).toBe(rows.serving.handle)
+      expect(await driver.servingInstances(environment.hostname)).toEqual([
+        rows.serving.handle,
+      ])
       expect(await driver.listInstances(environment.hostname)).toEqual([
         rows.serving.handle,
       ])
@@ -308,7 +314,9 @@ describe('retireEnvironment (P4c Task 7)', () => {
       expect((await driver.listInstances(environment.hostname)).sort()).toEqual(
         [rows.old.handle, orphan, rows.serving.handle].sort(),
       )
-      expect(await driver.servingInstance(environment.hostname)).toBe(rows.serving.handle)
+      expect(await driver.servingInstances(environment.hostname)).toEqual([
+        rows.serving.handle,
+      ])
       expect(
         (await db.select().from(instances).where(eq(instances.id, rows.old.id)))[0]!
           .state,
@@ -463,7 +471,7 @@ describe('retireEnvironment (P4c Task 7)', () => {
     // the route has not moved to it yet. An unlocked retire looking in that window
     // sees an instance that does not serve and removes the deploy from under itself.
     //
-    // The fake's `ensureInstance` starts and promotes in one call, so the route is
+    // The fake's `ensureInstances` starts and promotes in one call, so the route is
     // put back afterwards to model the window. Without that this test passes with the
     // lock removed — measured 2026-09-15, and it is why the plan's control (c) came
     // out green.
@@ -478,29 +486,36 @@ describe('retireEnvironment (P4c Task 7)', () => {
 
       const deploy = withEnvironmentLock(environment.id, async () => {
         insideLock = true
-        const handle = await driver.ensureInstance({
-          instanceId: randomUUID(),
-          name: `${environment.hostname}-newcomer`,
-          hostname: environment.hostname,
-          image: { repository: 'local/chem-labs', digest: `sha256:${'0'.repeat(64)}` },
-          env: {},
-          port: 8080,
-          healthPath: '/healthz',
-          resources: { cpu: 1, memoryMi: 256, pids: 128, diskMi: 512 },
-          projectSlug: 'chem-labs',
-          environmentKind: 'staging',
-          releaseId: randomUUID(),
-          services: [],
-          egressAllow: [],
-          needsAiGateway: false,
-        })
+        const handle = (
+          await driver.ensureInstances([
+            {
+              instanceId: randomUUID(),
+              name: `${environment.hostname}-newcomer`,
+              hostname: environment.hostname,
+              image: {
+                repository: 'local/chem-labs',
+                digest: `sha256:${'0'.repeat(64)}`,
+              },
+              env: {},
+              port: 8080,
+              healthPath: '/healthz',
+              resources: { cpu: 1, memoryMi: 256, pids: 128, diskMi: 512 },
+              projectSlug: 'chem-labs',
+              environmentKind: 'staging',
+              releaseId: randomUUID(),
+              services: [],
+              egressAllow: [],
+              needsAiGateway: false,
+            },
+          ])
+        )[0]!
         newcomer = handle.id
         // The window: container up, route not yet moved. `restoreRoute` points the
         // hostname back at what was serving when this deploy started.
-        await driver.restoreRoute(rows.serving.handle)
+        await driver.restoreRoute([rows.serving.handle])
         await mayFinish
         // …and the deploy finishes by promoting, still under the lock.
-        await driver.restoreRoute(newcomer)
+        await driver.restoreRoute([newcomer])
       })
       while (!insideLock) await sleep(5)
 
@@ -522,7 +537,7 @@ describe('retireEnvironment (P4c Task 7)', () => {
       expect(outcome.retired.sort()).toEqual(
         [rows.old.handle, rows.serving.handle, orphan].sort(),
       )
-      expect(await driver.servingInstance(environment.hostname)).toBe(newcomer)
+      expect(await driver.servingInstances(environment.hostname)).toEqual([newcomer])
     })
   })
 })
@@ -535,12 +550,12 @@ describe('createRetirer (P4c Task 7)', () => {
       let running = 0
       const slow: Driver = {
         ...driver,
-        servingInstance: async (hostname) => {
+        servingInstances: async (hostname) => {
           running += 1
           passes.push(running)
           await sleep(50)
           running -= 1
-          return driver.servingInstance(hostname)
+          return driver.servingInstances(hostname)
         },
       }
       const retirer = createRetirer(depsFor(db, slow, recordingAi([])))
@@ -638,7 +653,7 @@ describe('createRetirer (P4c Task 7)', () => {
       const { environment } = await threeInstances(db)
       const broken: Driver = {
         ...createFakeDriver(),
-        servingInstance: () => Promise.reject(new Error('the daemon is down')),
+        servingInstances: () => Promise.reject(new Error('the daemon is down')),
       }
       const retirer = createRetirer(depsFor(db, broken, recordingAi([])))
       expect(() => retirer.schedule(environment.id)).not.toThrow()
@@ -656,13 +671,13 @@ describe('createRetirer (P4c Task 7)', () => {
       let overlapped = false
       const slow: Driver = {
         ...shared,
-        servingInstance: async (hostname) => {
+        servingInstances: async (hostname) => {
           running += 1
           if (running > 1) overlapped = true
           order.push(`start ${hostname}`)
           await sleep(30)
           running -= 1
-          return shared.servingInstance(hostname)
+          return shared.servingInstances(hostname)
         },
       }
       const retirer = createRetirer(depsFor(db, slow, recordingAi([])))

@@ -501,5 +501,80 @@ export function dockerContinuityFixtures(): ContinuityFixtures {
      * removes every route it hands out.
      */
     hostname: () => `contract-${randomUUID().slice(0, 8)}.staging.manifest.internal`,
+    /**
+     * A REQUEST LOOP THROUGH THE REAL EDGE (A1 Task 4): one container on the platform network
+     * asking the hostname's health path one request after another — sequential, so the order
+     * the answers are read in is the order they were asked — and printing each one's status
+     * and `X-Manifest-Instance`. It starts before `during`, and runs until ten more answers
+     * have come after `during` ends, so a move is seen from both sides.
+     *
+     * `sleep 0.15`: the route's own per-IP rate limit is 600 a minute (`buildRoute`), and a
+     * loop that tripped it would read `429`s as a move.
+     */
+    watch: async (_driver, hostname, during) => {
+      const name = `mf-contract-watch-${randomUUID().slice(0, 8)}`
+      await run('docker', [
+        'run',
+        '-d',
+        '--name',
+        name,
+        '--network',
+        'manifest-platform',
+        '--dns',
+        '10.89.0.53',
+        '-v',
+        `${CA_CERT}:/ca.crt:ro`,
+        '--entrypoint',
+        'sh',
+        'curlimages/curl:8.11.1',
+        '-c',
+        'while :; do curl --cacert /ca.crt -sS -o /dev/null -m 5 ' +
+          `-w '%{http_code} %header{x-manifest-instance}\\n' https://${hostname}/healthz ` +
+          '|| echo 000; sleep 0.15; done',
+      ])
+      try {
+        const lines = async (): Promise<string[]> =>
+          (await run('docker', ['logs', name])).stdout
+            .split('\n')
+            .filter((line) => line.trim() !== '')
+        const until = async (count: number): Promise<void> => {
+          const deadline = Date.now() + 60_000
+          while ((await lines()).length < count) {
+            if (Date.now() >= deadline)
+              throw new Error(`the watch on ${hostname} never reached ${count} answers`)
+            await new Promise((resolve) => setTimeout(resolve, 100))
+          }
+        }
+        await until(1)
+        const result = await during()
+        await until((await lines()).length + 10)
+        const instances = (await lines()).flatMap((line) => {
+          const [status, instance] = line.trim().split(' ')
+          return status === '200' && instance !== undefined && instance !== ''
+            ? [instance]
+            : []
+        })
+        // THE HANDLE'S NAME FOR EACH: the header is the INSTANCE id, and this driver's handle
+        // id is the CONTAINER's name — found by the label the driver wrote, as the driver
+        // itself finds it. An id with no container left stays as the header had it.
+        const handleOf = new Map<string, string>()
+        for (const instance of new Set(instances)) {
+          const { stdout } = await run('docker', [
+            'ps',
+            '-a',
+            '--filter',
+            `label=manifest.instance=${instance}`,
+            '--format',
+            '{{.Names}}',
+          ])
+          handleOf.set(instance, stdout.trim().split('\n')[0] || instance)
+        }
+        return { result, answers: instances.map((id) => handleOf.get(id) ?? id) }
+      } finally {
+        await run('docker', ['rm', '-f', name]).catch(() => undefined)
+      }
+    },
+    readRoute: (hostname: string) =>
+      CONTRACT_ROUTING.caddy.getRoute(routeIdFor(hostname)),
   }
 }

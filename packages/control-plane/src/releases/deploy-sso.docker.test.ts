@@ -156,9 +156,9 @@ describeDocker('deployRelease registers a real SP (§9, Task 9)', () => {
       const seen: InstanceSpec[] = []
       const recording: Driver = {
         ...driver,
-        ensureInstance: (spec) => {
-          seen.push(spec)
-          return driver.ensureInstance(spec)
+        ensureInstances: (specs) => {
+          seen.push(...specs)
+          return driver.ensureInstances(specs)
         },
       }
       const instance = await deployRelease(

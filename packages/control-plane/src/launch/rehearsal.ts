@@ -210,7 +210,7 @@ async function rehearse(
   } catch (cause) {
     /**
      * A DEPLOY THAT THREW MAY STILL HAVE MOVED THE NAME (sitting 5b's whole-branch review, I2(b)):
-     * `ensureInstance` points production's name at the new container before its health is read, and
+     * `ensureInstances` points production's name at the new container before its health is read, and
      * a throw after that returns no instance for the take-down to take down. So the name is released
      * first — or the refusal says it could not be.
      */
@@ -375,7 +375,7 @@ async function releaseUnlaunchedName(
         project.state !== 'active'
       )
         return
-      if ((await deps.driver.servingInstance(production.hostname)) !== undefined)
+      if ((await deps.driver.servingInstances(production.hostname)).length > 0)
         await deps.driver.removeName(production.hostname, production.kind)
       await deps.db.delete(routes).where(eq(routes.hostname, production.hostname))
     })
@@ -455,8 +455,8 @@ export type TakeDownDeps = Pick<RehearsalDeps, 'db' | 'driver' | 'config'> & {
  * 1. **The instance must still be `healthy`.** Anything else is not this take-down's: `failed` is a
  *    start the deploy already removed (§11, with its Incident); `destroying` or `gone` is a LATER
  *    deploy's doing, which took the name and handed this instance to the retirer.
- * 2. **The name is removed only while it reaches THIS instance** (`servingInstance`, the edge's own
- *    route by hostname — the question the retirer asks). Anything else on it — another instance, an
+ * 2. **The name is removed only while it reaches THIS instance, and only it** (`servingInstances`,
+ *    the edge's own route by hostname — the question the retirer asks). Anything else on it — another instance, an
  *    archive's switched-off page — is left exactly as it is.
  *
  * Then the Route record naming THIS instance goes, so a boot never puts it back, and the instance is
@@ -487,7 +487,8 @@ async function takeDown(
         .where(eq(instances.id, deployed.id))
       if (current === undefined || current.state !== 'healthy' || current.handle === null)
         return
-      if ((await deps.driver.servingInstance(production.hostname)) === current.handle)
+      const serving = await deps.driver.servingInstances(production.hostname)
+      if (serving.length === 1 && serving[0] === current.handle)
         await deps.driver.removeName(production.hostname, production.kind)
       await deps.db
         .delete(routes)

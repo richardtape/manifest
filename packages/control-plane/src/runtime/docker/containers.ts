@@ -143,8 +143,8 @@ export function hostOfAddress(address: string): string {
  *
  * `undefined` for an address whose container is gone — a route left pointing at
  * something that no longer exists. That is an honest answer and a load-bearing one:
- * `servingInstance` passes it straight through, and Decision 12 makes the retirer do
- * NOTHING when nothing is serving, rather than treating every instance as retirable.
+ * `servingInstances` leaves it out, and Decision 12 makes the retirer do NOTHING when
+ * nothing is serving, rather than treating every instance as retirable.
  */
 export async function containerForUpstream(
   engine: EngineClient,
@@ -157,4 +157,33 @@ export async function containerForUpstream(
     return found[0]?.name
   }
   return (await inspectApp(engine, host))?.name
+}
+
+/**
+ * The health path a set's route is built with, off its members' own labels (A1 Task 4) —
+ * `undefined` when they do not all carry the SAME one. A route has one health policy, so a set
+ * whose members disagree, or a member from before the label (created before A1's Task 4), has
+ * none that is right for all of them, and the caller builds the route with no checks rather than
+ * guessing a path that would eject members the edge could reach.
+ */
+export function healthPathOf(containers: readonly AppContainer[]): string | undefined {
+  const paths = new Set(containers.map((container) => container.labels[LABEL.healthPath]))
+  if (paths.size !== 1) return undefined
+  const [path] = paths
+  return path
+}
+
+/**
+ * The containers an edge route's dial addresses name, by NAME, in the route's order — every
+ * member of a set (A1 Task 4). A member whose container is gone is left out, as
+ * `containerForUpstream` answers it.
+ */
+export async function containersForUpstreams(
+  engine: EngineClient,
+  upstreams: readonly string[],
+): Promise<string[]> {
+  const found = await Promise.all(
+    upstreams.map((upstream) => containerForUpstream(engine, upstream)),
+  )
+  return found.filter((name): name is string => name !== undefined)
 }

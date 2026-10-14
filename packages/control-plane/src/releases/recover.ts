@@ -130,7 +130,9 @@ export async function recoverAtBoot(deps: {
       continue
     }
     try {
-      await deps.driver.restoreRoute(route.handle)
+      // ONE ROW, ONE MEMBER, until A1's Task 5 has a deploy write a set's rows; that task
+      // groups the rows by hostname and restores each set whole.
+      await deps.driver.restoreRoute([route.handle])
       routesRestored += 1
     } catch (error) {
       const reason = (error as { code?: string }).code ?? (error as Error).name
@@ -184,8 +186,8 @@ export async function recoverAtBoot(deps: {
    * PASS 3 — AND IT RUNS LAST, WHICH IS LOAD-BEARING (Decision 20, and sitting 5's
    * correction to it).
    *
-   * `retireEnvironment` does nothing at all when `servingInstance` answers
-   * `undefined`, because after an edge restart every instance reads as non-serving
+   * `retireEnvironment` does nothing at all when `servingInstances` answers
+   * `[]`, because after an edge restart every instance reads as non-serving
    * and R7 would then remove the app people are using. Before pass 1 has run, that is
    * the state of EVERY environment — so scheduling first would not merely reorder the
    * work: every pass would return `skipped: 'nothing-serves'`, nothing would ever be

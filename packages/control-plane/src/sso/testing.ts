@@ -295,50 +295,52 @@ export async function startSamlSp(input: {
     ...(input.signing === undefined ? {} : { certData: input.signing.certData }),
   }
 
-  await driver.ensureInstance({
-    name,
-    instanceId,
-    hostname,
-    projectSlug: slug,
-    environmentKind: kind,
-    releaseId: 'r1',
-    image,
-    /**
-     * THE PLATFORM'S OWN RENDERER, not a hand-built block (Task 11).
-     *
-     * This fixture used to construct §8's variables itself, which made §16's
-     * identity-path regression tier prove that a login works against an
-     * environment the platform does not produce — so `renderInjection` could
-     * have had any SAML row wrong and this suite would still have passed. It is
-     * the second producer Task 11's grep exists to find.
-     *
-     * The one deliberate subtraction is below: this fixture also models an SP
-     * that does NOT sign, which the platform never deploys in staging.
-     */
-    env: samlSpEnv({ slug, kind, hostname, row, signing: input.signing !== undefined }),
-    port: 8080,
-    healthPath: '/healthz',
-    needsAiGateway: false,
-    resources: { cpu: 0.5, memoryMi: 256, pids: 128, diskMi: 1024 },
-    services: [],
-    egressAllow: [],
-    // §8: "Manifest mounts it; the blueprint never fetches it at runtime."
-    files: [
-      { path: INJECTED_FILE_PATHS.idpCertificate, contents: idpCert },
-      ...(input.signing
-        ? [
-            {
-              path: INJECTED_FILE_PATHS.spPrivateKey,
-              contents: input.signing.privateKeyPem,
-              mode: 0o440,
-              // The blueprint's run_as_uid group. fixture-node@1 creates both at
-              // 10001; Task 11 threads this from the descriptor instead.
-              gid: 10001,
-            },
-          ]
-        : []),
-    ],
-  })
+  await driver.ensureInstances([
+    {
+      name,
+      instanceId,
+      hostname,
+      projectSlug: slug,
+      environmentKind: kind,
+      releaseId: 'r1',
+      image,
+      /**
+       * THE PLATFORM'S OWN RENDERER, not a hand-built block (Task 11).
+       *
+       * This fixture used to construct §8's variables itself, which made §16's
+       * identity-path regression tier prove that a login works against an
+       * environment the platform does not produce — so `renderInjection` could
+       * have had any SAML row wrong and this suite would still have passed. It is
+       * the second producer Task 11's grep exists to find.
+       *
+       * The one deliberate subtraction is below: this fixture also models an SP
+       * that does NOT sign, which the platform never deploys in staging.
+       */
+      env: samlSpEnv({ slug, kind, hostname, row, signing: input.signing !== undefined }),
+      port: 8080,
+      healthPath: '/healthz',
+      needsAiGateway: false,
+      resources: { cpu: 0.5, memoryMi: 256, pids: 128, diskMi: 1024 },
+      services: [],
+      egressAllow: [],
+      // §8: "Manifest mounts it; the blueprint never fetches it at runtime."
+      files: [
+        { path: INJECTED_FILE_PATHS.idpCertificate, contents: idpCert },
+        ...(input.signing
+          ? [
+              {
+                path: INJECTED_FILE_PATHS.spPrivateKey,
+                contents: input.signing.privateKeyPem,
+                mode: 0o440,
+                // The blueprint's run_as_uid group. fixture-node@1 creates both at
+                // 10001; Task 11 threads this from the descriptor instead.
+                gid: 10001,
+              },
+            ]
+          : []),
+      ],
+    },
+  ])
 
   return {
     hostname,
@@ -348,7 +350,7 @@ export async function startSamlSp(input: {
     stop: async () => {
       // THE CONTAINER NAME, not the instance name — and the failure is REPORTED.
       // `destroyInstance(instanceName(...))` matches nothing, and a swallowed
-      // error made that invisible: the container survived, `ensureInstance` is
+      // error made that invisible: the container survived, `ensureInstances` is
       // idempotent by name, and every later run silently redeployed nothing and
       // exercised the FIRST image it ever built. Negative control (c) passed
       // against an app it had already edited. Measured 2026-09-08.

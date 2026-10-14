@@ -186,14 +186,18 @@ export interface InstanceStatus {
 }
 
 /**
- * An instance the driver created and started, and could not make ready.
+ * A set the driver created and started, a member of which it could not make ready.
  *
- * `ensureInstance` resolves only for an instance that answers; a driver that gives up
- * throws THIS, carrying the handle, because the instance EXISTS — it has a log, an exit
- * code and a route, and the caller is what records what happened to it (§14's Incident,
- * P4b Task 13). The Docker driver used to throw an error with a code and no handle, so
- * the commonest failed deploy — an app that crashes as it starts — left the caller
- * nothing to read a log from and the instance row parked in `provisioning`.
+ * `ensureInstances` resolves only for a set every member of which answers; a driver that
+ * gives up throws THIS, carrying the handles, because the instances EXIST — each has a log,
+ * an exit code and a container, and the caller is what records what happened (§14's
+ * Incident, P4b Task 13) and removes them. The Docker driver used to throw an error with a
+ * code and no handle, so the commonest failed deploy — an app that crashes as it starts —
+ * left the caller nothing to read a log from and the instance row parked in `provisioning`.
+ *
+ * ONE CLASS FOR ONE AND FOR A SET (A1 Task 4): `handle` is the member the check failed for —
+ * the one §14's Incident is about — and `handles` is EVERY member this call started, the
+ * failed one included, none of them routed.
  */
 export class InstanceNotReadyError extends Error {
   readonly code = 'INSTANCE_NOT_REACHABLE'
@@ -203,6 +207,8 @@ export class InstanceNotReadyError extends Error {
     readonly check: string,
     message: string,
     readonly hint: string,
+    /** Every member of the set, in the order it was asked for. A set of one is `[handle]`. */
+    readonly handles: readonly InstanceHandle[] = [handle],
   ) {
     super(message)
     this.name = 'InstanceNotReadyError'
@@ -335,39 +341,47 @@ export interface Driver {
   ): Promise<BuiltImage>
   ensureService(binding: ServiceBinding): Promise<ServiceHandle>
   /**
-   * Start the instance BESIDE whatever serves `spec.hostname`, make it ready without
-   * touching the route, move the route in ONE in-place change, and resolve only once
-   * the hostname is shown to reach THIS instance by its identity (§11 Redeploys).
+   * Start EVERY spec beside whatever serves their hostname (all one hostname), make each
+   * ready without touching the route, move the route in ONE change to exactly this set, and
+   * resolve only once the hostname is shown to reach EACH of them by its identity (§11
+   * Redeploys, across N — A1 Task 4). A set of one is one instance.
    *
-   * An instance that never becomes ready throws `InstanceNotReadyError` carrying its
-   * handle, with the route unmoved and the instance still there for §14's Incident.
-   * Asked twice for one name it returns the same instance; asked for one name with a
-   * different environment it throws `DriverRefusalError('INSTANCE_SPEC_CHANGED')`.
+   * If any member is not ready, nothing is routed: `InstanceNotReadyError` carries every
+   * handle (`handles`) and the one that failed (`handle`), every member still there for
+   * §14's Incident, and the set that served still serves. Idempotent: asked again for the
+   * same specs it answers the same handles; asked for one name with a different
+   * environment it throws `DriverRefusalError('INSTANCE_SPEC_CHANGED')`. A set of none, or
+   * one whose specs name more than one hostname, is a caller's defect and throws before
+   * anything starts — as does, for a driver whose route is one thing per hostname, a set
+   * whose members differ in what that route is built from (the Docker driver: the app,
+   * the environment and the health path).
    */
-  ensureInstance(spec: InstanceSpec): Promise<InstanceHandle>
+  ensureInstances(specs: readonly InstanceSpec[]): Promise<InstanceHandle[]>
   /**
    * Wait until nothing is in flight to this instance — at most `drainMs` — then remove
    * it and everything it owns. NEVER changes what a hostname reaches, and refuses an
-   * instance that is serving one (`DriverRefusalError('INSTANCE_SERVING')`).
-   * Retiring something that is already gone is a no-op, like `destroyInstance`.
+   * instance the hostname reaches — ANY member of its serving set
+   * (`DriverRefusalError('INSTANCE_SERVING')`). Retiring something that is already gone is
+   * a no-op, like `destroyInstance`.
    */
   retireInstance(id: string, opts: RetireOpts): Promise<void>
-  /** Which instance this hostname reaches now, or undefined if nothing does. */
-  servingInstance(hostname: string): Promise<string | undefined>
+  /** The instances this hostname reaches now — empty when none does. */
+  servingInstances(hostname: string): Promise<string[]>
   /** Every instance this driver holds for the hostname, serving or not. */
   listInstances(hostname: string): Promise<string[]>
   /**
-   * Point the hostname's route back at an instance that is already running, starting
-   * and stopping nothing — what the control plane calls at boot for each Route record
-   * (§12). Throws `DriverRefusalError('INSTANCE_NOT_FOUND')` for an instance it does
-   * not hold.
+   * Point the hostname's route back at EXACTLY these instances, which are already running,
+   * starting and stopping nothing — what the control plane calls at boot for each
+   * hostname's Route records (§12), and a failed deploy's rollback. Throws
+   * `DriverRefusalError('INSTANCE_NOT_FOUND')`, naming each, for an instance it does not
+   * hold, and then changes nothing. Every id must be of one hostname.
    */
-  restoreRoute(id: string): Promise<void>
+  restoreRoute(ids: readonly string[]): Promise<void>
   /**
    * §11's *Ending an app* (the front-end enablement plan's Task 11, Decision 29): the hostname
    * answers the platform's switched-off page — `410 Gone`, *"This app has been switched off by its
-   * owner."* — and reaches NO instance, so `servingInstance` answers `undefined` and every instance
-   * of it may be retired. Idempotent; the next `ensureInstance` for the name replaces it in place.
+   * owner."* — and reaches NO instance, so `servingInstances` answers `[]` and every instance
+   * of it may be retired. Idempotent; the next `ensureInstances` for the name replaces it in place.
    * Never a removal: a name with no route falls through to the edge's wildcard, which answers a
    * student the platform's probe text (ORIENTATION §4 trap 16).
    */
@@ -383,6 +397,13 @@ export interface Driver {
    */
   removeName(hostname: string, kind: 'sandbox' | 'staging' | 'production'): Promise<void>
   stopInstance(id: string): Promise<void>
+  /**
+   * Take this instance's own upstream out of its hostname's route — removing the route only
+   * when it was the last — then remove the container (A1 Task 4). An instance whose upstream
+   * is NOT in the route (never routed, or routed away) leaves the route exactly as it is. A
+   * route that could not be changed is THROWN, naming the hostname, and the instance is left
+   * for the caller's retry. Destroying something already gone is a no-op.
+   */
   destroyInstance(id: string): Promise<void>
   destroyService(id: string, opts: { deleteData: boolean }): Promise<void>
   /**
@@ -406,6 +427,25 @@ export interface Driver {
   exec(id: string, cmd: string[], opts: ExecOpts): ExecStream
   snapshotService(id: string): Promise<SnapshotRef>
   capabilities(): DriverCapabilities
+}
+
+/**
+ * The one hostname a set is for — a set of none, or of two hostnames, is a caller's defect
+ * (A1 Task 4), refused before anything starts or moves. Shared by both drivers'
+ * `ensureInstances` and `restoreRoute`; `caller` names which in the message.
+ */
+export function assertOneHostname(
+  members: readonly { hostname: string }[],
+  caller = 'ensureInstances',
+): string {
+  const hostnames = [...new Set(members.map((member) => member.hostname))]
+  if (hostnames.length === 0)
+    throw new Error(`${caller} was given no instance — a set has at least one`)
+  if (hostnames.length > 1)
+    throw new Error(
+      `${caller} was given instances of ${hostnames.join(', ')} — a set is one hostname's`,
+    )
+  return hostnames[0]!
 }
 
 /**

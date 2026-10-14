@@ -180,7 +180,7 @@ export async function destroyAppNetwork(
  * from its models while it was still serving — and P4b measured what that costs a
  * student: 611 s (finding 181), because the toolkit exposes no timeout.
  *
- * It must run under the same per-app-network mutex as `ensureInstance`'s
+ * It must run under the same per-app-network mutex as `ensureInstances`'s
  * attach-and-create (Decision 13). Without it, a deploy of an AI release that starts
  * while a retire is deciding can lose its gateway.
  *
@@ -190,7 +190,7 @@ export async function destroyAppNetwork(
  * this label loses its gateway.
  *
  * A STOPPED instance counts too — `listContainers` asks for `all=true`. A hibernated
- * app is one `ensureInstance` away from serving again, and it would wake with no
+ * app is one `ensureInstances` away from serving again, and it would wake with no
  * route to its models.
  */
 export async function detachAiGatewayIfUnused(

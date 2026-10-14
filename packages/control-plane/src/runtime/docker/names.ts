@@ -74,7 +74,7 @@ export function isManifestOwned(name: string): boolean {
  *
  * The alias is bounded, unambiguous — Docker resolves it only on the app's own
  * network, so a 200 at this address is THIS instance's 200 by construction — and it
- * is what `servingInstance` maps back to a container (Task 5).
+ * is what `servingInstances` maps back to a container (Task 5).
  */
 export const INSTANCE_ALIAS_PREFIX = 'mf-i-'
 

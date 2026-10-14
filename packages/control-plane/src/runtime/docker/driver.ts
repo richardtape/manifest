@@ -11,6 +11,7 @@ import {
   summarizeScan,
 } from '../../build/index.js'
 import {
+  appHealthPolicy,
   applyRoute,
   applySwitchedOffRoute,
   edgeIdentityProbe,
@@ -21,6 +22,7 @@ import {
   upstreamsInUse,
   waitForIdentities,
   waitForReady,
+  withdrawUpstream,
   type RoutingDeps,
 } from '../../routing/index.js'
 import type {
@@ -41,7 +43,11 @@ import type {
   SnapshotRef,
   SourceRef,
 } from '../driver.js'
-import { DriverRefusalError, InstanceNotReadyError } from '../driver.js'
+import {
+  DriverRefusalError,
+  InstanceNotReadyError,
+  assertOneHostname,
+} from '../driver.js'
 import {
   DEFAULT_BUILD_LIMITS,
   type BuildLimits,
@@ -50,12 +56,14 @@ import {
 } from './builder.js'
 import { createBuildQueue } from './concurrency.js'
 import {
-  containerForUpstream,
+  containersForUpstreams,
   dialHostOf,
+  healthPathOf,
   hostOfAddress,
   inspectApp,
   listContainers,
   upstreamFor,
+  type AppContainer,
 } from './containers.js'
 import { createKeyedMutex } from './keyed-mutex.js'
 import { privateProbe } from './probes.js'
@@ -162,7 +170,7 @@ export interface DockerDriverOptions {
    * probe is `curl: (60)` and `http_code` 000 — measured 2026-09-06.
    */
   caCertPath: string
-  /** How long `ensureInstance` waits for the app to answer at its hostname. */
+  /** How long `ensureInstances` waits for each app instance to answer at its hostname. */
   readinessTimeoutMs?: number
 }
 
@@ -415,14 +423,16 @@ export async function createDockerDriver(options: DockerDriverOptions): Promise<
     async ensureService(binding: ServiceBinding): Promise<ServiceHandle> {
       const kind = kindFromServiceName(binding.name)
       // NO extra neighbours, deliberately: a database has no business reaching the
-      // model gateway, and the app's own `ensureInstance` attaches it a moment later
+      // model gateway, and the app's own `ensureInstances` attaches it a moment later
       // when the release declares models (P4b Task 8).
       await ensureAppNetwork(engine, binding.projectSlug, kind)
       return ensureServiceContainer(engine, binding, kind)
     },
 
     /**
-     * §11's Redeploys, in one call: BESIDE, PRIVATELY READY, MOVED ONCE, VERIFIED.
+     * §11's Redeploys, in one call: BESIDE, PRIVATELY READY, MOVED ONCE, VERIFIED — for a
+     * SET (A1 Task 4): every member started and proved before the route moves, the route
+     * moved ONCE to exactly the set, and every member's identity seen through the edge.
      *
      * The guarantee lives HERE rather than in `deployRelease`, so Phase 5's UBC
      * driver inherits it rather than having to re-derive it — which is R6, and is
@@ -432,164 +442,206 @@ export async function createDockerDriver(options: DockerDriverOptions): Promise<
      * the hostname pointed at a container that had not started yet and the edge
      * answered an empty 502 until it did. Measured 2026-09-15 over three runs of
      * `make demo-redeploy`: a window of empty 502s 1.0-1.9 s long, starting
-     * 0.2-0.4 s into every redeploy, on an app that boots in about a second.
+     * 0.2-0.4 s into every redeploy, on an app that boots in about a second. And a move
+     * PER MEMBER would put the old set and part of the new behind one name at once — the
+     * interruption P4c exists to prevent, across N (A1 Decision 3).
      */
-    async ensureInstance(spec: InstanceSpec): Promise<InstanceHandle> {
-      const network = appNetwork(spec.projectSlug, spec.environmentKind)
-      // What the EDGE dials. Never the container name: with the instance in the name
-      // (§11) a long slug gives 72 characters, and a 72-character name does not
-      // resolve — measured 2026-09-15 (Decision 2).
-      const upstream = `${instanceAlias(spec.instanceId)}:${spec.port}`
+    async ensureInstances(specs: readonly InstanceSpec[]): Promise<InstanceHandle[]> {
+      const hostname = assertOneHostname(specs)
+      const first = specs[0]!
+      /**
+       * ONE ROUTE, ONE NETWORK, ONE PROXY: a set is one app's one environment with one
+       * health path, or there is no route that is right for all of it. A caller's defect,
+       * refused before anything starts.
+       */
+      const sameAsFirst = (spec: InstanceSpec): boolean =>
+        spec.projectSlug === first.projectSlug &&
+        spec.environmentKind === first.environmentKind &&
+        spec.healthPath === first.healthPath &&
+        JSON.stringify([...spec.egressAllow].sort()) ===
+          JSON.stringify([...first.egressAllow].sort())
+      if (!specs.every(sameAsFirst))
+        throw new Error(
+          `ensureInstances was given a set for ${hostname} whose members differ in app, ` +
+            'environment, health path or egress — one route and one network serve a set, so ' +
+            'every member is one release of one environment',
+        )
+      const network = appNetwork(first.projectSlug, first.environmentKind)
+      // What the EDGE dials, per member. Never the container name: with the instance in the
+      // name (§11) a long slug gives 72 characters, and a 72-character name does not resolve
+      // — measured 2026-09-15 (Decision 2).
+      const upstreamOf = (spec: InstanceSpec): string =>
+        `${instanceAlias(spec.instanceId)}:${spec.port}`
 
-      // The network, the proxy, the image and the container, with nothing else
-      // touching this network meanwhile (Decision 13).
-      const handle = await perNetwork(network, async () => {
+      // The network, the proxy, the images and EVERY container, with nothing else touching
+      // this network meanwhile (Decision 13). A member that cannot be created throws here,
+      // and what this call started before it is left unrouted for the retirer, which takes
+      // every instance of the hostname the route does not reach.
+      const handles = await perNetwork(network, async () => {
         // §10's gateway joins the network only for an app that declares models (P4b
         // Task 8, Decision 5). S6 probe 13 asserts both halves from inside the network.
         await ensureAppNetwork(
           engine,
-          spec.projectSlug,
-          spec.environmentKind,
-          spec.needsAiGateway ? [AI_GATEWAY_NEIGHBOUR] : [],
+          first.projectSlug,
+          first.environmentKind,
+          specs.some((spec) => spec.needsAiGateway) ? [AI_GATEWAY_NEIGHBOUR] : [],
         )
         const proxy = await ensureEgressProxy(engine, {
-          slug: spec.projectSlug,
-          kind: spec.environmentKind,
-          allow: spec.egressAllow,
+          slug: first.projectSlug,
+          kind: first.environmentKind,
+          allow: first.egressAllow,
         })
-        // The daemon does not have the image just because the builder pushed it:
-        // buildx `--push` writes to the registry and never loads into the daemon's
-        // store. Deploying a release built in an earlier process — a promotion, a
-        // redeploy, anything after `make reset` — would otherwise fail
-        // `no such image` at create time.
-        await ensureImagePulled(engine, spec.image, pullToken, options.registryPublicHost)
-        return ensureInstanceContainer(engine, spec, {
-          networkName: network,
-          dnsServer: options.dnsServer,
-          proxyUrl: proxy.url,
-          diskQuotaEnforceable: host.diskQuota,
-        })
+        const started: InstanceHandle[] = []
+        for (const spec of specs) {
+          // The daemon does not have the image just because the builder pushed it:
+          // buildx `--push` writes to the registry and never loads into the daemon's
+          // store. Deploying a release built in an earlier process — a promotion, a
+          // redeploy, anything after `make reset` — would otherwise fail
+          // `no such image` at create time. (A second member of the release finds it.)
+          await ensureImagePulled(
+            engine,
+            spec.image,
+            pullToken,
+            options.registryPublicHost,
+          )
+          started.push(
+            await ensureInstanceContainer(engine, spec, {
+              networkName: network,
+              dnsServer: options.dnsServer,
+              proxyUrl: proxy.url,
+              diskQuotaEnforceable: host.diskQuota,
+            }),
+          )
+        }
+        return started
       })
 
       /**
-       * 1. READY, WITHOUT TOUCHING THE ROUTE.
+       * 1. EVERY MEMBER READY, WITHOUT TOUCHING THE ROUTE.
        *
-       * Whatever serves this hostname keeps serving it while the new instance
-       * starts. The probe runs INSIDE THE EDGE against the instance's own network
-       * alias, which is both the position Caddy will dial from and the only way to
-       * ask the question without the public hostname — a status-only probe of a
-       * hostname gets 200 from the edge's wildcard whether an app is there or not
-       * (P4b finding 193).
+       * Whatever serves this hostname keeps serving it while the new set starts. Each
+       * probe runs INSIDE THE EDGE against the member's own network alias, which is both
+       * the position Caddy will dial from and the only way to ask the question without the
+       * public hostname — a status-only probe of a hostname gets 200 from the edge's
+       * wildcard whether an app is there or not (P4b finding 193). All at once, and all of
+       * them to the end, so nothing is still probing when this answers.
        */
-      const readiness = await waitForReady({
-        url: `http://${upstream}${spec.healthPath}`,
-        probe: privateProbe(engine, EDGE_NEIGHBOUR, upstream, spec.healthPath),
-        timeoutMs: options.readinessTimeoutMs ?? DEFAULT_READINESS_TIMEOUT_MS,
-        intervalMs: 1000,
-      })
-      if (!readiness.ready) {
-        // THE INSTANCE STAYS. §14's Incident is read through this handle — the exit
-        // code and the last 200 log lines — and §11 has the CALLER remove it once
-        // that is captured (Decision 10). A driver that removed it first would hand
-        // the Incident nothing, which is the commonest real failure: an app that
-        // crashes as it starts.
+      const readiness = await Promise.all(
+        specs.map((spec) =>
+          waitForReady({
+            url: `http://${upstreamOf(spec)}${spec.healthPath}`,
+            probe: privateProbe(
+              engine,
+              EDGE_NEIGHBOUR,
+              upstreamOf(spec),
+              spec.healthPath,
+            ),
+            timeoutMs: options.readinessTimeoutMs ?? DEFAULT_READINESS_TIMEOUT_MS,
+            intervalMs: 1000,
+          }),
+        ),
+      )
+      const notReady = readiness.findIndex((result) => !result.ready)
+      if (notReady !== -1) {
+        // EVERY MEMBER STAYS. §14's Incident is read through the failed member's handle —
+        // its exit code and its last 200 log lines — and §11 has the CALLER remove the set
+        // once that is captured (Decision 10). A driver that removed them first would hand
+        // the Incident nothing, which is the commonest real failure: an app that crashes
+        // as it starts.
+        const spec = specs[notReady]!
+        const handle = handles[notReady]!
+        const result = readiness[notReady]!
         throw new InstanceNotReadyError(
           handle,
-          `readiness: GET ${spec.healthPath} on ${upstream} from the edge — ` +
-            `${readiness.reason} (${readiness.attempts} attempts)`,
+          `readiness: GET ${spec.healthPath} on ${upstreamOf(spec)} from the edge — ` +
+            `${result.reason} (${result.attempts} attempts)`,
           `${handle.name} started and never answered 200 at ${spec.healthPath} — ` +
-            `${readiness.reason} (${readiness.attempts} attempts)`,
-          `The route did not move, so whatever served ${spec.hostname} still does. ` +
+            `${result.reason} (${result.attempts} attempts)`,
+          `The route did not move, so whatever served ${hostname} still does. ` +
             `\`docker logs ${handle.name}\` is the next thing to read.`,
+          handles,
         )
       }
 
       /**
-       * 2. ONE IN-PLACE MOVE.
+       * 2. ONE IN-PLACE MOVE, TO EXACTLY THIS SET.
        *
        * `applyRoute` PATCHes the route by `@id` where one exists. Delete-then-insert
        * leaves a window with no route, which the edge's wildcard answers 200 —
        * measured 2026-09-15: 4 wildcard answers in 320 requests across 20 such
-       * moves, 0 in 330 across 20 PATCHes.
+       * moves, 0 in 330 across 20 PATCHes. The route balances round robin and carries
+       * the app's health policy: active checks on its health path, passive ones on dial
+       * failures, `502` and `504`, a dial failure retried on another member (A1 Decision 4).
        */
-      const previous = await servingRoute(options.routing, spec.hostname)
+      const previous = await servingRoute(options.routing, hostname)
       await applyRoute(options.routing, {
-        hostname: spec.hostname,
-        kind: spec.environmentKind,
-        upstreams: [{ dial: upstream, instanceId: spec.instanceId }],
-        /**
-         * A SET OF ONE, AND NO HEALTH POLICY YET — today's route in all but the header,
-         * which now names the instance that answered (A1 Task 2). A1's Task 4 gives this
-         * driver its set and `appHealthPolicy(spec.healthPath)` together, with the
-         * contract cases that prove both; until then a one-instance route keeps exactly
-         * the behaviour every Docker case here was written against.
-         */
-        health: 'none',
+        hostname,
+        kind: first.environmentKind,
+        upstreams: specs.map((spec) => ({
+          dial: upstreamOf(spec),
+          instanceId: spec.instanceId,
+        })),
+        health: appHealthPolicy(first.healthPath),
       })
 
       /**
-       * 3. AND THE EDGE MUST SAY SO ITSELF.
+       * 3. AND THE EDGE MUST SAY SO ITSELF, AS EACH MEMBER.
        *
        * Not a status — the wildcard answers 200 for a hostname with no route at all,
-       * for any path — but THIS instance's own identity, off the header the route
+       * for any path — but each member's own identity, off the header the route
        * sets and nothing else sets (Decision 7).
        */
       const verified = await waitForIdentities({
-        url: handle.url,
-        expected: [spec.instanceId],
-        probe: edgeIdentityProbe(
-          engine,
-          spec.hostname,
-          spec.healthPath,
-          options.caCertPath,
-          {
-            dnsServer: options.dnsServer,
-            /**
-             * §12's public listener, for a PRODUCTION instance and nothing else
-             * (P6a Decision 15). The probe runs from a container, where both of the
-             * edge's servers are at one address and only the port tells them apart —
-             * so without this a production probe reads `srv0`, finds no route, and
-             * `waitForIdentities` refuses the wildcard.
-             *
-             * A CONDITIONAL SPREAD, never `port: cond ? n : undefined`:
-             * `exactOptionalPropertyTypes` is on and the second form is a type error.
-             */
-            ...(spec.environmentKind === 'production'
-              ? { port: options.publicEdgePort }
-              : {}),
-          },
-        ),
+        url: handles[0]!.url,
+        expected: specs.map((spec) => spec.instanceId),
+        probe: edgeIdentityProbe(engine, hostname, first.healthPath, options.caCertPath, {
+          dnsServer: options.dnsServer,
+          /**
+           * §12's public listener, for a PRODUCTION instance and nothing else
+           * (P6a Decision 15). The probe runs from a container, where both of the
+           * edge's servers are at one address and only the port tells them apart —
+           * so without this a production probe reads `srv0`, finds no route, and
+           * `waitForIdentities` refuses the wildcard.
+           *
+           * A CONDITIONAL SPREAD, never `port: cond ? n : undefined`:
+           * `exactOptionalPropertyTypes` is on and the second form is a type error.
+           */
+          ...(first.environmentKind === 'production'
+            ? { port: options.publicEdgePort }
+            : {}),
+        }),
         timeoutMs: IDENTITY_TIMEOUT_MS,
         intervalMs: 500,
       })
       if (!verified.ready) {
-        // PUT IT BACK. The previous instance is still running and still healthy;
-        // leaving the hostname on a move we could not confirm is the outage this
-        // refuses. `restoreRouteTo(undefined, …)` removes the route, which is what
-        // "what served before" means when nothing did.
-        await restoreRouteTo(
-          options.routing,
-          previous,
-          spec.hostname,
-          spec.environmentKind,
+        // PUT IT BACK. The previous set is still running and still healthy; leaving the
+        // hostname on a move we could not confirm is the outage this refuses.
+        // `restoreRouteTo(undefined, …)` removes the route, which is what "what served
+        // before" means when nothing did.
+        await restoreRouteTo(options.routing, previous, hostname, first.environmentKind)
+        const unseen = specs.findIndex((spec) =>
+          (verified.unseen ?? []).includes(spec.instanceId),
         )
+        const handle = handles[unseen === -1 ? 0 : unseen]!
         throw new InstanceNotReadyError(
           handle,
-          `identity: GET ${spec.healthPath} at ${handle.url} through the edge did not ` +
-            `answer as ${spec.instanceId} — ${verified.reason}`,
-          `${handle.name} is ready, and ${spec.hostname} did not reach it`,
+          `identity: GET ${first.healthPath} at ${handle.url} through the edge did not ` +
+            `answer as each of ${specs.map((spec) => spec.instanceId).join(', ')} — ` +
+            verified.reason,
+          `${hostname} did not reach ${handle.name}, which was ready`,
           'The route was put back to what served before. The edge, its route and DNS ' +
-            'are what to look at; the container itself answered on its own network.',
+            'are what to look at; every member answered on its own network.',
+          handles,
         )
       }
-      return handle
+      return handles
     },
 
     /**
      * DRAIN, THEN REMOVE — AND NEVER TOUCH A ROUTE.
      *
-     * §11: a retire changes nothing about what a hostname reaches. `ensureInstance`
-     * has already moved the hostname to its successor; this waits out whatever the
+     * §11: a retire changes nothing about what a hostname reaches. `ensureInstances`
+     * has already moved the hostname to its successor set; this waits out whatever the
      * edge is still holding against the old instance and then removes it, with its
      * files volume — which on a real app holds a copy of the SP private key.
      *
@@ -623,7 +675,7 @@ export async function createDockerDriver(options: DockerDriverOptions): Promise<
           'INSTANCE_SERVING',
           `${container.name} is dialled by a live route (${dialled})`,
           'A retire never changes what a hostname reaches (§11). Move the hostname ' +
-            'first — ensureInstance does exactly that.',
+            'first — ensureInstances does exactly that.',
         )
       }
       const upstream = upstreamFor(container)
@@ -638,7 +690,7 @@ export async function createDockerDriver(options: DockerDriverOptions): Promise<
       const kind = container.labels[LABEL.environment] as
         InstanceSpec['environmentKind'] | undefined
       if (slug !== undefined && kind !== undefined) {
-        // Under the SAME mutex `ensureInstance` holds (Decision 13): a deploy of an
+        // Under the SAME mutex `ensureInstances` holds (Decision 13): a deploy of an
         // AI release that starts while this is deciding would otherwise come up with
         // no route to its models.
         await perNetwork(appNetwork(slug, kind), () =>
@@ -648,21 +700,19 @@ export async function createDockerDriver(options: DockerDriverOptions): Promise<
     },
 
     /**
-     * What the hostname reaches, read from the EDGE'S OWN CONFIGURATION rather than
-     * from the wire (Decision 8): a wire check cannot tell "nothing is routed" from
-     * "the app is slow to answer", and Decision 12 turns that difference into
-     * retiring nothing versus retiring the live app.
+     * What the hostname reaches — EVERY member of its set — read from the EDGE'S OWN
+     * CONFIGURATION rather than from the wire (Decision 8): a wire check cannot tell
+     * "nothing is routed" from "the app is slow to answer", and Decision 12 turns that
+     * difference into retiring nothing versus retiring the live app.
      *
-     * `undefined` for a route whose container is gone as well as for a hostname with
-     * no route. Both are honestly "nothing this driver holds serves it", and both
-     * make the retirer stop.
+     * A member whose container is gone is left out, and a hostname with no route answers
+     * `[]`: both are honestly "nothing this driver holds serves it", and a set that is all
+     * gone makes the retirer stop.
      */
-    async servingInstance(hostname: string): Promise<string | undefined> {
+    async servingInstances(hostname: string): Promise<string[]> {
       const serving = await servingRoute(options.routing, hostname)
-      if (serving === undefined) return undefined
-      // THE FIRST, because every route this driver writes dials ONE until A1's Task 4
-      // gives it a set (and `servingInstances`, which answers every member).
-      return containerForUpstream(engine, serving.upstreams[0]!)
+      if (serving === undefined) return []
+      return containersForUpstreams(engine, serving.upstreams)
     },
 
     /**
@@ -709,48 +759,66 @@ export async function createDockerDriver(options: DockerDriverOptions): Promise<
     },
 
     /**
-     * Points a hostname back at an instance that is already running — what boot calls
-     * for each `Route` record after an edge restart, which drops every runtime route
-     * (§12, Task 9).
+     * Points a hostname back at EXACTLY these instances, already running — what boot calls
+     * for each hostname's `Route` records after an edge restart, which drops every runtime
+     * route (§12, Task 9), and a failed deploy's rollback (A1 Task 4).
      *
-     * It starts and stops nothing. Everything it needs comes off the container's own
-     * labels, so an instance this process did not create is restorable too; an
-     * instance from BEFORE P4c is not, and says so rather than guessing a hostname.
+     * It starts and stops nothing. Everything it needs comes off the containers' own
+     * labels — the hostname, each member's alias and port, and the health path the set's
+     * route is checked on — so an instance this process did not create is restorable too;
+     * an instance from BEFORE P4c is not, and says so rather than guessing a hostname. A
+     * set whose members do not all carry one health path (any from before A1's Task 4) is
+     * routed with no checks, and an operator line says so: a guessed path could eject
+     * members the edge reaches.
      */
-    async restoreRoute(id: string): Promise<void> {
-      const container = await inspectApp(engine, id)
-      const hostname = container?.labels[LABEL.hostname]
-      const instanceId = container?.labels[LABEL.instance]
-      const kind = container?.labels[LABEL.environment] as
-        InstanceSpec['environmentKind'] | undefined
-      const upstream = container === undefined ? undefined : upstreamFor(container)
-      if (
-        container === undefined ||
-        hostname === undefined ||
-        instanceId === undefined ||
-        kind === undefined ||
-        upstream === undefined
-      ) {
+    async restoreRoute(ids: readonly string[]): Promise<void> {
+      const found = await Promise.all(ids.map((id) => inspectApp(engine, id)))
+      const restorable = (
+        container: AppContainer | undefined,
+      ): container is AppContainer =>
+        container !== undefined &&
+        container.labels[LABEL.hostname] !== undefined &&
+        container.labels[LABEL.instance] !== undefined &&
+        container.labels[LABEL.environment] !== undefined &&
+        upstreamFor(container) !== undefined
+      const missing = ids.filter((_id, i) => !restorable(found[i]))
+      if (missing.length > 0) {
         throw new DriverRefusalError(
           'INSTANCE_NOT_FOUND',
-          `no instance '${id}' with a hostname to restore`,
+          `no instance ${missing.map((id) => `'${id}'`).join(', ')} with a hostname to restore`,
           'Only an instance this driver created since P4c carries its hostname. An ' +
-            'app deployed before it gets its Route record at its next deploy.',
+            'app deployed before it gets its Route record at its next deploy. Nothing was changed.',
         )
       }
+      const members = found as AppContainer[]
+      const hostname = assertOneHostname(
+        members.map((container) => ({ hostname: container.labels[LABEL.hostname]! })),
+        'restoreRoute',
+      )
+      const kind = members[0]!.labels[
+        LABEL.environment
+      ] as InstanceSpec['environmentKind']
+      const healthPath = healthPathOf(members)
+      if (healthPath === undefined)
+        console.error(
+          `[runtime] ${hostname}'s set does not carry one health path on its containers — ` +
+            'its route is restored without health checks until its next deploy',
+        )
       await applyRoute(options.routing, {
         hostname,
         kind,
-        upstreams: [{ dial: upstream, instanceId }],
-        // As `ensureInstance` writes it until A1's Task 4: a set of one, no health policy.
-        health: 'none',
+        upstreams: members.map((container) => ({
+          dial: upstreamFor(container)!,
+          instanceId: container.labels[LABEL.instance]!,
+        })),
+        health: healthPath === undefined ? 'none' : appHealthPolicy(healthPath),
       })
     },
 
     /**
      * §11's switched-off page (Task 11), under the hostname's own `@id` on its listener — the
-     * route every other method of this driver reads by that `@id`, so the next `ensureInstance`
-     * replaces it in place and `servingInstance` answers `undefined` meanwhile (it dials nothing).
+     * route every other method of this driver reads by that `@id`, so the next `ensureInstances`
+     * replaces it in place and `servingInstances` answers `[]` meanwhile (it dials nothing).
      */
     switchOff: (hostname, kind) => applySwitchedOffRoute(options.routing, hostname, kind),
 
@@ -763,30 +831,52 @@ export async function createDockerDriver(options: DockerDriverOptions): Promise<
 
     stopInstance: (id) => stopInstanceContainer(engine, id),
 
+    /**
+     * ITS OWN UPSTREAM OUT OF THE ROUTE, THEN THE CONTAINER (A1 Task 4).
+     *
+     * The route is the hostname's, and since A1 a SET reaches it — so a member destroyed
+     * takes only itself out, the other members serving on, and the route goes only with
+     * its last member (otherwise the edge keeps an upstream pointing at a container that no
+     * longer exists, a permanent 502 for every request round robin sends it). An instance
+     * the route does not dial — never routed, as a failed deploy's is, or already routed
+     * away — leaves the route EXACTLY as it is: until this task the whole route was
+     * removed, whatever it dialled.
+     *
+     * NOTHING SWALLOWED: a route change the edge refuses is THROWN, naming the hostname,
+     * BEFORE the container goes, so the caller (the retirer, a deploy's rollback) records
+     * it and the next attempt finds the instance still there. It was
+     * `.catch(() => undefined)`, and a route left dialling a destroyed container left no
+     * operator line.
+     *
+     * The hostname and kind come from the container's OWN labels rather than from
+     * parsing its name: `instanceName` joins them with `-` and a slug may contain `-`,
+     * so the name is not decomposable. A container from before P4c carries no hostname,
+     * and there is no route of its to find.
+     */
     async destroyInstance(id: string): Promise<void> {
-      // THE ROUTE GOES WITH THE CONTAINER. `ensureInstance` applies it, so
-      // `destroyInstance` has to remove it — otherwise the edge keeps a route
-      // pointing at a container that no longer exists (a permanent 502 on the
-      // app's own hostname), and the next instance to take that hostname inherits
-      // a stale upstream instead of getting a fresh one.
-      //
-      // The slug and kind come from the container's OWN labels rather than from
-      // parsing its name: `instanceName` joins them with `-` and a slug may
-      // contain `-`, so the name is not decomposable. Labels are written at
-      // create time by `ensureInstanceContainer`.
-      const inspect = await engine.get<{ Config: { Labels: Record<string, string> } }>(
-        `/containers/${id}/json`,
-      )
-      const labels = inspect?.Config.Labels
-      const kind = labels?.['manifest.environment'] as InstanceSpec['environmentKind']
-      // THE HOSTNAME OFF THE CONTAINER'S OWN LABEL (P4c Task 2), not re-derived from the
-      // slug: the driver no longer knows how a hostname is built, and a container from
-      // before this label carries none — for which there is nothing to remove.
-      const hostname = labels?.['manifest.hostname']
+      const container = await inspectApp(engine, id)
+      // Gone already: nothing of its can be in a route, and its volumes may still be left.
+      if (container === undefined) return destroyInstanceContainer(engine, id)
+      const hostname = container.labels[LABEL.hostname]
+      const kind = container.labels[LABEL.environment] as
+        InstanceSpec['environmentKind'] | undefined
       if (hostname !== undefined && kind !== undefined) {
-        await removeRoute(options.routing, hostname, kind).catch(() => undefined)
+        const own = dialHostOf(container)
+        try {
+          await withdrawUpstream(
+            options.routing,
+            hostname,
+            kind,
+            (dial) => hostOfAddress(dial) === own,
+          )
+        } catch (error) {
+          throw new Error(
+            `could not take ${container.name} out of ${hostname}'s route, so it was not ` +
+              `destroyed: ${(error as Error).message}`,
+          )
+        }
       }
-      await destroyInstanceContainer(engine, id)
+      await destroyInstanceContainer(engine, container.name)
     },
 
     destroyService: (id, opts) => destroyServiceContainer(engine, id, opts),
@@ -795,7 +885,7 @@ export async function createDockerDriver(options: DockerDriverOptions): Promise<
      * §11's *Ending an app* (Task 11): the services by the names the caller gives, then the egress
      * proxy, then the network — the order the network's own "attached containers" check needs
      * (`[M9]`). Each step answers at once for what is already gone (the engine reads a 404 as
-     * done), so a second call is the first. Under the network's mutex, which `ensureInstance` and
+     * done), so a second call is the first. Under the network's mutex, which `ensureInstances` and
      * `retireInstance` hold for the same network.
      */
     async destroyEnvironment({ slug, kind, services }, { deleteData }): Promise<void> {

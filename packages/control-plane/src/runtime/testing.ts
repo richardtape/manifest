@@ -38,7 +38,7 @@ export { createEngineClient, resolveSocketPath } from './docker/engine.js'
 // `destroyInstance` takes the CONTAINER name, not the instance name, and an
 // afterAll that passes the wrong one destroys nothing — silently, if it also
 // swallows the error. Measured 2026-09-08: a stale `mf-saml-probe-staging-r1-app`
-// survived sixteen minutes and four runs, and `ensureInstance` is idempotent by
+// survived sixteen minutes and four runs, and `ensureInstances` is idempotent by
 // name, so every one of those runs redeployed nothing and tested the FIRST
 // image. A negative control that edits the app then passes is the symptom.
 // `instanceAlias` is what the EDGE dials since P4c, so it is what a readiness failure

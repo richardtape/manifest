@@ -18,22 +18,26 @@ const numbered = (n: number): { text: string }[] =>
   Array.from({ length: n }, (_, i) => ({ text: `line ${i + 1}` }))
 
 async function startedInstance(driver: FakeDriver): Promise<string> {
-  const handle = await driver.ensureInstance({
-    instanceId: randomUUID(),
-    name: `output-${randomUUID().slice(0, 8)}`,
-    hostname: 'output.staging.manifest.internal',
-    image: { repository: 'local/output', digest: `sha256:${'0'.repeat(64)}` },
-    env: {},
-    port: 3000,
-    healthPath: '/healthz',
-    resources: { cpu: 1, memoryMi: 256, pids: 128, diskMi: 512 },
-    projectSlug: 'output',
-    environmentKind: 'staging',
-    releaseId: randomUUID(),
-    services: [],
-    egressAllow: [],
-    needsAiGateway: false,
-  })
+  const handle = (
+    await driver.ensureInstances([
+      {
+        instanceId: randomUUID(),
+        name: `output-${randomUUID().slice(0, 8)}`,
+        hostname: 'output.staging.manifest.internal',
+        image: { repository: 'local/output', digest: `sha256:${'0'.repeat(64)}` },
+        env: {},
+        port: 3000,
+        healthPath: '/healthz',
+        resources: { cpu: 1, memoryMi: 256, pids: 128, diskMi: 512 },
+        projectSlug: 'output',
+        environmentKind: 'staging',
+        releaseId: randomUUID(),
+        services: [],
+        egressAllow: [],
+        needsAiGateway: false,
+      },
+    ])
+  )[0]!
   return handle.id
 }
 

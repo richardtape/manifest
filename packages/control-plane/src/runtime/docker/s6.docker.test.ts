@@ -253,7 +253,7 @@ describeDocker(
         // same instance with `true` for its positive control.
         needsAiGateway: false,
       }
-      await driver.ensureInstance(instanceSpec)
+      await driver.ensureInstances([instanceSpec])
       internetReachable =
         (await exitCode('bridge', ['https://registry.npmjs.org/'])) === 0
       await ensureProbeUser(PROBE_USER)
@@ -599,7 +599,7 @@ describeDocker(
     it('13. an app that declares no ai.models cannot reach LiteLLM at all', async () => {
       // Decision 5's whole justification, asserted rather than argued. fixture-s6 was
       // ensured with `needsAiGateway: false` THROUGH THE DRIVER, so this reads what
-      // `ensureInstance` did rather than what a test arranged — both the daemon's own
+      // `ensureInstances` did rather than what a test arranged — both the daemon's own
       // list of the network's containers and the request itself.
       // 000 is curl's "nothing answered" — it never got a status.
       expect(await attachedToAppNet()).not.toContain(AI_GATEWAY_NEIGHBOUR)
@@ -613,13 +613,13 @@ describeDocker(
 
       // THE POSITIVE CONTROL, and it is the same probe from the same network: THIS
       // instance, re-ensured with the flag a declaring app's release carries.
-      // `ensureInstance` is idempotent by name, so it is not a second container. It
+      // `ensureInstances` is idempotent by name, so it is not a second container. It
       // used to attach the neighbour BY HAND, which never exercised the driver, so a
       // driver that ignored the flag passed it (P4b pre-flight 59). Without the pair,
       // `000` is indistinguishable from "curl is missing", "LiteLLM is down" and "the
       // timeout is too short" — S6's first run produced exactly that, and it is why
       // the tier requires pairing.
-      await driver.ensureInstance({ ...instanceSpec, needsAiGateway: true })
+      await driver.ensureInstances([{ ...instanceSpec, needsAiGateway: true }])
       expect(await attachedToAppNet()).toContain(AI_GATEWAY_NEIGHBOUR)
       const after = await statusFromNetwork(APP_NET, confinedKey, 'GET', '/v1/models')
       expect(after).toBe(200)

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   dialHostOf,
+  healthPathOf,
   hostOfAddress,
   upstreamFor,
   type AppContainer,
@@ -81,5 +82,26 @@ describe('hostOfAddress', () => {
 
   it('returns an address with no port unchanged', () => {
     expect(hostOfAddress('mf-i-nowhere')).toBe('mf-i-nowhere')
+  })
+})
+
+/**
+ * A1 Task 4: `restoreRoute` rebuilds a set's route at boot from the containers alone, and a
+ * route has ONE health policy — so the members must agree on the path, or there is none.
+ */
+describe('the health path a set is restored with', () => {
+  const at = (path?: string): AppContainer =>
+    container(path === undefined ? {} : { [LABEL.healthPath]: path })
+
+  it('is the path every member carries', () => {
+    expect(healthPathOf([at('/healthz'), at('/healthz')])).toBe('/healthz')
+    expect(healthPathOf([at('/up')])).toBe('/up')
+  })
+
+  it('is NONE when the members disagree, or one predates the label', () => {
+    expect(healthPathOf([at('/healthz'), at('/up')])).toBeUndefined()
+    expect(healthPathOf([at('/healthz'), at()])).toBeUndefined()
+    expect(healthPathOf([at()])).toBeUndefined()
+    expect(healthPathOf([])).toBeUndefined()
   })
 })

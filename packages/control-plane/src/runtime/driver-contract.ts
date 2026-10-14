@@ -1,6 +1,13 @@
 import { randomUUID } from 'node:crypto'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import type { Driver, ImageRef, InstanceSpec, LogLine, ServiceBinding } from './driver.js'
+import type {
+  Driver,
+  ImageRef,
+  InstanceHandle,
+  InstanceSpec,
+  LogLine,
+  ServiceBinding,
+} from './driver.js'
 import { InstanceNotReadyError, instanceName, serviceName } from './driver.js'
 
 /**
@@ -56,7 +63,7 @@ export interface DriverContractFixtures {
    * suite is for. NOTHING BELOW IS WEAKENED BY IT: every assertion is unchanged
    * and the fake driver's run is byte-for-byte what it was. It also strengthens
    * the contract, because the Docker driver supplies an image it BUILT, so
-   * "ensureInstance can run what buildImage produced" is now asserted — the seam
+   * "ensureInstances can run what buildImage produced" is now asserted — the seam
    * between the two halves of the interface, which nothing tested before.
    */
   runnableImage?: (driver: Driver) => Promise<ImageRef>
@@ -96,6 +103,23 @@ export interface ContinuityFixtures {
   dropRoute: (hostname: string) => Promise<void>
   /** A hostname nothing else in the run uses. */
   hostname: () => string
+  /**
+   * Runs `during` while watching what `hostname` answers as, and resolves with the instance of
+   * every answer — as the driver's HANDLE names it — in the order they came (A1 Task 4) — one request after another through the
+   * edge for a real driver, from before `during` starts until well after it ends; for an
+   * in-memory one, each route the driver held meanwhile, every member of it once (what round
+   * robin over that route would answer). An answer that names no instance is left out.
+   */
+  watch: <T>(
+    driver: Driver,
+    hostname: string,
+    during: () => Promise<T>,
+  ) => Promise<{ result: T; answers: string[] }>
+  /**
+   * The hostname's route exactly as the driver's edge holds it — for comparing before and
+   * after a call that must not change it, never for reading into.
+   */
+  readRoute: (hostname: string) => Promise<unknown>
 }
 
 /**
@@ -244,16 +268,26 @@ export function describeDriverContract(
       expect(handle.endpoint).toContain(b.credentials.database)
     })
 
-    it('ensureInstance is idempotent — the second call does not create a second instance', async () => {
+    /** One instance: a set of one (A1 Task 4 — `ensureInstance` is gone). */
+    const ensureOne = async (
+      driver: Driver,
+      s: InstanceSpec,
+    ): Promise<InstanceHandle> => {
+      const handles = await driver.ensureInstances([s])
+      expect(handles).toHaveLength(1)
+      return handles[0]!
+    }
+
+    it('ensureInstances is idempotent — the second call does not create a second instance', async () => {
       const driver = await factory()
-      const first = await driver.ensureInstance(spec())
-      const second = await driver.ensureInstance(spec())
+      const first = await ensureOne(driver, spec())
+      const second = await ensureOne(driver, spec())
       expect(second.id).toBe(first.id)
     })
 
     it('reports a created instance as not-gone, and a destroyed one as gone', async () => {
       const driver = await factory()
-      const handle = await driver.ensureInstance(spec())
+      const handle = await ensureOne(driver, spec())
       expect((await driver.status(handle.id)).state).not.toBe('gone')
       await driver.destroyInstance(handle.id)
       expect((await driver.status(handle.id)).state).toBe('gone')
@@ -261,10 +295,10 @@ export function describeDriverContract(
 
     it('stopInstance hibernates rather than destroys — volumes survive (§11)', async () => {
       const driver = await factory()
-      const handle = await driver.ensureInstance(spec())
+      const handle = await ensureOne(driver, spec())
       await driver.stopInstance(handle.id)
       expect((await driver.status(handle.id)).state).toBe('hibernated')
-      const woken = await driver.ensureInstance(spec())
+      const woken = await ensureOne(driver, spec())
       expect(woken.id).toBe(handle.id)
     })
 
@@ -315,7 +349,7 @@ export function describeDriverContract(
 
     it('streams logs as an async iterable', async () => {
       const driver = await factory()
-      const handle = await driver.ensureInstance(spec())
+      const handle = await ensureOne(driver, spec())
       const lines = []
       for await (const line of driver.logs(handle.id, { tail: 10 })) lines.push(line)
       expect(lines.length).toBeGreaterThan(0)
@@ -330,7 +364,7 @@ export function describeDriverContract(
         : 'honours tail: the last N lines, in order',
       async () => {
         const driver = await factory()
-        const handle = await driver.ensureInstance(spec())
+        const handle = await ensureOne(driver, spec())
         await printLine!(driver, handle.id, 'contract-tail-first')
         await printLine!(driver, handle.id, 'contract-tail-last')
         const read = async (tail: number): Promise<string[]> => {
@@ -396,77 +430,210 @@ export function describeDriverContract(
 
       const beside = (hostname: string, releaseId: string): InstanceSpec =>
         spec({ hostname, releaseId, instanceId: randomUUID() })
+      /** A set of `n` of one release — what one deploy starts (A1 Task 4). */
+      const setOf = (hostname: string, releaseId: string, n: number): InstanceSpec[] =>
+        Array.from({ length: n }, () => beside(hostname, releaseId))
+      const ids = (handles: readonly InstanceHandle[]): string[] =>
+        handles.map((h) => h.id).sort()
+      const serving = async (driver: Driver, hostname: string): Promise<string[]> =>
+        (await driver.servingInstances(hostname)).sort()
+      /** Settles either way, for a `watch` whose `during` is meant to throw. */
+      const settled = <T>(promise: Promise<T>): Promise<T | unknown> =>
+        promise.catch((error: unknown) => error)
 
-      it('the first instance serves its hostname', async () => {
+      it('the first instance serves its hostname — a set of one', async () => {
         const driver = await factory()
         const hostname = host()
-        const first = await driver.ensureInstance(beside(hostname, 'release-aaaaaaaa'))
-        expect(await driver.servingInstance(hostname)).toBe(first.id)
+        const [first] = await driver.ensureInstances([
+          beside(hostname, 'release-aaaaaaaa'),
+        ])
+        expect(await driver.servingInstances(hostname)).toEqual([first!.id])
       }, 600_000)
 
-      it('a second instance takes the hostname over, and the first is still running', async () => {
+      it('a set of two serves its hostname, and each answers as itself', async () => {
         const driver = await factory()
         const hostname = host()
-        const first = await driver.ensureInstance(beside(hostname, 'release-aaaaaaaa'))
-        const second = await driver.ensureInstance(beside(hostname, 'release-bbbbbbbb'))
-        expect(second.id).not.toBe(first.id)
-        expect(await driver.servingInstance(hostname)).toBe(second.id)
-        // §11: beside, never instead. The old one is what a drain drains.
-        expect((await driver.status(first.id)).state).not.toBe('gone')
-      }, 600_000)
-
-      it('an instance that never becomes ready throws WITH ITS HANDLE, and the previous one still serves', async () => {
-        const driver = await factory()
-        const hostname = host()
-        const first = await driver.ensureInstance(beside(hostname, 'release-aaaaaaaa'))
-        const refusal = driver.ensureInstance(
-          continuity!.neverReady(beside(hostname, 'release-cccccccc')),
+        const set = await driver.ensureInstances(setOf(hostname, 'release-aaaaaaaa', 2))
+        expect(set).toHaveLength(2)
+        expect(new Set(set.map((h) => h.id)).size).toBe(2)
+        expect(await serving(driver, hostname)).toEqual(ids(set))
+        // BOTH, by what the hostname answers — not one of them, and not a status.
+        const { answers } = await continuity!.watch(
+          driver,
+          hostname,
+          async () => undefined,
         )
-        await expect(refusal).rejects.toBeInstanceOf(InstanceNotReadyError)
-        const handle = await refusal.catch(
-          (error: unknown) => (error as InstanceNotReadyError).handle,
-        )
-        expect(await driver.servingInstance(hostname)).toBe(first.id)
-        // STILL THERE: §14's Incident reads its exit code and its log through this
-        // handle, and the CALLER removes it once that is captured (§11).
-        expect((await driver.status(handle.id)).state).not.toBe('gone')
-        await driver.retireInstance(handle.id, { drainMs: 0 })
-        expect((await driver.status(handle.id)).state).toBe('gone')
-        expect(await driver.servingInstance(hostname)).toBe(first.id)
+        expect([...new Set(answers)].sort()).toEqual(ids(set))
       }, 600_000)
 
-      it('retiring the instance it replaced leaves the new one serving', async () => {
+      it('ensureInstances is idempotent for a set — the same specs answer the same handles, still serving', async () => {
         const driver = await factory()
         const hostname = host()
-        const first = await driver.ensureInstance(beside(hostname, 'release-aaaaaaaa'))
-        const second = await driver.ensureInstance(beside(hostname, 'release-bbbbbbbb'))
-        await driver.retireInstance(first.id, { drainMs: 0 })
-        expect((await driver.status(first.id)).state).toBe('gone')
-        expect(await driver.servingInstance(hostname)).toBe(second.id)
+        const specs = setOf(hostname, 'release-aaaaaaaa', 2)
+        const first = await driver.ensureInstances(specs)
+        const again = await driver.ensureInstances(specs)
+        expect(again.map((h) => h.id)).toEqual(first.map((h) => h.id))
+        expect(await serving(driver, hostname)).toEqual(ids(first))
       }, 600_000)
 
-      it('REFUSES to retire the instance that is serving', async () => {
+      it('a set of none, or of two hostnames, is refused before anything starts', async () => {
         const driver = await factory()
-        const hostname = host()
-        const first = await driver.ensureInstance(beside(hostname, 'release-aaaaaaaa'))
+        const one = host()
+        const other = host()
+        await expect(driver.ensureInstances([])).rejects.toThrow(/no instance/)
         await expect(
-          driver.retireInstance(first.id, { drainMs: 0 }),
-        ).rejects.toMatchObject({ code: 'INSTANCE_SERVING' })
-        expect((await driver.status(first.id)).state).not.toBe('gone')
-        expect(await driver.servingInstance(hostname)).toBe(first.id)
+          driver.ensureInstances([
+            beside(one, 'release-aaaaaaaa'),
+            beside(other, 'release-aaaaaaaa'),
+          ]),
+        ).rejects.toThrow(/one hostname/)
+        expect(await driver.listInstances(one)).toEqual([])
+        expect(await driver.listInstances(other)).toEqual([])
+      }, 600_000)
+
+      it('a second set takes the hostname over in ONE move — no answer from the old set after the first from the new — and the first set still runs', async () => {
+        const driver = await factory()
+        const hostname = host()
+        const before = await driver.ensureInstances(
+          setOf(hostname, 'release-aaaaaaaa', 2),
+        )
+        const { result: after, answers } = await continuity!.watch(driver, hostname, () =>
+          driver.ensureInstances(setOf(hostname, 'release-bbbbbbbb', 2)),
+        )
+        const oldIds = new Set(before.map((h) => h.id))
+        const newIds = new Set(after.map((h) => h.id))
+        expect([...oldIds].some((id) => newIds.has(id))).toBe(false)
+        // The watch saw the old set serve and the new one take over — or it proves nothing.
+        expect(answers.some((id) => oldIds.has(id))).toBe(true)
+        const firstNew = answers.findIndex((id) => newIds.has(id))
+        expect(firstNew).toBeGreaterThanOrEqual(0)
+        // NEVER A MIXED SET: once the new set has answered, the old never does again (P4c,
+        // across N). A move per member would put both sets behind the name at once.
+        expect(answers.slice(firstNew).filter((id) => oldIds.has(id))).toEqual([])
+        expect([...new Set(answers.slice(firstNew))].sort()).toEqual(ids(after))
+        expect(await serving(driver, hostname)).toEqual(ids(after))
+        // §11: beside, never instead. The old set is what a drain drains.
+        for (const handle of before)
+          expect((await driver.status(handle.id)).state).not.toBe('gone')
+      }, 600_000)
+
+      it('a set any member of which never becomes ready moves nothing, throws WITH EVERY HANDLE, and the previous set still serves', async () => {
+        const driver = await factory()
+        const hostname = host()
+        const first = await driver.ensureInstances(setOf(hostname, 'release-aaaaaaaa', 2))
+        const routeBefore = await continuity!.readRoute(hostname)
+        const specs = [
+          beside(hostname, 'release-cccccccc'),
+          continuity!.neverReady(beside(hostname, 'release-cccccccc')),
+          beside(hostname, 'release-cccccccc'),
+        ]
+        const refusal = await settled(driver.ensureInstances(specs))
+        expect(refusal).toBeInstanceOf(InstanceNotReadyError)
+        const error = refusal as InstanceNotReadyError
+        // Every member this call started, in the order asked — each handle named for its spec
+        // (a driver may wrap the name: Docker's is its container's) — and the one that failed.
+        expect(error.handles).toHaveLength(specs.length)
+        error.handles.forEach((h, i) => expect(h.name).toContain(specs[i]!.name))
+        expect(error.handle.name).toContain(specs[1]!.name)
+        expect(error.handle.id).toBe(error.handles[1]!.id)
+        // NOTHING MOVED: the route is the one that served, member for member.
+        expect(await continuity!.readRoute(hostname)).toEqual(routeBefore)
+        expect(await serving(driver, hostname)).toEqual(ids(first))
+        // STILL THERE: §14's Incident reads the failed member's exit code and log through its
+        // handle, and the CALLER removes the set once that is captured (§11).
+        for (const handle of error.handles) {
+          expect((await driver.status(handle.id)).state).not.toBe('gone')
+          await driver.retireInstance(handle.id, { drainMs: 0 })
+          expect((await driver.status(handle.id)).state).toBe('gone')
+        }
+        expect(await serving(driver, hostname)).toEqual(ids(first))
+      }, 600_000)
+
+      it('REFUSES to retire any member of the serving set', async () => {
+        const driver = await factory()
+        const hostname = host()
+        const set = await driver.ensureInstances(setOf(hostname, 'release-aaaaaaaa', 2))
+        for (const handle of set) {
+          await expect(
+            driver.retireInstance(handle.id, { drainMs: 0 }),
+          ).rejects.toMatchObject({ code: 'INSTANCE_SERVING' })
+          expect((await driver.status(handle.id)).state).not.toBe('gone')
+        }
+        expect(await serving(driver, hostname)).toEqual(ids(set))
+      }, 600_000)
+
+      it("retiring or destroying the old set's members leaves the new set serving, its route untouched", async () => {
+        const driver = await factory()
+        const hostname = host()
+        const [retired, destroyed] = await driver.ensureInstances(
+          setOf(hostname, 'release-aaaaaaaa', 2),
+        )
+        const second = await driver.ensureInstances(
+          setOf(hostname, 'release-bbbbbbbb', 2),
+        )
+        const route = await continuity!.readRoute(hostname)
+        await driver.retireInstance(retired!.id, { drainMs: 0 })
+        // ROUTED AWAY: its upstream is no longer in the route, so the route stays as it is.
+        await driver.destroyInstance(destroyed!.id)
+        expect((await driver.status(retired!.id)).state).toBe('gone')
+        expect((await driver.status(destroyed!.id)).state).toBe('gone')
+        expect(await continuity!.readRoute(hostname)).toEqual(route)
+        expect(await serving(driver, hostname)).toEqual(ids(second))
+      }, 600_000)
+
+      it('destroying one member of a serving set leaves the other serving, and the last takes the name with it', async () => {
+        const driver = await factory()
+        const hostname = host()
+        const [gone, kept] = await driver.ensureInstances(
+          setOf(hostname, 'release-aaaaaaaa', 2),
+        )
+        await driver.destroyInstance(gone!.id)
+        expect((await driver.status(gone!.id)).state).toBe('gone')
+        expect(await driver.servingInstances(hostname)).toEqual([kept!.id])
+        // By what the hostname ANSWERS: the survivor, and only the survivor.
+        const { answers } = await continuity!.watch(
+          driver,
+          hostname,
+          async () => undefined,
+        )
+        expect([...new Set(answers)]).toEqual([kept!.id])
+        await driver.destroyInstance(kept!.id)
+        expect(await driver.servingInstances(hostname)).toEqual([])
+        expect(await continuity!.readRoute(hostname)).toBeUndefined()
+      }, 600_000)
+
+      it('destroying an instance that was never routed leaves the route exactly as it was', async () => {
+        const driver = await factory()
+        const hostname = host()
+        const set = await driver.ensureInstances(setOf(hostname, 'release-aaaaaaaa', 2))
+        const refusal = await settled(
+          driver.ensureInstances([
+            continuity!.neverReady(beside(hostname, 'release-cccccccc')),
+          ]),
+        )
+        expect(refusal).toBeInstanceOf(InstanceNotReadyError)
+        const never = (refusal as InstanceNotReadyError).handle
+        const route = await continuity!.readRoute(hostname)
+        expect(route).toBeDefined()
+        await driver.destroyInstance(never.id)
+        expect((await driver.status(never.id)).state).toBe('gone')
+        expect(await continuity!.readRoute(hostname)).toEqual(route)
+        expect(await serving(driver, hostname)).toEqual(ids(set))
       }, 600_000)
 
       it('a retire waits for a request that is in flight', async () => {
         const driver = await factory()
         const hostname = host()
-        const first = await driver.ensureInstance(beside(hostname, 'release-aaaaaaaa'))
+        const [first] = await driver.ensureInstances([
+          beside(hostname, 'release-aaaaaaaa'),
+        ])
         const held = await continuity!.holdRequest(driver, hostname)
         let finished = false
         void held.done.then(() => {
           finished = true
         })
-        await driver.ensureInstance(beside(hostname, 'release-bbbbbbbb'))
-        await driver.retireInstance(first.id, { drainMs: continuity!.holdMs * 4 })
+        await driver.ensureInstances([beside(hostname, 'release-bbbbbbbb')])
+        await driver.retireInstance(first!.id, { drainMs: continuity!.holdMs * 4 })
         // NOT "it took a while": the request had ALREADY finished when the retire
         // returned, and it was answered.
         expect(finished).toBe(true)
@@ -476,11 +643,13 @@ export function describeDriverContract(
       it('a retire never waits longer than its drain bound', async () => {
         const driver = await factory()
         const hostname = host()
-        const first = await driver.ensureInstance(beside(hostname, 'release-aaaaaaaa'))
+        const [first] = await driver.ensureInstances([
+          beside(hostname, 'release-aaaaaaaa'),
+        ])
         const held = await continuity!.holdRequest(driver, hostname)
-        await driver.ensureInstance(beside(hostname, 'release-bbbbbbbb'))
+        await driver.ensureInstances([beside(hostname, 'release-bbbbbbbb')])
         const started = Date.now()
-        await driver.retireInstance(first.id, { drainMs: continuity!.shortDrainMs })
+        await driver.retireInstance(first!.id, { drainMs: continuity!.shortDrainMs })
         const waited = Date.now() - started
         expect(waited).toBeGreaterThanOrEqual(continuity!.shortDrainMs)
         expect(waited).toBeLessThan(continuity!.holdMs)
@@ -489,38 +658,57 @@ export function describeDriverContract(
         expect(await held.done).toEqual({ ok: false })
       }, 600_000)
 
-      it('restoreRoute points a hostname back at its instance after the route is lost', async () => {
+      it('restoreRoute puts a whole set back after the route is lost', async () => {
         const driver = await factory()
         const hostname = host()
-        const first = await driver.ensureInstance(beside(hostname, 'release-aaaaaaaa'))
+        const set = await driver.ensureInstances(setOf(hostname, 'release-aaaaaaaa', 2))
+        const route = await continuity!.readRoute(hostname)
         await continuity!.dropRoute(hostname)
-        expect(await driver.servingInstance(hostname)).toBeUndefined()
-        await driver.restoreRoute(first.id)
-        expect(await driver.servingInstance(hostname)).toBe(first.id)
+        expect(await driver.servingInstances(hostname)).toEqual([])
+        await driver.restoreRoute(set.map((h) => h.id))
+        expect(await serving(driver, hostname)).toEqual(ids(set))
+        // The route the set was given, not a lesser one rebuilt without what the deploy knew.
+        expect(await continuity!.readRoute(hostname)).toEqual(route)
+      }, 600_000)
+
+      it('restoreRoute REFUSES a set naming an instance it does not hold, naming it, and changes nothing', async () => {
+        const driver = await factory()
+        const hostname = host()
+        const [only] = await driver.ensureInstances([
+          beside(hostname, 'release-aaaaaaaa'),
+        ])
+        const route = await continuity!.readRoute(hostname)
+        await expect(
+          driver.restoreRoute([only!.id, 'no-such-instance']),
+        ).rejects.toMatchObject({
+          code: 'INSTANCE_NOT_FOUND',
+          message: expect.stringContaining('no-such-instance'),
+        })
+        expect(await continuity!.readRoute(hostname)).toEqual(route)
       }, 600_000)
 
       it('a woken instance serves its hostname again', async () => {
         const driver = await factory()
         const hostname = host()
         const target = beside(hostname, 'release-aaaaaaaa')
-        const first = await driver.ensureInstance(target)
-        await driver.stopInstance(first.id)
-        const woken = await driver.ensureInstance(target)
-        expect(woken.id).toBe(first.id)
-        expect(await driver.servingInstance(hostname)).toBe(first.id)
+        const [first] = await driver.ensureInstances([target])
+        await driver.stopInstance(first!.id)
+        const [woken] = await driver.ensureInstances([target])
+        expect(woken!.id).toBe(first!.id)
+        expect(await driver.servingInstances(hostname)).toEqual([first!.id])
       }, 600_000)
 
       it('the same name with a DIFFERENT environment is refused, never replaced', async () => {
         const driver = await factory()
         const hostname = host()
         const target = beside(hostname, 'release-aaaaaaaa')
-        const first = await driver.ensureInstance(target)
+        const [first] = await driver.ensureInstances([target])
         await expect(
-          driver.ensureInstance({ ...target, env: { ...target.env, CHANGED: '1' } }),
+          driver.ensureInstances([{ ...target, env: { ...target.env, CHANGED: '1' } }]),
         ).rejects.toMatchObject({ code: 'INSTANCE_SPEC_CHANGED' })
         // The old behaviour DELETED it — and it may be the container serving the app.
-        expect((await driver.status(first.id)).state).not.toBe('gone')
-        expect(await driver.servingInstance(hostname)).toBe(first.id)
+        expect((await driver.status(first!.id)).state).not.toBe('gone')
+        expect(await driver.servingInstances(hostname)).toEqual([first!.id])
       }, 600_000)
 
       /**
@@ -531,11 +719,16 @@ export function describeDriverContract(
       it('switchOff: the name reaches no instance, and every instance of it can then be retired', async () => {
         const driver = await factory()
         const hostname = host()
-        const first = await driver.ensureInstance(beside(hostname, 'release-aaaaaaaa'))
+        const set = await driver.ensureInstances(setOf(hostname, 'release-aaaaaaaa', 2))
         await driver.switchOff(hostname, 'staging')
-        expect(await driver.servingInstance(hostname)).toBeUndefined()
-        await driver.retireInstance(first.id, { drainMs: 0 })
-        expect((await driver.status(first.id)).state).toBe('gone')
+        expect(await driver.servingInstances(hostname)).toEqual([])
+        const page = await continuity!.readRoute(hostname)
+        await driver.retireInstance(set[0]!.id, { drainMs: 0 })
+        // AND A DESTROY LEAVES THE PAGE: the instance's upstream is not in it (A1 Task 4).
+        await driver.destroyInstance(set[1]!.id)
+        for (const handle of set)
+          expect((await driver.status(handle.id)).state).toBe('gone')
+        expect(await continuity!.readRoute(hostname)).toEqual(page)
       }, 600_000)
 
       it('switchOff twice is the same as once, and the next instance replaces it', async () => {
@@ -543,9 +736,11 @@ export function describeDriverContract(
         const hostname = host()
         await driver.switchOff(hostname, 'staging')
         await driver.switchOff(hostname, 'staging')
-        expect(await driver.servingInstance(hostname)).toBeUndefined()
-        const next = await driver.ensureInstance(beside(hostname, 'release-bbbbbbbb'))
-        expect(await driver.servingInstance(hostname)).toBe(next.id)
+        expect(await driver.servingInstances(hostname)).toEqual([])
+        const [next] = await driver.ensureInstances([
+          beside(hostname, 'release-bbbbbbbb'),
+        ])
+        expect(await driver.servingInstances(hostname)).toEqual([next!.id])
       }, 600_000)
 
       /**
@@ -561,9 +756,11 @@ export function describeDriverContract(
         await driver.removeName(hostname, 'staging')
         await driver.removeName(hostname, 'staging')
         await driver.removeName(host(), 'staging')
-        expect(await driver.servingInstance(hostname)).toBeUndefined()
-        const next = await driver.ensureInstance(beside(hostname, 'release-cccccccc'))
-        expect(await driver.servingInstance(hostname)).toBe(next.id)
+        expect(await driver.servingInstances(hostname)).toEqual([])
+        const [next] = await driver.ensureInstances([
+          beside(hostname, 'release-cccccccc'),
+        ])
+        expect(await driver.servingInstances(hostname)).toEqual([next!.id])
       }, 600_000)
 
       it('listInstances names every instance of a hostname — serving or not — and nothing else', async () => {
@@ -572,13 +769,17 @@ export function describeDriverContract(
         const other = host()
         // A bound service is never an instance, and it carries the same project labels.
         await driver.ensureService(binding())
-        const first = await driver.ensureInstance(beside(hostname, 'release-aaaaaaaa'))
-        const second = await driver.ensureInstance(beside(hostname, 'release-bbbbbbbb'))
-        const elsewhere = await driver.ensureInstance(beside(other, 'release-dddddddd'))
+        const first = await driver.ensureInstances(setOf(hostname, 'release-aaaaaaaa', 2))
+        const second = await driver.ensureInstances([
+          beside(hostname, 'release-bbbbbbbb'),
+        ])
+        const elsewhere = await driver.ensureInstances([
+          beside(other, 'release-dddddddd'),
+        ])
         expect((await driver.listInstances(hostname)).sort()).toEqual(
-          [first.id, second.id].sort(),
+          ids([...first, ...second]),
         )
-        expect(await driver.listInstances(other)).toEqual([elsewhere.id])
+        expect(await driver.listInstances(other)).toEqual([elsewhere[0]!.id])
       }, 900_000)
     })
   })

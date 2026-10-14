@@ -374,7 +374,7 @@ export class ScanError extends Error {
  *  * Mounting the Docker socket into the scanner would work and is exactly what §12
  *    names as the primary container-escape path. Not done.
  *
- * So the daemon holds the image (it has to anyway — `ensureInstance` runs it), the
+ * So the daemon holds the image (it has to anyway — `ensureInstances` runs it), the
  * control plane exports it, and the scanner gets a read-only bind of one file with
  * **no network at all**.
  */

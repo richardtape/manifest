@@ -1,5 +1,7 @@
 import { randomUUID } from 'node:crypto'
+import { describe, expect, it } from 'vitest'
 import { describeDriverContract } from './driver-contract.js'
+import { instanceName, type InstanceSpec } from './driver.js'
 import {
   FAKE_NEVER_READY_PATH,
   createFakeDriver,
@@ -27,5 +29,68 @@ describeDriverContract('fake', () => shared, {
       ;(shared as FakeDriver).dropRoutes()
     },
     hostname: () => `fake-${randomUUID().slice(0, 8)}.staging.manifest.internal`,
+    /**
+     * The fake has no wire to watch, so it answers what round robin over each route it held
+     * would: the route before `during`, then every route it moved to meanwhile, each member
+     * once (A1 Task 4). A move per member puts the old set beside the new in one of them.
+     */
+    watch: async (driver, hostname, during) => {
+      const fake = driver as FakeDriver
+      const from = fake.routeHistory(hostname).length
+      const current = await driver.servingInstances(hostname)
+      const result = await during()
+      const held = [current, ...fake.routeHistory(hostname).slice(from)]
+      return { result, answers: held.flat() }
+    },
+    readRoute: async (hostname) => (shared as FakeDriver).routeOf(hostname),
   },
+})
+
+describe('the fake driver', () => {
+  const specFor = (hostname: string, releaseId: string): InstanceSpec => {
+    const instanceId = randomUUID()
+    return {
+      name: instanceName('fake-move', 'staging', releaseId, instanceId),
+      instanceId,
+      hostname,
+      projectSlug: 'fake-move',
+      environmentKind: 'staging',
+      releaseId,
+      image: { repository: 'local/fake-move', digest: `sha256:${'b'.repeat(64)}` },
+      env: { PORT: '3000' },
+      port: 3000,
+      healthPath: '/healthz',
+      needsAiGateway: false,
+      resources: { cpu: 0.5, memoryMi: 512, pids: 256, diskMi: 2048 },
+      services: [],
+      egressAllow: [],
+    }
+  }
+
+  // The Docker driver's half of this is the contract's no-mixed-set row, read through the edge.
+  it('moves a set of three in ONE route change, and moves nothing when one is never ready', async () => {
+    const driver = createFakeDriver()
+    const hostname = 'fake-move.staging.manifest.internal'
+    const first = await driver.ensureInstances([
+      specFor(hostname, 'release-aaaaaaaa'),
+      specFor(hostname, 'release-aaaaaaaa'),
+    ])
+    expect(driver.routeHistory(hostname)).toEqual([first.map((h) => h.id)])
+    const second = await driver.ensureInstances([
+      specFor(hostname, 'release-bbbbbbbb'),
+      specFor(hostname, 'release-bbbbbbbb'),
+      specFor(hostname, 'release-bbbbbbbb'),
+    ])
+    expect(driver.routeHistory(hostname)).toEqual([
+      first.map((h) => h.id),
+      second.map((h) => h.id),
+    ])
+    await expect(
+      driver.ensureInstances([
+        specFor(hostname, 'release-cccccccc'),
+        { ...specFor(hostname, 'release-cccccccc'), healthPath: FAKE_NEVER_READY_PATH },
+      ]),
+    ).rejects.toMatchObject({ code: 'INSTANCE_NOT_REACHABLE' })
+    expect(driver.routeHistory(hostname)).toHaveLength(2)
+  })
 })

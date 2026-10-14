@@ -958,7 +958,7 @@ export async function testDeps(): Promise<ServerDeps> {
         )
       },
       // Same reason. A harness that quietly returns a certificate would let a
-      // CWL deploy get all the way to `ensureInstance` with no IdP behind it.
+      // CWL deploy get all the way to `ensureInstances` with no IdP behind it.
       idpSigningCertificate: () => {
         throw new Error('the API test harness has no IdP signing certificate')
       },

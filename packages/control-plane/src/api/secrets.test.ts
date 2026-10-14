@@ -490,7 +490,7 @@ describe('a deploy renders what is set, and refuses what is declared and not set
   it('refuses to deploy a release whose declared secret has no value — before any instance exists — and renders it once set', async () => {
     await withProjectServer(async (ctx) => {
       const commitSha = await commitManifest(ctx, ...declaring(NAME))
-      const ensure = vi.spyOn(ctx.deps.driver, 'ensureInstance')
+      const ensure = vi.spyOn(ctx.deps.driver, 'ensureInstances')
       const refused = await deployCommit(ctx, commitSha, ctx.stagingEnvironmentId)
       expect(refusal(refused)).toEqual({ status: 409, code: 'RELEASE_SECRET_NOT_SET' })
       expect(refused.body).toContain(NAME)
@@ -522,7 +522,7 @@ describe('a deploy renders what is set, and refuses what is declared and not set
       expect(deployed.statusCode, deployed.body).toBe(200)
       expect((deployed.json() as { state: string }).state).toBe('healthy')
       expect(deployed.body).not.toContain('swordfish')
-      const spec = ensure.mock.calls.at(-1)![0] as InstanceSpec
+      const spec = ensure.mock.calls.at(-1)![0][0] as InstanceSpec
       expect(spec.env[NAME]).toBe(VALUE)
     })
   })
@@ -532,10 +532,10 @@ describe('a deploy renders what is set, and refuses what is declared and not set
       expect(
         (await put(ctx, ctx.stagingEnvironmentId, 'UNDECLARED_KEY', VALUE)).statusCode,
       ).toBe(200)
-      const ensure = vi.spyOn(ctx.deps.driver, 'ensureInstance')
+      const ensure = vi.spyOn(ctx.deps.driver, 'ensureInstances')
       const deployed = await deployCommit(ctx, ctx.commitSha, ctx.stagingEnvironmentId)
       expect(deployed.statusCode, deployed.body).toBe(200)
-      const env = (ensure.mock.calls.at(-1)![0] as InstanceSpec).env
+      const env = (ensure.mock.calls.at(-1)![0][0] as InstanceSpec).env
       // The positive control: the deploy rendered the platform's own rows.
       expect(env.MANIFEST_ENV).toBe('staging')
       expect(env).not.toHaveProperty('UNDECLARED_KEY')

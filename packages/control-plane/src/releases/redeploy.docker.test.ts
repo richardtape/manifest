@@ -65,7 +65,7 @@ const routing = {
  * A REDEPLOY THROUGH THE CONTROL PLANE (P4c Task 8).
  *
  * `runtime/docker/redeploy.docker.test.ts` proves the takeover at the DRIVER, where
- * the test hands `ensureInstance` a spec it built itself. This one proves it where a
+ * the test hands `ensureInstances` a spec it built itself. This one proves it where a
  * faculty member meets it: `deployRelease` against the real Docker driver, with the
  * instance row, the advisory lock, §6's Route record and the background retirer all
  * in play — the seam where P3's Session 5 found seven defects of the shape *the test
@@ -375,7 +375,7 @@ describeDocker('a redeploy through deployRelease (§11 Redeploys)', () => {
     const answered = seen.filter((r) => r.status === 200)
     // Decision 6: every 200 through the edge carries the edge's own identity, from a
     // DEFERRED headers handler, so an answer with none would mean a route serving
-    // without one — which is what `servingInstance` and the drain both read.
+    // without one — which is what `servingInstances` and the drain both read.
     expect(answered.filter((r) => r.instance === '')).toEqual([])
     expect(answered.at(0)!.instance).toBe(first.id)
     expect(answered.at(-1)!.instance).toBe(second.id)

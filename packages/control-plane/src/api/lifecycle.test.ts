@@ -292,7 +292,7 @@ describe('archive and restore (§11, Task 11)', () => {
       expect(expired!.state).toBe('expired')
       // 4. The name switched off — on the edge and in the record of what serves.
       expect(driver.isSwitchedOff(deployed.hostname)).toBe(true)
-      expect(await driver.servingInstance(deployed.hostname)).toBeUndefined()
+      expect(await driver.servingInstances(deployed.hostname)).toEqual([])
       expect(
         await ctx.db.select().from(routes).where(eq(routes.hostname, deployed.hostname)),
       ).toEqual([])
@@ -522,7 +522,7 @@ describe('archive and restore (§11, Task 11)', () => {
       expect(again.statusCode, again.body).toBe(200)
       const { id } = again.json() as { id: string }
       const [row] = await ctx.db.select().from(instances).where(eq(instances.id, id))
-      expect(await driver.servingInstance(deployed.hostname)).toBe(row!.handle)
+      expect(await driver.servingInstances(deployed.hostname)).toEqual([row!.handle])
       expect(driver.isSwitchedOff(deployed.hostname)).toBe(false)
     })
   }, 30_000)
@@ -938,7 +938,7 @@ describe('delete (§11, Task 12)', () => {
       expect(lite.users.has(`mf-${ctx.projectId}-staging`)).toBe(false)
       // 5. The names answer nothing of this project's — not even the switched-off page.
       expect(driver.isSwitchedOff(deployed.hostname)).toBe(false)
-      expect(await driver.servingInstance(deployed.hostname)).toBeUndefined()
+      expect(await driver.servingInstances(deployed.hostname)).toEqual([])
       // Every Manifest-IdP registration — the archive's two, and production's, which a laptop's
       // launch rehearsal writes for a project that never launched.
       expect(sso.removed.map((r) => r.environmentKind).sort()).toEqual([
@@ -987,7 +987,7 @@ describe('delete (§11, Task 12)', () => {
       expect(await stateOf(ctx)).toEqual({ state: 'active', deletedAt: null })
       expect(driver.destroyedEnvironments()).toEqual([])
       expect(driver.isSwitchedOff(deployed.hostname)).toBe(false)
-      expect(await driver.servingInstance(deployed.hostname)).toBe(deployed.handle)
+      expect(await driver.servingInstances(deployed.hostname)).toEqual([deployed.handle])
       expect(userDeletes(lite)).toEqual([])
       expect(await eventTypes(ctx, 'project.archived')).toEqual([])
       expect(
@@ -1087,7 +1087,7 @@ describe('delete (§11, Task 12)', () => {
       expect(deployed.json().state, deployed.body).toBe('healthy')
       const driver = ctx.deps.driver as FakeDriver
       const hostname = `${slug}.staging.manifest.internal`
-      const serving = await driver.servingInstance(hostname)
+      const serving = (await driver.servingInstances(hostname))[0]
       expect(serving).toBeDefined()
       const removedBefore = sso.removed.length
       const owner = await ensureTestUser(ctx.db, 'bio_prof')
@@ -1106,7 +1106,7 @@ describe('delete (§11, Task 12)', () => {
 
       // The name still reaches the project that holds it now…
       expect(driver.isSwitchedOff(hostname)).toBe(false)
-      expect(await driver.servingInstance(hostname)).toBe(serving)
+      expect(await driver.servingInstances(hostname)).toEqual([serving])
       expect((await driver.status(serving!)).healthy).toBe(true)
       // …its Route record stays, nothing was deregistered, and the tombstone is still a tombstone.
       const [route] = await ctx.db

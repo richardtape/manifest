@@ -397,7 +397,7 @@ const stagingOf = (s: ProductionSuite) =>
  * **The refusals come first**, cheapest and before anything is deployed, so that the
  * *"leaves nothing behind"* claim is made on a machine where nothing has been left behind
  * yet. `releases.test.ts` has the same refusals against the fake driver; these two are the
- * pair the rule needs, because the fake driver's `ensureInstance` cannot leave a container.
+ * pair the rule needs, because the fake driver's `ensureInstances` cannot leave a container.
  *
  * SEQUENTIAL: each test reads what the one before it left.
  */

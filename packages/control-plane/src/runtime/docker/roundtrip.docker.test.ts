@@ -191,7 +191,7 @@ describeDocker('P3 acceptance: bare repo to a healthy manifest.internal URL', ()
       projectSlug: SLUG,
       credentials: CREDENTIALS,
     })
-    const handle = await driver.ensureInstance(specFor())
+    const handle = (await driver.ensureInstances([specFor()]))[0]!
     expect(handle.url).toBe(`https://${HOST}`)
 
     // The certificate has to actually verify. `ssl_verify_result` of 0 is the
@@ -260,8 +260,8 @@ describeDocker('P3 acceptance: bare repo to a healthy manifest.internal URL', ()
     await driver.stopInstance(INSTANCE)
     expect((await driver.status(INSTANCE)).state).toBe('hibernated')
 
-    // Waking is the same call that created it (§11's idempotent ensureInstance).
-    await driver.ensureInstance(specFor())
+    // Waking is the same call that created it (§11's idempotent ensureInstances).
+    await driver.ensureInstances([specFor()])
     const after = (await throughEdge('/')) as { boots: number }
     // `boots` is written ONCE PER PROCESS START, never by a request. Rising is
     // therefore evidence of BOTH halves of this test's name: the app really
@@ -273,7 +273,7 @@ describeDocker('P3 acceptance: bare repo to a healthy manifest.internal URL', ()
   /**
    * THE CONTROL FOR THE READINESS GATE, which is a control this plan added because
    * it was missing: `waitForReady`/`edgeProbe` existed from Task 14 and NOTHING
-   * called them, so `ensureInstance` returned a handle for an app that was not yet
+   * called them, so `ensureInstances` returned a handle for an app that was not yet
    * answering. The wake path above is what caught it — Caddy's 502, empty body.
    *
    * A gate nobody has watched fail is not a gate. Here the container is healthy and
@@ -283,18 +283,20 @@ describeDocker('P3 acceptance: bare repo to a healthy manifest.internal URL', ()
   it('REFUSES to call a deploy done when the hostname does not serve', async () => {
     const impatient = await dockerDriverForTests({ readinessTimeoutMs: 12_000 })
     const spec = specFor()
-    const refusal = impatient.ensureInstance({
-      ...spec,
-      name: instanceName(SLUG, KIND, 'unreachable', UNREACHABLE_INSTANCE_ID),
-      instanceId: UNREACHABLE_INSTANCE_ID,
-      releaseId: 'unreachable',
-      // The app really is up. It listens on 8080; the readiness probe and the health
-      // check are pointed at a port nothing is bound to, so the probe inside the edge
-      // gets a connection refused for ever — and since P4c the route is NOT moved
-      // before that, so `fixture-rt.staging.manifest.internal` keeps serving whatever
-      // it served. The one thing under test is "does the deploy notice?".
-      port: 9999,
-    })
+    const refusal = impatient.ensureInstances([
+      {
+        ...spec,
+        name: instanceName(SLUG, KIND, 'unreachable', UNREACHABLE_INSTANCE_ID),
+        instanceId: UNREACHABLE_INSTANCE_ID,
+        releaseId: 'unreachable',
+        // The app really is up. It listens on 8080; the readiness probe and the health
+        // check are pointed at a port nothing is bound to, so the probe inside the edge
+        // gets a connection refused for ever — and since P4c the route is NOT moved
+        // before that, so `fixture-rt.staging.manifest.internal` keeps serving whatever
+        // it served. The one thing under test is "does the deploy notice?".
+        port: 9999,
+      },
+    ])
     // WITH THE HANDLE (P4b Task 13). The container exists, and `deployRelease` reads
     // its exit code and log through this handle to record §14's Incident — an error
     // carrying only a code left it nothing to read.

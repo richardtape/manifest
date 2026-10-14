@@ -45,7 +45,7 @@ export interface Retirer {
 }
 
 /**
- * Reap every instance of one environment that is not the one serving (R7).
+ * Reap every instance of one environment that is not one the hostname reaches (R7).
  *
  * Not only the instance this deploy replaced: the backlog from before P4c, and
  * anything a crashed control plane left, is reaped by the next redeploy of that app.
@@ -98,12 +98,15 @@ export async function retireEnvironment(
      * records that a restart drops every runtime route — so "everything that is not
      * serving" would be EVERY instance, including the one people are using. A pass
      * that finds nothing serving does nothing at all and says why.
+     *
+     * A SET since A1's Task 4 (Decision 7): the targets are every instance of the hostname
+     * that is not a member of what it reaches, and the skip is "the serving set is empty".
      */
-    const serving = await deps.driver.servingInstance(environment.hostname)
-    if (serving === undefined) return undefined
+    const serving = await deps.driver.servingInstances(environment.hostname)
+    if (serving.length === 0) return undefined
 
     const targets = (await deps.driver.listInstances(environment.hostname)).filter(
-      (id) => id !== serving,
+      (id) => !serving.includes(id),
     )
     const rows =
       targets.length === 0
@@ -134,17 +137,26 @@ export async function retireEnvironment(
       marked.push(row.id)
     }
 
-    // Is the instance that serves one this platform deployed since P4c? Only then is
+    // Is EVERY instance that serves one this platform deployed since P4c? Only then is
     // the environment's pre-P4c key nobody's, and only then may it be revoked — until
-    // then it is the key the RUNNING container is using.
-    const [servingRecord] = await deps.db
-      .select({ id: instances.id })
+    // then it is the key a RUNNING container is using.
+    const servingRecords = await deps.db
+      .select({ handle: instances.handle })
       .from(instances)
       .innerJoin(routes, eq(routes.instanceId, instances.id))
       .where(
-        and(eq(routes.hostname, environment.hostname), eq(instances.handle, serving)),
+        and(
+          eq(routes.hostname, environment.hostname),
+          inArray(instances.handle, serving),
+        ),
       )
-    return { targets, rows, marked, servingIsRecorded: servingRecord !== undefined }
+    const recorded = new Set(servingRecords.map((record) => record.handle))
+    return {
+      targets,
+      rows,
+      marked,
+      servingIsRecorded: serving.every((handle) => recorded.has(handle)),
+    }
   })
   if (plan === undefined) return { retired: [], failed: [], skipped: 'nothing-serves' }
   if (plan === 'project-deleted')

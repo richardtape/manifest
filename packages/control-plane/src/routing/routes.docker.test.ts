@@ -357,7 +357,7 @@ describeDocker('runtime routing through the Caddy admin API', () => {
   }, 120_000)
 
   // `servingRoute` reads the edge's own configuration rather than the wire, which is
-  // what Task 5's `servingInstance` and Task 4's rollback both rest on.
+  // what Task 5's `servingInstances` and Task 4's rollback both rest on.
   it('reports what the hostname reaches, from the edge’s own configuration', async () => {
     await applyRoute(deps, spec)
     const serving = await servingRoute(deps, HOST)

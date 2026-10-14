@@ -179,7 +179,7 @@ const driver = await createDockerDriver({
   // swapped: `registryHost` is what the BUILDER calls the registry (reachable on
   // the internal build network) and `registryPublicHost` is what the DAEMON calls
   // it. Same content, addressed by digest. Swapped, builds push somewhere the
-  // daemon cannot pull from, and the failure surfaces at `ensureInstance` as a
+  // daemon cannot pull from, and the failure surfaces at `ensureInstances` as a
   // pull error naming an image that was, from the builder's point of view, pushed
   // successfully.
   registryHost: config.registryInternalUrl,

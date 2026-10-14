@@ -2346,7 +2346,7 @@ describe('a CWL app that asks for no attribute (FE-55)', () => {
         .select()
         .from(instances)
         .where(eq(instances.environmentId, staging.id))
-      const ensure = vi.spyOn(ctx.deps.driver, 'ensureInstance')
+      const ensure = vi.spyOn(ctx.deps.driver, 'ensureInstances')
       const refused = await ctx.app.inject({
         method: 'POST',
         url: `/v1/environments/${staging.id}/deploy`,

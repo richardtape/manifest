@@ -124,7 +124,9 @@ export const ENV_HASH_LABEL = 'manifest.env-sha256'
  * `hostname` arrived in Task 2, pulled forward because `destroyInstance` lost its
  * other way of naming the route to remove; the rest arrive here with the readers
  * that need them (Task 5's `retireInstance`, `listInstances`, `servingInstance` and
- * `restoreRoute`).
+ * `restoreRoute`). `healthPath` arrived with A1's Task 4: a set's route carries the
+ * app's health policy, and `restoreRoute` rebuilds that route at boot from nothing but
+ * the containers.
  */
 export const LABEL = {
   slug: 'manifest.slug',
@@ -134,6 +136,7 @@ export const LABEL = {
   hostname: 'manifest.hostname',
   port: 'manifest.port',
   aiGateway: 'manifest.ai-gateway',
+  healthPath: 'manifest.health-path',
   envHash: ENV_HASH_LABEL,
 } as const
 
@@ -275,6 +278,9 @@ export async function ensureInstanceContainer(
       // address and decide whether §10's gateway is still needed, with no database.
       [LABEL.port]: String(spec.port),
       [LABEL.aiGateway]: String(spec.needsAiGateway),
+      // The path the edge's active checks ask (A1 Task 4), so `restoreRoute` can give a set
+      // back the health policy it was deployed with, with no database.
+      [LABEL.healthPath]: spec.healthPath,
       [LABEL.envHash]: envHash,
     },
     /**
@@ -297,7 +303,7 @@ export async function ensureInstanceContainer(
   // `/containers/create` answers **404** when the image is not in the daemon's
   // store — measured 2026-09-06, `{"message":"No such image"}`. Without this
   // check the deploy of an unpullable image creates nothing, starts nothing, and
-  // RETURNS A HANDLE: `ensureInstance` reports success, `status` says `gone`, and
+  // RETURNS A HANDLE: `ensureInstances` reports success, `status` says `gone`, and
   // §11's state machine sees a healthy-looking provisioning step. Every contract
   // test that needed a running container was passing or failing for the wrong
   // reason because of this one line.

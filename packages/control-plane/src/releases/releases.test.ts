@@ -738,14 +738,15 @@ describe('releases (§13)', () => {
       const driver = createFakeDriver()
       // The instance row's state at the moment the driver is asked to start it.
       let stateWhenStarted: string | undefined
-      const ensure = driver.ensureInstance.bind(driver)
-      driver.ensureInstance = async (spec) => {
+      const ensure = driver.ensureInstances.bind(driver)
+      driver.ensureInstances = async (specs) => {
+        const spec = specs[0]!
         const [row] = await db
           .select({ state: instances.state })
           .from(instances)
           .where(eq(instances.id, spec.instanceId))
         stateWhenStarted = row?.state
-        return ensure(spec)
+        return ensure(specs)
       }
       const build = await buildToEnd(
         { db: db, driver: driver, bus: bus },
@@ -787,9 +788,9 @@ describe('releases (§13)', () => {
       const seen: InstanceSpec[] = []
       const recording: Driver = {
         ...driver,
-        ensureInstance: (spec) => {
-          seen.push(spec)
-          return driver.ensureInstance(spec)
+        ensureInstances: (specs) => {
+          seen.push(...specs)
+          return driver.ensureInstances(specs)
         },
       }
       const build = await buildToEnd(
@@ -842,9 +843,9 @@ describe('releases (§13)', () => {
       const seen: InstanceSpec[] = []
       const recording: Driver = {
         ...driver,
-        ensureInstance: (spec) => {
-          seen.push(spec)
-          return driver.ensureInstance(spec)
+        ensureInstances: (specs) => {
+          seen.push(...specs)
+          return driver.ensureInstances(specs)
         },
       }
       const build = await buildToEnd(
@@ -890,9 +891,9 @@ describe('releases (§13)', () => {
       const seen: InstanceSpec[] = []
       const recording: Driver = {
         ...driver,
-        ensureInstance: (spec) => {
-          seen.push(spec)
-          return driver.ensureInstance(spec)
+        ensureInstances: (specs) => {
+          seen.push(...specs)
+          return driver.ensureInstances(specs)
         },
       }
       const build = await buildToEnd(
@@ -1009,9 +1010,9 @@ describe('releases (§13)', () => {
       const seen: InstanceSpec[] = []
       const recording: Driver = {
         ...driver,
-        ensureInstance: (spec) => {
-          seen.push(spec)
-          return driver.ensureInstance(spec)
+        ensureInstances: (specs) => {
+          seen.push(...specs)
+          return driver.ensureInstances(specs)
         },
       }
       const build = await buildToEnd(
@@ -1068,9 +1069,9 @@ describe('releases (§13)', () => {
       const seen: InstanceSpec[] = []
       const recording: Driver = {
         ...driver,
-        ensureInstance: (spec) => {
-          seen.push(spec)
-          return driver.ensureInstance(spec)
+        ensureInstances: (specs) => {
+          seen.push(...specs)
+          return driver.ensureInstances(specs)
         },
       }
       const build = await buildToEnd(
@@ -1242,7 +1243,7 @@ describe('releases (§13)', () => {
 
     /**
      * **BEFORE ANYTHING IS A CLAIM ABOUT SIDE EFFECTS, AND ONLY A SIDE-EFFECT ASSERTION
-     * CAN SEE IT** (the plan's control (b)). A check that ran after `ensureInstance`
+     * CAN SEE IT** (the plan's control (b)). A check that ran after `ensureInstances`
      * refuses with the same code and leaves an instance row, a service and a Service
      * Provider registration behind.
      */
@@ -1888,13 +1889,13 @@ describe('waiting for health', () => {
     // parked in `provisioning`, which nothing moves, and no record of why.
     await withRollback(async (db) => {
       const driver = createFakeDriver()
-      const start = driver.ensureInstance.bind(driver)
+      const start = driver.ensureInstances.bind(driver)
       const check =
         'readiness: GET /healthz at https://chem-labs.staging.manifest.internal through the edge — HTTP 502 (12 attempts)'
-      vi.spyOn(driver, 'ensureInstance').mockImplementation(async (spec) => {
-        const handle = await start(spec)
+      vi.spyOn(driver, 'ensureInstances').mockImplementation(async (specs) => {
+        const [handle] = await start(specs)
         throw new InstanceNotReadyError(
-          handle,
+          handle!,
           check,
           'never answered 200',
           'read the log',
@@ -1924,7 +1925,7 @@ describe('waiting for health', () => {
     // whole record.
     await withRollback(async (db) => {
       const driver = createFakeDriver()
-      vi.spyOn(driver, 'ensureInstance').mockRejectedValue(
+      vi.spyOn(driver, 'ensureInstances').mockRejectedValue(
         new Error('the daemon refused the container'),
       )
       const { release, byKind } = await releaseFor(db, driver)
@@ -1948,9 +1949,10 @@ describe('waiting for health', () => {
       let sessionSecret = ''
       const driver = {
         ...base,
-        ensureInstance: (spec: InstanceSpec) => {
+        ensureInstances: (specs: readonly InstanceSpec[]) => {
+          const spec = specs[0]!
           sessionSecret = spec.env.SESSION_SECRET!
-          return base.ensureInstance(spec)
+          return base.ensureInstances(specs)
         },
         // An app that prints its environment as it dies — the ordinary case §14 names.
         async *logs() {
@@ -2087,7 +2089,7 @@ describe('waiting for health', () => {
   it('streams that a deploy began, and no outcome, when the driver never started an instance', async () => {
     await withRollback(async (db) => {
       const driver = createFakeDriver()
-      vi.spyOn(driver, 'ensureInstance').mockRejectedValue(
+      vi.spyOn(driver, 'ensureInstances').mockRejectedValue(
         new Error('the daemon refused the container'),
       )
       const { release, byKind } = await releaseFor(db, driver)
@@ -2155,13 +2157,15 @@ describe('the InstanceSpec handed to the driver', () => {
         },
       })
 
-      const spy = vi.spyOn(driver, 'ensureInstance')
+      const spy = vi.spyOn(driver, 'ensureInstances')
       await deployRelease(db, driver, config, deployDeps, {
         releaseId: release.id,
         environmentId: byKind.staging!.id,
       })
 
-      const spec = spy.mock.calls[0]![0]
+      // A set of one until A1's Task 5 gives a deploy its count.
+      expect(spy.mock.calls[0]![0]).toHaveLength(1)
+      const spec = spy.mock.calls[0]![0][0]!
       // The repository must be the one the build actually pushed to.
       expect(spec.image.repository).toBe(built.repository)
       expect(spec.image.repository).toBe('local/chem-labs')
@@ -2220,11 +2224,11 @@ describe('deployRelease sets up sign-on before the app starts (§9, Task 9)', ()
       const order: string[] = []
       const driver = createFakeDriver()
       const spy = vi
-        .spyOn(driver, 'ensureInstance')
+        .spyOn(driver, 'ensureInstances')
         .mockImplementation(async (...args) => {
           order.push('instance')
           return (
-            createFakeDriver().ensureInstance as unknown as typeof driver.ensureInstance
+            createFakeDriver().ensureInstances as unknown as typeof driver.ensureInstances
           )(...args)
         })
       const sso = recordingSso(order)
@@ -2471,10 +2475,10 @@ describe('deployRelease and §10’s app key (P4b Task 9)', () => {
     const seen: InstanceSpec[] = []
     const driver: Driver = {
       ...base,
-      ensureInstance: (spec) => {
+      ensureInstances: (specs) => {
         events.push('instance')
-        seen.push(spec)
-        return base.ensureInstance(spec)
+        seen.push(...specs)
+        return base.ensureInstances(specs)
       },
       status: async (id) => {
         const status = await base.status(id)
@@ -2706,10 +2710,15 @@ describe('deployRelease and §10’s app key (P4b Task 9)', () => {
       // `failInstances`: a refused instance reports `failed`, which is what the
       // Incident's status read records below.
       const base = createFakeDriver({ failInstances: true })
-      const start = base.ensureInstance.bind(base)
-      vi.spyOn(base, 'ensureInstance').mockImplementation(async (spec) => {
-        const handle = await start(spec)
-        throw new InstanceNotReadyError(handle, 'readiness: GET /healthz', 'never', 'log')
+      const start = base.ensureInstances.bind(base)
+      vi.spyOn(base, 'ensureInstances').mockImplementation(async (specs) => {
+        const [handle] = await start(specs)
+        throw new InstanceNotReadyError(
+          handle!,
+          'readiness: GET /healthz',
+          'never',
+          'log',
+        )
       })
       const { driver } = recordingDriver(events, base)
       const { release, staging } = await releaseWith(db, driver, aiRelease())
@@ -2736,7 +2745,7 @@ describe('deployRelease and §10’s app key (P4b Task 9)', () => {
     await withRollback(async (db) => {
       const events: string[] = []
       const base = createFakeDriver()
-      vi.spyOn(base, 'ensureInstance').mockRejectedValue(
+      vi.spyOn(base, 'ensureInstances').mockRejectedValue(
         new Error('the daemon refused the container'),
       )
       const { driver } = recordingDriver(events, base)
@@ -2765,7 +2774,7 @@ describe('deployRelease and §10’s app key (P4b Task 9)', () => {
     await withRollback(async (db) => {
       const events: string[] = []
       const base = createFakeDriver()
-      vi.spyOn(base, 'ensureInstance').mockRejectedValue(
+      vi.spyOn(base, 'ensureInstances').mockRejectedValue(
         new Error('the daemon refused the container'),
       )
       const { driver } = recordingDriver(events, base)
@@ -3146,12 +3155,13 @@ describe('deployRelease replaces an instance without interrupting it (P4c Task 8
       const atEnsure: { serving: string | undefined; running: number }[] = []
       const driver: Driver = {
         ...base,
-        ensureInstance: async (spec) => {
+        ensureInstances: async (specs) => {
+          const spec = specs[0]!
           atEnsure.push({
-            serving: await base.servingInstance(spec.hostname),
+            serving: (await base.servingInstances(spec.hostname))[0],
             running: (await base.listInstances(spec.hostname)).length,
           })
-          return base.ensureInstance(spec)
+          return base.ensureInstances(specs)
         },
       }
       const { release, staging } = await releaseFor(db, driver)
@@ -3168,7 +3178,7 @@ describe('deployRelease replaces an instance without interrupting it (P4c Task 8
       // and was still what the hostname reached.
       expect(atEnsure[1]).toEqual({ serving: first.handle, running: 1 })
       // And afterwards both exist — nothing here retires anything; that is scheduled.
-      expect(await driver.servingInstance(staging.hostname)).toBe(second.handle)
+      expect(await driver.servingInstances(staging.hostname)).toEqual([second.handle])
       expect((await driver.listInstances(staging.hostname)).sort()).toEqual(
         [first.handle!, second.handle!].sort(),
       )
@@ -3267,12 +3277,12 @@ describe('deployRelease replaces an instance without interrupting it (P4c Task 8
      * test fail — was measured on 2026-09-15 and came out GREEN: 58 of 58 passed with
      * the lock replaced by a bare IIFE. Two `deployRelease` calls against the fake
      * driver stay in lockstep through the same awaits, so each one's Route row lands
-     * after its own `ensureInstance` and the row and the edge agree either way. It is
+     * after its own `ensureInstances` and the row and the edge agree either way. It is
      * sitting 5's finding 37 again, one task later.
      *
      * What the lock actually buys is the WINDOW: from the instance row to the Route
      * row, nothing else may change what this environment serves. So this holds a
-     * deploy open at its `ensureInstance` and asks a second holder to come in.
+     * deploy open at its `ensureInstances` and asks a second holder to come in.
      */
     await withRollback(async (db) => {
       const base = createFakeDriver()
@@ -3283,10 +3293,10 @@ describe('deployRelease replaces an instance without interrupting it (P4c Task 8
       })
       const driver: Driver = {
         ...base,
-        ensureInstance: async (spec) => {
+        ensureInstances: async (specs) => {
           started = true
           await held
-          return base.ensureInstance(spec)
+          return base.ensureInstances(specs)
         },
       }
       const { release: pending, staging, byKind } = await releaseFor(db, driver)
@@ -3340,7 +3350,7 @@ describe('deployRelease replaces an instance without interrupting it (P4c Task 8
       expect(written).toHaveLength(1)
       // Whichever finished last is what serves, and the Route row says the same —
       // the two cannot disagree, which is what the lock buys.
-      const serving = await driver.servingInstance(staging.hostname)
+      const serving = (await driver.servingInstances(staging.hostname))[0]
       const winner = [a, b].find((row) => row.handle === serving)
       expect(winner, 'the serving instance is one of the two deploys').toBeDefined()
       expect(written[0]!.instanceId).toBe(winner!.id)
@@ -3358,15 +3368,15 @@ describe('deployRelease replaces an instance without interrupting it (P4c Task 8
       let refuse = false
       const driver: Driver = {
         ...base,
-        ensureInstance: async (spec) => {
-          if (!refuse) return base.ensureInstance(spec)
+        ensureInstances: async (specs) => {
+          const spec = specs[0]!
+          if (!refuse) return base.ensureInstances(specs)
           // §11's readiness refusal, from the fake itself: the instance EXISTS, with a
           // log and an exit code, and the route did NOT move.
           try {
-            return await base.ensureInstance({
-              ...spec,
-              healthPath: FAKE_NEVER_READY_PATH,
-            })
+            return await base.ensureInstances([
+              { ...spec, healthPath: FAKE_NEVER_READY_PATH },
+            ])
           } catch (error) {
             order.push(`ensure ${(error as InstanceNotReadyError).handle.id}`)
             throw error
@@ -3409,7 +3419,7 @@ describe('deployRelease replaces an instance without interrupting it (P4c Task 8
         `revoke key of ${failed.id}`,
       ])
       // §13: deploying a release never takes down the one it replaces.
-      expect(await driver.servingInstance(staging.hostname)).toBe(first.handle)
+      expect(await driver.servingInstances(staging.hostname)).toEqual([first.handle])
       expect(await driver.listInstances(staging.hostname)).toEqual([first.handle])
       // And the Route row still names the instance that is actually serving.
       const [route] = await db
@@ -3421,7 +3431,7 @@ describe('deployRelease replaces an instance without interrupting it (P4c Task 8
   })
 
   it('puts the route back when the container’s own health check fails after the move', async () => {
-    // Decision 18. `ensureInstance` resolves once the EDGE reaches the new instance;
+    // Decision 18. `ensureInstances` resolves once the EDGE reaches the new instance;
     // Docker's own HEALTHCHECK runs on its own interval and can disagree a second
     // later. The previous instance is still running, so the hostname goes back to it.
     await withRollback(async (db) => {
@@ -3435,9 +3445,9 @@ describe('deployRelease replaces an instance without interrupting it (P4c Task 8
         ...base,
         status: async (id) =>
           sicken ? { id, state: 'failed', healthy: false } : base.status(id),
-        restoreRoute: async (id) => {
-          restored.push(id)
-          return base.restoreRoute(id)
+        restoreRoute: async (ids) => {
+          restored.push(...ids)
+          return base.restoreRoute(ids)
         },
       }
       const { release, staging } = await releaseFor(db, driver)
@@ -3452,7 +3462,7 @@ describe('deployRelease replaces an instance without interrupting it (P4c Task 8
 
       expect(failed.state).toBe('failed')
       expect(restored).toEqual([first.handle])
-      expect(await driver.servingInstance(staging.hostname)).toBe(first.handle)
+      expect(await driver.servingInstances(staging.hostname)).toEqual([first.handle])
       // The failed container is gone, and the app is still the previous instance.
       expect(await driver.listInstances(staging.hostname)).toEqual([first.handle])
     })
@@ -3486,7 +3496,7 @@ describe('deployRelease replaces an instance without interrupting it (P4c Task 8
       // NOT a retire: a retire refuses an instance a live route dials, which is exactly
       // what this one is. The route goes first, and the container with it.
       expect(retires).toEqual([])
-      expect(await driver.servingInstance(staging.hostname)).toBeUndefined()
+      expect(await driver.servingInstances(staging.hostname)).toEqual([])
       expect(await driver.listInstances(staging.hostname)).toEqual([])
     })
   })
@@ -3497,9 +3507,10 @@ describe('deployRelease replaces an instance without interrupting it (P4c Task 8
       const base = createFakeDriver()
       const driver: Driver = {
         ...base,
-        ensureInstance: (spec) => {
+        ensureInstances: (specs) => {
+          const spec = specs[0]!
           order.push(`ensure ${spec.instanceId}`)
-          return base.ensureInstance(spec)
+          return base.ensureInstances(specs)
         },
       }
       const { release, staging } = await releaseFor(db, driver, aiRelease())

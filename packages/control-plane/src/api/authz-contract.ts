@@ -2588,22 +2588,29 @@ export function describeAuthorizationContract(
       // The output rows' targets (Task 3): written directly, both failed — see `Fixture`.
       // Sandbox's is RUNNING on the fake driver: the route asks the driver first, and an
       // instance it no longer holds is `409 INSTANCE_OUTPUT_UNAVAILABLE` (the review's I3).
-      const running = await deps.driver.ensureInstance({
-        instanceId: randomUUID(),
-        name: `authz-fixture-sandbox-${randomUUID().slice(0, 8)}`,
-        hostname: 'authz-fixture.sandbox.manifest.internal',
-        image: { repository: 'local/authz-fixture', digest: `sha256:${'0'.repeat(64)}` },
-        env: {},
-        port: 3000,
-        healthPath: '/healthz',
-        resources: { cpu: 0.5, memoryMi: 256, pids: 128, diskMi: 512 },
-        projectSlug: 'authz-fixture',
-        environmentKind: 'sandbox',
-        releaseId: release.json().id,
-        services: [],
-        egressAllow: [],
-        needsAiGateway: false,
-      })
+      const running = (
+        await deps.driver.ensureInstances([
+          {
+            instanceId: randomUUID(),
+            name: `authz-fixture-sandbox-${randomUUID().slice(0, 8)}`,
+            hostname: 'authz-fixture.sandbox.manifest.internal',
+            image: {
+              repository: 'local/authz-fixture',
+              digest: `sha256:${'0'.repeat(64)}`,
+            },
+            env: {},
+            port: 3000,
+            healthPath: '/healthz',
+            resources: { cpu: 0.5, memoryMi: 256, pids: 128, diskMi: 512 },
+            projectSlug: 'authz-fixture',
+            environmentKind: 'sandbox',
+            releaseId: release.json().id,
+            services: [],
+            egressAllow: [],
+            needsAiGateway: false,
+          },
+        ])
+      )[0]!
       const instanceIn = async (environmentId: string, handle: string) => {
         const [row] = await deps.db
           .insert(instances)

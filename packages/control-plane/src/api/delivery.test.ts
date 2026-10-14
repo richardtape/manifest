@@ -1713,7 +1713,7 @@ describe('who may run D21’s rehearsal (§13, D24)', () => {
    * recorded; nothing it deployed keeps serving."*; the launch path plan's Task 6c). Until it, the
    * unapproved candidate kept serving production's PUBLIC listener until the launch.
    *
-   * Over the unit tier's fake driver, whose `servingInstance` is the edge's route by hostname — the same
+   * Over the unit tier's fake driver, whose `servingInstances` is the edge's route by hostname — the same
    * question the take-down asks. The Docker tier (`releases/production.docker.test.ts`) reads the real
    * edge's BODY afterwards.
    */
@@ -1745,7 +1745,7 @@ describe('who may run D21’s rehearsal (§13, D24)', () => {
       let during: string | undefined | 'never asked' = 'never asked'
       const ctx = await stagedCwlProject('tk-passed', (inner, deps) => ({
         signIn: async (input) => {
-          during = await deps.driver.servingInstance(input.hostname)
+          during = (await deps.driver.servingInstances(input.hostname))[0]
           return inner.signIn(input)
         },
       }))
@@ -1767,7 +1767,7 @@ describe('who may run D21’s rehearsal (§13, D24)', () => {
         // never routed.
         expect(during).toBe(all[0]!.handle)
         const production = productionOf(ctx)
-        expect(await ctx.deps.driver.servingInstance(production.hostname)).toBeUndefined()
+        expect(await ctx.deps.driver.servingInstances(production.hostname)).toEqual([])
         expect(await productionRoutes(ctx)).toEqual([])
         expect(await retiredEvents(ctx, body.evidence.instanceId)).toHaveLength(1)
         // (v) THE ORDER, on the DATABASE's clock (ORIENTATION §4 trap 14) and at its full
@@ -1814,7 +1814,7 @@ describe('who may run D21’s rehearsal (§13, D24)', () => {
           { id: body.evidence.instanceId, state: 'gone', handle: expect.any(String) },
         ])
         expect(
-          await ctx.deps.driver.servingInstance(productionOf(ctx).hostname),
+          (await ctx.deps.driver.servingInstances(productionOf(ctx).hostname))[0],
         ).toBeUndefined()
         expect(await productionRoutes(ctx)).toEqual([])
       } finally {
@@ -1834,7 +1834,7 @@ describe('who may run D21’s rehearsal (§13, D24)', () => {
         expect(await rehearsalCount(ctx)).toBe(0)
         expect((await productionInstances(ctx)).map((i) => i.state)).toEqual(['gone'])
         expect(
-          await ctx.deps.driver.servingInstance(productionOf(ctx).hostname),
+          (await ctx.deps.driver.servingInstances(productionOf(ctx).hostname))[0],
         ).toBeUndefined()
         expect(await productionRoutes(ctx)).toEqual([])
       } finally {
@@ -1874,7 +1874,7 @@ describe('who may run D21’s rehearsal (§13, D24)', () => {
         expect(recorded).toHaveLength(1)
         expect(await retiredEvents(ctx, body.evidence.instanceId)).toEqual([])
         expect(
-          await ctx.deps.driver.servingInstance(productionOf(ctx).hostname),
+          (await ctx.deps.driver.servingInstances(productionOf(ctx).hostname))[0],
         ).toBeUndefined()
       } finally {
         await ctx.deps.builds.idle()
@@ -1896,7 +1896,7 @@ describe('who may run D21’s rehearsal (§13, D24)', () => {
       const hostname = productionOf(ctx).hostname
       let named: string | undefined
       driver.status = async () => {
-        named = await driver.servingInstance(hostname)
+        named = (await driver.servingInstances(hostname))[0]
         throw Object.assign(new Error('the engine stopped answering'), {
           code: 'ENGINE_GONE',
         })
@@ -1905,7 +1905,7 @@ describe('who may run D21’s rehearsal (§13, D24)', () => {
         const res = await rehearse(ctx, { cookies: await stepped(ctx) })
         expect(refusal(res)).toEqual({ status: 409, code: 'REHEARSAL_DEPLOY_FAILED' })
         expect(named).toEqual(expect.any(String))
-        expect(await driver.servingInstance(hostname)).toBeUndefined()
+        expect(await driver.servingInstances(hostname)).toEqual([])
         expect(await productionRoutes(ctx)).toEqual([])
         expect(await rehearsalCount(ctx)).toBe(0)
       } finally {
@@ -1947,9 +1947,9 @@ describe('who may run D21’s rehearsal (§13, D24)', () => {
             purpose: 'rehearsal',
           },
         )
-        expect(await ctx.deps.driver.servingInstance(production.hostname)).toBe(
+        expect(await ctx.deps.driver.servingInstances(production.hostname)).toEqual([
           left.handle,
-        )
+        ])
         const boot = () =>
           recoverAtBoot({
             db: ctx.deps.db,
@@ -1976,9 +1976,9 @@ describe('who may run D21’s rehearsal (§13, D24)', () => {
           .set({ launchedAt: new Date() })
           .where(eq(projects.id, ctx.project.id))
         expect((await boot()).rehearsalsTakenDown).toEqual({ takenDown: [], failed: [] })
-        expect(await ctx.deps.driver.servingInstance(production.hostname)).toBe(
+        expect(await ctx.deps.driver.servingInstances(production.hostname)).toEqual([
           left.handle,
-        )
+        ])
 
         // NOT LAUNCHED: a rehearsal's leftover, taken down — the name, the record, the instance.
         await ctx.deps.db
@@ -1989,7 +1989,7 @@ describe('who may run D21’s rehearsal (§13, D24)', () => {
           takenDown: [production.hostname],
           failed: [],
         })
-        expect(await ctx.deps.driver.servingInstance(production.hostname)).toBeUndefined()
+        expect(await ctx.deps.driver.servingInstances(production.hostname)).toEqual([])
         expect(await productionRoutes(ctx)).toEqual([])
         expect(
           (await productionInstances(ctx)).map((i) => ({ id: i.id, state: i.state })),
@@ -2053,9 +2053,9 @@ describe('who may run D21’s rehearsal (§13, D24)', () => {
           .instanceId
         expect(raced).toBeDefined()
         // THE OTHER DEPLOY'S INSTANCE STILL HAS THE NAME, and the route record names it.
-        expect(await ctx.deps.driver.servingInstance(productionOf(ctx).hostname)).toBe(
-          raced!.handle,
-        )
+        expect(
+          await ctx.deps.driver.servingInstances(productionOf(ctx).hostname),
+        ).toEqual([raced!.handle])
         expect(await productionRoutes(ctx)).toEqual([{ instanceId: raced!.id }])
         expect(
           (await productionInstances(ctx)).map((i) => ({ id: i.id, state: i.state })),
@@ -2182,14 +2182,14 @@ describe('who may run D21’s rehearsal (§13, D24)', () => {
         expect(await rehearsalCount(ctx)).toBe(0)
         // WHAT IS LEFT, as the message says: the name still reaches the rehearsal's instance.
         const [left] = await productionInstances(ctx)
-        expect(await driver.servingInstance(hostname)).toBe(left!.handle)
+        expect(await driver.servingInstances(hostname)).toEqual([left!.handle])
 
         driver.removeName = removeName
         const again = await rehearse(ctx, { cookies: await stepped(ctx) })
         expect(refusal(again)).toEqual({ status: 200, code: undefined })
         await ctx.deps.retirer.idle()
         expect(await rehearsalCount(ctx)).toBe(1)
-        expect(await driver.servingInstance(hostname)).toBeUndefined()
+        expect(await driver.servingInstances(hostname)).toEqual([])
         expect((await productionInstances(ctx)).map((i) => i.state)).toEqual([
           'gone',
           'gone',
@@ -2219,7 +2219,7 @@ describe('who may run D21’s rehearsal (§13, D24)', () => {
         })
         expect(await rehearsalCount(ctx)).toBe(0)
         // The EXPOSURE is gone — the name went first — and the instance says it is still there.
-        expect(await driver.servingInstance(productionOf(ctx).hostname)).toBeUndefined()
+        expect(await driver.servingInstances(productionOf(ctx).hostname)).toEqual([])
         const [left] = await productionInstances(ctx)
         expect(left?.state).toBe('destroying')
         const [failure] = await ctx.deps.db

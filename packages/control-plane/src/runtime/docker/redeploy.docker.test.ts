@@ -331,7 +331,7 @@ describeDocker('a takeover, at the driver (§11 Redeploys)', () => {
    * `make demo-redeploy`: a window of empty 502s 1.0-1.9 s long on every redeploy.
    */
   it('a second instance takes the hostname over with no 502 and no wildcard answer', async () => {
-    const first = await driver.ensureInstance(specFor(RELEASE_A, FIRST_ID))
+    const first = (await driver.ensureInstances([specFor(RELEASE_A, FIRST_ID)]))[0]!
     expect(first.name).toBe(nameOf(RELEASE_A, FIRST_ID))
     // The route reaches the first instance BY IDENTITY before anything is measured.
     expect((await servingRoute(routing, HOST))?.instanceIds).toEqual([FIRST_ID])
@@ -340,7 +340,7 @@ describeDocker('a takeover, at the driver (§11 Redeploys)', () => {
     // answers, and counting that would be counting the platform's normal state.
     await startLoop(LOOP)
     await new Promise((r) => setTimeout(r, 2000))
-    const second = await driver.ensureInstance(specFor(RELEASE_B, SECOND_ID))
+    const second = (await driver.ensureInstances([specFor(RELEASE_B, SECOND_ID)]))[0]!
     await new Promise((r) => setTimeout(r, 1000))
     const seen = await stopLoop(LOOP)
 
@@ -384,10 +384,12 @@ describeDocker('a takeover, at the driver (§11 Redeploys)', () => {
      * probe is pointed where nothing answers, so it gets connection-refused for ever
      * and the one thing under test is whether the route moved.
      */
-    const refusal = impatient.ensureInstance({
-      ...specFor('release-never', NEVER_READY_ID),
-      port: 9999,
-    })
+    const refusal = impatient.ensureInstances([
+      {
+        ...specFor('release-never', NEVER_READY_ID),
+        port: 9999,
+      },
+    ])
     await expect(refusal).rejects.toBeInstanceOf(InstanceNotReadyError)
     // WITH THE HANDLE, and the container still there: §14's Incident is read through
     // it, and §11 has the CALLER remove it once that is captured (Decision 10).
@@ -458,7 +460,7 @@ describeDocker('a takeover, at the driver (§11 Redeploys)', () => {
     const lying = await dockerDriverForTests({
       routing: { caddy: sabotaged, servers: SERVERS },
     })
-    const refusal = lying.ensureInstance(specFor(RELEASE_B, LYING_ID))
+    const refusal = lying.ensureInstances([specFor(RELEASE_B, LYING_ID)])
     await expect(refusal).rejects.toBeInstanceOf(InstanceNotReadyError)
     // `identity:`, not `readiness:` — this instance IS ready on its own network, and
     // what failed is the edge reaching it. That is the branch the rollback is in.
@@ -647,10 +649,14 @@ describeDocker('a takeover, at the driver (§11 Redeploys)', () => {
     expect(await gatewayAttached()).toBe(false)
 
     // 1. An AI release takes the hostname over, and the gateway joins the network.
-    const ai = await driver.ensureInstance({
-      ...specFor(RELEASE_C, AI_ID),
-      needsAiGateway: true,
-    })
+    const ai = (
+      await driver.ensureInstances([
+        {
+          ...specFor(RELEASE_C, AI_ID),
+          needsAiGateway: true,
+        },
+      ])
+    )[0]!
     expect(await gatewayAttached()).toBe(true)
     expect((await servingRoute(routing, HOST))?.instanceIds).toEqual([AI_ID])
 
@@ -664,7 +670,7 @@ describeDocker('a takeover, at the driver (§11 Redeploys)', () => {
     //    NEEDING the gateway — the safe direction. Read it the other way and an app
     //    whose only instances predate the label silently loses its models.
     await startPreP4cContainer(PRE_P4C_KEEPER, 'release-oldgateway')
-    await driver.ensureInstance(specFor(RELEASE_D, PLAIN_ID))
+    await driver.ensureInstances([specFor(RELEASE_D, PLAIN_ID)])
     expect((await servingRoute(routing, HOST))?.instanceIds).toEqual([PLAIN_ID])
     await driver.retireInstance(ai.id, { drainMs: 0 })
     expect(await gatewayAttached()).toBe(true)

@@ -144,6 +144,52 @@ export async function removeRoute(
 }
 
 /**
+ * Takes ONE member out of `hostname`'s route (A1 Task 4): the route PATCHed in place with
+ * every other member — and everything else about it — exactly as the edge held it, or
+ * REMOVED when the member was its last. A route that does not dial it (never routed, routed
+ * away, the switched-off page, no route at all) is left EXACTLY as it is.
+ *
+ * `isMember` decides by DIAL ADDRESS, so the caller can match a container's alias or, before
+ * P4c, its name. Nothing is swallowed: a change the edge refuses is thrown to the caller,
+ * which has not yet removed the container. Answers what it did.
+ *
+ * Its caller is the Docker driver's `destroyInstance`.
+ */
+export async function withdrawUpstream(
+  deps: RoutingDeps,
+  hostname: string,
+  kind: EnvironmentKind,
+  isMember: (dial: string) => boolean,
+): Promise<'withdrawn' | 'removed' | 'absent'> {
+  const routeId = routeIdFor(hostname)
+  const route = await deps.caddy.getRoute(routeId)
+  if (route === undefined) return 'absent'
+  const dials = upstreamsOf(route)
+  if (!dials.some(isMember)) return 'absent'
+  const remaining = dials.filter((dial) => !isMember(dial))
+  if (remaining.length === 0) {
+    await removeRoute(deps, hostname, kind)
+    return 'removed'
+  }
+  const narrowed: CaddyRoute = {
+    ...route,
+    handle: route.handle.map((handler) => {
+      const proxy = handler as { handler?: string; upstreams?: { dial?: string }[] }
+      return proxy.handler === 'reverse_proxy'
+        ? {
+            ...proxy,
+            upstreams: (proxy.upstreams ?? []).filter(
+              (u) => u.dial === undefined || !isMember(u.dial),
+            ),
+          }
+        : handler
+    }),
+  }
+  await deps.caddy.patchRoute(routeId, narrowed)
+  return 'withdrawn'
+}
+
+/**
  * EVERY address a route dials, in the route's order — empty for a route that proxies nowhere
  * (the switched-off page).
  *
@@ -219,8 +265,8 @@ export async function servingRoute(
  * spec: rebuilding would need the previous instance's port and hostname, which is a
  * second producer of a value we are already holding (§11's naming lesson).
  *
- * Called by `ensureInstance` when the edge cannot be shown to reach the new instance
- * (Task 4, Decision 7) and by boot recovery (Task 9).
+ * Called by `ensureInstances` when the edge cannot be shown to reach every new instance
+ * (P4c Task 4, Decision 7; A1 Task 4).
  */
 export async function restoreRouteTo(
   deps: RoutingDeps,

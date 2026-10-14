@@ -268,7 +268,7 @@ export async function deployRelease(
    * the route: an instance row, a service, a Service Provider registration and a network
    * are all side effects, and a check after any of them has left something behind.
    * `releases.test.ts`'s *leaves no instance row behind* is the assertion that can see it —
-   * a check moved after `ensureInstance` refuses with this same code and passes every other
+   * a check moved after `ensureInstances` refuses with this same code and passes every other
    * test in this file.
    *
    * **IT IS THE GATE'S SECOND HALF, NOT A COPY OF IT.** `assertLaunchable` (the route's,
@@ -485,9 +485,10 @@ export async function deployRelease(
      * WHAT SERVES RIGHT NOW: what a failure falls back to, and what this deploy
      * replaces. Read before anything is started, and from the DRIVER rather than from
      * the Route row — an app deployed before P4c has no row, and it is still the thing
-     * people are using (Decision 20: there is no backfill).
+     * people are using (Decision 20: there is no backfill). A SET since A1's Task 4: every
+     * instance the hostname reaches, `[]` when none does.
      */
-    const previous = await driver.servingInstance(environment.hostname)
+    const previous = await driver.servingInstances(environment.hostname)
 
     /**
      * THE SERVICE WIRE. Until this existed `services: []` was a hardcoded literal,
@@ -537,7 +538,7 @@ export async function deployRelease(
      * writes two audit Events, and `registerServiceProvider` builds their redactor
      * from the app's own secret set. Running it last means that set already holds the
      * service credentials this deploy just stored, so §14's redaction covers them
-     * too. Both positions satisfy "before ensureInstance"; this one covers more.
+     * too. Both positions satisfy "before ensureInstances"; this one covers more.
      *
      * `auth` is optional at runtime because §13 FROZE the resolved config at release
      * time and releases created before `ResolvedConfig.auth` existed do not have it.
@@ -708,61 +709,68 @@ export async function deployRelease(
         },
         redact,
       )
-      handle = await driver.ensureInstance({
-        name,
-        instanceId,
-        // §23 assigned it and this function holds the environment row, so the driver is
-        // HANDED it rather than re-deriving it (P4c Task 2).
-        hostname: environment.hostname,
-        projectSlug,
-        environmentKind: environment.kind,
-        releaseId: release.id,
-        image: { digest, repository },
-        /**
-         * §8's ENTIRE contract, from one function. Nothing is added here.
-         *
-         * P3 built an ad-hoc block in this position — the app's own env, then PORT,
-         * MANIFEST_ENV, MANIFEST_PROJECT_SLUG, MANIFEST_APP_URL, then the service
-         * endpoints — and it was the platform's second producer of these names.
-         * `MONGODB_DB_NAME` is what that cost: §8 requires it, the block injected
-         * only the catalogue's `envVar`, and every deployed app wrote to a database
-         * called `app` while two Docker tests set the variable themselves and
-         * passed. The block is deleted rather than extended, and
-         * `grep -rn MANIFEST_APP_URL src --include='*.ts'` outside the tests now
-         * finds `spec/injection.ts` alone.
-         */
-        env: renderInjection({
-          resolved,
-          environmentKind: environment.kind,
+      /**
+       * A SET OF ONE until A1's Task 5 gives a deploy its count (`shapeFor`): the driver's
+       * set-of-N call, asked for one (A1 Task 4).
+       */
+      const [started] = await driver.ensureInstances([
+        {
+          name,
+          instanceId,
+          // §23 assigned it and this function holds the environment row, so the driver is
+          // HANDED it rather than re-deriving it (P4c Task 2).
           hostname: environment.hostname,
           projectSlug,
-          idp: config.idp,
-          // D21's rehearsal (P6a Task 14): production in every respect except the IdP it
-          // is pointed at, because §8 sends a production app to real UBC Shibboleth and
-          // C1 puts that out of reach. `injection.ts`'s `purpose` carries the measurement
-          // that found it.
-          ...(input.purpose === undefined ? {} : { purpose: input.purpose }),
-          ...(registration !== undefined ? { spEntity: registration.entity } : {}),
-          secrets: { sessionSecret, appEnv },
-          services: boundServices,
-          ...(ai === undefined ? {} : { ai }),
-        }),
-        ...(files.length > 0 ? { files } : {}),
-        port: resolved.port,
-        healthPath: resolved.health,
-        resources: {
-          cpu: resolved.resources.cpu,
-          memoryMi: toMebibytes(resolved.resources.memory),
-          pids: resolved.resources.pids,
-          diskMi: toMebibytes(resolved.resources.disk),
+          environmentKind: environment.kind,
+          releaseId: release.id,
+          image: { digest, repository },
+          /**
+           * §8's ENTIRE contract, from one function. Nothing is added here.
+           *
+           * P3 built an ad-hoc block in this position — the app's own env, then PORT,
+           * MANIFEST_ENV, MANIFEST_PROJECT_SLUG, MANIFEST_APP_URL, then the service
+           * endpoints — and it was the platform's second producer of these names.
+           * `MONGODB_DB_NAME` is what that cost: §8 requires it, the block injected
+           * only the catalogue's `envVar`, and every deployed app wrote to a database
+           * called `app` while two Docker tests set the variable themselves and
+           * passed. The block is deleted rather than extended, and
+           * `grep -rn MANIFEST_APP_URL src --include='*.ts'` outside the tests now
+           * finds `spec/injection.ts` alone.
+           */
+          env: renderInjection({
+            resolved,
+            environmentKind: environment.kind,
+            hostname: environment.hostname,
+            projectSlug,
+            idp: config.idp,
+            // D21's rehearsal (P6a Task 14): production in every respect except the IdP it
+            // is pointed at, because §8 sends a production app to real UBC Shibboleth and
+            // C1 puts that out of reach. `injection.ts`'s `purpose` carries the measurement
+            // that found it.
+            ...(input.purpose === undefined ? {} : { purpose: input.purpose }),
+            ...(registration !== undefined ? { spEntity: registration.entity } : {}),
+            secrets: { sessionSecret, appEnv },
+            services: boundServices,
+            ...(ai === undefined ? {} : { ai }),
+          }),
+          ...(files.length > 0 ? { files } : {}),
+          port: resolved.port,
+          healthPath: resolved.health,
+          resources: {
+            cpu: resolved.resources.cpu,
+            memoryMi: toMebibytes(resolved.resources.memory),
+            pids: resolved.resources.pids,
+            diskMi: toMebibytes(resolved.resources.disk),
+          },
+          services: serviceHandles,
+          egressAllow: resolved.egressAllow,
+          // §10's gateway joins the app's network only for an app that declares models
+          // (P4b Task 8). `?.` because a release frozen before `ResolvedConfig.ai` existed
+          // has no `ai` key at all (pre-flight 64).
+          needsAiGateway: models.length > 0,
         },
-        services: serviceHandles,
-        egressAllow: resolved.egressAllow,
-        // §10's gateway joins the app's network only for an app that declares models
-        // (P4b Task 8). `?.` because a release frozen before `ResolvedConfig.ai` existed
-        // has no `ai` key at all (pre-flight 64).
-        needsAiGateway: models.length > 0,
-      })
+      ])
+      handle = started!
       const health = await waitForHealth(driver, handle.id, healthWait)
       healthy = health.healthy
       if (!health.healthy) {
@@ -800,15 +808,16 @@ export async function deployRelease(
     /**
      * THE ROUTE MOVED AND THE CONTAINER THEN FAILED ITS OWN HEALTH CHECK (Decision 18).
      *
-     * `ensureInstance` resolves once the EDGE reaches the new instance; Docker's
+     * `ensureInstances` resolves once the EDGE reaches the new instance; Docker's
      * HEALTHCHECK runs on its own interval and can disagree a second later. §13: deploying
      * a release never takes down the one it replaces — so the hostname goes back to the
-     * instance that was serving when this deploy started. A readiness refusal never gets
+     * set that was serving when this deploy started. A readiness refusal never gets
      * here, because that one leaves the route where it was.
      */
     let routeDialsFailed =
-      !healthy && (await driver.servingInstance(environment.hostname)) === handle.id
-    if (routeDialsFailed && previous !== undefined) {
+      !healthy &&
+      (await driver.servingInstances(environment.hostname)).includes(handle.id)
+    if (routeDialsFailed && previous.length > 0) {
       routeDialsFailed = await driver
         .restoreRoute(previous)
         .then(() => false)

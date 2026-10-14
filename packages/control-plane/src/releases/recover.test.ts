@@ -110,22 +110,26 @@ async function deployed(
    * refuse both routes and read as a defect in `recoverAtBoot` (measured 2026-09-15).
    */
   const driver = options.driver ?? createFakeDriver()
-  const handle = await driver.ensureInstance({
-    instanceId: randomUUID(),
-    name: `chem-labs-${unique}-serving`,
-    hostname: staging.hostname,
-    image: { repository: 'local/chem-labs', digest: `sha256:${'0'.repeat(64)}` },
-    env: {},
-    port: 8080,
-    healthPath: '/healthz',
-    resources: { cpu: 1, memoryMi: 256, pids: 128, diskMi: 512 },
-    projectSlug: `chem-labs-${unique}`,
-    environmentKind: 'staging',
-    releaseId: release!.id,
-    services: [],
-    egressAllow: [],
-    needsAiGateway: false,
-  })
+  const handle = (
+    await driver.ensureInstances([
+      {
+        instanceId: randomUUID(),
+        name: `chem-labs-${unique}-serving`,
+        hostname: staging.hostname,
+        image: { repository: 'local/chem-labs', digest: `sha256:${'0'.repeat(64)}` },
+        env: {},
+        port: 8080,
+        healthPath: '/healthz',
+        resources: { cpu: 1, memoryMi: 256, pids: 128, diskMi: 512 },
+        projectSlug: `chem-labs-${unique}`,
+        environmentKind: 'staging',
+        releaseId: release!.id,
+        services: [],
+        egressAllow: [],
+        needsAiGateway: false,
+      },
+    ])
+  )[0]!
   const [row] = await db
     .insert(instances)
     .values({
@@ -227,11 +231,11 @@ describe('recoverAtBoot (P4c Task 9)', () => {
     // restart left every app on the wildcard until somebody redeployed it.
     await withRollback(async (db) => {
       const { driver, hostname, serving, environmentId } = await deployed(db)
-      expect(await driver.servingInstance(hostname)).toBeUndefined()
+      expect(await driver.servingInstances(hostname)).toEqual([])
 
       const report = await recoverAtBoot({ db, driver, bus, ...recorder() })
 
-      expect(await driver.servingInstance(hostname)).toBe(serving.handle)
+      expect(await driver.servingInstances(hostname)).toEqual([serving.handle])
       expect(report.routesRestored).toBe(1)
       expect(report.routesFailed).toEqual([])
       expect(report.scheduled).toEqual([environmentId])
@@ -257,9 +261,11 @@ describe('recoverAtBoot (P4c Task 9)', () => {
         { hostname: broken.hostname, reason: 'INSTANCE_NOT_FOUND' },
       ])
       // The one that could be restored WAS, which is the "carries on" half.
-      expect(await driver.servingInstance(healthy.hostname)).toBe(healthy.serving.handle)
+      expect(await driver.servingInstances(healthy.hostname)).toEqual([
+        healthy.serving.handle,
+      ])
       // And the broken hostname reaches nothing, rather than a stale upstream.
-      expect(await driver.servingInstance(broken.hostname)).toBeUndefined()
+      expect(await driver.servingInstances(broken.hostname)).toEqual([])
     })
   })
 
@@ -352,8 +358,8 @@ describe('recoverAtBoot (P4c Task 9)', () => {
     /**
      * DECISION 20'S ORDER, and not for the reason it gives (sitting 5's correction 1).
      *
-     * `retireEnvironment` does NOTHING AT ALL when `servingInstance` answers
-     * `undefined` — which is the state of every environment before the routes are
+     * `retireEnvironment` does NOTHING AT ALL when `servingInstances` answers
+     * `[]` — which is the state of every environment before the routes are
      * back. So scheduling first does not merely reorder the work: every pass returns
      * `skipped: 'nothing-serves'`, the containers are never reaped, and nothing
      * anywhere reports a failure. The wrong order is green everywhere else, so the
@@ -373,8 +379,8 @@ describe('recoverAtBoot (P4c Task 9)', () => {
           schedule: () => {
             // Synchronous, like the real `schedule`: read what the edge holds now.
             void driver
-              .servingInstance(hostname)
-              .then((id) => servingWhenScheduled.push(id))
+              .servingInstances(hostname)
+              .then((ids) => servingWhenScheduled.push(...ids))
           },
         },
       })

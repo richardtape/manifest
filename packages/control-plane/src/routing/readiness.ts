@@ -7,6 +7,11 @@ export interface ReadinessResult {
   attempts: number
   lastStatus?: number
   reason: string
+  /**
+   * `waitForIdentities` alone, when it gives up: the expected instances the edge never
+   * answered as, in the order they were expected — what a set's failed move names (A1 Task 4).
+   */
+  unseen?: string[]
 }
 
 export async function waitForReady(input: {
@@ -82,7 +87,7 @@ export interface IdentityProbeResult {
  * meanwhile, since every request advances the same rotation — and one still unseen is named
  * then, rather than after the whole timeout.
  *
- * Called by the Docker driver's `ensureInstance`, after the one in-place move.
+ * Called by the Docker driver's `ensureInstances`, after the one in-place move.
  */
 export async function waitForIdentities(input: {
   url: string
@@ -149,6 +154,7 @@ export async function waitForIdentities(input: {
         ready: false,
         attempts,
         ...(lastStatus === undefined ? {} : { lastStatus }),
+        unseen: unseen(),
         reason: windowSpent
           ? `the edge served 200 as ${[...seen].join(', ')} and never as ${unseen().join(', ')} ` +
             `within ${window} answers after the first (${attempts} attempt(s)) — round robin reaches every member within that`

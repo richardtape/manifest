@@ -157,7 +157,7 @@ describe('the AI gateway is a conditional neighbour (P4b Task 8)', () => {
   })
 
   it('attaches it to a network that ALREADY exists — the path every deploy takes', async () => {
-    // `ensureService` creates the network first and passes nothing; `ensureInstance`
+    // `ensureService` creates the network first and passes nothing; `ensureInstances`
     // arrives a moment later asking for the gateway. A version that only attached
     // extras on create would pass the test above and give no AI app a route.
     const fake = fakeEngine(PLATFORM)
