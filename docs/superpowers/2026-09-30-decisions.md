@@ -1895,3 +1895,26 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
       fresh → re-use ×2 with no demo-capacity between. Rejected: (A) fix the two checks now (~1.5 h of gates and demo re-runs on an
       otherwise final tree, delaying Rich's click and the gentler test tiers, for a check in a demo); (B) make demo-capacity put
       its app back on the release it found (a new deploy path in a demo, the same cost).
+
+    At ~10:03 PDT, DECIDED BY manifest-coord4 UNDER RICH'S DELEGATION — FOR HIS REVIEW: THE ORDER AFTER A1's CLICK. Three things want
+    7100 or a quiet machine: the gentler test tiers (Rich's "the next thing to do", abdd01e; approved b492e31 — three sittings,
+    the first four whole unit suites as its "before"), W5's walk (placed by Rich "on S8's close-out", c0f969e answer 8 — a walk on
+    7100 in edge mode, a class app's two instances on our page, one real private repository), and the small fix session placed by
+    b967a8e/1fe7d7f; and F7's sittings 1–3 (mock mode; Rich's "1-3 early, the rest with BP", 2b3dd6d, "after the second run's
+    W4/W5"). The premises checked: every platform `pnpm test` empties 7100, so W5's walk cannot share time with a platform suite;
+    W5 and an F7 acceptance both need 7105; F7's sittings 1–3 need neither 7100 nor W5 (mock mode, contract 1.9.0, adopted
+    299c4b0). CHOSEN:
+      - The platform lane, serially on 7100: the gentler test tiers' sitting 1 → its sitting 2 → the fix session (b967a8e's race +
+        1fe7d7f's demo re-use check) → W5's walk (its window; 7100 on real GitHub from .env, G4) → B. The gentler test tiers'
+        sitting 3 (Rich's Docker Desktop step, the Docker tier at 6 CPUs) goes wherever Rich is at the machine after sitting 2's
+        Docker tier at 12, and before B (B waits for it).
+      - The app lane: F7's sittings 1, 2, 3 at once after A1 closes, one session each, in mock mode beside the platform lane — code
+        and tests written under HOLD, Vitest only in FREE windows, 7105 granted for its acceptance between W5's needs. F7 thus
+        runs BEFORE W5 rather than after it: a reorder inside the app lane, since W5 now waits for 7100 behind the gentler test
+        tiers and F7 does not depend on it.
+      - W5's real repository: one new private repository in Manifest-local-dev, left in place after the walk (the brief's "that
+        nothing deletes"), its name recorded in CLAUDE.md's unowned list for Rich to delete when he chooses.
+      Rejected: W5 first (2–3 h of 7100 before what Rich called next, and a loaded machine through measurements that must be
+      quiet); F7 held behind W5 (idle for hours for no dependency); the fix session before the gentler test tiers (as b967a8e).
+      Rich's actions in this order, each asked at the time: a time for each imitated-load run (one in sitting 1, two in sitting 2);
+      the Docker Desktop step; new tabs (one per sitting, as below).
