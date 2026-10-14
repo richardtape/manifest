@@ -32,6 +32,14 @@ $config = [
             'sn'                   => ['Student'],
             'eduPersonAffiliation' => ['student'],
         ],
+        'student2:student2' => [
+            'ubcEduCwlPuid'        => ['stu000002'],
+            'uid'                  => ['student2'],
+            'mail'                 => ['student2@student.ubc.ca'],
+            'givenName'            => ['Test'],
+            'sn'                   => ['Student Two'],
+            'eduPersonAffiliation' => ['student'],
+        ],
         'instructor:instructor' => [
             'ubcEduCwlPuid'        => ['ins000001'],
             'uid'                  => ['instructor'],
