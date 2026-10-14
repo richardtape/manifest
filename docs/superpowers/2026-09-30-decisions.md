@@ -1478,3 +1478,23 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
     (Task 6 edits the same launch events, inside contract 1.9.0). His words: "yes, put FE-60 in sitting 5". So sitting 5 makes
     iam_registration.sent and .submitted carry requestedAttributes, as the record has them, beside FE-59's changeRequestedFrom
     on .recorded. Rejected: a fix after A1; leave it tracked.
+
+    And at ~19:38 PDT, in chat to manifest-coord3, THE SKELETON'S DEVELOPMENT ERROR PAGE (A1 sitting 3's F11, pre-existing:
+    blueprints/node-ts-mongo/skeleton/server.js mounts no Express error handler and NODE_ENV is set nowhere — not in
+    Dockerfile.tmpl, server.js or spec/injection.ts — so a failed CWL sign-in, or any route that throws, shows the person
+    Express's development page with a stack trace and container paths, in every app made from the skeleton). Put to him with
+    options and a recommendation; his word: "both." So, in A1's SITTING 6 beside Task 8b (blueprints/ owed there; no contract
+    change): an error handler as the skeleton's last middleware (console.error the error, never a secret; answer 500 with one
+    plain sentence, no stack) AND `ENV NODE_ENV=production` in Dockerfile.tmpl's runtime stage, after `npm ci` (the install
+    unchanged); tested by a blueprints-tier case and a Docker-tier read of a refused sign-in's body. Apps made before keep
+    their copy. Rejected: the handler only; NODE_ENV only; leave it tracked.
+
+    And in the same message, A STANDING DELEGATION FOR THE REST OF THIS RUN, his words: "For future questions over this
+    session, please lock in your own recommendations. I trust you to make the right decisions for the project." HOW
+    manifest-coord3 applies it: every question that would have gone to Rich is decided on manifest-coord3's own
+    recommendation, after checking its premises in the code, and recorded here as "decided by manifest-coord3 under Rich's
+    delegation of 2026-10-13 ~19:38 — for his review" (the option chosen, those rejected, why), its commit alone, and listed in
+    the report to him so each is easy to revisit. Spec wording follows it too (applied, swept, its commit alone, marked for his
+    review). What it does NOT change: what only he can DO — run a command the classifier refused in a session, sudo, his own
+    credentials, and a person's click (S8's clicked half is a person seeing it) — still comes to him as an action, flagged;
+    a classifier refusal is still never worked around.
