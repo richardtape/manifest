@@ -173,7 +173,7 @@ ten minutes.**
   §11). §26's settings sentence: **B's B, FE-32's C, then A2's B**. §20: B's C and D, then BYOA's C. §24: A1's B (applied, `3d57fc3`),
   B's A, A2's B.
 - **M3. `launch:rehearse` is an administrator's too** (`projects/authz.ts:195-209`; `runRehearsal`'s description, `api/routes/launch.ts:651`).
-  An administrator acting as no member gives §26's reason (`ADMIN_REASON_REQUIRED`). Task 5's matrix gains both rows; Spec action A's
+  An administrator acting as no member gives §26's reason (`400 ADMIN_REASON_REQUIRED`). Task 5's matrix gains both rows; Spec action A's
   *"The owner runs it"* → *"The owner or a collaborator runs it — or an administrator, giving §26's reason"*.
 - **M4. Spec action B.1's reason is false as worded.** *"It changes what staging runs, past anything a token deploys"* — but a token deploys
   staging (D24's own list). The reason is capacity: the run grants production's capacity, which §24 and D29 make a person's decision

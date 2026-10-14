@@ -48,7 +48,7 @@ not exist — on either driver. A person clicks it too.
   existing pin stays.
 - **A FULL install, never `--package-lock-only`**, so every tarball is downloaded through Verdaccio and cached (`infra/seed/seed.sh:48-52`):
   the build that follows works with the network off.
-- **The contract goes to `1.11.0` ONCE, at Task 3** (A2, before this one, leaves it `1.10.0`).
+- **The contract goes to `1.11.0` ONCE, at Task 3** (B, the load rehearsal, before this one, leaves it `1.10.0` — Rich's order of 2026-10-03 15:28; A2 now comes later).
 
 **Tech Stack:** TypeScript 5.9.3 on Node 24.12.0 (host), Fastify 5.12.3, `zod/v4`, Vitest 2.1; Docker Desktop 29.7.2, BuildKit rootless
 via buildx's `remote` driver (`runtime/docker/builder.ts`); Verdaccio (`infra/verdaccio/config.yaml`); the blueprint's base image
