@@ -1713,3 +1713,14 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
     platform is already doing (FE-4's overlap); with `cause` it tells an exit's Incident from a failed deploy's from the record
     itself, never by parsing the prompt's prose or correlating events by instance id — an API gap left now would be a finding
     later. Rejected: leave it unpublished.
+
+# Decided by manifest-coord3 under Rich's delegation of 2026-10-13 ~19:38 — 2026-10-14, for his review (the second coordinated run, overnight)
+
+    At ~00:37 PDT, B's SECOND FRESH REVIEW's I7 (manifest-review-b, docs/superpowers/plans/2026-10-14-second-review-of-load-rehearsal.md,
+    6f99611): manifest-stories.html (ll. 104–129) tells a CLASS app ("A whole course", 240 students, synchronised) doing "A load
+    rehearsal: 240 simulated students in sixty seconds" (l. 128), but §24 gives `class` no extra launch gate (spec l. 2804) and B
+    refuses it 409 LOAD_REHEARSAL_NOT_NEEDED; B's Spec action A's sweep must reconcile the line. CHOSEN: (a) the story says what a
+    class app gets — drafted "Before launch: two copies of the app running behind one address, so one can stop without anyone
+    noticing." — carried in B's Spec action A's sweep, applied when B's sitting applies that Spec action. Why: §24 is the authority;
+    the story's point (several copies for a synchronised class) stands. Rejected: (b) make the story's app a large course (a bigger
+    edit, losing the class story); (c) let a class app run a voluntary rehearsal (needs a class load profile Rich never gave).
