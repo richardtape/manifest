@@ -135,7 +135,7 @@ imitated-load run needs Rich's yes on its time, asked through the coordinator** 
   `agent_sessions` and `intake_sessions`, which the global setup's `CASCADE` reaches unnamed); `:137-149` — the lazily created admin pool
   (`manifest`, because `manifest_app` cannot truncate `audit.events`); `:165-183` — `registerBackgroundWork` / `drainBackgroundWork`
   (the launch path plan's Task 3); `:185-188` — `resetDatabase`: drain, then **one `TRUNCATE`, no `lock_timeout`, no retry**.
-- `resetDatabase` is called in 50 files, 147 lines, most inside `beforeEach`; **some inside a test body** (`releases/releases.test.ts:441`,
+- `resetDatabase` is named in 49 test files, 143 lines (re-read at `7627517`; 50 and 147 at `abdd01e`), most inside `beforeEach`; **some inside a test body** (`releases/releases.test.ts:441`,
   `:3362`, and several `*.docker.test.ts`) — so its lock budget must fit inside the TEST timeout (5 s), not only the hook's (10 s).
 - A `TRUNCATE` takes `ACCESS EXCLUSIVE` on its tables in the order named, then the cascaded ones. `audit.incidents` is first and `users`
   last in both lists.
@@ -159,7 +159,7 @@ imitated-load run needs Rich's yes on its time, asked through the coordinator** 
   `packages/control-plane/src/runtime/driver-contract.ts:624-641`** (the survey's `:408` has drifted), and its neighbour *a retire never
   waits longer than its drain bound* `:643-659` reads `Date.now()` against a drain bound: **in-test wall-clock limits, which no Vitest
   timeout reaches.**
-- `scripts/ci-acceptance.sh:419-430` — the test step: `pnpm test 2>&1 | tee "$LOG"`, `TEST_RC="${PIPESTATUS[0]}"`, and `record "pnpm test"
+- `scripts/ci-acceptance.sh:419-431` (re-read at `7627517`; `:419-430` at `abdd01e`) — the test step: `pnpm test 2>&1 | tee "$LOG"`, `TEST_RC="${PIPESTATUS[0]}"`, and `record "pnpm test"
   FAIL "exit $TEST_RC"` — **no load recorded**. `:357-358` — `LOG="$(mktemp -t manifest-ci)"; trap 'rm -f "$LOG"' EXIT`.
 - `scripts/gateway-controls.sh:47` and `scripts/levels-controls.sh:58` loop over `pgrep -f vitest`; the coordinator's flag rule reads `ps
   -ax -o pid,command | grep -i vitest`. **A wrapper whose argv contains `vitest` is seen by all three** — correct while it runs, wrong if
@@ -310,7 +310,7 @@ Every task's requirements implicitly include this section.
 | `packages/control-plane/src/db/truncate.test.ts` | **Create** | The retry against real locks; `resetDatabase`'s own budget |
 | `packages/control-plane/src/db/testing.ts` | Modify `:56-121`, `:137-149`, `:185-188` | `RESET_TABLES` exported; the admin pool's `lock_timeout`; `resetDatabase` through the retry |
 | `packages/control-plane/vitest.global-setup.ts` | Modify `:1-6`, `:72-98` | The once-per-run `TRUNCATE` through the retry |
-| `scripts/ci-acceptance.sh` | Modify `:357-358`, `:419-430` | The test step's note carries the wrapper's line |
+| `scripts/ci-acceptance.sh` | Modify `:357-358`, `:419-431` | The test step's note carries the wrapper's line |
 | `docs/superpowers/spikes/gentler-tiers-baseline/` | **Create** | `burn.sh`, `durations.mjs`, `README.md` — the measurements |
 | `docs/superpowers/RUNBOOK.md`, `ORIENTATION.md`, `TRAPS.md` | Modify | How to run the tiers gently; §2's row, §4's trap 4, §6's slow-list review; three traps |
 
@@ -1526,7 +1526,7 @@ git commit -m "fix(tests): resetDatabase survives a deadlock — a TRUNCATE retr
 ## Task 5: The load on ci-acceptance's line, and the documents
 
 **Files:**
-- Modify: `scripts/ci-acceptance.sh:357-358`, `:419-430` (Task 1's Step 1 re-read the lines)
+- Modify: `scripts/ci-acceptance.sh:357-358`, `:419-431` (Task 1's Step 1 re-read the lines)
 - Modify: `docs/superpowers/RUNBOOK.md`, `docs/superpowers/ORIENTATION.md` (§2's `pnpm test` row, §4's trap 4, §6), `docs/superpowers/TRAPS.md`
 
 **Interfaces:**
