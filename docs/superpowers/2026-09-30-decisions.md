@@ -1441,3 +1441,33 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
         mcp__claude-in-chrome__*; manifest-app's gained mcp__claude-in-chrome__*.
       Rejected at the same time (recommended against, not offered to apply): an allow for security-weakening negative controls
       (they stay a script he runs), and treating a coordinator's relay as his word.
+
+    And at ~18:14 PDT, in chat to manifest-coord3, after it laid out everything waiting for him with options and recommendations
+    (~17:55), his words: "and I'm happy to go with the recommendations for all of the other items waiting on me, thank you." So:
+      2. reading-updates' AND a8-clocks-1's LEFTOVERS — "(a) Remove them now": their 18 containers (~900 MB), 6 networks and 12
+         volumes, rows gone, are removed by the platform lane between runs (manifest-a1-s2 at its close-out), then the cleanup
+         scripts. The fact behind it, measured: `make reset` (Makefile:107, approved for S7 and S8, answer 6) removes every mf-*
+         container, volume and network anyway. Rejected: (b) leave them to S7's reset; (c) keep them past S7.
+      3. FE-59 (manifest-app 54571a0; iam_registration.recorded carries no changeRequestedFrom, which the record holds) —
+         "(a) Fold it into S5, beside Task 6": the event carries changeRequestedFrom as the record has it, inside contract 1.9.0
+         (Task 6 already edits observability/event-schemas.ts), so W4's adoption picks it up and closes m178. Rejected: (b) a
+         fix after A1 (another contract bump against B's 1.10.0); (c) leave it tracked.
+      4. WORDS AND THE FRONT END'S SMALL QUESTIONS —
+         - A7's remaining words ACCEPTED AS BUILT: "We couldn't send it to the Manifest team just now. Nothing has changed.";
+           "What it needs from UBC's identity team has changed, so nothing was sent. Read it again, then ask."; the email
+           "UBC's identity team answered about the new detail "<title>" needs for <App>. The conversation says whether we can
+           carry on:"; and A6's hand-back email's "request" for "change".
+         - A2's (i) — YES: Keeping watch tells an app's owners when a model their app uses is withdrawn (ai.models_withdrawn);
+           new words, ours, for him to read after. A2's (ii) — NO: a person is not told separately that their app's level
+           rose (the level shows on the app's page; a rise withdraws nothing it uses).
+         - A TENTH MINORS ROUND NOW, in mock mode, beside the run: m145, m140, m154, m168, m171, m173, m174, m176, m177, m179
+           and A2's (i) — the words drafted by us, his to read after (as A5's and A6's were). Rejected: list the words for him
+           first; leave them until after A1. (The tab: manifest-coord3's call — manifest-app-spare, so he opens nothing now; a
+           later failure in the app lane asks him for manifest-app-spare2.)
+      5. THE UNOWNED REAL REPOSITORIES — "(a) Delete them, and the matching mirrors, keeping any he wants (perhaps
+         ask-my-notes)": a8-clocks-1, f5b-measure-1, f6-watch, f6b-measure-1, keep-walk-1002 and reading-updates, by the
+         platform's own `bash scripts/github-real-repos.sh --delete <name>` (it deletes only a repository no project row names,
+         after reading "yes"), run by HIM, and their .manifest/repos/<slug>.git mirrors; ask-my-notes KEPT unless he adds it.
+         Rejected: (b) leave them.
+      6. Housekeeping stays his, as listed (the .env line, the offline acceptance, the gateway key's rotation and the PROBE
+         key; P1's F3 and F16 to be placed in a later plan).
