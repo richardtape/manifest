@@ -254,6 +254,8 @@ function watcherFor(
   opts: {
     now?: SetWatcherDeps['now']
     delay?: SetWatcherDeps['delay']
+    /** Runs before the deploy starts anything — where a dependency the deploy reads first can fail. */
+    before?: () => Promise<void>
   } = {},
 ) {
   const delays: number[] = []
@@ -265,6 +267,7 @@ function watcherFor(
     appSecrets: base.appSecrets,
     redeploy: async (input) => {
       redeploys.push(input)
+      await opts.before?.()
       await deployRelease(db, driver, config, f.deps, {
         ...input,
         purpose: 'replacement',
@@ -687,6 +690,49 @@ describe('the set watcher — a production member that exits is replaced (A1 Tas
     await round(f, watcher)
     expect(redeploys).toHaveLength(1)
     expect(await incidentsOf(a!.id)).toHaveLength(2)
+  })
+
+  it('a replacement that THROWS before it starts anything — LiteLLM restarting as the deploy reads its catalogue — is NOT a refusal: an operator line naming it, nothing stopped, and the next pass replaces the member, still its first attempt', async () => {
+    const driver = createFakeDriver()
+    const f = await launched(driver)
+    const [a] = f.set
+    let outage = true
+    const { watcher, delays, redeploys } = watcherFor(f, driver, {
+      before: async () => {
+        if (outage) throw new TypeError('fetch failed')
+      },
+    })
+    const operator = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    driver.crash(a!.handle!, 1)
+
+    await round(f, watcher)
+
+    expect(redeploys).toHaveLength(1)
+    expect(await replacementRows(f)).toEqual([])
+    // Not stopped: a dependency that failed once is asked again, not given up on until a person deploys.
+    expect((await incidentsOf(a!.id)).map((incident) => incident.cause)).toEqual(['exit'])
+    expect(
+      operator.mock.calls.some(
+        (call) =>
+          String(call[0]).includes('could not start') &&
+          String(call[0]).includes('TypeError'),
+      ),
+    ).toBe(true)
+
+    // LiteLLM is back: the next pass replaces it at once — the first attempt still, since nothing started.
+    outage = false
+    await round(f, watcher)
+
+    expect(redeploys).toHaveLength(2)
+    expect(delays).toEqual([0, 0])
+    const fresh = await replacementRows(f)
+    expect(fresh.map((row) => [row.state, row.replacing])).toEqual([
+      ['healthy', a!.id],
+      ['healthy', a!.id],
+    ])
+    expect((await servingSet(f)).map((row) => row.id)).toEqual(fresh.map((row) => row.id))
+    expect((await incidentsOf(a!.id)).map((incident) => incident.cause)).toEqual(['exit'])
+    expect((await exitedOf(f.project.id)).map((e) => e.detail.attempt)).toEqual([1])
   })
 
   describe('what it leaves alone', () => {

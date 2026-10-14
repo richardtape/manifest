@@ -188,12 +188,35 @@ describe('waitForIdentities (P4c; A1 Task 2 — a set)', () => {
   })
 
   /**
+   * LIVE TRAFFIC BETWEEN THE PROBES (A1 sitting 8, the whole-branch review's M1). Every request a
+   * person makes advances the same rotation, so under traffic which member answers each probe is
+   * as good as random: one of two unseen in 8 more answers happened 1 time in 256 — a good release
+   * failed and rolled back. A member first seen after 12 more answers is still reached.
+   */
+  it('is READY when a member answers only after more than 4 × N other answers — live traffic in between', async () => {
+    let calls = 0
+    const result = await waitForIdentities({
+      url: 'https://x/',
+      expected: ['inst-a', 'inst-b'],
+      timeoutMs: 60_000,
+      intervalMs: 1,
+      probe: async () => {
+        calls += 1
+        return { status: 200, instance: calls <= 13 ? 'inst-a' : 'inst-b' }
+      },
+    })
+    expect(result).toMatchObject({ ready: true, attempts: 14 })
+  })
+
+  /**
    * ONE NEVER SEEN — AND SAID BY NAME, WITHOUT WAITING OUT THE TIMEOUT. Once the edge has
    * answered as a member of the set (the move is live), round robin must show every member
-   * within `4 × N` answers — N for the rotation, the rest for whatever else is using the route
-   * meanwhile. A member still unseen by then is not being reached, and the deploy is told which.
+   * within `16 × N` answers — N for the rotation, the rest for whatever else is using the route
+   * meanwhile, so a member that IS reached goes unseen that long less than once in e^16 ≈ 9
+   * million deploys at any N. A member still unseen by then is not being reached, and the deploy
+   * is told which.
    */
-  it('is NOT ready when one member never answers within 4 × N, and names it', async () => {
+  it('is NOT ready when one member never answers within 16 × N, and names it', async () => {
     let calls = 0
     const result = await waitForIdentities({
       url: 'https://x/',
@@ -208,8 +231,8 @@ describe('waitForIdentities (P4c; A1 Task 2 — a set)', () => {
     expect(result.ready).toBe(false)
     expect(result.reason).toContain('inst-b')
     expect(result.reason).not.toMatch(/never answered as inst-a/)
-    // The first answer from the set, then 4 × 2 more: the window, not the minute.
-    expect(calls).toBe(1 + 4 * 2)
+    // The first answer from the set, then 16 × 2 more: the window, not the minute.
+    expect(calls).toBe(1 + 16 * 2)
   })
 
   it('names every member it never saw when the timeout comes first', async () => {

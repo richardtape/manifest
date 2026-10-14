@@ -16,7 +16,7 @@ cd "$(dirname "$0")/.."
 
 # WHICH SOURCE DRIVER the control plane runs (the D5 plan's Decision 3: ONE per process), asked
 # the way `make demo-github` asks it — an unsigned delivery: `local`, `github`, or `none`. Steps 6
-# to 12 are DRIVER 1's, step 13 is DRIVER 2's and steps 14 to 18 run on either; run a driver-1 demo on driver 2 and it CREATES
+# to 12 are DRIVER 1's, step 13 is DRIVER 2's and steps 14 to 19 run on either; run a driver-1 demo on driver 2 and it CREATES
 # its project there, where no route can delete it (P6a F5) and driver 1 refuses it for ever.
 source_driver() {
   local answer
@@ -352,6 +352,27 @@ case "$(source_driver)" in
   local | github)
     echo "  on driver $([ "$(source_driver)" = local ] && echo '1 — levels-local' || echo '2 — levels-github')"
     make demo-levels; echo "demo-levels exit=$?"
+    ;;
+  *) echo "  SKIPPED: no control plane answered 127.0.0.1:7100/webhooks/github — start one on either driver (RUNBOOK)." ;;
+esac
+
+echo
+echo "=== 19. A1's acceptance: a launched class app's production on two instances, offline ==="
+# APPENDED, like steps 7 to 18. WHAT THIS PROVES OFFLINE THAT THE OTHER EIGHTEEN DO NOT: production running
+# TWO instances behind one edge route — both members answering; a same- and a new-release redeploy under a
+# /healthz loop and a loop on the app's page, no answer but the app's and the set changing once; a release
+# that never becomes ready changing nothing; a member killed with `docker kill`, routed around, recorded and
+# replaced; and a crash loop stopped at its cap (~7 of its ~12 minutes). It builds and deploys releases, so
+# it needs a FRESH vulnerability database (`make refresh-vulndb` with the network on, first); it calls no
+# model — it counts production's keys at LiteLLM.
+#
+# IT RUNS ON EITHER DRIVER, like steps 14 to 18: `launch-app` on driver 1 (steps 11 and 12 launched it),
+# `launchpath-github` on driver 2 (step 16 launched it); on a machine where it has not launched, it runs
+# that demo first and says so.
+case "$(source_driver)" in
+  local | github)
+    echo "  on driver $([ "$(source_driver)" = local ] && echo '1 — launch-app' || echo '2 — launchpath-github')"
+    make demo-capacity; echo "demo-capacity exit=$?"
     ;;
   *) echo "  SKIPPED: no control plane answered 127.0.0.1:7100/webhooks/github — start one on either driver (RUNBOOK)." ;;
 esac

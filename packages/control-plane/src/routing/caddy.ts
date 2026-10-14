@@ -56,14 +56,17 @@ export interface HealthPolicy {
   /** Caddy's ACTIVE checks: a GET of the app's health path, `200` expected. */
   active: { path: string; interval: number; timeout: number; probeHeader: string }
   /**
-   * Caddy's PASSIVE checks, counted off real traffic. `unhealthyStatus`'s type cannot hold
-   * `503`: an app shedding load answers `503`, and ejecting it would move that load onto its
-   * siblings — the cascade this policy must never start (`[M2]` (c′)).
+   * Caddy's PASSIVE checks, counted off real traffic — the failures the EDGE meets reaching a
+   * member (a dial or transport failure; Caddy counts those with no status list, and its own
+   * `502` and `504` are exactly those). It has NO status field, and that is the point: a status
+   * is what the APP answered — `503` shedding load, `502` or `504` because its own dependency
+   * failed — and ejecting a member for it moves its load onto its siblings, or, when the
+   * dependency is shared, takes every member out of the edge at once (`[M2]` (c′); A1 sitting 8,
+   * the whole-branch review's I1).
    */
   passive: {
     failDuration: number
     maxFails: number
-    unhealthyStatus: readonly (502 | 504)[]
   }
   /**
    * How long a request may be retried on another member after a DIAL failure — Caddy retries
@@ -77,8 +80,8 @@ export interface HealthPolicy {
 
 /**
  * Decision 4's numbers for an app's route: probe `healthPath` every 5 s (2 s timeout); eject
- * a member after 2 dial failures, `502`s or `504`s within 10 s; retry a dial failure on
- * another member for up to 3 s, every 250 ms.
+ * a member after 2 failures the edge meets reaching it within 10 s — never for a status the
+ * app answered; retry a dial failure on another member for up to 3 s, every 250 ms.
  *
  * Its caller is the Docker driver (A1 Task 4, which builds every route it applies with it).
  */
@@ -90,7 +93,7 @@ export function appHealthPolicy(healthPath: string): HealthPolicy {
       timeout: 2 * SECOND_NS,
       probeHeader: 'health',
     },
-    passive: { failDuration: 10 * SECOND_NS, maxFails: 2, unhealthyStatus: [502, 504] },
+    passive: { failDuration: 10 * SECOND_NS, maxFails: 2 },
     tryDuration: 3 * SECOND_NS,
     tryInterval: SECOND_NS / 4,
   }
@@ -228,7 +231,6 @@ export function buildRoute(input: {
                 passive: {
                   fail_duration: health.passive.failDuration,
                   max_fails: health.passive.maxFails,
-                  unhealthy_status: [...health.passive.unhealthyStatus],
                 },
               },
             }),

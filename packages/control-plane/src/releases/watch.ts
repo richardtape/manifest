@@ -501,8 +501,14 @@ export function createSetWatcher(deps: SetWatcherDeps): SetWatcher {
    * - **failed** — the deploy's own failure: the previous set kept, the dead member in it, the deploy's
    *   Incident. Its rows exist, so it is counted; the next pass starts the next attempt after the backoff;
    * - **nothing to replace** — a person's deploy got there first: the deploy's operator line, nothing more;
-   * - **refused before anything started** (no row names it — the approval's digest check first among them):
-   *   it will not change by being asked again, so replacing STOPS, said in an Incident with the code.
+   * - **refused before anything started** (a `ReleaseError` and no row naming it — the approval's digest
+   *   check first among them): it will not change by being asked again, so replacing STOPS, said in an
+   *   Incident with the code;
+   * - **failed before anything started, NOT refused** — anything else thrown with no row written: LiteLLM
+   *   restarting as the deploy reads its catalogue, the database, the engine. That can change by being asked
+   *   again, so it is an operator line naming it and NOTHING STOPS: the dead member is still in the set, and
+   *   the next pass schedules it again — the same attempt, since nothing started (A1 sitting 8, the
+   *   whole-branch review's I2: stopping here left a `solo` app down until its owner deployed).
    */
   function schedule(
     environment: Watched,
@@ -531,6 +537,18 @@ export function createSetWatcher(deps: SetWatcherDeps): SetWatcher {
             return
           }
           const code = (error as { code?: string }).code ?? (error as Error).name
+          if (!(error instanceof ReleaseError)) {
+            console.error(
+              JSON.stringify({
+                level: 'error',
+                msg: 'a replacement could not start, and nothing was started; the next pass tries again',
+                environmentId: environment.id,
+                replacing: target.replacing,
+                error: code,
+              }),
+            )
+            return
+          }
           const [member] = await deps.db
             .select()
             .from(instances)
@@ -542,8 +560,8 @@ export function createSetWatcher(deps: SetWatcherDeps): SetWatcher {
               environmentKind: 'production',
             }),
           )
-          // A ReleaseError's message is the platform's own words; any other is named by its code alone.
-          const said = error instanceof ReleaseError ? `${code} — ${error.message}` : code
+          // A ReleaseError's message is the platform's own words.
+          const said = `${code} — ${error.message}`
           await sayStopped(
             environment,
             member,

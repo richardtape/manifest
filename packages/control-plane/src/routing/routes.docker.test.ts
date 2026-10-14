@@ -381,14 +381,26 @@ const SET_ONE = 'mf-routeset-staging-one'
 const SET_TWO = 'mf-routeset-staging-two'
 /** Answers `503` to everything but `/healthz` — an app shedding load (`[M2]` (c′)). */
 const SET_SHED = 'mf-routeset-staging-shed'
+/**
+ * Answer `502` and `504` to everything but `/healthz` — an app whose OWN dependency failed (the proof
+ * app answers `502` when its model's gateway does), not a member the edge cannot reach (A1 sitting 8,
+ * the whole-branch review's I1).
+ */
+const SET_BADGW = 'mf-routeset-staging-badgw'
+const SET_GWTIMEOUT = 'mf-routeset-staging-gwtimeout'
 const ONE_ID = '8a8a8a8a-0000-4000-8000-000000000001'
 const TWO_ID = '8b8b8b8b-0000-4000-8000-000000000002'
 const SHED_ID = '8c8c8c8c-0000-4000-8000-000000000003'
+const BADGW_ID = '8d8d8d8d-0000-4000-8000-000000000004'
+const GWTIMEOUT_ID = '8e8e8e8e-0000-4000-8000-000000000005'
 const BODIES: Record<string, string> = {
   [ONE_ID]: 'one',
   [TWO_ID]: 'two',
   [SHED_ID]: 'shed',
+  [BADGW_ID]: 'badgw',
+  [GWTIMEOUT_ID]: 'gwtimeout',
 }
+const SET_STUBS = [SET_ONE, SET_TWO, SET_SHED, SET_BADGW, SET_GWTIMEOUT]
 const engine = createEngineClient({ socketPath: resolveSocketPath() })
 
 const setOf = (...ids: string[]) => ({
@@ -435,12 +447,28 @@ const requestsThroughEdge = async (
 describeDocker('A1: one route, a set of instances, on the real edge (Task 2)', () => {
   beforeAll(async () => {
     await removeRoute(deps, SET_HOST, 'staging').catch(() => undefined)
-    await run('docker', ['rm', '-f', SET_ONE, SET_TWO, SET_SHED]).catch(() => undefined)
+    await run('docker', ['rm', '-f', ...SET_STUBS]).catch(() => undefined)
     await run('docker', stubAppArgs(SET_ONE, 'one', {}, { aliases: [`mf-i-${ONE_ID}`] }))
     await run('docker', stubAppArgs(SET_TWO, 'two', {}, { aliases: [`mf-i-${TWO_ID}`] }))
     await run(
       'docker',
       stubAppArgs(SET_SHED, 'shed', {}, { aliases: [`mf-i-${SHED_ID}`], status: 503 }),
+    )
+    await run(
+      'docker',
+      stubAppArgs(SET_BADGW, 'badgw', {}, { aliases: [`mf-i-${BADGW_ID}`], status: 502 }),
+    )
+    await run(
+      'docker',
+      stubAppArgs(
+        SET_GWTIMEOUT,
+        'gwtimeout',
+        {},
+        {
+          aliases: [`mf-i-${GWTIMEOUT_ID}`],
+          status: 504,
+        },
+      ),
     )
     await new Promise((r) => setTimeout(r, 1500))
   }, 120_000)
@@ -448,7 +476,7 @@ describeDocker('A1: one route, a set of instances, on the real edge (Task 2)', (
   afterAll(async () => {
     await removeRoute(deps, SET_HOST, 'staging').catch(() => undefined)
     // Explicit names (P4b finding 192).
-    await run('docker', ['rm', '-f', SET_ONE, SET_TWO, SET_SHED]).catch(() => undefined)
+    await run('docker', ['rm', '-f', ...SET_STUBS]).catch(() => undefined)
   })
 
   /**
@@ -490,22 +518,32 @@ describeDocker('A1: one route, a set of instances, on the real edge (Task 2)', (
   }, 180_000)
 
   /**
-   * A MEMBER SHEDDING LOAD STAYS IN ROTATION (Decision 4, `[M2]` (c′)). Its health path
-   * answers `200` and everything else `503`; with `503` outside the passive policy it keeps
-   * its share — its load is not moved onto its sibling. Put `503` back in the list and it is
-   * ejected after two: this case's count goes to 2.
+   * A MEMBER'S OWN ANSWER NEVER EJECTS IT (Decision 4, `[M2]` (c′); A1 sitting 8, the review's I1). Its
+   * health path answers `200` and everything else `503` (shedding load), `502` or `504` (its own
+   * dependency failed): the passive policy counts no status at all — Caddy counts the failures the EDGE
+   * meets (a dial or transport failure) without one — so each keeps its share, and an outage of what an
+   * app depends on never takes a set of healthy members out of the edge. Put a status back in the list
+   * and that member is ejected after two: its count goes to 2.
    */
-  it('a member answering 503 stays in rotation — its load is not moved onto its sibling', async () => {
-    await applyRoute(deps, setOf(ONE_ID, SHED_ID))
-    const seen = await requestsThroughEdge(SET_HOST, 20)
-    expect(seen).toHaveLength(20)
-    const shed = seen.filter((a) => a.instance === SHED_ID)
-    expect(shed.every((a) => a.status === 503 && a.body === 'shed')).toBe(true)
-    expect(shed.length).toBeGreaterThanOrEqual(8)
-    expect(
-      seen.filter((a) => a.instance === ONE_ID && a.status === 200).length,
-    ).toBeGreaterThanOrEqual(8)
-  }, 120_000)
+  it.each([
+    [503, SHED_ID, 'shed'],
+    [502, BADGW_ID, 'badgw'],
+    [504, GWTIMEOUT_ID, 'gwtimeout'],
+  ] as const)(
+    'a member answering %i itself stays in rotation — its load is not moved onto its sibling',
+    async (status, id, body) => {
+      await applyRoute(deps, setOf(ONE_ID, id))
+      const seen = await requestsThroughEdge(SET_HOST, 20)
+      expect(seen).toHaveLength(20)
+      const own = seen.filter((a) => a.instance === id)
+      expect(own.every((a) => a.status === status && a.body === body)).toBe(true)
+      expect(own.length).toBeGreaterThanOrEqual(8)
+      expect(
+        seen.filter((a) => a.instance === ONE_ID && a.status === 200).length,
+      ).toBeGreaterThanOrEqual(8)
+    },
+    120_000,
+  )
 
   /**
    * REVIEW FOCUS 2's FIRST HALF: one of two killed, and every request after it reaches the

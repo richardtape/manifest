@@ -82,10 +82,15 @@ export interface IdentityProbeResult {
  * member, and the wait collects identities until EVERY expected id has answered. Seeing
  * one is not enough — a member the edge cannot reach would leave the hostname on fewer
  * instances than it was given, and the deploy would call that a success. Once the edge has
- * answered as any member (the move is live), every member must answer within **`4 × N`**
+ * answered as any member (the move is live), every member must answer within **`16 × N`**
  * more probes — N for the rotation, the rest for whatever else is using the route
  * meanwhile, since every request advances the same rotation — and one still unseen is named
- * then, rather than after the whole timeout.
+ * then, rather than after the whole timeout. **16, NOT 4** (A1 sitting 8, the whole-branch
+ * review's M1): under live traffic which member answers a probe is as good as random, so a
+ * member that IS reached goes unseen for `w` answers with chance `((N-1)/N)^w` — `4 × N` failed
+ * a good release about 1 deploy in 256 at two members and 1 in 65 at three; `16 × N` keeps it
+ * under `e^-16` (1 in ~9 million) at any N. At the driver's 500 ms between probes the 15 s
+ * timeout usually comes first; the window names an unseen member early when probes are faster.
  *
  * Called by the Docker driver's `ensureInstances`, after the one in-place move.
  */
@@ -101,7 +106,7 @@ export async function waitForIdentities(input: {
       `waitForIdentities at ${input.url} was given no instance to wait for — a move to an empty set is a caller's defect`,
     )
   const expected = new Set(input.expected)
-  const window = 4 * expected.size
+  const window = 16 * expected.size
   const seen = new Set<string>()
   const deadline = Date.now() + input.timeoutMs
   let attempts = 0

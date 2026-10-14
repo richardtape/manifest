@@ -215,7 +215,6 @@ describe('the Caddy route across N instances (A1 Task 2)', () => {
             passive: {
               fail_duration: 10_000_000_000,
               max_fails: 2,
-              unhealthy_status: [502, 504],
             },
           },
           stream_close_delay: 3_600_000_000_000,
@@ -226,14 +225,23 @@ describe('the Caddy route across N instances (A1 Task 2)', () => {
   })
 
   /**
-   * NEVER `503` (Decision 4, the review's I4). An app answering `503` is shedding load, and
-   * ejecting it moves that load onto its siblings — the cascade the passive policy must not
-   * start. `[M2]` (c′): with `503` left out, a member answering `503` to everything stayed in
-   * rotation (97 of 292 answers); with it in, the member was ejected after two. The TYPE holds
-   * this too (`readonly (502 | 504)[]`); this is the pin on the value the edge receives.
+   * NO STATUS EJECTS A MEMBER — ONLY WHAT THE EDGE ITSELF MEETS (Decision 4 and the review's I4,
+   * narrowed by A1 sitting 8's whole-branch review, I1). Caddy's passive checks count a dial or
+   * transport failure against a member with no status list at all, and its own `502` and `504`
+   * come from exactly those; a list only ever matches what the APP answered. An app answering
+   * `503` is shedding load, and one answering `502` or `504` has a dependency that failed (the
+   * proof app answers `502` when its model's gateway does) — ejecting either moves its load onto
+   * its siblings, and when the dependency is shared, ejects them all: the app's every page then
+   * answers the edge's `503`. `[M2]` (c′): with `503` left out, a member answering `503` to
+   * everything stayed in rotation (97 of 292 answers); with it in, it was ejected after two. The
+   * TYPE holds this too — the passive policy has no status field; this is the pin on the value the
+   * edge receives.
    */
-  it('counts dial failures, 502 and 504 against a member — and never 503', () => {
-    expect(appHealthPolicy('/healthz').passive.unhealthyStatus).toEqual([502, 504])
+  it('counts only the failures the edge meets against a member — never a 502, 503 or 504 the app answered', () => {
+    expect(appHealthPolicy('/healthz').passive).toEqual({
+      failDuration: 10_000_000_000,
+      maxFails: 2,
+    })
     const route = buildRoute({
       hostname: 'chem-labs.manifest.internal',
       routeId: ROUTE_ID,
@@ -241,9 +249,13 @@ describe('the Caddy route across N instances (A1 Task 2)', () => {
       health: appHealthPolicy('/healthz'),
     })
     const proxy = route.handle.at(-1) as {
-      health_checks: { passive: { unhealthy_status: number[] } }
+      health_checks: { passive: Record<string, unknown> }
     }
-    expect(proxy.health_checks.passive.unhealthy_status).toEqual([502, 504])
+    expect(proxy.health_checks.passive).toEqual({
+      fail_duration: 10_000_000_000,
+      max_fails: 2,
+    })
+    expect(proxy.health_checks.passive).not.toHaveProperty('unhealthy_status')
   })
 
   /**
