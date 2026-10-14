@@ -1854,3 +1854,29 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
     heavy from driver 1's ci-acceptance's end until he said his meeting was over). So A1's sitting 8 continues at once: driver 2 (the
     .env swap, cmp-restored), make reset, make ci-acceptance on the GitHub fake, demo-launch re-use twice, then the clicked half
     staged on driver 1 — which waits for HIM (a person's click), after the call.
+
+    At ~09:46 PDT, DECIDED BY manifest-coord4 UNDER RICH'S DELEGATION (028bb94, continued f6dd317) — FOR HIS REVIEW: A RACE FOUND BY
+    A1's SITTING 8 ON DRIVER 2, and how A1's acceptance records it. manifest-a1-s8's `make ci-acceptance` on the GitHub fake
+    (09:04–09:43, after make reset, 745def2) had ONE failed check — `make demo-frontend`'s "its sensitive diff names
+    data.classification", answered {"sensitive":false,"fields":[]} — and everything else green (doctor 22, verify 67, pnpm test
+    3654/220, the builds, demo-github, -authoring, -launch on two, -faculty-ready, -levels, -capacity). Its cause, read from the
+    rows: the fake's push webhook was processed 120 ms before the commit route answered; the source observer recorded the NEW
+    commit's valid spec; the route's own sensitiveAgainstNewestValid (packages/control-plane/src/api/spec-validation.ts:53-63,
+    newestValidSpec :87-99 — the newest valid row, with no exclusion of the commit being judged) then compared the commit with
+    itself. Premises checked in the code by manifest-coord4: newestValidSpec filters only project and valid; the webhook is one of
+    validateAndRecord's three callers; the production gate's comparison (sensitiveSinceApprovedFor, FE-54, against the last
+    approved release) is a separate query, so the gate still re-escalates a sensitive change — the defect misinforms a commit's
+    answer, it does not open the gate. Pre-existing: A1 changed none of these files.
+      1. PLACEMENT — CHOSEN: a small out-of-plan platform fix, BEFORE B (B's last sitting runs `make ci-acceptance`) and AFTER the
+         gentler test tiers (Rich's "the next thing to do", abdd01e) — between that plan's sittings 2 and 3 if sitting 3 waits on
+         his Docker Desktop step, else after it; a fresh platform session; test-first (a route test that records the webhook's row
+         FIRST, red, then green); the baseline the newest valid spec of a DIFFERENT commit (or the commit's parent's); no contract
+         change; pnpm test twice and `make demo-frontend` on the fake. Recorded in the roadmap's Tracked defects (by
+         manifest-a1-s8). Rejected: fixed inside A1 (outside its plan; its one fix wave is done); before the gentler test tiers
+         (delays what Rich put next, for a defect that opens no control); folded into B (not B's subject); left unplaced (B's
+         ci-acceptance would meet it).
+      2. A1's ACCEPTANCE — CHOSEN: driver 2's `make ci-acceptance` is recorded EXACTLY as it ran (one failed check, this race,
+         tracked) with `make demo-frontend` re-run alone on the fake beside it; no whole re-run of ci-acceptance on driver 2 (~40
+         min, which could meet the same race and says nothing more about A1). The plan's and the roadmap's line "make
+         ci-acceptance green on EACH driver" is NOT written for driver 2; it says what ran. Rejected: a whole re-run until green
+         (re-rolling a known race to get a green word); counting it green unqualified.
