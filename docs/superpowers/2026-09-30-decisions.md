@@ -1808,3 +1808,21 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
     (node-ts-mongo.docker.test.ts: a real CWL sign-in crossing two instances, both orders, a replay refused) and by the sessions in the
     app's own Mongo. ede301c's (A) is confirmed by him. Rejected: (B) a laptop-only setting pointing a launched app at the Manifest IdP
     (a §8 spec action, if ever, for a later plan). And he opened the tab manifest-app-w7 for item 3's front-end follow-up.
+
+    And at ~08:12 PDT, GENTLER TEST TIERS — his words: "yes to 1–4, can you get a separate agent to write that up as the next thing to
+    do so we can stop this (and include in the plan the reminder for me to change Docker Desktop's settings)." Put to him (~08:05) from
+    a read-only survey: the unit tier already runs one file at a time in one worker (vitest.config.ts:17); its tests fail at Vitest's
+    default 5 s under load (vitest.workspace.ts:13-22, 37-51), and a timed-out test's open work deadlocks the next file's
+    resetDatabase TRUNCATE (db/testing.ts:185-188); Docker Desktop has all 12 CPUs. So, a plan to be WRITTEN NOW (documents only) and
+    executed as THE NEXT PLATFORM JOB, after A1 closes and before B:
+      1. a wrapper that runs the test tiers at macOS background QoS (`taskpolicy -c utility`; `-b` when he is on a call), inherited by
+         their child processes;
+      2. a timeout scale for the unit and packages projects under the wrapper (MANIFEST_TEST_TIMEOUT_SCALE; slowTestThreshold keeps
+         the old 5 s visible) — HIS YES given here to this policy change, since a real hang then takes longer to report;
+      3. a load gate: a run refuses to start above a load threshold unless forced, samples the load through the run, and every red
+         records it (ci-acceptance.sh's FAIL line too);
+      4. resetDatabase survives a deadlock: retries on SQLSTATE 40P01 / 55P03 with a lock_timeout, logged, the test that timed out
+         still red.
+      And IN THE PLAN, a step for HIM: Docker Desktop → 6 CPUs (Settings → Resources), after A1's click (it restarts Docker), with one
+      Docker-tier run measured before and after. Not this plan: fewer runs at agreed times (the coordinator asks him first while he is
+      at the machine — already the practice), the Docker tier's speed brief, CI off the laptop.
