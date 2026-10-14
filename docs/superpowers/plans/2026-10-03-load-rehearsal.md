@@ -23,6 +23,8 @@
 > deploy) and adds it to Task 5's Files. **A1's sittings 6–8 land after this revision** — the review's §3 lists what they change under this plan; Task 1 re-reads
 > every one.
 
+> **AND SINCE THE GENTLER TEST TIERS PLAN (2026-10-14, [`2026-10-14-gentler-test-tiers.md`](./2026-10-14-gentler-test-tiers.md), placed between A1 and this plan — Rich's 1–4, `abdd01e`; approved `b492e31`):** `pnpm test` and `pnpm test:docker` run through `scripts/test-gently.sh` (utility priority, a timeout scale, a load gate — exit 75 is the gate); `resetDatabase` retries a deadlock; and **Docker Desktop's CPU count is what Rich chose in its sitting 3** — this plan's Task 1 reads `docker info --format '{{.NCPU}}'` and measures on it. **This plan starts after that plan's sitting 3, and after the small out-of-plan fix session placed before it** (`b967a8e`, `1fe7d7f`: the driver-2 sensitive-diff race and the launch demos' re-use check after `make demo-capacity` — this plan's sitting 7 runs `make ci-acceptance`).
+
 > **WRITTEN 2026-10-03, AFTERNOON, BY THE PLANNING SESSION `manifest-c7`** (coordinated by `manifest-94`), after FE-32's plan and placed
 > BEFORE it: Rich, 2026-10-03, ~13:46 PDT, answering FE-44, *"Build the load rehearsal first"* — §24's load rehearsal, before faculty use
 > it for real, as a plan of its own, after the Manifest team's step and before FE-32. **Every fact in *Read this first* was read from the code
