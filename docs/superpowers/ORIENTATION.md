@@ -1453,7 +1453,7 @@ Each is named in its plan's *What this plan does not build*, and none is an acci
   **`make demo-token` runs the whole loop end to end through the edge** and is step 9 of the offline acceptance.
   **A PERSON NOW OPERATES THAT LOOP** (P5c Task 11, 2026-09-19): confirming and rejecting are a screen, clicked end
   to end, with the question reaching it 576 ms after the agent was refused. A project owner still cannot revoke a
-  collaborator's token — only the minter can. **And two things about the loop reach no client at all**:
+  collaborator's token — only the minter can (FE-11 (b) decided 2026-10-13; the BYOA plan builds it). **And two things about the loop reach no client at all**:
   `consumeAction` publishes no event, so *has the agent spent its one retry?* is answerable only by re-reading `GET
   /v1/pending-actions/{id}`, and `addMember` publishes none either.
 - **NOTHING SWEEPS PENDING ACTIONS ON A TIMER, AND THE SCREEN THAT NEEDED THAT DECIDING IS NOW BUILT** (P5b Task
@@ -2082,6 +2082,9 @@ reasoning is recorded.**
 
 ### Open
 
+- **BYOA's policy questions P1–P5** (a commercial agent on UBC app code and the PIA; ZDR widened to unattested providers; who brings
+  an agent; FE-24; names reaching GitHub) are in the BYOA plan's policy section ([`plans/2026-10-13-byoa-on-the-laptop.md`](plans/2026-10-13-byoa-on-the-laptop.md),
+  approved `2b3dd6d`), for Rich to carry to the Privacy Office.
 - **FE-24'S OPEN QUESTIONS, for the external track and the Privacy Office** (carried from Spec action 6's draft — APPLIED
   2026-09-27, `25e7445`, so the first three are now §19's rows and `docs/external-track.md`'s items 12–14): whether D21's
   rehearsal keeps a purpose once staging signs people in against UBC's staging IdP every day; **whether a privacy assessment
@@ -2132,6 +2135,8 @@ reasoning is recorded.**
 
 ### Decided
 
+- **FE-11 (b) — AN OWNER OF THE PROJECT, OR A PLATFORM ADMINISTRATOR (§26's reason), MAY REVOKE ANY TOKEN ON IT**, beside (a). Decided
+  2026-10-13 (`c5df7db`, the BYOA design approved whole), built by the BYOA plan's Task 4 ([`plans/2026-10-13-byoa-on-the-laptop.md`](plans/2026-10-13-byoa-on-the-laptop.md)).
 - **A1'S `[M3]` FORK — A SIGN-IN THAT CANNOT CROSS INSTANCES — RICH, 2026-10-13 ~16:28** (*"I'm confortable going with your
   recommendations"*, to `manifest-coord3`; [`2026-09-30-decisions.md`](2026-09-30-decisions.md), `3487e68`): A1's sitting 1 measured a CWL
   sign-in started on one instance and finished on another REFUSED (`InResponseTo is not valid` — passport-ubcshib 0.1.7-rc.1 makes the

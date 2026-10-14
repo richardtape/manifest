@@ -16,7 +16,7 @@ names the next job** and the current plan's sittings table says how far it has g
 passes; the newest is **the Manifest team's step — FE-46, FE-47, FE-5 and FE-53** (`docs/superpowers/plans/2026-10-03-fe46-fe47-fe5.md`),
 EXECUTED 2026-10-08/09, inline, five sittings in the coordinated run — contract `1.8.0`. **The current plan, A1 — production instances by
 audience** (`docs/superpowers/plans/2026-10-03-production-instances.md`, approved 2026-10-03), **is EXECUTING since 2026-10-13**, inline, one sitting per
-session (Rich, 2026-10-13 16:01, in the second coordinated run); its contract bump `1.8.0 → 1.9.0`; then B (the load rehearsal, FE-44), FE-32 with §12's package allowlist (approved), Phase 3 (sandboxes), A2 (hibernation), the
+session (Rich, 2026-10-13 16:01, in the second coordinated run); its contract bump `1.8.0 → 1.9.0`; then B (the load rehearsal, FE-44), FE-32 with §12's package allowlist (approved), BYOA on the laptop (approved 2026-10-13, `2b3dd6d`), Phase 3 (sandboxes), A2 (hibernation), the
 vulnerability database in the console, and FE-45 (Rich, 2026-10-03, 15:28; B and A2 await a second review). Rich's decisions since 2026-09-30 are in `docs/superpowers/2026-09-30-decisions.md`. Each plan's *What executing this plan found* is its record; this file keeps none of it.
 
 | Plan | Executed | What it made true | Acceptance |
