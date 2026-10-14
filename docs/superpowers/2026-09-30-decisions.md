@@ -1759,3 +1759,21 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
     overnight); (C) a throwaway two-container set behind a throwaway Caddy (it measures the skeleton, not the platform). Also noted, not
     objected to: S7's ruling that driver 2's demo-capacity runs against demo-launch's launched class app (launchpath-github), since
     demo-production and demo-releases are driver 1's alone.
+
+    At ~02:02 PDT, W4's QUESTION (FE-4's overlap) — decided by manifest-coord3 under Rich's delegation, for his review. W4
+    (manifest-app-190, contract 1.9.0's adoption) found Incident.cause (60ec46e) cannot be the front end's KEEPER's signal for most
+    apps: the watch token is refused a high or very-high app's production Incidents (INCIDENT_LOG_CONFIDENTIAL, S9, by design; checked:
+    releases.ts:1245), and `incident.opened` carries no `cause` (checked: event-schemas.ts:319). Today every exit, on any app, would
+    email owners "a change didn't go live". CHOSEN: (a) — the keeper tells by what the contract already orders: a deploy publishes
+    `instance.failed` for its members BEFORE its Incident, the exit watcher never does, so a production `incident.opened` is a change
+    that didn't go live only when its instance was heard `instance.failed` (and, while a replacement is scheduled, not when it names no
+    actor); the page, in the person's session, reads Incident.cause directly. W4 WRITES FE-62: `incident.opened` carries `cause` (and a
+    replacement's deploy says it is one), so the inference can go. FE-62 PLACED in B's Task 5 (contract 1.10.0, B's first schema change),
+    B's sitting 1 told — not A1's sitting 8 (Tasks 9 and 10 alone and last). Rejected: (b) the keeper reading listIncidents (low and medium
+    only — two mechanisms); (c) waiting for FE-62 (every exit keeps emailing a wrong "a change didn't go live" until then).
+    W4's routine calls, not objected to: an exit the platform replaces is told nothing; our own watch's outage WHILE the platform replaces
+    shows "We're starting it again." on the band (new words, ours, for Rich) instead of [Start it again], its email held until replacing
+    ends (told once, with the offer, if still down when replacing stops or after 10 minutes with no news; told to nobody if the
+    replacement brings it back). OPEN FOR RICH (a product question, not decided overnight): a production member that stopped with
+    replacing stopped while the rest of the set still serves is told to nobody — as before A1 — though the app now runs one copy short
+    until it is deployed again.
