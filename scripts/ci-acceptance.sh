@@ -297,8 +297,14 @@ red() { printf '\033[31m%s\033[0m' "$1"; }
 # restored with) — and Task 8a's new `blueprints/saml-request-cache.test.ts` (4). Measured 3577/215, 0 failed, twice on `0ba9af8`
 # (19:12-19:29, and 19:50-20:06 — a run between them timed out 17 tests in two untouched files under load, 15-min average 7.3,
 # and is not counted; the two files alone 123/123).
-EXPECT_TESTS=3577
-EXPECT_FILES=215
+# EXPECT_TESTS 3577 -> 3593 and EXPECT_FILES 215 -> 216 (2026-10-13, A1's sitting 4, `manifest-a1-s4`): Task 5's deploy across N —
+# the new `releases/shape.test.ts` (6: `shapeFor`'s table, and DeployInput's missing fields as a type test),
+# `releases/releases.test.ts` +7 (a class production of TWO, the answer the set's first, THREE and ONE, staging ONE, a redeploy of
+# two, one of three never ready, one of two failing after the move), `releases/recover.test.ts` +2 (a set restored in one route; a
+# gone member left out) and `releases/retire.test.ts` +1 (a serving SET never targeted). Measured 3593/216, 0 failed, twice on
+# `81d469c` (21:30-21:46, and run B).
+EXPECT_TESTS=3593
+EXPECT_FILES=216
 # EXPECT_DOCTOR 21 -> 22 (2026-10-03, the UBC AI Gateway plan's sitting 2, Task 2): the gateway key's expiry, a
 # check_warn — counted, never failing — from 14 days ahead (its Decision 11). Measured: 22 checks, 0 failed, 0 warnings.
 EXPECT_DOCTOR=22

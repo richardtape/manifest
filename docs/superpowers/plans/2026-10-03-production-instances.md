@@ -73,6 +73,15 @@
 > `InstanceNotReadyError` carries every handle, `restoreRoute` refuses a set naming a gone member, and every app route now carries the
 > app's health policy. The story: *What executing this plan found*, *Sitting 3*.
 
+> **READ FIRST — WHAT SITTING 4 BUILT AND LEFT (2026-10-13, `manifest-a1-s4`, the second coordinated run).** **Spec action B is
+> APPLIED** (`3d57fc3` — applied AND committed by Rich from the session's staged scripts: the classifier refused both the
+> session's run of the edit and its `git commit`; the schematic's *"Three or more copies"* swept the same way, `6eb15e0`) and
+> **Task 5 is DONE** (`163f42c`, contract **`1.9.0`**): `shapeFor`, a deploy of N with a key per member, one Incident for a failed
+> set, boot recovery by hostname, `Environment.instances`, and every production reader of `X-Manifest-Instance` reading the set.
+> **A `class` app's production runs TWO instances through the edge** — `make demo-production`, `make demo-releases` (its
+> self-serve redeploy across two under a request loop, the set changing once) and `make demo-redeploy` green. **What sitting 5
+> must read first** is the *SITTING 4 BUILT* note under Task 6. The story: *What executing this plan found*, *Sitting 4*.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: superpowers:executing-plans (inline) or superpowers:subagent-driven-development, **whichever Rich chooses**. Steps use checkbox (`- [ ]`) syntax for tracking. **Commit on `main`; no branch, no worktree, no push** — ORIENTATION §6 rule 9.
 
 **Goal:** **Production runs as many instances as its audience needs** — §24's table: `solo` 1, `class` 2, `large_course` 3, `public` 3 —
@@ -138,8 +147,8 @@ actually changes — production only*, l.2733-2745), §11 (*Driver interface* an
 | 1 | 1 | **The measurements**: every fact re-read; Caddy's `reverse_proxy` with N upstreams, round robin, the health policy (passive without `503`, a dial failure retried), a fresh set PATCHed in under a loop with checks on, and a deferred header naming exactly the chosen upstream's instance id, in a THROWAWAY Caddy from the edge's image; a CWL sign-in started on one instance and finished on another; a WebSocket and a drain across N; the laptop's memory with three instances; the gate numbers | No | After Task 1's commit. **It stops and asks Rich** if `[M3]` finds a sign-in cannot cross instances (then the fork — sticky routing or a shared SAML cache — is his) | ✅ **DONE 2026-10-13** (`manifest-a1-s1`, the second coordinated run's job S1, inline): Task 1 `a70b94b` — [`spikes/instances-baseline/`](../spikes/instances-baseline/README.md). **`[M3]`'s stop FIRED**: a CWL sign-in cannot cross instances (`InResponseTo is not valid`); **Rich chose the SAML request cache in the app's own Mongo, built in sitting 3** (~16:28, `3487e68`). F16(b)'s Spec action applied (`daf2ad0`), §21's label beside it (`1c3066c`). *What executing this plan found*, *Sitting 1* |
 | 2 | 2, 3, **F16(b)** | **The edge's route** for N upstreams, its health policy a parameter (`[M2]`'s JSON); **`routes` one row per (hostname, instance)**; **and F16(b)'s build** (Rich, 2026-10-13 answer 3, `c0f969e`): `launch/readiness.ts`'s `iamItem` → `registrationInForce(row)` — a change UBC holds in force no longer blocks a first launch (§13's row, applied `daf2ad0`) — and the mock's `iamItem`, its notice to the front end (G3); W2 starts on this sitting's close-out | Yes — `routing/`, `db/`, `launch/` | After the commits, with an N-upstream route applied to the real edge and read back, and F16(b)'s refusal gone through the edge | ✅ **DONE 2026-10-13** (`manifest-a1-s2`, the second coordinated run's job S2, inline): Task 2 `98a9a9f`, Task 3 `941789c`, F16(b) `3bcb269` + the mock `0c7a2a3` (G3 notice, landed on `manifest-coord3`'s word). A two-upstream route applied to the real edge and read back (`routing/routes.docker.test.ts`); F16(b) through the edge in `make demo-launch`'s step 8, driver 1, every check passed. The Docker tier 293/293. *What executing this plan found*, *Sitting 2* |
 | 3 | 4, **8a** | **Spec action A applied first** (approved 2026-10-13, answer 4). **The driver's set**: `ensureInstances`, `servingInstances`, `restoreRoute(ids)`, retire and destroy across a set; the driver contract; both drivers. **And Task 8a — the SAML request cache in the app's own Mongo** (Rich, ~16:28, `3487e68`: `[M3]` found a sign-in cannot cross instances), so it lands before sitting 4 puts every launch demo's `class` production on two | Yes — `runtime/`, `blueprints/` | After the commits, with the Docker contract cases green and the skeleton's sign-in crossing two instances | ✅ **DONE 2026-10-13** (`manifest-a1-s3`, the second coordinated run's job S3, inline): Spec action A `49b9a83` (applied by Rich from the session's staged script — the classifier refused its edit), Task 4 `a991345`, Task 8a `0ba9af8`. The Docker contract 40/40 on the real edge (a set of two answering as both; a second set taking over in ONE move with no old answer after the first new); the skeleton's sign-in crossing two instances, both orders, a replay refused (`node-ts-mongo.docker.test.ts` 7/7); three Task 4 controls and 8a's red exactly as predicted. *What executing this plan found*, *Sitting 3* |
-| 4 | 5 | **Spec action B applied first** (approved 2026-10-13, answer 5). **The deploy, retire and boot recovery across N**; `shapeFor`; the per-instance AI keys; what the deploy answers; **every client that reads `X-Manifest-Instance`**; **contract `1.9.0`** | Yes — `releases/`, `ai/`, `projects/` | After the commit, with a `class` app's production on two instances through the edge, `make demo-production` and `make demo-releases` green on it, and `make demo-redeploy` green (staging, one) | ← **next** (read Task 5's *SITTING 3 BUILT* note first; stage Spec action B as a script) |
-| 5 | 6 | **A member that exits is replaced**: the set watcher, its backoff and cap, `instance.exited`, an Incident per exit; **and the event replay's clock order** (Rich, answer 3: `observability/bus.ts:258` reads `ORDER BY created_at`, a clock that can step back — an insertion order beside Task 6's migration; the roadmap's *Tracked defects*); **and FE-59** (Rich, 2026-10-13 ~18:14, *"go with the recommendations"*, `40c0f82`: `iam_registration.recorded` carries `changeRequestedFrom` as the record holds it — a change filed with UBC (`active`) and UBC's questions (`submitted`) read the same today — inside `1.9.0`, so W4's adoption picks it up and closes the front end's m178; `launch/records.ts`, `observability/event-schemas.ts`); **and FE-60** (Rich, 2026-10-13 ~18:41, *"yes, put FE-60 in sitting 5"*, `71928a2`: `iam_registration.sent` and `.submitted` carry `requestedAttributes` as the record has them — the front end cannot tell one detail's change from another's while it waits; the same files, inside `1.9.0`) | Yes — `releases/`, `observability/`, `launch/` | After the commit, with a member `docker kill`ed through the edge and replaced, quoted | |
+| 4 | 5 | **Spec action B applied first** (approved 2026-10-13, answer 5). **The deploy, retire and boot recovery across N**; `shapeFor`; the per-instance AI keys; what the deploy answers; **every client that reads `X-Manifest-Instance`**; **contract `1.9.0`** | Yes — `releases/`, `ai/`, `projects/` | After the commit, with a `class` app's production on two instances through the edge, `make demo-production` and `make demo-releases` green on it, and `make demo-redeploy` green (staging, one) | ✅ **DONE 2026-10-13** (`manifest-a1-s4`, the second coordinated run's job S4, inline): Spec action B `3d57fc3` (applied AND committed by Rich from staged scripts — the classifier refused the session's run and its commit) and the schematic's sweep `6eb15e0`, Task 5 `163f42c` (contract `1.9.0`, landed on `manifest-coord3`'s word) and a stale exact-shape test it left, `81d469c`. Through the edge, driver 1: `make demo-production` 62 `ok` (`launch-app` launched on TWO instances), `make demo-releases` 110 `ok` (the self-serve loop: 100 app answers, the set changed once, A → B), `make demo-redeploy` 24 `ok` (staging, one). Six controls red as predicted (one with two side-effect reds, explained). *What executing this plan found*, *Sitting 4* |
+| 5 | 6 | **A member that exits is replaced**: the set watcher, its backoff and cap, `instance.exited`, an Incident per exit; **and the event replay's clock order** (Rich, answer 3: `observability/bus.ts:258` reads `ORDER BY created_at`, a clock that can step back — an insertion order beside Task 6's migration; the roadmap's *Tracked defects*); **and FE-59** (Rich, 2026-10-13 ~18:14, *"go with the recommendations"*, `40c0f82`: `iam_registration.recorded` carries `changeRequestedFrom` as the record holds it — a change filed with UBC (`active`) and UBC's questions (`submitted`) read the same today — inside `1.9.0`, so W4's adoption picks it up and closes the front end's m178; `launch/records.ts`, `observability/event-schemas.ts`); **and FE-60** (Rich, 2026-10-13 ~18:41, *"yes, put FE-60 in sitting 5"*, `71928a2`: `iam_registration.sent` and `.submitted` carry `requestedAttributes` as the record has them — the front end cannot tell one detail's change from another's while it waits; the same files, inside `1.9.0`) | Yes — `releases/`, `observability/`, `launch/` | After the commit, with a member `docker kill`ed through the edge and replaced, quoted | ← **next** (read Task 6's *SITTING 4 BUILT* note first: `'replacement'` declared, not yet accepted; a thrown deploy's rows left `starting`; W2's `drawnFrom` note) |
 | 6 | 7, 8b | **The readers**: D21's rehearsal pinned to one; the API's and console's serving set; the fleet's count; **and the projects list's `500`** (Rich, answer 3: `GET /v1/projects` answers `500` while a project is between its rows and its repository, `projects/repository.ts:215` — the file Task 7 rewrites; the roadmap's *Tracked defects*); **Task 8b, the knowledge pack's no-state-in-memory rule**; **and the skeleton's development error page** (Rich, 2026-10-13 ~19:38, *"both."*, `028bb94` — sitting 3's F11): an error handler as the skeleton's last middleware (`console.error` the error, never a secret; `500` with one plain sentence, no stack) AND `ENV NODE_ENV=production` in `Dockerfile.tmpl`'s runtime stage after `npm ci` — beside Task 8b | Yes — `launch/`, `projects/`, `blueprints/` | After both commits, with the front-end told | |
 | 7 | 9 | **The acceptance's demo**: `make demo-capacity` — P4c's whole witness across two, a member killed and replaced, a crash loop stopped at its cap, a sign-in across instances — three times on each driver, every negative control seen red. **Alone** | No, unless a fix touches the owed list | After the commit, with the three runs on each driver quoted | |
 | 8 | 10 | **The rest of the acceptance**: every launch demo on two instances, three times on each driver; `make ci-acceptance`; the clicked half; the plan's one whole-branch review beside the Docker tier, and its one fix wave. **Alone, and last** | Yes — beside the reviewer | After the clicked half and the review's one fix wave | |
@@ -836,6 +845,38 @@ field — the same two files and their examples, inside `1.9.0`, in the same not
 > `c0f969e`): `recentFramesFor` orders by `created_at` (`observability/bus.ts:258`), a `clock_timestamp()` that can step back — an
 > insertion order instead, test-first, beside this task's migration; the roadmap's *Tracked defects found in use* row is deleted when it lands.
 
+> **SITTING 4 BUILT (2026-10-13, `manifest-a1-s4`; Task 5 `163f42c`, contract `1.9.0`) — WHAT THIS TASK INHERITS:**
+> - **`shapeFor(kind, purpose, audience)`** (`releases/shape.ts:46`) is the only place a deploy's count is decided, read inside
+>   `deployReleaseSet` from the audience at each deploy. **`DeployPurpose` declares `'replacement'`** (its row: production's count)
+>   **but `DeployInput.purpose` is `Exclude<DeployPurpose, 'replacement'>`** (`release.ts:214`) — THIS TASK widens it in the same
+>   change as the approval condition (`release.ts:337`, still `(input.purpose ?? 'launch') === 'launch'`, which a new purpose would
+>   SKIP) becomes `input.purpose !== 'rehearsal'`, with its test and control (a ruling of sitting 4: declaring the purpose before its
+>   gate would have been a latent skip). `recordLaunch`'s condition (`:1109`) reads `'launch'` too — a replacement must not record a
+>   launch.
+> - **`deployReleaseSet(…)` returns `{ instances, answer }`** — the set in `(created_at, id)` order and the ONE instance the operation
+>   answers (the member that failed, otherwise the set's first); `deployRelease` returns `answer` (a ruling: ~70 callers read one).
+>   The Incident is captured at `:1059`, once, for the member whose own check failed.
+> - **A failed deploy marks EVERY member `failed`** — a sibling's `instance.failed` carries `failedCheck` beginning `set:` and naming
+>   the member that failed — and writes no Route row. So a failed REPLACEMENT leaves the previous Route rows (the survivors and the
+>   dead member) exactly as they were, and the watcher, reading its set from the Route rows, sees the dead member still there,
+>   `failed` — what Decision 11's *"a set that still holds a `failed` member"* needs.
+> - **A deploy that THROWS** (anything but `InstanceNotReadyError`: a container that cannot be created, a status that cannot be read)
+>   **leaves its N rows `starting`** until the next boot's pass 2 fails them — pre-existing for one row. Decision 11 skips *"an
+>   environment a deploy is mid-way through (rows `provisioning` or `starting`)"*, so after such a throw the watcher would skip that
+>   environment until a restart. Decide how "mid-way" is read (the rows, or the environment's lock) with that in hand.
+> - **`servingInstancesOf(db, environment)`** (`projects/repository.ts:300`) answers the set from the Route rows in `(created_at,
+>   id)` order (the newest instance alone for an environment with no Route row); `servingInstanceOf` is its first — it used to read
+>   one Route row with `.limit(1)` and no order.
+> - **Boot recovery's pass 1 restores each hostname's set in ONE route** and leaves out a member whose container is gone (`status`
+>   `gone`) or that has no handle — an operator line and a row in the report's new `membersLeftOut` — routing the rest. The watcher
+>   (after pass 3) is what then replaces the member left out.
+> - **The journeys read the set**: `journey/src/serving-set.ts`'s `seeEveryMember(ask, set, isTheApp)` — every id seen within 4 × N
+>   requests through the edge, nothing outside it — `describeSeen` for a check's detail. `make demo-capacity` (Task 9) can use it.
+> - **Carried into this sitting by `manifest-coord3`** beside FE-59 and FE-60 (the ledger, 18:53): **W2's note** — `launch/records.ts`
+>   `drawnFrom`'s comment (*"the release serving staging cannot ask for what UBC has not registered — its build is refused until UBC
+>   registers it"*) is false for a release built before production's `registeredAt` was set (I1's case) and for a moved
+>   `auth.callback`/`logout` (the build check never reads them) — reword it; `launch/records.ts` is this sitting's file for FE-60.
+
 - [ ] **Step 1: The failing tests** (`releases/watch.test.ts`, the fake driver with a test hook that makes one member's `status` answer
   `failed`):
   - **The exit is recorded, once**: a `class` production set of two, one member `failed` with an `exitCode` → its row `failed` (by
@@ -1050,7 +1091,7 @@ interface as the one before it leaves it, and Rich reads them in that order**; n
 
 *Shared pages:* `manifest-schematic.html` (if it draws one instance per app), `manifest-decisions.html` (D29) — check.
 
-### B. §24 — the instance counts, as built (before sitting 4)
+### B. §24 — the instance counts, as built (before sitting 4) — ✅ APPLIED 2026-10-13 (`3d57fc3`; the schematic's sweep `6eb15e0`)
 
 **Proposed.** Under *What each answer actually changes*, after the table: *"**Instances are exactly 1, 2, 3 and 3**, each at the manifest's
 own resources — *headroom* is the third instance, which carries the app while another is replaced or has died. Production's count is read
@@ -1373,3 +1414,101 @@ the *SITTING 3 BUILT* note under Task 5.
     LiteLLM users, 23 app images — each re-read to zero. **The machine as found: 21 containers, 60 images (`docker images -q`), 12 networks,
     39 volumes. `make verify`: 67 checks, 0 failed, 0 warnings**, per-app resources 0/0/0. `docker-simple-saml` clean but for its old
     untracked `cert.zip`.
+
+### Sitting 4 — 2026-10-13, 20:35–22:31 PDT (`manifest-a1-s4`, the second coordinated run's job S4): Spec action B and Task 5
+
+**Opened** by `manifest-coord3`'s GO (~20:33), relaying Rich's decisions of 16:01 (`c0f969e`: answer 5 approved Spec action B as
+drafted, answer 6 inline and the unattended runs) and his words since (`1fb75f8`, `3487e68`, `ac35573`, `40c0f82`, `71928a2`,
+`028bb94` — his standing delegation to `manifest-coord3`). HEAD `29b9724`, clean but for an untracked `.claude/` that is not this
+sitting's; the BYOA planning run committed documents on `main` throughout (`1ae8c70`, `3fe5299`, `c470221`, …), none of them
+staged here. **The windows were the coordinator's**: *"7100 is yours"* for `pnpm contract:write` and single DB files (~20:55), the
+HOLD from 21:02:22 for the demos, the controls, `pnpm test` twice and the Docker tier. Commits: Spec action B `3d57fc3` and its
+sweep `6eb15e0` (both Rich's, from staged scripts), Task 5 `163f42c`, and this close-out.
+
+1. **F1 — SPEC ACTION B: THREE REFUSALS, NONE WORKED AROUND, AND RICH APPLIED AND COMMITTED IT HIMSELF.** The staged script
+   (`spec-action-b.py`: one replacement in §24, asserted to match once, writing only the spec) was refused `[Modify Shared
+   Resources]` when this session ran it, as sitting 3's had been; Rich ran it at ~20:38 (*"Spec action B applied: 1
+   replacement"*); the diff read back is the one paragraph, +6 −0. **This session's `git commit` of it was then refused too**
+   `[Modify Shared Resources]` (20:39) — sitting 3's commit had not been — so the commit went to Rich as a guarded script
+   (`spec-action-b-commit.sh`: refuses unless the diff is exactly +6 −0 with the paragraph and nothing else is staged). **The
+   shared pages**: D29 (`manifest-decisions.html`) is the audience question and states no count — unchanged; `manifest-stories.html`
+   says *"two copies"* for a course and *"several copies"* for a large course and a public app — consistent, unchanged;
+   **`manifest-schematic.html`'s audience table said *"Three or more copies"*** for a large course. This session's Edit of that
+   line was ALLOWED — and its next command, a harmless `wc`/`ls` of the control plane's source, was refused `[Auto-Mode Bypass]`:
+   read as the classifier judging the page edit a workaround of the spec refusal, the edit was REVERTED (the page read back as
+   committed) and staged as its own script (`spec-action-b-schematic.py`), with `manifest-coord3`'s guarded commit beside it; Rich
+   ran the three as one command in his own terminal — the spec committed alone, `3d57fc3` (21:21:51), the sweep applied and
+   committed alone, `6eb15e0` (21:21:52). **A spec action's commit is refused as its edit is, now** — stage both at a sitting's open.
+2. **F2 — TASK 5: PRODUCTION RUNS ITS AUDIENCE'S COUNT** (`163f42c`). `releases/shape.ts`'s `shapeFor` is Decision 2's one
+   function; `deployReleaseSet` deploys N members — rows in one statement (so the set's order, `(created_at, id)`, is the ids'
+   order), a key minted and stored PER MEMBER, one `ensureInstances`, a health wait for each at once (a set of three must not take
+   three timeouts to fail); healthy, the Route rows become the set and every instance NOT in it is marked; any member unhealthy
+   fails the deploy — the previous set restored if the route had moved, every started member removed, every key revoked, ONE
+   Incident. Boot recovery restores each hostname's set in one route and leaves out a gone member, named (Review Focus 5).
+   `Environment.instances` and contract `1.9.0` (the G3 notice ~20:55; *"land it"* standing, no app worker live).
+3. **F3 — RULING: `deployRelease` ANSWERS ONE; `deployReleaseSet` RETURNS THE SET** (Decision 6 had `deployRelease` return
+   `Instance[]`). The `deploy` operation answers one, D21's rehearsal is one, and ~70 callers (93 references in
+   `releases.test.ts` alone) read one; the set is a read of the environment (`instances`) for a client and `deployReleaseSet` for a
+   test or the watcher. *Cost to change course:* a rename.
+4. **F4 — RULING: A FAILED DEPLOY MARKS EVERY MEMBER `failed`**, the siblings too — the contract's own words for `failed` are
+   *"never served"*, which each sibling did not — each with an `instance.failed` whose `failedCheck` begins `set:` and names the
+   member that failed; ONE Incident, on that member (three Incidents would send a reader to three containers for one cause).
+   *Rejected:* the siblings `healthy` then `destroying` (a row would say a member served that never did).
+5. **F5 — RULING: `'replacement'` IS DECLARED, NOT ACCEPTED.** `DeployPurpose` has it (its `shapeFor` row tested), and
+   `DeployInput.purpose` is `Exclude<DeployPurpose, 'replacement'>` until Task 6 changes the approval condition with it — the
+   condition reads `(input.purpose ?? 'launch') === 'launch'`, so a purpose accepted now would have skipped the digest check by
+   being new (Review Focus 8). Task 6's *SITTING 4 BUILT* note says so.
+6. **F6 — FOUND AND FIXED: `servingInstanceOf` READ ONE ROUTE ROW WITH `.limit(1)` AND NO ORDER** (`projects/repository.ts`) — with a
+   set of two, `Environment.instance` would have named either member, and not always the one the deploy answered. Now
+   `servingInstancesOf` reads the set in `(created_at, id)` order and `servingInstanceOf` is its first; `getEnvironment`,
+   `listEnvironments` and `getProject` read the set, and `listInstances` marks EVERY member serving (its description changed in
+   `1.9.0`, so its code moved with it — a ruling; the fleet, the candidate, `ai/models.ts`, the console and D21's rehearsal stay
+   Task 7's).
+7. **F7 — FOUND, PRE-EXISTING, FOR SITTING 5: A DEPLOY THAT THROWS LEAVES ITS ROWS `starting`** until the next boot — now N rows.
+   Decision 11's watcher skips an environment with rows `starting`; Task 6's note says so.
+8. **F8 — THE CONTROLS, EACH FROM A BACKUP, RESTORED, `git diff` EMPTY.** **(a)** every instance but the first new one marked (the
+   old rule) → red EXACTLY the two predicted cases, on the rows' states (`[ 'healthy', 'destroying' ]`) — the TWO case's *"both
+   rows healthy"* and the redeploy's *"the new two are not marked"*; **(b)** only the first new member routed → red on the five
+   predicted N-cases (`expected [ 'inst-1' ] to deeply equal [ 'inst-1', 'inst-2' ]`, `expected 1 to be 3`, a route history of two
+   changes) **and on two older cases NOT predicted, each for the control's side effect, not a set rule**: the SP-order test's spy
+   hands `ensureInstances` to a DIFFERENT fake driver, so the control's extra `restoreRoute` met an unheld id and threw; the P4c
+   restore test records every `restoreRoute` and saw the extra calls. **(b)'s through-the-edge half** (the plan's *"`make
+   demo-production`'s set check"*) **was not run**: it needs a fresh launch (a launched `launch-app` takes the re-use path, which
+   deploys nothing). **(c)** one `restoreRoute` per member at boot → red the WHOLE-SET case only (`[ 'inst-2' ]` — the last
+   winning); **(d)** the gone-member check dropped → red the gone-member case only (`[]` — the strict restore refused the set);
+   **(e)** the answer always the set's first → red the never-ready and health-after cases only; **(f)** one key shared by the set
+   → red the TWO case's *"a key for each"* only (`1` for `2`); **`shapeFor`'s `class` 2 → 3** → red its two production rows only.
+9. **F9 — THROUGH THE EDGE, DRIVER 1** (`gateway-controls.sh start local`, ~21:03–21:10): **`make demo-production` green, 62
+   `ok`** — `launch-app`, a `class` app, launched on TWO instances, the deploy's answer the set's first, the public listener
+   answering as both (in 2 requests); **`make demo-releases` green, 110 `ok`**, 11 phases — legs A, B and C each on two, and leg
+   B's self-serve redeploy under the request loop: **100 answers, every one the app, the SET changed exactly once, A → B**;
+   **`make demo-redeploy` green, 24 `ok`** — staging, one instance, P4c's witness unchanged: nobody signed out, 47 questions
+   answered, a question in flight across each move answered by the previous instance.
+10. **F10 — FOUND BY THE FIRST WHOLE-SUITE RUN: ONE STALE EXACT-SHAPE TEST** (`81d469c`). Run 1 on `163f42c` (21:12–21:29) was
+    3592/3593: `api/projects.test.ts`'s *"expands environments, each with its url and no driver internals"* asserted the 1.8.0
+    fields exactly, and the answer now carries `instances: []`. The answer was right; the test was stale. **Missed before the commit
+    because the sweep for affected test files grepped for READERS of the instance** (`.instance`, `serving`, `/environments/`) — 16
+    files and the packages project run green — **not for literals of the shape** (`instance: null`): a new REQUIRED field in a
+    representation is found by grepping its siblings' literals in tests, not its readers. It was the only one.
+11. **F11 — THE GATES.** **`pnpm test` twice on the final code tree** (`81d469c`, under the HOLD): **216 files, 3593 tests, all
+    passed** (21:30–21:46 and 21:46–22:03) — +16 tests and +1 file: the new `releases/shape.test.ts` (6), `releases/releases.test.ts`
+    +7, `recover.test.ts` +2, `retire.test.ts` +1; `EXPECT_TESTS` 3577 → 3593 and `EXPECT_FILES` 215 → 216, counted in
+    `scripts/ci-acceptance.sh`'s comment. Run 1, on `163f42c`, was 3592/3593 (F10) and is not counted. `bus.test.ts` did not
+    redden. lint 0, typecheck clean (six packages), `format:check` clean. **The Docker tier**: **303/303 in 44 files, 1441 s** (22:03:52–22:27:53, on `81d469c`, networks 15 → 22) — unmoved: this
+    sitting added no Docker case (its demos are its through-the-edge witness). ORIENTATION §2's row records the re-measurement. The working runs before
+    them, under *"7100 is yours"*: the `releases/` files (119/119), sixteen API, launch and reader files (305/305), the packages
+    project (275/275), and `shape.test.ts` from a no-truncation scratch config first.
+12. **F12 — THE MACHINE.** As found: **21 containers, 60 images (`docker images -q`), 12 networks, 39 volumes** (sitting 3's close),
+    7100 PID 95884 on real GitHub, EMPTY. During: 7100 on driver 1 for the demos (`gateway-controls.sh start local`, `.env`
+    untouched). **At the close**: 7100 restarted from `.env` on real GitHub (`start real`, **PID 27304**; the capable model
+    `registered`, its fallback `set`, `ubc-qwen-27b` `registered`) and EMPTY (the suite truncated what the demos made). **Removed**:
+    the demos' 10 containers (`mf-launch-app-*` ×7 — production's two app members, its db and egress proxy, staging's three —
+    and `mf-proof-app-*` ×3; `docker rm -f -v` by name, ALLOWED), then the three scripts with `--apply` — 10 dead networks (the
+    demos' 3, the tier's 7), 8 volumes, the unheld LiteLLM users and 21 app images — each re-read to zero. The driver-1 mirrors
+    `launch-app.git` and `proof-app.git` existed before the sitting (each demo removed and re-made its own) and stay. **The
+    machine as found: 21 containers, 60 images, 12 networks, 39 volumes. `make verify`: 67 checks, 0 failed, 0 warnings**,
+    per-app resources 0/0/0. `docker-simple-saml` clean but for its old untracked `cert.zip`. **Noted, not changed**:
+    `scripts/litellm-orphans.sh` now FAILS bare with *"/user/list answered no users at all, which is not a state this machine
+    reaches"* — and it is the state: LiteLLM's `/user/list` read directly answers `total: 0` (an empty 7100 holds no key; every
+    user was an unheld demo's). The script's sanity guard reads a truly empty LiteLLM as a broken read — harmless (it changes
+    nothing), and the next demo's user ends it; a later sitting may teach the guard the difference.
