@@ -1345,12 +1345,14 @@ describe('a draft that no longer covers the app (Task 10)', () => {
   })
 
   /**
-   * BEFORE A FIRST LAUNCH, A CHANGE TO A REGISTRATION UBC HOLDS IN FORCE (the whole-branch review's F16): the first
-   * launch still waits for `active`, but the words say where the change is and what lets the app launch — never
-   * "draft it again", which draws the same change (it comes from the newest manifest), or is refused while UBC
-   * holds it. Only UBC's questions on the change make drafting again the next step.
+   * BEFORE A FIRST LAUNCH, A CHANGE TO A REGISTRATION UBC HOLDS IN FORCE — F16(b), Rich's (2026-10-09 11:24,
+   * `6a4ae2a`; §13's first-launch row since `daf2ad0`): *"UBC IAM's registration is in force (recorded `active`,
+   * not lapsed since) and covers the release; a change asked for or filed does not unregister it."* The
+   * after-launch predicate, `registrationInForce`: a change with the Manifest team, filed with UBC, or sent back
+   * with UBC's questions leaves the first launch `met` on what UBC registered — it used to wait for `active`
+   * again, and the owner's way out was to ask the team to hand the change back, launch, and ask again.
    */
-  it('before a first launch, a change to a registration UBC holds in force says where the change is — never to draft it again', async () => {
+  it('before a first launch, a change to a registration UBC holds in force does not hold the launch back (F16(b))', async () => {
     await withProject(async (tx, { projectId, ownerId }) => {
       await serving(
         tx,
@@ -1366,17 +1368,26 @@ describe('a draft that no longer covers the app (Task 10)', () => {
         attributes: ['ubcEduCwlPuid', 'mail', 'sn'],
         ...at,
       })
-      const registered = {
-        registeredAt: new Date('2026-09-20T19:00:00.000Z'),
-        registeredAttributes: ['ubcEduCwlPuid', 'mail'],
-      }
-      // THE POSITIVE CONTROL: registered, nothing asked for — met.
+      const registeredAt = new Date('2026-09-20T19:00:00.000Z')
+      const registered = { registeredAt, registeredAttributes: ['ubcEduCwlPuid', 'mail'] }
+      // THE POSITIVE CONTROL: registered, nothing asked for — met, in the words it always had.
       await tx
         .update(iamRegistrations)
         .set({ state: 'active', ...registered })
         .where(eq(iamRegistrations.projectId, projectId))
-      expect((await item(tx, projectId)).state).toBe('met')
+      const live = await item(tx, projectId)
+      expect(live.state).toBe('met')
+      const [reg] = await tx
+        .select({ entityId: iamRegistrations.entityId })
+        .from(iamRegistrations)
+        .where(eq(iamRegistrations.projectId, projectId))
+      const entityId = reg!.entityId
+      expect(live.why).toBe(
+        `Registered as ${entityId}, active, releasing 2 attribute(s).`,
+      )
 
+      // WITH THE MANIFEST TEAM: still met — on what UBC registered, since it registered it — and says where
+      // the change is.
       const sentOn = new Date('2026-09-22T19:00:00.000Z')
       await tx
         .update(iamRegistrations)
@@ -1389,44 +1400,97 @@ describe('a draft that no longer covers the app (Task 10)', () => {
         })
         .where(eq(iamRegistrations.projectId, projectId))
       const withTeam = await item(tx, projectId)
-      expect(withTeam).toMatchObject({ state: 'unmet', since: sentOn.toISOString() })
-      const [reg] = await tx
-        .select({ entityId: iamRegistrations.entityId })
-        .from(iamRegistrations)
-        .where(eq(iamRegistrations.projectId, projectId))
-      const entityId = reg!.entityId
+      expect(withTeam).toMatchObject({ state: 'met', since: registeredAt.toISOString() })
       expect(withTeam.why).toBe(
-        `Registered with UBC IAM as ${entityId} since 2026-09-20, but the registration is 'sent' and must be 'active' before a first production launch. A change is with the Manifest team since September 22, 2026, asking for mail, sn, ubcEduCwlPuid. To launch on what UBC IAM registered, ask the Manifest team to hand the change back (returnIamRegistration), launch, then ask for the change again; otherwise the launch waits until UBC IAM registers it and an administrator records the registration 'active'.`,
+        `Registered as ${entityId} since 2026-09-20, releasing 2 attribute(s). A change is with the Manifest team since September 22, 2026 (asking for mail, sn, ubcEduCwlPuid); until UBC registers it, releases are checked against what it registered.`,
       )
 
-      const filedOn = new Date('2026-09-23T19:00:00.000Z')
+      // FILED WITH UBC: still met.
       await tx
         .update(iamRegistrations)
         .set({
           state: 'change_requested',
           changeRequestedFrom: 'active',
           sentFrom: null,
-          submittedAt: filedOn,
+          submittedAt: new Date('2026-09-23T19:00:00.000Z'),
           submittedBy: ownerId,
           externalTicketRef: 'IAM-CHG-1',
         })
         .where(eq(iamRegistrations.projectId, projectId))
       const filed = await item(tx, projectId)
-      expect(filed).toMatchObject({ state: 'unmet', since: filedOn.toISOString() })
+      expect(filed.state).toBe('met')
       expect(filed.why).toContain(
-        "A change request is on file with UBC IAM (ticket IAM-CHG-1), asking for mail, sn, ubcEduCwlPuid; the launch waits until UBC IAM answers it and an administrator records the registration 'active'.",
+        "A change request is on file ('change_requested' (ticket IAM-CHG-1), asking for mail, sn, ubcEduCwlPuid); until UBC registers it, releases are checked against what it registered.",
       )
-      for (const said of [withTeam.why, filed.why])
-        expect(said).not.toMatch(/no longer matches|[Dd]raft it again/)
 
-      // UBC'S QUESTIONS ON THE CHANGE: now drafting again IS the next step.
+      // UBC'S QUESTIONS ON THE CHANGE: still met, and drafting again is the change's next step — said once.
       await tx
         .update(iamRegistrations)
         .set({ changeRequestedFrom: 'submitted' })
         .where(eq(iamRegistrations.projectId, projectId))
-      expect((await item(tx, projectId)).why).toContain(
-        'UBC IAM asked for changes to the change request, asking for mail, sn, ubcEduCwlPuid: draft it again and send it to the Manifest team (sendIamRegistration).',
+      const questions = await item(tx, projectId)
+      expect(questions.state).toBe('met')
+      expect(questions.why).toContain(
+        'UBC IAM asked for changes to the change request (asking for mail, sn, ubcEduCwlPuid): draft it again and send it to the Manifest team (sendIamRegistration); until UBC registers it, releases are checked against what it registered.',
       )
+      for (const said of [withTeam.why, filed.why, questions.why])
+        expect(said).not.toMatch(/must be 'active'|hand the change back/)
+    })
+  })
+
+  /**
+   * F16(b)'s OTHER HALF — *"and covers the release"*: a change in flight does not stand in for what UBC has not
+   * registered. The release serving staging asking for what the change asks waits, since the send, naming it.
+   */
+  it('before a first launch, a release asking for what a change asks still waits for UBC (F16(b))', async () => {
+    await withProject(async (tx, { projectId, ownerId }) => {
+      await serving(
+        tx,
+        projectId,
+        ownerId,
+        scan(1, false),
+        ['ubcEduCwlPuid', 'mail', 'sn'],
+        PRODUCTION,
+      )
+      await withDraft(tx, {
+        projectId,
+        environment: 'production',
+        attributes: ['ubcEduCwlPuid', 'mail', 'sn'],
+        ...at,
+      })
+      const sentOn = new Date('2026-09-22T19:00:00.000Z')
+      await tx
+        .update(iamRegistrations)
+        .set({
+          state: 'sent',
+          sentFrom: 'active',
+          sentAt: sentOn,
+          sentBy: ownerId,
+          registeredAt: new Date('2026-09-20T19:00:00.000Z'),
+          registeredAttributes: ['ubcEduCwlPuid', 'mail'],
+          requestedAttributes: ['ubcEduCwlPuid', 'mail', 'sn'],
+        })
+        .where(eq(iamRegistrations.projectId, projectId))
+      const waiting = await item(tx, projectId)
+      expect(waiting).toMatchObject({ state: 'unmet', since: sentOn.toISOString() })
+      expect(waiting.why).toContain(
+        'The release serving staging asks for CWL attribute(s) UBC IAM did not register: sn.',
+      )
+      expect(waiting.why).toContain(
+        'a change is with the Manifest team since September 22, 2026, asking for mail, sn, ubcEduCwlPuid;',
+      )
+
+      // A LAPSE IS NOT IN FORCE: entering `expired` clears `registered_at`, and a first launch waits.
+      await tx
+        .update(iamRegistrations)
+        .set({
+          state: 'expired',
+          registeredAt: null,
+          sentFrom: null,
+          requestedAttributes: null,
+        })
+        .where(eq(iamRegistrations.projectId, projectId))
+      expect((await item(tx, projectId)).state).toBe('unmet')
     })
   })
 

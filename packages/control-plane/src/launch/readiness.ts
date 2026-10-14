@@ -346,11 +346,15 @@ const NOTHING_REVIEWS_CODE =
  * about a row an administrator recorded from what UBC IAM said:
  *
  *  - `met` when the app signs nobody in with CWL — there is nothing to register.
- *  - `met` when a recorded registration is `active` AND it covers the candidate release — a
+ *  - `met` when UBC's registration is IN FORCE AND it covers the candidate release — a
  *    subset of what it registered (§7's last production clause, P6a Task 13), at the ACS and
  *    SLO UBC registered (P6b Task 7, `[M10]`); `registrationCovers` is the one statement.
- *  - `unmet` when it is `active` and does not cover the candidate, naming each gap.
- *  - `unmet` when one exists and is not yet active, naming the state and the ticket, so
+ *    **In force is `registrationInForce`, the after-launch predicate** (F16(b), Rich, 2026-10-09
+ *    11:24; §13's row: *"a change asked for or filed does not unregister it"*): `active`, or a
+ *    change to it with the Manifest team, filed with UBC, or sent back with UBC's questions.
+ *  - `unmet` when it is in force and does not cover the candidate, naming each gap — and where
+ *    a change that asks for it is.
+ *  - `unmet` when one exists and UBC has nothing in force, naming the state and the ticket, so
  *    the owner can chase it rather than wonder.
  *  - `unmet` when none exists at all — **NOT `not_built`**, which said "Manifest does not
  *    track this yet" and is now false.
@@ -375,9 +379,15 @@ async function iamItem(
       state: 'unmet',
       why: 'Every production app that signs people in with CWL needs its own registration with UBC IAM, and it takes weeks. Production’s is drafted (draftIamRegistration) and sent to the Manifest team (sendIamRegistration) once the privacy assessment is approved and staging’s registration is active; the team submits it to UBC IAM. An administrator records UBC IAM’s answer, with its ticket reference.',
     }
-  if (row.state === 'active') {
+  /**
+   * UBC'S REGISTRATION IN FORCE — and a change to it in flight does not unregister it (F16(b)). Before it,
+   * a first launch waited for `active` again whenever the owner had asked for a change, though UBC's
+   * registration stood and a launched app's live item read `met` on it; the way out was to ask the team to
+   * hand the change back, launch, and ask again.
+   */
+  if (registrationInForce(row)) {
     /**
-     * **`active` IS NOT ENOUGH — THE CANDIDATE MUST BE COVERED BY IT** (§7, §9). `finishBuild`
+     * **IN FORCE IS NOT ENOUGH — THE CANDIDATE MUST BE COVERED BY IT** (§7, §9). `finishBuild`
      * refuses attribute drift only when a registration exists at build time, and §9 makes the
      * other order the normal one — so the release serving staging, built before UBC answered,
      * is compared here (P6a Task 13). **And since P6b Task 7 its ACS and SLO are too** (`[M10]`):
@@ -391,31 +401,18 @@ async function iamItem(
           ...IAM_BASE,
           state: 'unmet',
           why: coverageGap(row, would, coverage, 'The release serving staging'),
+          // A change that asks for it waits on its holder since it was sent; a gap with none waits on nobody.
+          since: waitingSince(row),
         }
     }
     return {
       ...IAM_BASE,
       state: 'met',
-      why: `Registered as ${row.entityId}, active${ticket(row.externalTicketRef)}, releasing ${row.registeredAttributes.length} attribute(s).`,
-      since: isoOrNull(row.registeredAt),
-    }
-  }
-  // A CHANGE TO A REGISTRATION UBC HOLDS IN FORCE, BEFORE THE FIRST LAUNCH (the whole-branch review's F16): the first
-  // launch still waits for `active`, but its draft IS the change — drawn from the newest valid manifest — so
-  // `draftDrift`'s "draft it again" would draw the same one, or be refused while UBC holds it. Say where the
-  // change is and what lets the app launch, and still say if the release outgrew what UBC registered.
-  if (registrationInForce(row)) {
-    const coverage = would === undefined ? undefined : registrationCovers(row, would)
-    return {
-      ...IAM_BASE,
-      state: 'unmet',
       why:
-        `Registered with UBC IAM as ${row.entityId} since ${row.registeredAt!.toISOString().slice(0, 10)}, but the registration is '${row.state}' and must be 'active' before a first production launch.` +
-        changeBeforeLaunch(row) +
-        (coverage === undefined || coverage.covers
-          ? ''
-          : ` ${coverageGap(row, would!, coverage, 'The release serving staging')}`),
-      since: waitingSince(row),
+        row.state === 'active'
+          ? `Registered as ${row.entityId}, active${ticket(row.externalTicketRef)}, releasing ${row.registeredAttributes.length} attribute(s).`
+          : `Registered as ${row.entityId} since ${row.registeredAt!.toISOString().slice(0, 10)}, releasing ${row.registeredAttributes.length} attribute(s).${changeRequestOnFile(row)}`,
+      since: isoOrNull(row.registeredAt),
     }
   }
   return {
@@ -426,23 +423,6 @@ async function iamItem(
       draftDrift(row, would),
     since: waitingSince(row),
   }
-}
-
-/**
- * WHERE A CHANGE IS, BEFORE THE FIRST LAUNCH, AND WHAT LETS THE APP LAUNCH (F16): with the Manifest team, which can
- * hand it back so the app launches on what UBC registered; on file with UBC IAM, whose answer it waits for; or
- * sent back by UBC with questions, the owner's to draft again.
- */
-function changeBeforeLaunch(row: IamRegistrationRow): string {
-  const asked =
-    row.requestedAttributes === null
-      ? ''
-      : `, asking for ${[...row.requestedAttributes].sort().join(', ')}`
-  if (row.state === 'sent')
-    return ` A change is with the Manifest team${withTeamSince(row)}${asked}. To launch on what UBC IAM registered, ask the Manifest team to hand the change back (returnIamRegistration), launch, then ask for the change again; otherwise the launch waits until UBC IAM registers it and an administrator records the registration 'active'.`
-  if (row.state === 'change_requested' && row.changeRequestedFrom === 'submitted')
-    return ` UBC IAM asked for changes to the change request${asked}: draft it again and send it to the Manifest team (sendIamRegistration).`
-  return ` A change request is on file with UBC IAM${ticket(row.externalTicketRef)}${asked}; the launch waits until UBC IAM answers it and an administrator records the registration 'active'.`
 }
 
 /**
@@ -695,9 +675,13 @@ const withTeamSince = (row: IamRegistrationRow) =>
 function changeRequestOnFile(row: IamRegistrationRow): string {
   if (row.requestedAttributes === null) return ''
   const asked = [...row.requestedAttributes].sort().join(', ')
-  return row.state === 'sent'
-    ? ` A change is with the Manifest team${withTeamSince(row)} (asking for ${asked}); until UBC registers it, releases are checked against what it registered.`
-    : ` A change request is on file ('${row.state}'${ticket(row.externalTicketRef)}, asking for ${asked}); until UBC registers it, releases are checked against what it registered.`
+  if (row.state === 'sent')
+    return ` A change is with the Manifest team${withTeamSince(row)} (asking for ${asked}); until UBC registers it, releases are checked against what it registered.`
+  // UBC'S QUESTIONS ON THE CHANGE: the owner's move, said as the change's next step (F16(b) moved it here from
+  // the first launch's unmet item, which no longer waits on it).
+  if (row.state === 'change_requested' && row.changeRequestedFrom === 'submitted')
+    return ` UBC IAM asked for changes to the change request (asking for ${asked}): draft it again and send it to the Manifest team (sendIamRegistration); until UBC registers it, releases are checked against what it registered.`
+  return ` A change request is on file ('${row.state}'${ticket(row.externalTicketRef)}, asking for ${asked}); until UBC registers it, releases are checked against what it registered.`
 }
 
 const ticket = (ref: string | null) => (ref === null ? '' : ` (ticket ${ref})`)

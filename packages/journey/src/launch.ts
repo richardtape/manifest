@@ -1524,10 +1524,71 @@ async function step7Approve(): Promise<void> {
   done(7)
 }
 
-/** Step 8: the owner launches — and the app, not the wildcard, answers on the public listener. */
+/**
+ * Step 8: the owner launches — and the app, not the wildcard, answers on the public listener.
+ *
+ * **WITH A CHANGE ASKED FOR FIRST** (F16(b), Rich, 2026-10-09 11:24; §13's first-launch row): the owner's
+ * manifest asks for one attribute more, and the change to production's registration — which UBC holds in
+ * force — is sent to the Manifest team before the launch. It does not unregister it: the release serving
+ * staging asks for nothing more, so the checklist stays ready and the launch goes ahead on what UBC
+ * registered. Until A1's sitting 2 the deploy was refused `RELEASE_PRODUCTION_GATE_UNAVAILABLE` here, and the
+ * way out was to ask the team to hand the change back, launch, and ask again. After the launch the team
+ * hands it back and the manifest is committed back, so steps 9–11 build from the four it launched with.
+ */
 async function step8Launch(): Promise<void> {
-  checks.step('8. The owner deploys to production — stepped up')
+  checks.step(
+    '8. The owner asks for a change to production’s registration, then deploys to production — stepped up',
+  )
   const owner = clientFor('MANIFEST_SESSION_STEPPED')
+  const admin = clientFor('MANIFEST_ADMIN_SESSION_STEPPED')
+  const id = projectId()
+  const slug = checks.must('the slug', state.slug)
+  const production = { path: { projectId: id, environment: 'production' as const } }
+  const asking = await commit(owner, `Ask for ${ASKED_FOR}, before the launch`, [
+    {
+      op: 'write',
+      path: 'manifest.yaml',
+      content: appManifest(slug, { attributes: [...ATTRIBUTES, ASKED_FOR] }),
+    },
+  ])
+  const changeSha = checks.must('the change’s commit', asking.commitSha ?? undefined)
+  const drafted = unwrap(
+    await owner.POST(
+      '/v1/projects/{projectId}/launch-records/iam-registration/{environment}/draft',
+      { params: { ...production, header: { 'Idempotency-Key': idempotencyKey() } } },
+    ),
+    'draftIamRegistration',
+  )
+  const pkg = checks.must('the change’s package', drafted.package)
+  checks.ok(
+    `production's registration drafted again as a change, asking for ${ASKED_FOR}, from the commit that asks`,
+    drafted.state === 'active' &&
+      pkg.fromCommit === changeSha &&
+      pkg.attributes.some((a) => a.name === ASKED_FOR),
+    `${drafted.state} [${pkg.attributes.map((a) => a.name).join(', ')}] from ${pkg.fromCommit.slice(0, 12)}`,
+  )
+  const sent = await sendIt(owner, id, 'production', {
+    draftGeneratedAt: pkg.generatedAt,
+  })
+  checks.must(
+    'the owner sends the change to the Manifest team',
+    sent.done ? sent : undefined,
+    JSON.stringify(sent),
+  )
+  const before = await readiness(owner)
+  const iam = item(before, 'iam-registration')
+  checks.ok(
+    'before the first launch, a change with the Manifest team does not unregister UBC IAM’s registration: met, saying where the change is (F16(b))',
+    iam.state === 'met' &&
+      iam.why.includes(`A change is with the Manifest team since ${todayInWords()}`),
+    `${iam.state}: ${iam.why}`,
+  )
+  checks.ok(
+    '…and the checklist is still ready',
+    before.ready && unmetBlocking(before).length === 0,
+    unmetBlocking(before).join(','),
+  )
+
   const host = checks.must('production’s host', state.productionHost)
   const instance = await deploy(
     owner,
@@ -1556,6 +1617,27 @@ async function step8Launch(): Promise<void> {
   )
   const r = await readiness(owner)
   checks.ok('the checklist reads launched, and ready', r.launched && r.ready)
+
+  // AND BACK: the team hands the change back — live again, nothing requested — and the manifest returns to the
+  // four it launched with, so the steps after this one build (a build asking for what UBC has not registered
+  // is refused).
+  const back = unwrap(
+    await admin.POST(
+      '/v1/projects/{projectId}/launch-records/iam-registration/{environment}/return',
+      { params: { ...production, header: { 'Idempotency-Key': idempotencyKey() } } },
+    ),
+    'returnIamRegistration',
+  )
+  checks.ok(
+    'the team hands the change back: active again, nothing requested',
+    back.state === 'active' &&
+      back.requestedAttributes === null &&
+      back.sentFrom === null,
+    `${back.state} requested ${JSON.stringify(back.requestedAttributes)}`,
+  )
+  await commit(owner, 'Back to the four it launched with', [
+    { op: 'write', path: 'manifest.yaml', content: appManifest(slug) },
+  ])
   save()
   done(8)
 }
