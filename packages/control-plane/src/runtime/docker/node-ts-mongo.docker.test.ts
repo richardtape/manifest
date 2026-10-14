@@ -459,6 +459,17 @@ describeDocker('node-ts-mongo@1 builds, deploys and authenticates (Task 12)', ()
         run.replay.status === 302 && run.replay.location === `https://${HOST}/`,
         trail,
       ).toBe(false)
+      // …AND THE PERSON IS TOLD ONE PLAIN SENTENCE (A1 sitting 3's F11; Rich, "both."): never Express's
+      // development page — the stack trace with the container's paths — which a refused sign-in answered
+      // until the skeleton's error handler and NODE_ENV=production.
+      expect(run.replay.status, trail).toBe(500)
+      // No stack and no path — NODE_ENV=production's floor (Express's own page then reads only "Internal
+      // Server Error", in a <pre> too, so the tag is not the test)…
+      expect(run.replayBody, trail).not.toMatch(/node_modules|InResponseTo|\bat\s+\w/)
+      // …and the skeleton's handler answers first, with its sentence.
+      expect(run.replayBody, trail).toBe(
+        '{"error":"Something went wrong on our side. Please try again."}',
+      )
     }
     // BOTH ORDERS, by what the edge said, not by what round robin was expected to do.
     expect(new Set(orders).size, JSON.stringify(orders)).toBe(2)

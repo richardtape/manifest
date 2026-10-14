@@ -43,6 +43,13 @@ COPY package.json package-lock.json .npmrc ./
 RUN npm ci --omit=dev --ignore-scripts \
  && rm -rf /root/.npm /tmp/node-compile-cache
 
+# PRODUCTION, AFTER THE INSTALL — so the install is exactly what it was (`--omit=dev`
+# already leaves the dev dependencies out). Express reads it: without it, an error a
+# route throws is answered with its development page, the stack trace and this
+# container's paths in front of a person. The skeleton's own handler (errors.js)
+# answers first; this is the floor under any app that replaced it.
+ENV NODE_ENV=production
+
 COPY . .
 
 USER app

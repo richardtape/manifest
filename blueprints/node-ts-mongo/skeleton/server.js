@@ -15,6 +15,7 @@ import { MongoClient } from 'mongodb'
 import { configureCwl } from './auth/ubcshib.js'
 import { sessionMiddleware } from './auth/session.js'
 import { AI_ENABLED, configureAi } from './ai/llm.js'
+import { errorHandler } from './errors.js'
 
 /**
  * §8's platform rows, each read as a literal `process.env.NAME`.
@@ -153,6 +154,10 @@ app.get('/', async (_req, res) => {
     database: required('MONGODB_DB_NAME'),
   })
 })
+
+// LAST, after every route: what a person sees when one throws — one plain sentence, never
+// Express's development page with this container's paths in it (errors.js says why).
+app.use(errorHandler)
 
 await client.connect()
 // The platform chooses the port: it is what the container HEALTHCHECK probes and

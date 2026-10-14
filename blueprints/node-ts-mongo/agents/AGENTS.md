@@ -68,6 +68,17 @@ auth:
 records on it — a CWL login name can change and an email address is not unique
 over time.
 
+### Several copies of your app answer its requests
+
+Several copies of your app run at once in production — two for a class, three for
+a large course or the public — and any of them answers any request: one request
+from a person may reach one copy and their next request another. **Keep nothing a
+person needs between requests in the process.** Sessions are already in your app's
+database (`auth/session.js`), and so is a CWL sign-in that is still in progress
+(`auth/ubcshib.js`); put anything else there too — a draft, a counter, a cache a
+person relies on, a file held in a variable. What one copy keeps in its memory, the
+copy that answers the next request does not have.
+
 ---
 
 ## The auth component: copy it, do not reimplement it

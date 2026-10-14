@@ -73,6 +73,7 @@ const COMPONENTS: Record<string, string> = {
   'auth/session.js': `export function sessionMiddleware() {
   return () => {}
 }`,
+  'errors.js': `export function errorHandler() {}`,
   'ai/llm.js': `export function configureAi() {}
 export function endUserId(puid) {
   return 'end-user-of-' + puid

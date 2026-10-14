@@ -3,7 +3,7 @@
 // account for.
 //
 // It is generated from `node-ts-mongo@1` the way a faculty member's agent would
-// generate it: the blueprint's skeleton supplies `auth/`, `ai/`, `package.json` and
+// generate it: the blueprint's skeleton supplies `auth/`, `ai/`, `errors.js`, `package.json` and
 // `package-lock.json` — §20's "security multiplier", written once and inherited —
 // and this file replaces the skeleton's `server.js`. There is deliberately no
 // second copy of the auth component, the AI component or the end-user identifier
@@ -25,6 +25,8 @@ import { sessionMiddleware } from './auth/session.js'
 // the key every note is stored under and the key every question is charged to are
 // one string with one producer.
 import { askStreaming, configureAi, embed, endUserId } from './ai/llm.js'
+// What a person sees when a route throws — the BLUEPRINT's handler, mounted last below.
+import { errorHandler } from './errors.js'
 
 /**
  * §8's platform rows, each read as a literal `process.env.NAME` and NONE of
@@ -361,6 +363,9 @@ app.post('/api/ask', signedIn, async (req, res) => {
 // takes a CWD-relative path, and a container started from anywhere but /app
 // would serve nothing and report no error.
 app.use(express.static(join(dirname(fileURLToPath(import.meta.url)), 'public')))
+
+// And after even that, the error handler: Express runs one only for what was mounted before it.
+app.use(errorHandler)
 
 await client.connect()
 // The platform chooses the port. An app that hardcodes the blueprint's

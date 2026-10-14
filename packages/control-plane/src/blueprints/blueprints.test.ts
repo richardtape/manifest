@@ -626,6 +626,22 @@ describe('starters and the knowledge pack, read at load (§25, D25 — P5a Task 
     )
   })
 
+  it('tells an agent that several copies of its app answer its requests, so the process keeps nothing a person needs', async () => {
+    // A1 Decision 9 (Task 8b): production runs as many copies as its audience needs — two for a class — and
+    // round robin sends one request to one copy and the next to another. What one copy keeps in memory the
+    // next request does not find. The sign-in's own state is in the app's Mongo since Task 8a.
+    const pack = (await loadBlueprints(BLUEPRINTS_ROOT)).knowledgePack('node-ts-mongo@1')!
+    const agents = pack.find((f) => f.path === 'AGENTS.md')!.content
+    expect(agents).toMatch(
+      /Several\s+copies\s+of\s+your\s+app\s+run\s+at\s+once\s+in\s+production/,
+    )
+    expect(agents).toMatch(/any\s+of\s+them\s+answers\s+any\s+request/)
+    expect(agents).toMatch(
+      /Keep\s+nothing\s+a\s+person\s+needs\s+between\s+requests\s+in\s+the\s+process/,
+    )
+    expect(agents).toMatch(/put\s+anything\s+else\s+there\s+too/)
+  })
+
   it('refuses to load a starter whose manifest.yaml is not a valid manifest', async () => {
     const root = await blueprintsCopy()
     await edit(
