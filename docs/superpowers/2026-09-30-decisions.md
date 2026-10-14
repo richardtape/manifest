@@ -1918,3 +1918,14 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
       quiet); F7 held behind W5 (idle for hours for no dependency); the fix session before the gentler test tiers (as b967a8e).
       Rich's actions in this order, each asked at the time: a time for each imitated-load run (one in sitting 1, two in sitting 2);
       the Docker Desktop step; new tabs (one per sitting, as below).
+
+    At ~10:04 PDT, in chat to manifest-coord4: "I have a demo to give, in person, in 2 hours, at 12pm. I need everything to be put
+    into a state that I can demo by then." Asked through the question tool (~10:05), his answers: WHAT HE SHOWS — "Faculty front end,
+    live" (app.manifest.internal, 7105 in EDGE mode against 7100: describe an app, the agent builds it, try it) AND "Platform console +
+    A1" (console.manifest.internal: a launched app on two production instances, a member killed and replaced); not "Faculty front
+    end, mock". SOURCE — "Real GitHub (Recommended)" (7100 from .env, Manifest-local-dev); not "Local git (driver 1)". A1's CLICK —
+    "Now, before the demo (Recommended)"; not "As part of the demo", not "After the demo". So: every new job (the gentler test
+    tiers, the fix session, F7) waits until after the demo; no `pnpm test`, Docker tier, `make reset` or demo truncates 7100 from
+    the click until after 12:00; A1's click now, then A1 EXECUTED and 7100 on real GitHub from .env (G4); then W5's walk, re-scoped
+    to the demo's preparation (7105 in edge mode, one real private repository, an app built and tried on the real model, nothing
+    committed), finished and frozen by ~11:30.
