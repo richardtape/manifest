@@ -1541,3 +1541,48 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
          GitHub). Rejected: its own file, for the Privacy Office; not now.
 
     So BP's GO is sent now, citing this entry; BF's waits for Rich's approval of BP's design; BR's for both plans written.
+
+# Rich's decisions — 2026-10-13, 20:31 PDT (session manifest-byoa-coord, the BYOA planning run: BP's design)
+
+    BP (manifest-byoa-plan) committed its design DRAFT at 3dfc096 (docs/superpowers/plans/2026-10-13-byoa-on-the-laptop-design.md,
+    sections 0-8, every one PROPOSED) and sent four questions with the rest for approval as written. manifest-byoa-coord checked
+    the premises in the code first (at 3dfc096): 7101 and 7113 unassigned in infra/lib/common.sh:75-95; infra/caddy/Caddyfile:51
+    and :124 are the console. and app. site blocks, their @api matchers at :68 and :141; build/secret-patterns.ts has no rule for
+    mft_ or sk-; the skeleton's package.json:12-13 carries passport-ubcshib 0.1.7-rc.1 and ubc-genai-toolkit-llm 0.7.0;
+    Token.mintedBy exists (api/representations/tokens.ts:24); revokeToken is minter-only (api/routes/tokens.ts:347-351); §22's
+    "It lands in Phase 3, when sandboxes make the agent story real" is spec l. 2472 (the 20:15 entry said 2471). One caveat added
+    to question 4: Codex may be configurable for chat completions; Task 1 measures it too.
+
+    Asked through the question tool in two rounds, each with its options and a recommendation first; answered ~20:28 and ~20:31:
+      1. THE SHAPE (§1) — "Served at /mcp beside /v1 (Recommended)": a separate host process, packages/mcp, importing only
+         @manifest/contract, speaking MCP's Streamable HTTP transport, reached through the edge at /mcp on the app. and console.
+         origins; an agent's setup is a URL and an Authorization header; the token never in the model's context. Rejected: a
+         local stdio package (npx @manifest/mcp — publishing is outward and Phase 5's question); inside the control plane
+         (contradicts §22).
+      2. FE-11 (b), RE-ASKED (§3c) — "(b) owner/admin may revoke (Recommended)": an owner of the project, or a platform
+         administrator (§26's reason when not a member), may revoke ANY token on the project; revokeToken's check widens from the
+         minter to the minter, an owner or an administrator; the same transaction ends its questions and sessions and closes its
+         streams; the event names who revoked whose. THIS REVERSES HIS 2026-09-29 CHOICE OF (a) ALONE — (a), removing a member
+         revokes their tokens, stays built; (b) is added beside it, for the new reason (an outside agent is code nobody at
+         Manifest wrote). Rejected: keep 2026-09-29's decision.
+      3. THE FIRST TOOLKITS (§4, FE-19) — "CWL + models, already wired (Recommended)": the toolkit catalogue
+         (toolkits/<name>/toolkit.yaml beside blueprints; listToolkits, getToolkit, getToolkitKnowledgePack; no new manifest.yaml
+         field) ships with the two toolkits node-ts-mongo@1 already wires — CWL sign-in (passport-ubcshib) and models
+         (ubc-genai-toolkit-llm). Rejected: those two plus one new library toolkit; the machinery only.
+      4. WHAT AN OUTSIDE AGENT THINKS WITH (§5.2) — "Unchanged; measure at Task 1 (Recommended)": model keys keep chat
+         completions, embeddings and models only; the outside agent thinks with its own provider and the plan's policy section
+         asks UBC whether that is allowed; Task 1 measures Claude Code thinking on a Manifest key through LiteLLM 1.102.0's
+         /v1/messages (one gateway call), and Codex's configuration. So Spec action F is DROPPED. Rejected: keys gain
+         /v1/messages now; and /v1/responses for Codex under the Phase 3 rule.
+      5. THE REST, AS WRITTEN — "Approve as written (Recommended)": §2 (stateless, bearer only, an Origin header and a cookie
+         refused, one tool per operation a token may call plus waitForBuild and waitForPerson, a coverage gate,
+         read/destructive hints, tested against manifest-mock); §3a (a rate set at mint, 1 to 600 a minute, default 600); §3b
+         (daily per-token quotas on builds, deploys, commits and dependency resolutions, COUNTED IN A SMALL RECORD OF THEIR OWN —
+         BP's correction after the draft, since FE-32's resolution publishes no event and a deploy publishes one per instance —
+         starting 100/100/500/50, set from Task 1's measurement, 429 TOKEN_QUOTA_EXHAUSTED); §5.1 (mft_ and sk- in the secret
+         scanner); §5.3 (@manifest/contract stays private); §5.4-5.5; §6 (the policy section, P1-P5); §7 (Phase 5 recorded, not
+         planned); §8 (placement A1 -> B -> FE-32 -> BYOA on the laptop -> Phase 3 -> A2; Spec actions A-E drafted; contract
+         ~1.12.0; make demo-byoa, either driver; Rich clicking a real Claude Code). Rejected: approve with changes; hold it.
+
+    So BP'S DESIGN IS APPROVED WHOLE. BP writes the plan from it (docs/superpowers/plans/2026-10-13-byoa-on-the-laptop.md), and BF's
+    GO is sent now (the brief's answer 3: BF starts on this approval), citing this entry.
