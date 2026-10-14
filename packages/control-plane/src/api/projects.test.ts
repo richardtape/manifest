@@ -707,6 +707,8 @@ describe('project reads answer representations (P5a Task 8)', () => {
       hostname: 'chem-labs.staging.manifest.internal',
       url: 'https://chem-labs.staging.manifest.internal',
       instance: null,
+      // Every instance the hostname reaches (A1 Task 5): none before a deploy.
+      instances: [],
     })
     await app.close()
   })
