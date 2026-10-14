@@ -2024,3 +2024,11 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
     At ~13:28 PDT, through manifest-coord4's question tool: TABS — "Opened all three" (manifest-app-w8, manifest-app-f7-s1,
     manifest-gt-s1); THE GENTLER TEST TIERS' IMITATED-LOAD RUN (sitting 1) — "Whenever it's ready today", with a notification ~5 min
     before it starts (not "Only after 17:00", "Overnight", "Ask me at the time").
+
+    At ~14:19 PDT, THE CAPABLE MODEL KEPT — Rich, through manifest-coord4's question tool, after W8's proof on both models
+    (manifest-app bee8c9e/87f75e2: luna — office-hour-slots' stuck change resumed: one commit, done, built, Add times works; sol — a
+    new change: plan in 14 s, one commit, done in 3 moves, built in ~2 min; sol's silent mid-answer pause measured at 42,886 ms, inside
+    the round's new 120 s bound, the plan's being 60 s): "Keep sol (gpt-6.1-sol)". So .env keeps
+    MANIFEST_CAPABLE_MODEL=ubc-ai-gateway/gpt-6.1-sol (repointed 14:15:18, 7100 PID 49461), level `high` unchanged. Rejected: "Back to
+    luna (gpt-6-luna)"; "Sol, and raise the plan's limit to 120 s too" (a plan's pause past 60 s still stops — "Carry on" resumes it).
+    The RUNBOOK's lines naming luna as this laptop's model are swept to sol.
