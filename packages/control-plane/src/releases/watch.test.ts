@@ -735,6 +735,24 @@ describe('the set watcher — a production member that exits is replaced (A1 Tas
     })
   })
 
+  it('a member ANOTHER DRIVER started is not this watcher’s to read — the unit tier’s fake rows beside a running control plane on Docker', async () => {
+    // One database, two processes (ORIENTATION §4): `pnpm test` writes production sets of the fake driver's
+    // handles (`inst-3`) while the control plane on 7100 watches with Docker's — to which each reads `gone`.
+    const driver = createFakeDriver()
+    const f = await launched(driver)
+    const [a, b] = f.set
+    await db.update(instances).set({ driver: 'docker' }).where(eq(instances.id, a!.id))
+    driver.crash(a!.handle!, 1)
+    driver.crash(b!.handle!, 1)
+    const { watcher } = watcherFor(f, driver)
+    await round(f, watcher)
+    // Only the member this driver started is read — and replaced; the other is left exactly as it was.
+    expect((await exitedOf(f.project.id)).map((e) => e.detail.instanceId)).toEqual([
+      b!.id,
+    ])
+    expect(await incidentsOf(a!.id)).toEqual([])
+  })
+
   it('rows a THROWN deploy left `starting` do not stop the watch — the lock, not the rows, says a deploy is mid-way', async () => {
     const driver = createFakeDriver()
     const f = await launched(driver)

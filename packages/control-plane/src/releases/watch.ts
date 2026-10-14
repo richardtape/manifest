@@ -233,6 +233,13 @@ export function createSetWatcher(deps: SetWatcherDeps): SetWatcher {
           and(
             eq(routes.hostname, environment.hostname),
             eq(instances.environmentId, environment.id),
+            /**
+             * ONLY WHAT THIS DRIVER STARTED (a ruling of A1 sitting 5): a member another driver made is a
+             * handle this one cannot read — Docker answers `gone` for the fake's `inst-3` — and "replacing"
+             * it would start an app on the wrong runtime. On this laptop that is not hypothetical: `pnpm
+             * test` commits fake-driver production sets to the database the control plane on 7100 watches.
+             */
+            eq(instances.driver, deps.driver.name),
           ),
         )
         .orderBy(asc(instances.createdAt), asc(instances.id))
