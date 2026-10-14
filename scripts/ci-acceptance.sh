@@ -311,8 +311,16 @@ red() { printf '\033[31m%s\033[0m' "$1"; }
 # launch, production's IdP, `replacing` paired), `launch/records.test.ts` +1 (FE-59's two origins), `observability/bus.test.ts` +1
 # (the replay by `seq`), `config.test.ts` +1, `db/locks.test.ts` +1 (`tryWithEnvironmentLock`), `api/incidents.test.ts` +1
 # (`Incident.cause`). Measured 3620/217, 0 failed, twice on `cef3421` (23:15:59-23:32:37, and 23:32:46-23:49:18), 7100 stopped.
-EXPECT_TESTS=3620
-EXPECT_FILES=217
+# EXPECT_TESTS 3620 -> 3638 and EXPECT_FILES 217 -> 219 (2026-10-14, A1's sitting 6, `manifest-a1-s6`): two new files —
+# `blueprints/error-page.test.ts` (5: the skeleton's error handler and NODE_ENV=production) and
+# `console/src/instances-state.test.ts` (5: the console's words for a set) — and `api/projects.test.ts` +1 (the projects list while
+# a project is being made, FE-58), `releases/watch.test.ts` +1 (an unlaunched project's production is not watched),
+# `api/delivery.test.ts` +1 (D21's rehearsal on a `class` app is one instance), `launch/readiness.test.ts` +1 (the candidate off a
+# set whose first member stopped), `projects/fleet.test.ts` +1 and `api/fleet.test.ts` +1 (the fleet's `instances`),
+# `blueprints/blueprints.test.ts` +1 (the knowledge pack's several-copies rule), `packages/mock/src/scripted.test.ts` +1 (a launched
+# app's production set of two). Measured 3638/219, 0 failed, on `1d40042` (00:48:57-01:05:47), 7100 stopped.
+EXPECT_TESTS=3638
+EXPECT_FILES=219
 # EXPECT_DOCTOR 21 -> 22 (2026-10-03, the UBC AI Gateway plan's sitting 2, Task 2): the gateway key's expiry, a
 # check_warn — counted, never failing — from 14 days ahead (its Decision 11). Measured: 22 checks, 0 failed, 0 warnings.
 EXPECT_DOCTOR=22

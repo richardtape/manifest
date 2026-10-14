@@ -2817,7 +2817,7 @@ orders by `audit.events.seq`, an identity assigned at the insert (migration `005
 real.
 
 **THE CONTROL PLANE ON 7100 READS WHAT THE TESTS WRITE — ITS SET WATCHER** (A1's Task 6, `68274fa`; the plan's *Sitting 5*, F2). Every
-`MANIFEST_SET_WATCH_SECONDS` (15) it reads every production Route row of an active project in `manifest_control` and asks its driver for each
+`MANIFEST_SET_WATCH_SECONDS` (15) it reads every production Route row of an active, LAUNCHED project (since `59a540f`) in `manifest_control` and asks its driver for each
 member's status — and the tests write that database. Before `cef3421` a `pnpm test` beside it would have had 7100 read the fake driver's
 `inst-N` handles as `gone`, record exits in test projects and start their "replacements" on real Docker; the watcher now reads only members
 its OWN driver started. **The Docker tier is not covered by that**: seven `*.docker.test.ts` files (`boot`, `delete`, `app-secrets`,

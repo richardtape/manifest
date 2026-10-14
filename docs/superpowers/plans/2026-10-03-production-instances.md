@@ -90,6 +90,16 @@
 > *SITTING 5 BUILT* note under Task 7 — a rehearsal's production set is watched too, and **7100 must be stopped for `pnpm test:docker`**
 > now that it runs the watcher. The story: *What executing this plan found*, *Sitting 5*.
 
+> **READ FIRST — WHAT SITTING 6 BUILT AND LEFT (2026-10-14, `manifest-a1-s6`, the second coordinated run).** **Task 7 is DONE**
+> (`59a540f`, the last of A1's contract `1.9.0` additions): the fleet counts each environment's set (`instances`) and states it as one;
+> the member that answers for a set is its first HEALTHY one (`answeringMemberOf` — the fleet, the launch candidate, the classification
+> floor; `Environment.instance` is still the set's FIRST); **the projects list no longer answers `500` while a project is being made**
+> (FE-58; its tracked-defect row deleted); **the set watcher reads only LAUNCHED projects** (sitting 5's F12 — a rehearsal's production is
+> never watched); the console says *"2 instances, healthy"*; the mock's launched app reaches a production set of two. **Task 8b and the
+> skeleton's error page are DONE** (`1d40042`): the knowledge pack's several-copies rule; `skeleton/errors.js` mounted last in both
+> `server.js` files and `ENV NODE_ENV=production` in every image. **What sitting 7 must read first** is the *SITTING 6 BUILT* note under
+> Task 9. The story: *What executing this plan found*, *Sitting 6*.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: superpowers:executing-plans (inline) or superpowers:subagent-driven-development, **whichever Rich chooses**. Steps use checkbox (`- [ ]`) syntax for tracking. **Commit on `main`; no branch, no worktree, no push** — ORIENTATION §6 rule 9.
 
 **Goal:** **Production runs as many instances as its audience needs** — §24's table: `solo` 1, `class` 2, `large_course` 3, `public` 3 —
@@ -157,8 +167,8 @@ actually changes — production only*, l.2733-2745), §11 (*Driver interface* an
 | 3 | 4, **8a** | **Spec action A applied first** (approved 2026-10-13, answer 4). **The driver's set**: `ensureInstances`, `servingInstances`, `restoreRoute(ids)`, retire and destroy across a set; the driver contract; both drivers. **And Task 8a — the SAML request cache in the app's own Mongo** (Rich, ~16:28, `3487e68`: `[M3]` found a sign-in cannot cross instances), so it lands before sitting 4 puts every launch demo's `class` production on two | Yes — `runtime/`, `blueprints/` | After the commits, with the Docker contract cases green and the skeleton's sign-in crossing two instances | ✅ **DONE 2026-10-13** (`manifest-a1-s3`, the second coordinated run's job S3, inline): Spec action A `49b9a83` (applied by Rich from the session's staged script — the classifier refused its edit), Task 4 `a991345`, Task 8a `0ba9af8`. The Docker contract 40/40 on the real edge (a set of two answering as both; a second set taking over in ONE move with no old answer after the first new); the skeleton's sign-in crossing two instances, both orders, a replay refused (`node-ts-mongo.docker.test.ts` 7/7); three Task 4 controls and 8a's red exactly as predicted. *What executing this plan found*, *Sitting 3* |
 | 4 | 5 | **Spec action B applied first** (approved 2026-10-13, answer 5). **The deploy, retire and boot recovery across N**; `shapeFor`; the per-instance AI keys; what the deploy answers; **every client that reads `X-Manifest-Instance`**; **contract `1.9.0`** | Yes — `releases/`, `ai/`, `projects/` | After the commit, with a `class` app's production on two instances through the edge, `make demo-production` and `make demo-releases` green on it, and `make demo-redeploy` green (staging, one) | ✅ **DONE 2026-10-13** (`manifest-a1-s4`, the second coordinated run's job S4, inline): Spec action B `3d57fc3` (applied AND committed by Rich from staged scripts — the classifier refused the session's run and its commit) and the schematic's sweep `6eb15e0`, Task 5 `163f42c` (contract `1.9.0`, landed on `manifest-coord3`'s word) and a stale exact-shape test it left, `81d469c`. Through the edge, driver 1: `make demo-production` 62 `ok` (`launch-app` launched on TWO instances), `make demo-releases` 110 `ok` (the self-serve loop: 100 app answers, the set changed once, A → B), `make demo-redeploy` 24 `ok` (staging, one). Six controls red as predicted (one with two side-effect reds, explained). *What executing this plan found*, *Sitting 4* |
 | 5 | 6 | **A member that exits is replaced**: the set watcher, its backoff and cap, `instance.exited`, an Incident per exit; **and the event replay's clock order** (Rich, answer 3: `observability/bus.ts:258` reads `ORDER BY created_at`, a clock that can step back — an insertion order beside Task 6's migration; the roadmap's *Tracked defects*); **and FE-59** (Rich, 2026-10-13 ~18:14, *"go with the recommendations"*, `40c0f82`: `iam_registration.recorded` carries `changeRequestedFrom` as the record holds it — a change filed with UBC (`active`) and UBC's questions (`submitted`) read the same today — inside `1.9.0`, so W4's adoption picks it up and closes the front end's m178; `launch/records.ts`, `observability/event-schemas.ts`); **and FE-60** (Rich, 2026-10-13 ~18:41, *"yes, put FE-60 in sitting 5"*, `71928a2`: `iam_registration.sent` and `.submitted` carry `requestedAttributes` as the record has them — the front end cannot tell one detail's change from another's while it waits; the same files, inside `1.9.0`) | Yes — `releases/`, `observability/`, `launch/` | After the commit, with a member `docker kill`ed through the edge and replaced, quoted | ✅ **DONE 2026-10-13** (`manifest-a1-s5`, the second coordinated run's job S5, inline): Task 6 `68274fa` (the set watcher; `instance.exited`; `Incident.cause`; the replay ordered by `audit.events.seq`; FE-59; FE-60; W2's rewording in all three places — contract `1.9.0`, landed on `manifest-coord3`'s word) and its fix `cef3421` (the watcher reads only its own driver's members). Through the edge, driver 1: `make demo-production` 62 `ok`, then a member of `launch-app`'s two `docker kill`ed under a 100 ms loop — 234 requests all the app, `instance.exited` 4.9 s after, two new members answering 6.6 s after. Eight controls red as predicted. *What executing this plan found*, *Sitting 5* |
-| 6 | 7, 8b | **The readers**: D21's rehearsal pinned to one; the API's and console's serving set; the fleet's count; **and the projects list's `500`** (Rich, answer 3: `GET /v1/projects` answers `500` while a project is between its rows and its repository, `projects/repository.ts:215` — the file Task 7 rewrites; the roadmap's *Tracked defects*); **Task 8b, the knowledge pack's no-state-in-memory rule**; **and the skeleton's development error page** (Rich, 2026-10-13 ~19:38, *"both."*, `028bb94` — sitting 3's F11): an error handler as the skeleton's last middleware (`console.error` the error, never a secret; `500` with one plain sentence, no stack) AND `ENV NODE_ENV=production` in `Dockerfile.tmpl`'s runtime stage after `npm ci` — beside Task 8b | Yes — `launch/`, `projects/`, `blueprints/` | After both commits, with the front-end told | ← **next** (read Task 7's *SITTING 5 BUILT* note first: the watcher reads a rehearsal's production set; stop 7100 for the Docker tier) |
-| 7 | 9 | **The acceptance's demo**: `make demo-capacity` — P4c's whole witness across two, a member killed and replaced, a crash loop stopped at its cap, a sign-in across instances — three times on each driver, every negative control seen red. **Alone** | No, unless a fix touches the owed list | After the commit, with the three runs on each driver quoted | |
+| 6 | 7, 8b | **The readers**: D21's rehearsal pinned to one; the API's and console's serving set; the fleet's count; **and the projects list's `500`** (Rich, answer 3: `GET /v1/projects` answers `500` while a project is between its rows and its repository, `projects/repository.ts:215` — the file Task 7 rewrites; the roadmap's *Tracked defects*); **Task 8b, the knowledge pack's no-state-in-memory rule**; **and the skeleton's development error page** (Rich, 2026-10-13 ~19:38, *"both."*, `028bb94` — sitting 3's F11): an error handler as the skeleton's last middleware (`console.error` the error, never a secret; `500` with one plain sentence, no stack) AND `ENV NODE_ENV=production` in `Dockerfile.tmpl`'s runtime stage after `npm ci` — beside Task 8b | Yes — `launch/`, `projects/`, `blueprints/` | After both commits, with the front-end told | ✅ **DONE 2026-10-14** (`manifest-a1-s6`, the second coordinated run's job S6, inline): Task 7 `59a540f` (the readers read the set — the fleet's `instances`, the set's first HEALTHY member answering for it; the projects list's `500` fixed; the watcher reads only launched projects, F12; the console's *"2 instances, healthy"*; the mock's production set of two — contract `1.9.0`, landed on `manifest-coord3`'s word) and Task 8b with the skeleton's error page `1d40042`. `node-ts-mongo.docker.test.ts` red on the old skeleton's replay body (the development page) and green after; eight controls red as predicted. *What executing this plan found*, *Sitting 6* |
+| 7 | 9 | **The acceptance's demo**: `make demo-capacity` — P4c's whole witness across two, a member killed and replaced, a crash loop stopped at its cap, a sign-in across instances — three times on each driver, every negative control seen red. **Alone** | No, unless a fix touches the owed list | After the commit, with the three runs on each driver quoted | ← **next** (read Task 9's *SITTING 6 BUILT* note first) |
 | 8 | 10 | **The rest of the acceptance**: every launch demo on two instances, three times on each driver; `make ci-acceptance`; the clicked half; the plan's one whole-branch review beside the Docker tier, and its one fix wave. **Alone, and last** | Yes — beside the reviewer | After the clicked half and the review's one fix wave | |
 
 **EVERY SITTING ENDS THE SAME WAY** — the four gates (`pnpm test` twice, alone, on the final tree), the Docker tier when owed, a dated
@@ -923,7 +933,7 @@ field — the same two files and their examples, inside `1.9.0`, in the same not
 
 ## Task 7: The readers — D21's rehearsal, the API, the console, the fleet
 
-**Sitting 6.** Decision 8.
+**Sitting 6.** Decision 8. **DONE 2026-10-14 (sitting 6, `59a540f`)** — *What executing this plan found*, *Sitting 6*.
 
 **Files:** `launch/rehearsal.ts` (its deploy keeps `purpose: 'rehearsal'`, which `shapeFor` makes one instance; `takeDown`'s and
 `releaseUnlaunchedName`'s checks over the set, **`:378`'s `servingInstance(…) !== undefined` → `servingInstances(…).length > 0`**);
@@ -970,7 +980,8 @@ field — the same two files and their examples, inside `1.9.0`, in the same not
 
 ## Task 8: A faculty app on several instances — 8a the SAML request cache in the app's Mongo (sitting 3), 8b the knowledge pack (sitting 6)
 
-**8a DONE 2026-10-13 (sitting 3, `0ba9af8`)** — *What executing this plan found*, *Sitting 3*. **SPLIT BY RICH'S ANSWER TO `[M3]`**
+**8a DONE 2026-10-13 (sitting 3, `0ba9af8`)** — *What executing this plan found*, *Sitting 3*. **8b and the skeleton's error page DONE
+2026-10-14 (sitting 6, `1d40042`)** — *Sitting 6*. **SPLIT BY RICH'S ANSWER TO `[M3]`**
 (2026-10-13, ~16:28, `3487e68`): sitting 1 measured that a sign-in started on one instance cannot finish
 on another, and he chose the cache in the app's own Mongo, **built in sitting 3, beside Task 4** — before sitting 4 puts every launch demo's
 `class` production on two instances. **8a: sitting 3, after Task 4. 8b: sitting 6, after Task 7.** Decision 9.
@@ -1009,6 +1020,21 @@ case (as `session-component.test.ts` runs the skeleton's own code) and a Docker-
 ## Task 9: The acceptance's demo — `make demo-capacity`
 
 **Sitting 7. Alone.**
+
+> **SITTING 6 BUILT (2026-10-14, `manifest-a1-s6`; Task 7 `59a540f`, Task 8b and the error page `1d40042`) — WHAT THIS TASK INHERITS:**
+> - **Contract `1.9.0` is COMPLETE** — no Task 9 or 10 change adds to it (B takes `1.10.0`). What it holds is ORIENTATION §7e's list.
+> - **A stopped member stays in the set**, `failed`, until its replacement serves: `getEnvironment`'s `instances` names it, and
+>   `Environment.instance` — the set's FIRST by `(createdAt, id)` — may be it. Phase 4's *"two healthy members again"* reads every member's
+>   `state`, never `instance` alone. The fleet (`instances`, `state` healthy while any member is), the candidate and the classification
+>   floor read the set's first HEALTHY member (`answeringMemberOf`); the console says *"2 instances: 1 healthy, 1 failed"*.
+> - **The set watcher reads only LAUNCHED projects** (`projects.launched_at`, sitting 5's F12): phases 4 and 5 need `launch-app` launched —
+>   which `make demo-production` does — and a demo on an unlaunched app would wait for an exit nobody records.
+> - **Every app image built from `1d40042` runs `NODE_ENV=production`** and the skeleton's `errors.js`: a route that throws answers
+>   `{"error":"Something went wrong on our side. Please try again."}` (`500`), never Express's development page. The Docker tier saw the
+>   skeleton's; **no launch demo has yet built `launch-app` with it** — this sitting's runs are the first through the edge on a launched app.
+> - **7100 is stopped for `pnpm test:docker`** (§4's trap 7) and **`pnpm test` is safe beside it**; a demo needs 7100 on the driver it runs
+>   (`gateway-controls.sh start local`). The vulnerability database is fresh until **2026-10-15 23:32 PDT** — a run after it needs
+>   `make refresh-vulndb` first, the next build watched (FE-57).
 
 **Files:** `packages/journey/src/capacity.ts`, `scripts/demo-capacity.sh`, `Makefile` (`demo-capacity`; it runs `make demo-production`
 first when `launch-app` has not launched, as `demo-releases` does); `scripts/lib/redeploy-loop.mjs` and `redeploy-summary.mjs` reused,
@@ -1643,4 +1669,98 @@ line in the plan's git-ignored ledger.
     intake budget, `p4b-probe-user`) — each re-read to zero. The driver-1 mirrors `launch-app.git` and `proof-app.git` existed before
     the sitting and stay; the 12 orphan mirrors are Rich's, named by `dead-app-resources.sh`, untouched. **The machine as found: 21
     containers, 60 images, 12 networks, 39 volumes. `make verify`: 67 checks, 0 failed, 0 warnings**, per-app resources 0/0/0.
+    `docker-simple-saml` clean but for its old untracked `cert.zip`.
+
+### Sitting 6 — 2026-10-14, 00:17–01:48 PDT (`manifest-a1-s6`, the second coordinated run's job S6): Task 7, the projects list's `500`, Task 8b and the skeleton's error page
+
+**Opened** by `manifest-coord3`'s GO (00:17), relaying Rich's decisions of 16:01 (`c0f969e`: answer 3 put the projects list's `500` in Task
+7; answer 6 inline), his *"both."* on the skeleton's error page (~19:38, `028bb94`, with his standing delegation to `manifest-coord3`) and his
+overnight word (~22:39, `676e872`). HEAD `c7e0978`, clean but for an untracked `.claude/` that is not this sitting's; `manifest-coord3` and
+RB (B's second review, documents only) committed `6f99611`, `2f34041`, `b25d7e3` and `0e9db93` during it, nothing of theirs staged here.
+**The windows were the coordinator's**: *"7100 is yours"* for single files and `pnpm contract:write` (~00:22), the HOLD from 00:43:39 —
+**7100 stopped at 00:44:00** for the Docker file's runs, the controls, `pnpm test` twice and the Docker tier. **No question went to the
+coordinator**: every call was a ruling, in the plan's git-ignored ledger. Commits: Task 7 `59a540f` (the G3 notice at 00:31, landed on the
+coordinator's *"LAND IT"*), Task 8b and the error page `1d40042`, and this close-out.
+
+1. **F1 — FIXED: THE PROJECTS LIST ANSWERED `500` WHILE A PROJECT WAS BEING MADE** (the roadmap's tracked defect, the front end's FE-58; its
+   row deleted). Test-first through the route — a create held INSIDE its repository step, its rows committed — `GET /v1/projects` RED on
+   `c7e0978` (`500 INTERNAL`, thrown at `projects/repository.ts:214`), then green: **the list leaves out a project with no repository row**
+   (`projectViews(…, { list: true })`, its one caller `listProjects`); **a read of ONE project still throws** — nothing answers a project's
+   id before its create does but the fleet, and a repository that never comes is the defect the throw names. `listProjects`' description
+   says so. *Rejected:* the create's order reversed (the rows hold the slug against a concurrent create; a crash between would leave a
+   repository on GitHub that no row names); `404` for a single read (hides that defect). *Cost if wrong:* a project whose create died
+   mid-way (no shutdown hook) is invisible in its owner's list with its slug held, rather than failing the list whole.
+2. **F2 — RULING ON SITTING 5'S F12: THE SET WATCHER READS ONLY LAUNCHED PROJECTS** (`isNotNull(projects.launchedAt)`). Before a launch
+   nothing serves production but D21's rehearsal — `takeDownLeftRehearsals`' own rule — which takes itself down, and whose replacement
+   would be refused with no approval. The row (a `class` project deployed as the rehearsal deploys it, its one member crashed) RED on
+   `c7e0978` (one `instance.exited` recorded), green after. *Rejected:* `takeDown` taking a `failed` member down too — once the watcher
+   skips unlaunched projects nothing marks a rehearsal's row `failed` while it runs (a failed DEPLOY goes to `releaseUnlaunchedName`), and
+   guard 1's meaning would blur. *Cost if wrong:* a rehearsal row something NEW marks `failed` keeps its Route row — one predicate.
+3. **F3 — FOUND AND FIXED: SINCE TASK 6, "THE SET'S FIRST" IS NOT ALWAYS A MEMBER THAT SERVES.** A member that stopped stays in the set,
+   `failed`, until its replacement serves — for minutes, or for good once replacing has stopped — while the rest serve on. Read off the
+   set's first, the fleet would tell an administrator the app had failed while it served (P4c Decision 20's mistake), and the launch
+   candidate would vanish. **`answeringMemberOf(set)`** — the first HEALTHY member, else the first — is now the one rule
+   (`servingInstanceOf`), read by the fleet, the candidate and the classification floor; each row (the fleet's, the candidate's: staging's
+   set with its first member `failed`) RED first. **`Environment.instance` still names the set's FIRST** (published in `1.9.0` as the
+   instance a deploy answered) — a client reads `instances` for what serves; the console does (F7).
+4. **F4 — THE FLEET'S COUNT, PUBLISHED** (`instances`, required, `0` before any deploy — the set `getEnvironment` names, a stopped member
+   included until replaced; `state` re-described: healthy while any member is). RED twice first: the fleet's own row (no field) and the
+   API's (the representation stripped it). *Rejected:* counting healthy members only (a second meaning beside `Environment.instances`); a
+   `degraded` state (an enum change). The console shows the count beside the state when it is more than one.
+5. **F5 — D21'S REHEARSAL STAYS ONE ON A `class` APP — AND A REHEARSAL OF TWO WOULD FAIL LOUD.** The new row (`api/delivery.test.ts`: one
+   row and the name reaching exactly it while the sign-in ran; exactly it `gone` after, no Route row) was GREEN before any change — sittings
+   3 and 4 built it (`shapeFor`'s rehearsal row; `rehearsal.ts`' set checks) — so its evidence is the plan's control: **`shapeFor`'s
+   rehearsal row made the audience's count turned it RED, at the rehearsal's own status — `500 REHEARSAL_TEARDOWN_FAILED`**: `takeDown`
+   takes down the one instance the deploy answered, and with two it refuses and records nothing rather than leaving a member up silently
+   (its inner cause not read). `shape.test.ts`'s rehearsal row red beside it, nothing else.
+6. **F6 — `listFleet`'S DOCUMENT EXAMPLES LACKED THE NEW REQUIRED FIELD, AND ONLY THE MOCK SAW IT** — `server.test.ts`'s *"every document
+   example through the validator"* (`/0/environments/0 must have required property 'instances'`); the control plane's own document test
+   passed. Fixed (`instances: 0` in four examples). Recorded, not placed: a response example is validated only by the mock's test.
+7. **F7 — THE CONSOLE READS THE SET** (`console/src/instances-state.ts`, tested — no DOM tier): *"2 instances, healthy"*, or *"2 instances:
+   1 healthy, 1 failed"* while one awaits its replacement, the state the answering member's (the project screen and the deploy panel's
+   pill); an `instance.exited` line in the deploy panel, and a re-read on it; the fleet's count. Its first green run was 4/5 — the counts
+   listed `failed` before `healthy`; the answering state now comes first. The project's history already rendered every event's sentence.
+8. **F8 — THE MOCK'S PRODUCTION SET OF TWO**: a LAUNCHED `mock-app` (`MANIFEST_MOCK_LAUNCHED=1`, or the `change-with-team` stage) reaches
+   `PRODUCTION_INSTANCE` and `PRODUCTION_INSTANCE_2_ID` (one release, one `createdAt`) in `getProject`'s and `listEnvironments`' production
+   and both `serving` in `listInstances`; not launched, none. RED first (`scripted.test.ts`), both new fixtures in the validator's table.
+9. **F9 — TASK 8b: THE KNOWLEDGE PACK SAYS SEVERAL COPIES ANSWER** (*"### Several copies of your app answer its requests"*, after the
+   attribute rules: keep nothing a person needs between requests in the process; sessions and a sign-in in progress are in the app's
+   database already; put anything else there too). The pack row RED first; control: the sentence removed → that row alone.
+10. **F10 — THE SKELETON'S ERROR PAGE, BOTH WAYS** (Rich's *"both."*): **`skeleton/errors.js`**, mounted LAST in the skeleton's `server.js`
+    AND the proof-app starter's (which replaces it — a ruling: an app made from the starter would otherwise keep the development page,
+    `NODE_ENV`'s floor aside): the error to the app's log — method, PATH and stack, never the query string, cookies or body (a SAML
+    response is a credential) — and one plain sentence, JSON like the skeleton's other refusals: `500` *"Something went wrong on our side.
+    Please try again."*, **a client error keeping its own status** (a ruling: a body parser's `413` answered `500` would be a new defect),
+    and an error after the answer began handed to Express. **`ENV NODE_ENV=production`** in `Dockerfile.tmpl` after `npm ci`, the install
+    unchanged. `blueprints/error-page.test.ts` (5) RED first; **`node-ts-mongo.docker.test.ts`'s replay, through the edge, RED on the old
+    skeleton** — Express's development page, *"Error: InResponseTo is not valid … at SAML.validateInResponseTo
+    (/app/node_modules/@node-saml/node-saml/lib/saml.js:638:27)"* — and green 7/7 after. Apps made before keep their copy.
+11. **F11 — MY OWN CHECK WAS RED FOR THE WRONG REASON, FOUND BY ITS CONTROL.** The Docker row's *"no stack"* pattern included `<pre>`, and
+    Express's PRODUCTION page uses one too (`<pre>Internal Server Error</pre>`): with the handler unmounted, control (b) went red on that
+    half, which looked like `NODE_ENV` failing. Narrowed to stack evidence (`node_modules`, `InResponseTo`, `at <frame>`), control (b)
+    re-ran red on the SENTENCE alone — **`NODE_ENV`'s floor holds by itself**.
+12. **F12 — THE CONTROLS, SEVEN, ALL AS PREDICTED** (each from a backup, restored, `cmp`-equal; the ledger's `s6-control-*.log`): Task 7 —
+    **(a)** `shapeFor`'s rehearsal row → the audience's count: `shape.test`'s rehearsal row and the `class` rehearsal row (F5); **(c)**
+    `answeringMemberOf` → the set's first: the fleet's and the candidate's stopped-first rows; **(e)** the console's answering member → the
+    first: its stopped row. Task 8b and the error page — **(8b-a)** the pack's sentence removed: the pack row; **(8b-b)** the handler
+    unmounted: `error-page`'s *last* row and the Docker replay row, on the sentence alone (F11); **(8b-c)** `NODE_ENV` removed: the
+    Dockerfile row (blueprints tier; not run at the Docker tier — predicted green there, the handler answering first); **(8b-d)** the log
+    given `req.originalUrl`: the never-a-secret row. F1's and F2's breaks are their red-first runs on `c7e0978`'s code.
+13. **F13 — THE GATES.** **`pnpm test` twice on the final code tree** (`1d40042`, under the HOLD, **7100 stopped**): **219 files,
+    3638 tests, all passed** (00:48:57–01:05:47 and 01:06:02–01:22:54) — +18 tests and +2 files: the new `blueprints/error-page.test.ts`
+    (5) and `console/src/instances-state.test.ts` (5), and +1 each in `api/projects`, `releases/watch`, `api/delivery`,
+    `launch/readiness`, `projects/fleet`, `api/fleet`, `blueprints/blueprints` and the mock's `scripted`; `EXPECT_TESTS` 3620 → 3638 and
+    `EXPECT_FILES` 217 → 219, exactly as predicted, counted in `scripts/ci-acceptance.sh`'s comment. lint 0, typecheck clean (six
+    packages), `format:check` clean. **The Docker tier: 303/303 in 44 files, 1434 s** (01:23:09–01:47:03, on `1d40042`, 7100 stopped,
+    networks 13 → 19) — unmoved in count: `node-ts-mongo.docker.test.ts`'s crossing case gained the replay-body assertions, not a case.
+    The working runs before them, under *"7100 is yours"*: Task 7's 15 changed and neighbouring control-plane files (353/353); the
+    packages project (281/281, after `pnpm docs:write` — the generated reference moved with the contract); the blueprints tier (81/81);
+    `node-ts-mongo.docker.test.ts` alone — red, green, green (7/7).
+14. **F14 — THE MACHINE.** As found: **21 containers, 60 images (`docker images -q`), 12 networks, 39 volumes** (sitting 5's close),
+    7100 PID 4651 on real GitHub, EMPTY. **7100 stopped at 00:44:00** for the Docker file's runs, the controls, `pnpm test` twice and the
+    Docker tier. **At the close**: restarted from `.env` on real GitHub (`start real`, **PID 35122**, its `dist/` built from `1d40042`;
+    the capable model `registered`, its fallback `set`, `ubc-qwen-27b` `registered`), EMPTY (the suite truncated). **Removed** by the three
+    scripts with `--apply`: 7 dead networks and 1 volume (the tier's), 2 unheld LiteLLM users (the intake budget, `p4b-probe-user`) and 16
+    app images — each re-read to zero. The 12 orphan mirrors are Rich's, named by `dead-app-resources.sh`, untouched. **The machine as
+    found: 21 containers, 60 images, 12 networks, 39 volumes. `make verify`: 67 checks, 0 failed, 0 warnings**, per-app resources 0/0/0.
     `docker-simple-saml` clean but for its old untracked `cert.zip`.
