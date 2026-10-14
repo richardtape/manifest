@@ -282,8 +282,17 @@ red() { printf '\033[31m%s\033[0m' "$1"; }
 # new file: `blueprints/blueprints.test.ts` (1: no shipped lockfile resolves a package below the fix of an advisory that refused its
 # builds). Run twice on `5869070`, 3534 tests in 212 files each time: 1052 s with ONE red, `observability/bus.test.ts` (the database clock
 # stepped back mid-test — the roadmap's *Tracked defects found in use*; 6 of 6 green alone), then 1053 s, 3534 passed, 0 failed.
-EXPECT_TESTS=3534
-EXPECT_FILES=212
+# EXPECT_TESTS 3534 -> 3560 and EXPECT_FILES 212 -> 214 (2026-10-13, A1's sitting 2, `manifest-a1-s2`), two new files:
+# `db/routes.test.ts` (5: a hostname's two rows, the (hostname, instance) key by name, `replaceRouteSet`'s set and its empty-set refusal,
+# the launch suites' staged release twice) and `packages/mock/src/launch.test.ts` (5: the mock's item across every in-force state —
+# F16(b)); and `routing/caddy.test.ts` (7: [M2]'s JSON across N, never 503, no policy, a set of one, the alias and empty refusals, the
+# health path), `routing/routes.test.ts` (3: a set's route read whole, the instances it names, the retire guard's second upstream),
+# `routing/readiness.test.ts` (4: `waitForIdentities` — every member, one unseen within 4 x N, the timeout naming each, an empty set),
+# `launch/readiness.test.ts` (+1: F16(b)'s case rewritten, and a release asking for what a change asks still waiting) and
+# `packages/mock/src/scripted.test.ts` (1: the change-before-launch stage). Measured 3560/214, 0 failed, twice on `0c7a2a3` (1019 s,
+# 970 s).
+EXPECT_TESTS=3560
+EXPECT_FILES=214
 # EXPECT_DOCTOR 21 -> 22 (2026-10-03, the UBC AI Gateway plan's sitting 2, Task 2): the gateway key's expiry, a
 # check_warn — counted, never failing — from 14 days ahead (its Decision 11). Measured: 22 checks, 0 failed, 0 warnings.
 EXPECT_DOCTOR=22

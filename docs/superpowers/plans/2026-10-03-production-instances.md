@@ -53,6 +53,16 @@
 > task it changes (2–7). The record: [`../spikes/instances-baseline/README.md`](../spikes/instances-baseline/README.md); the story: *What
 > executing this plan found*, *Sitting 1*.
 
+> **READ FIRST — WHAT SITTING 2 BUILT AND LEFT (2026-10-13, `manifest-a1-s2`, the second coordinated run).** **Tasks 2 and 3 and F16(b)'s
+> build are DONE** — Task 2 `98a9a9f` (an app's route dials every instance, round robin, health policy a parameter, each answer naming
+> its instance — `[M2]`'s JSON, on the real edge), Task 3 `941789c` (`routes` keyed `(hostname, instance_id)`, migration `0054_daffy_ezekiel`,
+> `replaceRouteSet`), F16(b) `3bcb269` (platform) and `0c7a2a3` (the mock, a new stage `change-before-launch`). **Two things sitting 3
+> must read first**, in the *SITTING 2 BUILT* note under Task 4: the Docker driver still writes a set of ONE with `health: 'none'`, and
+> **no container label carries the health path** — `restoreRoute(ids)` cannot build an app's health policy from a container alone.
+> **And Task 3 moved the DEPLOY's Route-row writer too** (Postgres refuses the old upsert, `42P10` — measured): Task 5 passes the set to
+> it. `make demo-launch`'s step 8 now carries F16(b)'s witness (a change sent before the first launch; the launch goes ahead). The story:
+> *What executing this plan found*, *Sitting 2*.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: superpowers:executing-plans (inline) or superpowers:subagent-driven-development, **whichever Rich chooses**. Steps use checkbox (`- [ ]`) syntax for tracking. **Commit on `main`; no branch, no worktree, no push** — ORIENTATION §6 rule 9.
 
 **Goal:** **Production runs as many instances as its audience needs** — §24's table: `solo` 1, `class` 2, `large_course` 3, `public` 3 —
@@ -116,10 +126,10 @@ actually changes — production only*, l.2733-2745), §11 (*Driver interface* an
 | Sitting | Tasks | What it delivers | `pnpm test:docker` owed? | Where it stops | Status |
 |---|---|---|---|---|---|
 | 1 | 1 | **The measurements**: every fact re-read; Caddy's `reverse_proxy` with N upstreams, round robin, the health policy (passive without `503`, a dial failure retried), a fresh set PATCHed in under a loop with checks on, and a deferred header naming exactly the chosen upstream's instance id, in a THROWAWAY Caddy from the edge's image; a CWL sign-in started on one instance and finished on another; a WebSocket and a drain across N; the laptop's memory with three instances; the gate numbers | No | After Task 1's commit. **It stops and asks Rich** if `[M3]` finds a sign-in cannot cross instances (then the fork — sticky routing or a shared SAML cache — is his) | ✅ **DONE 2026-10-13** (`manifest-a1-s1`, the second coordinated run's job S1, inline): Task 1 `a70b94b` — [`spikes/instances-baseline/`](../spikes/instances-baseline/README.md). **`[M3]`'s stop FIRED**: a CWL sign-in cannot cross instances (`InResponseTo is not valid`); **Rich chose the SAML request cache in the app's own Mongo, built in sitting 3** (~16:28, `3487e68`). F16(b)'s Spec action applied (`daf2ad0`), §21's label beside it (`1c3066c`). *What executing this plan found*, *Sitting 1* |
-| 2 | 2, 3, **F16(b)** | **The edge's route** for N upstreams, its health policy a parameter (`[M2]`'s JSON); **`routes` one row per (hostname, instance)**; **and F16(b)'s build** (Rich, 2026-10-13 answer 3, `c0f969e`): `launch/readiness.ts`'s `iamItem` → `registrationInForce(row)` — a change UBC holds in force no longer blocks a first launch (§13's row, applied `daf2ad0`) — and the mock's `iamItem`, its notice to the front end (G3); W2 starts on this sitting's close-out | Yes — `routing/`, `db/`, `launch/` | After the commits, with an N-upstream route applied to the real edge and read back, and F16(b)'s refusal gone through the edge | ← **next** |
-| 3 | 4, **8a** | **Spec action A applied first** (approved 2026-10-13, answer 4). **The driver's set**: `ensureInstances`, `servingInstances`, `restoreRoute(ids)`, retire and destroy across a set; the driver contract; both drivers. **And Task 8a — the SAML request cache in the app's own Mongo** (Rich, ~16:28, `3487e68`: `[M3]` found a sign-in cannot cross instances), so it lands before sitting 4 puts every launch demo's `class` production on two | Yes — `runtime/`, `blueprints/` | After the commits, with the Docker contract cases green and the skeleton's sign-in crossing two instances | |
+| 2 | 2, 3, **F16(b)** | **The edge's route** for N upstreams, its health policy a parameter (`[M2]`'s JSON); **`routes` one row per (hostname, instance)**; **and F16(b)'s build** (Rich, 2026-10-13 answer 3, `c0f969e`): `launch/readiness.ts`'s `iamItem` → `registrationInForce(row)` — a change UBC holds in force no longer blocks a first launch (§13's row, applied `daf2ad0`) — and the mock's `iamItem`, its notice to the front end (G3); W2 starts on this sitting's close-out | Yes — `routing/`, `db/`, `launch/` | After the commits, with an N-upstream route applied to the real edge and read back, and F16(b)'s refusal gone through the edge | ✅ **DONE 2026-10-13** (`manifest-a1-s2`, the second coordinated run's job S2, inline): Task 2 `98a9a9f`, Task 3 `941789c`, F16(b) `3bcb269` + the mock `0c7a2a3` (G3 notice, landed on `manifest-coord3`'s word). A two-upstream route applied to the real edge and read back (`routing/routes.docker.test.ts`); F16(b) through the edge in `make demo-launch`'s step 8, driver 1, every check passed. The Docker tier 293/293. *What executing this plan found*, *Sitting 2* |
+| 3 | 4, **8a** | **Spec action A applied first** (approved 2026-10-13, answer 4). **The driver's set**: `ensureInstances`, `servingInstances`, `restoreRoute(ids)`, retire and destroy across a set; the driver contract; both drivers. **And Task 8a — the SAML request cache in the app's own Mongo** (Rich, ~16:28, `3487e68`: `[M3]` found a sign-in cannot cross instances), so it lands before sitting 4 puts every launch demo's `class` production on two | Yes — `runtime/`, `blueprints/` | After the commits, with the Docker contract cases green and the skeleton's sign-in crossing two instances | ← **next** (read Task 4's *SITTING 2 BUILT* note first) |
 | 4 | 5 | **Spec action B applied first** (approved 2026-10-13, answer 5). **The deploy, retire and boot recovery across N**; `shapeFor`; the per-instance AI keys; what the deploy answers; **every client that reads `X-Manifest-Instance`**; **contract `1.9.0`** | Yes — `releases/`, `ai/`, `projects/` | After the commit, with a `class` app's production on two instances through the edge, `make demo-production` and `make demo-releases` green on it, and `make demo-redeploy` green (staging, one) | |
-| 5 | 6 | **A member that exits is replaced**: the set watcher, its backoff and cap, `instance.exited`, an Incident per exit; **and the event replay's clock order** (Rich, answer 3: `observability/bus.ts:258` reads `ORDER BY created_at`, a clock that can step back — an insertion order beside Task 6's migration; the roadmap's *Tracked defects*) | Yes — `releases/`, `observability/` | After the commit, with a member `docker kill`ed through the edge and replaced, quoted | |
+| 5 | 6 | **A member that exits is replaced**: the set watcher, its backoff and cap, `instance.exited`, an Incident per exit; **and the event replay's clock order** (Rich, answer 3: `observability/bus.ts:258` reads `ORDER BY created_at`, a clock that can step back — an insertion order beside Task 6's migration; the roadmap's *Tracked defects*); **and FE-59** (Rich, 2026-10-13 ~18:14, *"go with the recommendations"*, `40c0f82`: `iam_registration.recorded` carries `changeRequestedFrom` as the record holds it — a change filed with UBC (`active`) and UBC's questions (`submitted`) read the same today — inside `1.9.0`, so W4's adoption picks it up and closes the front end's m178; `launch/records.ts`, `observability/event-schemas.ts`) | Yes — `releases/`, `observability/`, `launch/` | After the commit, with a member `docker kill`ed through the edge and replaced, quoted | |
 | 6 | 7, 8b | **The readers**: D21's rehearsal pinned to one; the API's and console's serving set; the fleet's count; **and the projects list's `500`** (Rich, answer 3: `GET /v1/projects` answers `500` while a project is between its rows and its repository, `projects/repository.ts:215` — the file Task 7 rewrites; the roadmap's *Tracked defects*); **Task 8b, the knowledge pack's no-state-in-memory rule** | Yes — `launch/`, `projects/`, `blueprints/` | After both commits, with the front-end told | |
 | 7 | 9 | **The acceptance's demo**: `make demo-capacity` — P4c's whole witness across two, a member killed and replaced, a crash loop stopped at its cap, a sign-in across instances — three times on each driver, every negative control seen red. **Alone** | No, unless a fix touches the owed list | After the commit, with the three runs on each driver quoted | |
 | 8 | 10 | **The rest of the acceptance**: every launch demo on two instances, three times on each driver; `make ci-acceptance`; the clicked half; the plan's one whole-branch review beside the Docker tier, and its one fix wave. **Alone, and last** | Yes — beside the reviewer | After the clicked half and the review's one fix wave | |
@@ -646,6 +656,21 @@ without its own upstream, removes it with the last, **leaves it untouched when i
 > (`holdRequest`), `:405` (`dropRoutes`) — each this task's. The Docker `destroyInstance` removes the route **without checking which
 > instance it dials** (`driver.ts:771-773`; the fake checks, `:307`). **Task 8a joins this sitting** (Rich, `3487e68`).
 
+> **SITTING 2 BUILT (2026-10-13, `manifest-a1-s2`; Task 2 `98a9a9f`, Task 3 `941789c`) — WHAT THIS TASK INHERITS:**
+> - **`routing/` answers sets now**: `buildRoute({ hostname, routeId, upstreams: { dial, instanceId }[], health })`, `appHealthPolicy(healthPath)`
+>   (durations in NANOSECONDS, as the edge receives them), `upstreamsOf`, `instanceIdsOf` (off each dial's `mf-i-` alias — `instanceIdOf`
+>   is gone), `servingRoute → { route, upstreams, instanceIds }`, `waitForIdentities({ expected: string[] })` (every id seen; one unseen
+>   4 × N answers after the first in-set answer is named — a `ReadinessResult`, not a rejection). **`buildRoute` REFUSES an upstream whose
+>   dial is not its instance's own alias** (the header is read off it) and an empty set.
+> - **THE DOCKER DRIVER STILL WRITES A SET OF ONE WITH `health: 'none'`** (`ensureInstance` and `restoreRoute(id)`, each commented) — this
+>   task switches both to the set and to `appHealthPolicy(spec.healthPath)`, as its Files say. **No container label carries the health
+>   path** (`instances.ts` `LABEL`: slug, environment, release, instance, hostname, port, ai-gateway, envHash), so **`restoreRoute(ids)`
+>   cannot build an app's health policy from its containers alone** — a new label (and what a container without it gets), or the Route
+>   rows, or the route JSON the edge last held: this task's call. `servingInstance` reads `upstreams[0]` until `servingInstances`.
+> - The contract-suite helper `runtime/docker/testing.ts`'s `holdRequest` already waits on ANY member of the set; the Docker-tier stubs
+>   dial by alias (`routing/testing.ts`'s `stubAppArgs(name, body, headers, { aliases, status })`), and the pre-P4c retire-guard case writes
+>   its container-name route as raw JSON (`runtime/docker/redeploy.docker.test.ts`).
+
 - [ ] **Step 1: The failing tests — the driver contract, both drivers**: a set of two serves its hostname (both identities seen); a second
   set of two takes over in one move and the first set still runs (P4c, across N) — **and a request loop through the edge during the move
   never meets a mixed set: no answer from the old set after the first answer from the new** (the Docker driver's case; the fake driver
@@ -693,6 +718,14 @@ A, every answer after it from set B, and the set changing exactly once"*. `scrip
 > `:1042-1058`. `release.ts` is +17 lines from the lock on (`deployRelease` returns at :220-227; the gate :286 and :967; the upsert
 > :849-857; `destroy_requested` :859-877). The contract is `1.8.0`, so this task's bump is **`1.9.0`** (corrected throughout).
 
+> **SITTING 2 BUILT (2026-10-13, `manifest-a1-s2`):** **the deploy's Route-row writer is ALREADY `replaceRouteSet`** (`db/routes.ts`,
+> exported by `db/index`; Task 3 `941789c`) — a set of one, `instanceIds: [instanceId]`: with the key on `(hostname, instance_id)`
+> Postgres refuses the old `ON CONFLICT (hostname)` (`42P10`, measured), so it could not wait for this task. This task passes the whole set
+> to the same call. `recover.ts`'s pass 1 still restores ONE route per Route row — with two rows for a hostname that is two one-upstream
+> routes, the last winning: this task's grouping by hostname is what makes it a set. And **`make demo-launch`'s step 8 now asks for a
+> change before the launch** (F16(b)'s witness, `3bcb269`) — its probe of the public listener (`launch.ts`, step 8) is one of this task's
+> header readers.
+
 - [ ] **Step 1: The failing tests** (the fake driver; `releases/release.test.ts`, `retire.test.ts`, `recover.test.ts`, `shape.test.ts`):
   a `class` production deploy runs two instances, two AI keys stored per instance, two Route rows, one `instance.healthy` each, **and
   both rows `healthy` — neither `destroy_requested`** — after the retirer has run; a `large_course` one three; staging one; a redeploy of
@@ -730,7 +763,10 @@ longer a Route row ends the deploy with nothing done and an operator line; each 
 (a new nullable column and its migration); **the approval check's condition becomes `input.purpose !== 'rehearsal'`**); `config.ts` (`MANIFEST_SET_WATCH_SECONDS`, default 15, `CONFIG_INVALID` below 5); `observability/event-schemas.ts`,
 `events.ts`, `examples.ts` (`instance.exited`, its sentence); the `audit.events` CHECK migration — **cumulative**: every type the latest
 migration lists, plus this one; the Incident's prompt for an exit and for a stopped replacement (`observability/`'s Incident builder,
-`[M1]` names it); `src/index.ts`; the four contract commands (`instance.exited`, still `1.9.0`); the mock's event example.
+`[M1]` names it); `src/index.ts`; the four contract commands (`instance.exited`, still `1.9.0`); the mock's event example. **And FE-59**
+(Rich, 2026-10-13 ~18:14, `40c0f82`; the front end's `docs/api-findings.md`, FE-59): `launch/records.ts`'s `recordIamRegistration`
+publishes `iam_registration.recorded` with `changeRequestedFrom` as the record holds it, and `observability/event-schemas.ts` (with its
+example) gains the field — inside `1.9.0`, told to the front end in this sitting's notice (W4 adopts it; it closes their m178).
 
 **Interfaces:**
 - Consumes: `Driver.status(id)` (`InstanceStatus`); `deployRelease` (Task 5) with `purpose: 'replacement'`; `servingInstances`.
@@ -1105,3 +1141,88 @@ network, volume or image (`reading-updates`' and `a8-clocks-1`'s containers stil
     (the ledger's): `[M3]` measured at library level rather than through the IdP (F3); each hop aimed at a chosen process rather than left
     to round robin, which makes both orders certain; `[M4]` from the running app instances rather than starting `launch-app` (it needs 7100
     and a demo); `pnpm test` ONCE (`[M5]`) — no code changed, so the close's *"twice on the final tree"* would run an unchanged tree again.
+
+### Sitting 2 — 2026-10-13, 16:46–18:20 PDT (`manifest-a1-s2`, the second coordinated run's job S2): Tasks 2 and 3, and F16(b)'s build
+
+**Opened** by `manifest-coord3`'s GO (16:46), relaying Rich's decisions of 16:01 (`c0f969e`: answer 3 put F16(b)'s build here; answer 6
+inline), his standing permissions of ~16:05 (`1fb75f8`: the cleanup scripts' `--apply`) and the `[M3]` answer (~16:28, `3487e68`: the SAML
+cache in sitting 3, not here). HEAD `8239d15`, clean. **The windows were the coordinator's**: *"7100 is yours"* for single files (16:5x),
+the HOLD from 17:14:17 for the Docker tier, the demo and `pnpm test` twice; the mock edit held for W3's acceptance and begun at its word
+(17:15), its notice's content sent before the commit and landed on *"land it"*. Commits: Task 2 `98a9a9f`, Task 3 `941789c`, F16(b)
+`3bcb269` and `0c7a2a3`, and this close-out. Every decision is a `Ruling:` line in the plan's git-ignored ledger; the ones a later
+sitting inherits are in the *SITTING 2 BUILT* notes under Tasks 4 and 5.
+
+1. **F1 — Task 2: an app's route dials every instance, `[M2]`'s JSON exactly** (`routing/caddy.ts`): round robin always;
+   `appHealthPolicy(healthPath)` — active checks every 5 s (2 s timeout, `200`) carrying `X-Manifest-Probe: health`, passive on dial
+   failures, `502` and `504` within 10 s (a type that cannot hold `503`), a dial failure retried for 3 s every 250 ms — or `'none'` (no
+   `health_checks`, no retry: A2's waker); `X-Manifest-Instance` set to `{http.reverse_proxy.upstream.host}` and its `^mf-i-` removed by a
+   `replace` in the same deferred handler. A set of one is today's route but for the selection policy and the header (a pin of everything
+   else). `upstreamsOf` reads every upstream (`upstreamOf`'s `[0]` was the retire guard's hole), `instanceIdsOf` names them off their
+   aliases, `servingRoute` answers `{ route, upstreams, instanceIds }`, `waitForIdentities` waits for every member (one unseen `4 × N`
+   answers after the first in-set answer is named then, not after the timeout). **Ruling:** `HealthPolicy`'s durations are nanosecond
+   numbers, not the plan's strings — the edge receives them as written, and `[M2]` measured that JSON.
+2. **F2 — ON THE REAL EDGE** (`routing/routes.docker.test.ts`, a describe of its own): a two-upstream route **applied and read back** —
+   the JSON `manifest-caddy` holds equal to `buildRoute`'s — ten sequential requests **five each, every header exactly one bare id with
+   the body that id's stub serves**, `waitForIdentities` through the edge ready on both; **a member answering `503` (its `/healthz` `200`)
+   kept in rotation** (≥ 8 of 20); **one of two `docker kill`ed and the next ten all `200` from the survivor**. Negative controls, each
+   restored: **(a)** `upstreamsOf` reading only the first — red exactly on the two set rows (the retire guard's witness and the set read);
+   **(b)** `503` in the passive list (a cast past the type) — red on both JSON pins and the Docker `503` row, *"expected 2 to be greater than
+   or equal to 8"* (ejected after two); **(c)** the prefix `replace` dropped — red on three JSON pins and five Docker rows (the old loop
+   test, the forger, all three set cases). `waitForIdentities`' unit rows stub the probe and cannot see a route, as the plan said; its
+   Docker row reddened under (c) behind the header.
+3. **F3 — THE HEADER IS ONLY AS TRUE AS THE DIAL, so `buildRoute` refuses an upstream that does not dial its own instance's alias** (and
+   an empty set). It moved the Docker tier's stubs onto `mf-i-<id>` aliases (`stubAppArgs(name, body, headers, { aliases, status })`):
+   `listener-split`'s one stub carries both instances' aliases; the forger got an id of its own (two containers sharing an alias would be
+   round-robined by Docker's DNS); the pre-P4c retire-guard case writes its container-name route as raw JSON. `instanceIdOf` is gone.
+4. **F4 — THE DRIVER WRITES A SET OF ONE WITH `health: 'none'` UNTIL TASK 4** (a ruling: Task 4's Files give it `appHealthPolicy`
+   together with its set and contract cases), **and NO CONTAINER LABEL CARRIES THE HEALTH PATH** — so Task 4's `restoreRoute(ids)` cannot
+   build an app's health policy from a container alone (Task 4's *SITTING 2 BUILT* note).
+5. **F5 — Task 3: the plan's *"Task 5 lands the deploy's"* could not hold.** With the key on `(hostname, instance_id)` Postgres refuses
+   `ON CONFLICT (hostname)` — **`42P10`, measured on every case of the new test**, through `stagedRelease`'s upsert — so every healthy
+   deploy would have failed from this commit to sitting 4. **Both writers moved to `replaceRouteSet(db, { hostname, listener, instanceIds
+   })`** (`db/routes.ts`: delete then insert in one transaction, refusing an empty set; the listener because every row records it), the
+   deploy's as a set of one. Migration `0054_daffy_ezekiel.sql` (drop `routes_hostname_key`, create `routes_hostname_instance_key`) read,
+   applied with the admin URL, read back from `pg_indexes`. `releases.test.ts`'s Route-row case no longer pins the row's id across a
+   redeploy (nothing refers to a Route by id). **The control** (the old key re-created by hand on the dev database, then dropped): red on
+   the two-rows row and `replaceRouteSet`'s set row — and the constraint-NAME row stayed green, because with both keys Postgres reports the
+   pair first; that row's red is the pre-change run's (*"expected 'routes_hostname_key' to be 'routes_hostname_instance_key'"*).
+6. **F6 — F16(b), THE PLATFORM** (`3bcb269`): `iamItem`'s first-launch predicate is `registrationInForce(row)` — a change with the
+   Manifest team, filed with UBC, or sent back with UBC's questions is **met** when UBC's registration covers the release serving staging,
+   saying where the change is, and **unmet naming the gap, since the send,** when it does not; an `active` row reads exactly as before; a
+   lapse is not in force. `changeBeforeLaunch` is gone; `changeRequestOnFile` gains UBC's questions on a change (*"… draft it again and
+   send it to the Manifest team (sendIamRegistration); …"*) — so a launched app's live item says it too, in that one state. No published
+   description states the predicate: **the contract did not change.** The control (the branch narrowed back to `active`): red on the (b)
+   case, and on the *covers* guard I predicted green — with the in-force branch gone a `sent` row falls to the not-in-force branch, which
+   states no coverage gap.
+7. **F7 — F16(b) THROUGH THE EDGE, in `make demo-launch`** (a ruling: built into the demo's fresh path, so sitting 8's acceptance re-runs
+   it): step 8 now commits a manifest asking for `eduPersonAffiliation`, drafts and sends the change to the Manifest team **before** the
+   launch, reads the item **met** and the checklist **ready**, launches, then has the team hand the change back and commits the manifest back
+   for steps 9–11. **Run once on driver 1 (17:38–17:42), fresh path, `launchpath-local`: every check passed (161 `ok`).** 7100 ran on
+   driver 1 by `bash scripts/gateway-controls.sh start local` — which unsets `.env`'s driver-2 block in its own start subshell — instead of
+   the `.env` swap: the same effect, nothing to restore (the coordinator agreed). The demo is also the first deploy through the edge on
+   Task 2's route and Task 3's rows: production answered on the public listener **as the instance the deploy started** (the header off the
+   alias). Its F16(b) check was not separately watched red through a demo (a ruling: it reads the very item the unit control reddened).
+8. **F8 — F16(b), THE MOCK** (`0c7a2a3`, packages/mock — the G3 notice sent at the edit's start and before the commit): `iamItemOf(row,
+   base)` reads a registration in force as met with the platform's words for a change (exported for its own tests: no stage holds a filed
+   or UBC's-questions change); **every existing stage answers exactly as before** (`change-with-team`'s words kept — the front end's tests
+   read them live); **a new stage, `MANIFEST_MOCK_RECORDS=change-before-launch`** — `change-with-team`'s records on an app NOT launched: met,
+   ready, a production deploy answering production's own instance — on the server's allow-list and in `docs/api/frontend.md`. The control
+   (the old rule, `active` or `sent` from `active`): red exactly on the filed and UBC's-questions rows. W2 (I1 (a)) starts on this close-out.
+9. **F9 — THE DOCKER TIER: 293/293 in 44 files, 1364 s, on `3bcb269`** (17:15:09–17:37:54; networks 18 → 25), +3 — Task 2's set cases.
+   ORIENTATION §2's row moves 290 → 293.
+10. **F10 — `pnpm test` twice on the final tree** (`0c7a2a3`, under the HOLD): **214 files, 3560 tests, all passed, both runs** (17:43–18:00, 1019 s;
+    18:00–18:16, 970 s) — +26 tests and +2 files (`db/routes.test.ts`, `packages/mock/src/launch.test.ts`); `EXPECT_TESTS` 3534 → 3560 and
+    `EXPECT_FILES` 212 → 214, each counted in `scripts/ci-acceptance.sh`'s comment. `bus.test.ts` did not redden. lint 0, typecheck clean
+    (six packages), `format:check` clean. The working runs before it: the routing units from a no-truncation scratch config (the DB-free
+    memory), the DB files and `routes.docker.test.ts` alone under *"7100 is yours"*.
+11. **F11 — THE MACHINE.** As found: 39 containers, 64 images, 18 networks, 57 volumes; 7100 PID 2683 on real GitHub (`5869070`), EMPTY.
+    **At the close**: 7100 restarted from `.env` on real GitHub (`gateway-controls.sh start real`, PID 95289; capable model and
+    `ubc-qwen-27b` registered) and EMPTY (the suite truncated what the demo made). **Removed**: the demo's own — 9 `mf-launchpath-local-*`
+    containers, its three runtime routes (DELETE by `@id`; none with an `@id` left on `srv0` or `srv1`), its networks, volumes and images,
+    and its driver-1 repository `.manifest/repos/launchpath-local.git` (born 17:39, so not there before); the tier's seven dead fixture
+    networks and a volume; **and at Rich's word (~18:14, *"go with the recommendations"*, `40c0f82`, relayed by `manifest-coord3` and read
+    there) `reading-updates`' and `a8-clocks-1`'s leftovers** — 18 containers by name (`docker rm -f -v`), 6 networks, 12 volumes, 4 images
+    and 6 LiteLLM users (with two unheld budgets and `p4b-probe-user`), every script re-read to zero; their GitHub repositories and mirrors
+    left for Rich, who is deleting them himself. **`make verify`: 67 checks, 0 failed, 0 warnings**, per-app resources 0/0/0. The machine:
+    39 → 21 containers, 64 → 60 images, 18 → 12 networks, 57 → 39 volumes — every difference the two apps' removal. **And FE-59** (Rich,
+    `40c0f82`) is placed in sitting 5's Task 6 — the sittings table and Task 6's Files carry it.

@@ -30,7 +30,7 @@ takes effect on running apps at the next boot. **And a faculty member's launch r
 newest, EXECUTED 2026-10-08/09): the owner SENDS each record to the team, every gap of the privacy assessment answered; the team submits it to
 UBC or hands it back, and is emailed; every record says who has it and since when; a change to a live registration goes the same way; and an
 agent's question names what it would act on and when it stops waiting. **Now: A1, production instances by audience — EXECUTING since
-2026-10-13, its sitting 1 done** (§7e) — then B (the load
+2026-10-13, its sittings 1 and 2 done** (§7e) — then B (the load
 rehearsal), FE-32, Phase 3, A2, the vulnerability database in the console and FE-45 (§8 *Decided*).
 The roadmap's ledger outranks every document on status.
 
@@ -97,7 +97,7 @@ sitting's own measurements — times, loads, what was owed — are in its plan's
 | Gate | What it reads now |
 |---|---|
 | `pnpm test` (from the **repo root**) | **The count is `EXPECT_TESTS` / `EXPECT_FILES` in `scripts/ci-acceptance.sh`**, 0 skipped. **~12–14 min a run** (737 s, 2026-09-30) — up from ~240 s before the D5 plan's sitting 6, because every driver-1 push in the suite runs the rendered secret-scanning hook. **Run it twice, identical, on the FINAL tree at every close** (`make ci-acceptance`'s run counts as one), and single files while working (§8 *Decided*: the LEAN budget). It is the `unit` and `packages` projects: no Docker except Postgres for the database suites, connecting as **`manifest_app`** (§3); `--project packages` alone has no global setup and truncates nothing. **Before you believe a red, read §4's traps 4, 7, 8 and 14**: it truncates the tables, two Vitest processes corrupt each other, load times it out, and the database's clock is not the host's |
-| `pnpm test:docker` | **290 tests, 0 SKIPPED, 44 files** (THE ONE STATEMENT OF THIS NUMBER — set 2026-10-08 by the FE-46/47/5 plan's sitting 2: 289 + 1, the new `mail/mailpit.docker.test.ts` (one message through the real Mailpit, read back by a nonce and deleted by id); the whole tier once on `b8fdeab`, 290/290 in 1362 s, 15 networks at its start and 22 at its end. **Re-measured unmoved by the FE-46/47/5 plan's sitting 3**, 290/290 in 1435 s on `dba83b0`, 14 → 21 networks, **and by its sitting 5**, 290/290 in 1322 s on `154f220` (the review's fix wave), 12 → 19 networks, **and by `manifest-p9`** (2026-10-13, out of plan — the skeleton's proxy-addr), 290/290 in 1538 s on `5869070`, 16 → 23 networks. Before it 289/43, set 2026-10-04 by the U1 plan's sitting 2: 286 + 3 — `ai/capable.docker.test.ts`'s level case, the new `ai/app-key-sweep.docker.test.ts` (Task 6's Step 1 measurement, its own file) and `boot.docker.test.ts`'s app-key sweep through the booted entry point; the whole tier once on `e27d548`, 289/289 in 1259 s, 12 networks at its start and 19 at its end, on LiteLLM **1.102.0**; **re-measured unmoved by the U1 plan's sitting 3**, 289/289 in 1474 s on `4273aed`, 13 → 20 networks — and it left the edge's public listener resetting the host until `docker restart manifest-caddy` (run `make verify` straight after it). Before it 286/42, set by the UBC AI Gateway plan's sitting 3 and re-measured unmoved by the U1 plan's sitting 1). **~20–23 min**; owed only when the current plan's sittings rule says so. **Needs `make up` and the chat model warm** — `curl -s http://127.0.0.1:11434/api/generate -d '{"model":"qwen3.5:4b","prompt":"ok","stream":false,"think":false,"keep_alive":"30m","options":{"num_predict":1}}'` — **fails rather than skips**, and **outlasts the agent's 10-minute tool limit: run it in the background, never beside a Vitest run.** **Count `docker network ls -q | wc -l` first**: Docker Desktop's default pools hold ~31 and the tier needs 7 (TRAPS.md). **It refuses to start from a shell with `MANIFEST_SOURCE_DRIVER=github` and a real `MANIFEST_GITHUB_*_URL`** (`src/test-tier-guard.ts`). It restarts the edge (dropping every runtime route), truncates the tables, re-registers the platform's SP row, and its own control planes boot without `MANIFEST_CAPABLE_MODEL` and REMOVE the capable model — so **afterwards: restart the control plane with `.env`, run the three cleanup scripts** (it leaves ~7 dead app networks, a volume and ~13 app images), **then `make verify`** — a host that cannot reach the edge after it (`curl: (35) … reset by peer`) is fixed by `docker restart manifest-caddy`. The on-premise model `qwen3.8:27b`'s loads cost ~100 s of it. Where its time goes: [`plans/2026-09-23-docker-tier-speed-brief.md`](plans/2026-09-23-docker-tier-speed-brief.md) |
+| `pnpm test:docker` | **293 tests, 0 SKIPPED, 44 files** (THE ONE STATEMENT OF THIS NUMBER — set 2026-10-13 by A1's sitting 2: 290 + 3, `routing/routes.docker.test.ts`'s set cases (a two-upstream route applied to the real edge and read back, five answers each naming its instance; a `503` member kept in rotation; a killed member routed around); the whole tier once on `3bcb269`, 293/293 in 1364 s, 18 networks at its start and 25 at its end. Before it 290/44, set 2026-10-08 by the FE-46/47/5 plan's sitting 2: 289 + 1, the new `mail/mailpit.docker.test.ts` (one message through the real Mailpit, read back by a nonce and deleted by id); the whole tier once on `b8fdeab`, 290/290 in 1362 s, 15 networks at its start and 22 at its end. **Re-measured unmoved by the FE-46/47/5 plan's sitting 3**, 290/290 in 1435 s on `dba83b0`, 14 → 21 networks, **and by its sitting 5**, 290/290 in 1322 s on `154f220` (the review's fix wave), 12 → 19 networks, **and by `manifest-p9`** (2026-10-13, out of plan — the skeleton's proxy-addr), 290/290 in 1538 s on `5869070`, 16 → 23 networks. Before it 289/43, set 2026-10-04 by the U1 plan's sitting 2: 286 + 3 — `ai/capable.docker.test.ts`'s level case, the new `ai/app-key-sweep.docker.test.ts` (Task 6's Step 1 measurement, its own file) and `boot.docker.test.ts`'s app-key sweep through the booted entry point; the whole tier once on `e27d548`, 289/289 in 1259 s, 12 networks at its start and 19 at its end, on LiteLLM **1.102.0**; **re-measured unmoved by the U1 plan's sitting 3**, 289/289 in 1474 s on `4273aed`, 13 → 20 networks — and it left the edge's public listener resetting the host until `docker restart manifest-caddy` (run `make verify` straight after it). Before it 286/42, set by the UBC AI Gateway plan's sitting 3 and re-measured unmoved by the U1 plan's sitting 1). **~20–23 min**; owed only when the current plan's sittings rule says so. **Needs `make up` and the chat model warm** — `curl -s http://127.0.0.1:11434/api/generate -d '{"model":"qwen3.5:4b","prompt":"ok","stream":false,"think":false,"keep_alive":"30m","options":{"num_predict":1}}'` — **fails rather than skips**, and **outlasts the agent's 10-minute tool limit: run it in the background, never beside a Vitest run.** **Count `docker network ls -q | wc -l` first**: Docker Desktop's default pools hold ~31 and the tier needs 7 (TRAPS.md). **It refuses to start from a shell with `MANIFEST_SOURCE_DRIVER=github` and a real `MANIFEST_GITHUB_*_URL`** (`src/test-tier-guard.ts`). It restarts the edge (dropping every runtime route), truncates the tables, re-registers the platform's SP row, and its own control planes boot without `MANIFEST_CAPABLE_MODEL` and REMOVE the capable model — so **afterwards: restart the control plane with `.env`, run the three cleanup scripts** (it leaves ~7 dead app networks, a volume and ~13 app images), **then `make verify`** — a host that cannot reach the edge after it (`curl: (35) … reset by peer`) is fixed by `docker restart manifest-caddy`. The on-premise model `qwen3.8:27b`'s loads cost ~100 s of it. Where its time goes: [`plans/2026-09-23-docker-tier-speed-brief.md`](plans/2026-09-23-docker-tier-speed-brief.md) |
 | `make doctor` | **The count is `EXPECT_DOCTOR` in `scripts/ci-acceptance.sh`**, 0 failed and 0 warnings expected. The faculty front-end's server on 7105 counts as the platform's by its marker (`GET /api/__doctor` → `manifest-app`). **The vulnerability database is fresh until 2026-10-15 23:32 PDT** (built `2026-10-09T06:32:32Z`, refreshed by `make refresh-vulndb` on 2026-10-09 20:05–20:09 PDT, 3 min 53 s, before the coordinated run's A8 launch — a `make seed` refreshes it the same way, ~1–3 min, the network on); after that doctor warns, and §13's `scans` item refuses every production launch until it is refreshed (*Outstanding*, below). Its `127.0.0.3` checks assert what dnsmasq answers, so **it cannot tell you production is REACHABLE** |
 | `make verify` | **The count is `EXPECT_VERIFY` in `scripts/ci-acceptance.sh`**, 0 failed and 0 warnings expected — among them that the running LiteLLM loaded the fallback guard, `app.manifest.internal`'s four, and the GitHub fake's two (static, whether or not it runs). Straight after `make reset` it reads ONE red — the audit grant — until the control plane has migrated the empty database. Its INFO line counts `mf-` containers, networks and volumes (all 0 at the launch path plan's sitting 5's close, after Rich removed the 42 orphan apps). *Runtime routes currently applied* counts the internal listener (`srv0`) only, so it never sees a production route |
 | `make demo-production` | P6a's acceptance: ~1 min fresh, three phases each ending `every check passed`; ~4 s on the re-use path, where `launch-app` has launched. Step 11 of `scripts/offline-acceptance.sh`. **Since the launch path plan's sitting 5b its admin phase steps up before the rehearsal** — the un-stepped refusal kept as a check — and asserts the public wildcard and a `gone` instance after it. Last green 2026-10-08 on driver 1 (the FE-46/47/5 plan's sitting 5: alone, 63 s, and inside `make ci-acceptance`); before it 2026-09-30, FRESH (47 s; the rehearsal 8.8 s) and re-use (4 s), on driver 1 (sitting 5b) |
@@ -1986,66 +1986,73 @@ named in the row below.*
 | **UBC AI Gateway** | [`plans/2026-10-03-ubc-ai-gateway.md`](plans/2026-10-03-ubc-ai-gateway.md) — **EXECUTED 2026-10-04**, seven tasks (0–4, 6, 6a; 5 dropped) in three sittings | `make demo-gateway` — driver 1 or the fake, the network on and the key; green three times on 1.102.0 (fresh, re-use twice), its gateway-side ratio exactly 1; five controls seen red; **Rich watching the key's spend** | **Sitting 3's F32 is the one to read**: the acceptance's own comparison with the GATEWAY's spend found LiteLLM 1.98.0 charging a STREAM by its own count of the visible text — every unit and Docker case green, because none had streamed a provider's usage in the gateway's shape; fixed by re-pinning to 1.102.0 (Rich's word), which then drifted one §16 mapping row (F33). **Sitting 1's F2**: one Manifest key reads another's stored Responses answer (Phase 3's binding rule). **Sitting 3's F34**: a refused DIRECT setting kept the gateway registration, whose empty reference sends `OPENAI_API_KEY` to UBC |
 | **U1 levels** | [`plans/2026-10-03-u1-classification.md`](plans/2026-10-03-u1-classification.md) — **EXECUTED 2026-10-04**, eight tasks (0–7) in three sittings | `make demo-levels` — either driver, offline; green three times on EACH and from a `make reset` machine on each; step 18 of the offline acceptance; a step of `make ci-acceptance`; eleven controls exactly as predicted; **Rich reading a `high` app's privacy assessment** | **Sitting 3's F20 and F22 are the ones to read**: `capableFloor` FAILED OPEN on a level none of the seven names — `rank(x) < rank(undefined)` is false, so every fallback was set (sitting 2's F11, judged by the plan's one whole-branch review; now seeded `very-high`) — and the acceptance's own *"ONLY by the builder exception"* check passing by RANK once the capable model is `very-high`, MEASURED with the exception off before it was fixed. **Sitting 3's F21**: every boot reads each live app key in a URL query, and only LiteLLM 1.102.0's own `?REDACTED` keeps it out of its log. **Sitting 2's F9**: the unit tier never migrates |
 | **FE-46/47/5** | [`plans/2026-10-03-fe46-fe47-fe5.md`](plans/2026-10-03-fe46-fe47-fe5.md) — **EXECUTED 2026-10-08/09**, eleven tasks (1–9, with 2b, and 8 as 8a and 8b) in five sittings, inline, in the coordinated run | `make demo-launch` — either driver, green three times on EACH (fresh, re-use with the change leg, re-use again) and from a `make reset` machine; `make demo-token` fresh, re-use and from `make reset` (driver 1's alone); step 16 of the offline acceptance; a step of `make ci-acceptance`; six controls, one per Review Focus line; **Rich clicking the team's step** | **Sitting 5's F1 and F5 are the ones to read**: a change UBC sent back with questions was drafted again from the launch CANDIDATE and sent as NO change — the new attribute dropped silently — found only by the plan's one whole-branch review; and the acceptance's own *"since the SECOND send"* check could not fail, because it compared a column with itself — found by making a control go red through the edge. **Sitting 5's F19**: the cleanup script every sitting runs with `--apply` deleted an ARCHIVED project's data. **Sitting 5's F9–F11**: controls predicted without re-reading an earlier sitting's, red for the wrong reason (a database CHECK), or green because a guard is three layers deep. **Sitting 4's F1**: one Vitest file turns the next demo fresh. **Sitting 2's F13**: nodemailer folds a CR/LF in a subject itself |
-### 7e. A1 — production instances by audience (§24): its sitting 2 (Tasks 2 and 3, and F16(b)'s build) ← **START HERE**
+### 7e. A1 — production instances by audience (§24): its sitting 3 (Spec action A, then Task 4 and Task 8a) ← **START HERE**
 
 **THE PLAN IS [`plans/2026-10-03-production-instances.md`](plans/2026-10-03-production-instances.md)** — approved by Rich 2026-10-03 15:20,
 **EXECUTING since 2026-10-13**, inline, one sitting per session (Rich, 2026-10-13 16:01, answer 6, `c0f969e`), in the second coordinated
 run. **Production runs `solo` 1, `class` 2, `large_course` 3, `public` 3 instances behind one edge route** that balances and routes around a
-dead one; a member that exits is replaced; its acceptance is `make demo-capacity` and every launch demo on two instances. **Sitting 1 is
-DONE** (`manifest-a1-s1`): Task 1 `a70b94b`, the record [`spikes/instances-baseline/`](spikes/instances-baseline/README.md). Read the plan's
-**READ FIRST** banners (the newest is sitting 1's), *Decided by Rich* (its first two bullets are 2026-10-13's), the sittings table, **Task 2
-and Task 3 in full with their *SITTING 1 MEASURED* notes**, and the table's row 2 for F16(b).
+dead one; a member that exits is replaced; its acceptance is `make demo-capacity` and every launch demo on two instances. **Sittings 1 and 2
+are DONE** (`manifest-a1-s1`, `manifest-a1-s2`). Read the plan's **READ FIRST** banners (the newest is sitting 2's), *Decided by Rich*, the
+sittings table, **Task 4 and Task 8 in full with their *SITTING 1 MEASURED* and *SITTING 2 BUILT* notes**, and *Spec actions*, A.
 
-**SITTING 2 IS: Task 2** (the edge's route for N upstreams, the health policy a parameter — `[M2]`'s exact JSON is the record's), **Task 3**
-(`routes` one row per (hostname, instance) — migration **`0054`**, free), **and F16(b)'s build** (Rich, answer 3): `launch/readiness.ts`'s
-`iamItem` → `registrationInForce(row)` — met when UBC's registration is in force and covers the release, a change in flight no longer
-blocking a FIRST launch (the spec's §13 row says so since `daf2ad0`) — and the mock's `iamItem`, **a `packages/mock` change: its notice to
-the front end as its edits BEGIN, landing on the coordinator's *"land it"*** (G3); W2 (the front end's I1 (a)) starts on this sitting's
-close-out. **It owes `pnpm test:docker`** (`routing/`, `db/`, `launch/`). **Nothing here waits on Rich.**
+**SITTING 3 IS: Spec action A applied FIRST** (APPROVED as drafted, Rich 2026-10-13 answer 4, `c0f969e`: §11's Driver runs a set per
+hostname; §11 *Redeploys* across a set; a production member that exits is replaced, backing off and stopping after three in an hour; §12's
+`X-Manifest-Instance` names the instance that answered) — **its shared HTML pages swept** (`manifest-schematic.html`,
+`manifest-decisions.html` D29 — check); **then Task 4** (the driver's set, both drivers: `ensureInstances`, `servingInstances`,
+`restoreRoute(ids)`, retire and destroy across a set, the driver contract) **and Task 8a** (Rich, ~16:28, `3487e68`: the SAML request cache
+in the app's own Mongo — `skeleton/auth/ubcshib.js` passes node-saml a `cacheProvider` on a Mongo collection with an 8-hour TTL index — so
+a sign-in crosses instances before sitting 4 puts every launch demo's `class` production on two). **It owes `pnpm test:docker`**
+(`runtime/`, `blueprints/`). **Nothing here waits on Rich.**
 
-**WHAT SITTING 1 LEFT IT (2026-10-13):**
-- **`[M3]`'s stop FIRED — and Rich answered it the same afternoon**: a CWL sign-in started on one instance cannot finish on another
-  (`InResponseTo is not valid`; passport-ubcshib 0.1.7-rc.1 makes the skeleton's unset `validateInResponseTo` `'always'`, and node-saml keeps
-  request ids per process). **Rich (~16:28, `3487e68`): the SAML request cache in the app's own Mongo, built in SITTING 3 beside Task 4**
-  (Task 8a) — before sitting 4 puts every launch demo's `class` production on two. The same mechanism already fails a sign-in in flight
-  across a redeploy with ONE instance (pre-existing, closed by 8a).
-- **`[M2]`: Decision 4 holds as written.** A response the EDGE makes carries no `X-Manifest-Instance`, and with health checks on it is
-  **`503`**, not `502`, once every member is down (Task 2's note).
-- **`[M1]` changed nothing in meaning**; what the plan does not name is in a *SITTING 1 MEASURED* note under each task it changes (2–7).
-- **The contract is `1.8.0`; A1's bump is `1.9.0`, at Task 5** (sitting 4) — the plan's nine lines corrected. **Spec actions A and B are
-  APPROVED** (answers 4 and 5): sitting 3 applies A before Task 4, sitting 4 applies B before Task 5. **F16(b)'s is APPLIED** (`daf2ad0`),
-  with §21's label beside it (`1c3066c`, minor, for Rich's review).
-- **The three tracked defects are PLACED** (answer 3): the projects list's `500` in Task 7 (sitting 6), the event replay's clock order in
-  Task 6 (sitting 5) — until then `observability/bus.test.ts` can red ONCE in a whole-suite run: run it alone before calling it real —
-  and FE-56 later, its own item.
-- **7100: EMPTY** — sitting 1's `pnpm test` truncated it (16:42; 0 projects, 0 users, counted by `manifest-coord3`): `reading-updates`' rows
-  are gone (its repository, containers, networks, volumes and LiteLLM users are Rich's, CLAUDE.md), and **`operator`'s admin grant went with
-  the users table** — whoever next needs an administrator on 7100 signs in and is granted again (Rich's `!` command if the classifier
-  refuses `scripts/admin-grant.sh grant`). 7100 itself was not restarted (PID 2683, real GitHub, from `5869070`).** **`EXPECT_TESTS` is 3534**, `EXPECT_FILES` 212 — measured by sitting 1's run, unmoved** (`scripts/ci-acceptance.sh`).
+**WHAT SITTING 2 LEFT IT (2026-10-13):**
+- **Task 2 `98a9a9f`, Task 3 `941789c`, F16(b) `3bcb269` + the mock `0c7a2a3`.** `routing/` answers SETS: `buildRoute({ upstreams, health })`,
+  `appHealthPolicy`, `upstreamsOf`, `instanceIdsOf`, `servingRoute → { upstreams, instanceIds }`, `waitForIdentities` — and **`buildRoute`
+  refuses an upstream that is not its instance's own `mf-i-` alias** (the header is read off it; the Docker-tier stubs now carry aliases).
+- **THE DOCKER DRIVER STILL WRITES A SET OF ONE, `health: 'none'`** — Task 4 switches it to the set and `appHealthPolicy(spec.healthPath)`.
+  **No container label carries the health path**, so `restoreRoute(ids)` cannot build an app's health policy from a container alone: Task 4's
+  call (Task 4's *SITTING 2 BUILT* note has the options).
+- **The deploy's Route row is already `replaceRouteSet`'s** (Postgres refuses the old upsert, `42P10`): Task 5 (sitting 4) passes the set.
+- **F16(b) is BUILT** — a first launch is met on UBC's registration in force; a change asked for or filed no longer holds it. **`make
+  demo-launch`'s step 8 now sends a change before the launch** (its witness through the edge), and the mock has a stage
+  `MANIFEST_MOCK_RECORDS=change-before-launch`. W2 (the front end's I1 (a)) starts on sitting 2's close-out.
+- **The gate numbers moved**: `EXPECT_TESTS` **3560**, `EXPECT_FILES` **214** (`scripts/ci-acceptance.sh`, measured twice by sitting 2's
+  `pnpm test` on `0c7a2a3`). The Docker tier is **293** in 44 files (§2's row). `make verify` 67, 0 failed, at sitting 2's close.
+- **7100: EMPTY again** — sitting 2's `pnpm test` truncated what its `make demo-launch` made (0 projects, 0 users, 0 routes; `operator`'s
+  admin grant gone with the users table — Rich's `!` command if the classifier refuses `scripts/admin-grant.sh grant`). Restarted from `.env`
+  on real GitHub (`gateway-controls.sh start real`, PID 95289 at the close; capable model and `ubc-qwen-27b` registered). **The two unowned
+  apps' leftovers (`reading-updates`, `a8-clocks-1`) are REMOVED** at Rich's word (`40c0f82`); he is deleting the six unowned repositories
+  himself (CLAUDE.md).
 - **The vulnerability database is fresh until 2026-10-15 23:32 PDT**; from 2026-10-16 every launch demo needs `make refresh-vulndb`, with the
-  network on (Rich's standing yes, answer 6; the coordinator's word, G7) — and the next build after it watched (FE-57).
+  network on (Rich's standing yes, answer 6; the coordinator's word, G7) — and the next build after it watched (FE-57). Sitting 3 runs no
+  launch demo.
+- **The three tracked defects stay placed** (answer 3): the projects list's `500` in Task 7 (sitting 6), the event replay's clock order in
+  Task 6 (sitting 5) — until then `observability/bus.test.ts` can red ONCE in a whole-suite run: run it alone before calling it real — and
+  FE-56 later, its own item. **And FE-59 is placed in Task 6 too** (Rich, ~18:14, `40c0f82`): `iam_registration.recorded` carries
+  `changeRequestedFrom`, inside `1.9.0`.
 
 **HOW THIS RUN WORKS:** if a coordinator's GO started you, its *Worker's rules* bind (no question tool; every whole-suite `pnpm test`, Docker
 tier or `make verify` waits for its HOLD; a `packages/contract` or `packages/mock` commit is told as its edits BEGIN and lands on *"land it"*).
 **If no coordinator is live**, everything goes to Rich directly (the question tool at the sitting's open) and you run the flag
 (`.superpowers/sdd/platform-window`) yourself — `ListAgents` first, and message any live `manifest-app-*` session before a contract or mock commit.
-**After any Docker run, restart 7100 from `.env`** (`bash scripts/gateway-controls.sh start real`; read `capableModel` and `gatewayModels`).
+**After any Docker run, restart 7100 from `.env`** (`bash scripts/gateway-controls.sh start real`; read `capableModel` and `gatewayModels`);
+**a launch demo runs on driver 1 by `bash scripts/gateway-controls.sh start local`** (it unsets `.env`'s driver-2 block in its own start; `.env`
+untouched), never on real GitHub (the demos refuse it by name).
 
 **RICH'S, NONE BLOCKING:** **`scripts/offline-acceptance.sh`, owed since FE-46/47/5** (run by hand; its steps did not change); the gateway key's
 rotation before 2027-01-01; the PROBE key to delete at the gateway; the `.env` line `MANIFEST_APP_PLAN_MODEL=default-chat-large`, no longer
 needed; *before production*: a failure's body verbatim, the `llm_provider-*` leak's remainder, an EXPLICIT reported cost of `0.0` charged `$0`;
-real repositories in `Manifest-local-dev` no project owns (CLAUDE.md — `reading-updates` among them since A1's sitting 1, with its
-containers, networks, volumes and LiteLLM users, as `a8-clocks-1`'s); **`make refresh-vulndb` after 2026-10-16**; §8 *Open*. **Recorded, not
+the six unowned real repositories in `Manifest-local-dev`, which he is deleting himself (CLAUDE.md; `ask-my-notes` kept); **`make
+refresh-vulndb` after 2026-10-16**; §8 *Open*. **Recorded, not
 placed** (the FE-46/47/5 plan's records): Postgres pinned by tag only; eleven operator lines that are template strings, two logging a PUID;
 `make demo-token`'s FE-53 check unable to tell the question's expiry from the token's; the control plane has no shutdown hook (an email or a
 build in flight at a restart is lost — sitting 5's F8); the queue's asker can name a person whose send was handed back (m6); the mock answers a
 2,001-character answer `LAUNCH_GAP_ANSWERS_INVALID` where the platform answers `REQUEST_INVALID`.
 
-**WHERE SITTING 2 STOPS, AND HOW IT ENDS** (A1's sittings table): after its commits — Task 2, Task 3 and F16(b)'s build — with an
-N-upstream route applied to the real edge and read back, and F16(b)'s refusal gone through the edge. The four gates (`pnpm test` twice,
-alone, on the final tree), the Docker tier (owed: `routing/`, `db/`, `launch/` — in the background, never beside Vitest, 7100 restarted from
-`.env` after it, G4), and the close-out like every sitting (§6): the plan's sittings table, its *What executing this plan found*, this §7e
-handed to sitting 3 (Spec action A, then Task 4 and Task 8a), the roadmap ledger. **Do not start sitting 3.**
+**WHERE SITTING 3 STOPS, AND HOW IT ENDS** (A1's sittings table): after its commits — Spec action A's, Task 4's and Task 8a's — with the Docker
+contract cases green and the skeleton's sign-in crossing two instances. The four gates (`pnpm test` twice, alone, on the final tree), the
+Docker tier (owed: `runtime/`, `blueprints/` — in the background, never beside Vitest, 7100 restarted from `.env` after it, G4), and the
+close-out like every sitting (§6): the plan's sittings table, its *What executing this plan found*, this §7e handed to sitting 4 (Spec action
+B, then Task 5 — contract `1.9.0`), the roadmap ledger. **Do not start sitting 4.**
 
 **THE TWO RULES A SITTING CANNOT GET FROM ANYWHERE ELSE**, restated because they live only in each plan's *Global
 Constraints*:
@@ -2134,7 +2141,8 @@ reasoning is recorded.**
   for or filed does not unregister it"* — the after-launch predicate (`iamItem` → `registrationInForce(row)`, and the mock's). **A Spec action
   placed with A1**: its sitting 1 drafts it from (b)'s words and applies it; wording beyond (b)'s goes to him first. **APPLIED 2026-10-13
   by A1's sitting 1** (`daf2ad0`; §21's label beside it, `1c3066c`, judged minor by `manifest-coord3` under the night-shift rule, for his
-  review); **built in A1's sitting 2** (his answer 3 of 2026-10-13).
+  review); **BUILT 2026-10-13 by A1's sitting 2** (his answer 3 of 2026-10-13): the platform `3bcb269`, the mock `0c7a2a3` (a new stage,
+  `MANIFEST_MOCK_RECORDS=change-before-launch`); `make demo-launch`'s step 8 sends a change before the first launch and launches.
 - **THE TWO PLATFORM FIXES FROM `ask-my-notes` — NOW, OUT OF PLAN — RICH, 2026-10-08 09:07** (the coordinated run's opening, answer 1:
   *"Approved; P0 now (Recommended)"*; raised 2026-10-05 by `manifest-fd`): run by `manifest-p0` beside FE-46/47/5's sitting 1, and FIXED in
   `1e96502` — the `proof-app` starter reads `COURSE_CODE` at startup, so a dropped `env:` declaration fails an app's first boot rather than
