@@ -106,8 +106,8 @@ records and UBC's order), **§20** (step-up). **Design:** the refreshed [`2026-0
 | 1 | 1, 2 | **The measurements and the worktree**: every fact re-read; an offline install and the contract's `dist/`; the references rendered under React 19.3.0 in a `node:vm`; a `.test.tsx` under a new Vitest project; what the platform's rules let the demo fleet hold. **The skeleton**: `packages/admin-ui` on 7101, its Vitest project in `pnpm test`, its lint block and boundary test, `src/api.ts`, the router and the shell, the administrator's gate, **`make doctor` asking 7101 and 7113** | No | After Task 2's commit on the branch | ✅ **DONE 2026-10-15** (`manifest-p11-s1`, 09:10–09:47 PDT): the baseline `7fd25e4` on `main`; the skeleton `c2cb418` on `p11-admin-ui`; *What executing this plan found*, *Sitting 1* |
 | 2 | 3 | **The mock's demo fleet, read**: thirteen projects, each object spread from a validated fixture, their reads by id, the queue across them, their event streams; every state one the platform can reach | No | After Task 3's commit | ✅ **DONE 2026-10-15** (`manifest-p11-s2`, 09:49–10:18 PDT): the demo fleet `b289297` on `p11-admin-ui`; *What executing this plan found*, *Sitting 2* |
 | 3 | 4 | **The demo fleet's decisions, with state**, every request body validated; the replay's hash keeping §26's reason. **LANDING 1** at the close — the mock's first change in this lane (**G3**), the new package, `pnpm install` in the shared checkout | **Yes — L1** | After L1's merge and the shared checkout's install, both read back | ✅ **DONE 2026-10-15** (`manifest-p11-s3`, 10:17–12:20 PDT): Task 4 `979b10f` on the branch; **LANDING 1 — `main` at `355f612`**, `pnpm test` 231 / 3756 twice; *What executing this plan found*, *Sitting 3* |
-| 4 | 5 | **The look**: the six shared and fourteen operations components ported to TSX in `src/system/`, each held markup-identical to its reference by the parity test; the stylesheets; the shell's rail in the system's own component | No | After Task 5's commit | ← **next** (a fresh session, `manifest-p11-s4`; it opens with `git -C /Users/rich/Developer/manifest-p11 rebase main` — the branch is `main` at `355f612` now — then reads *Sitting 3*'s findings) |
-| 5 | 6, 7 | **The queue** — the headline from our band, the two bands, the rows, the filter, the keyboard, the URL, the 60-second read (Task 6) — and **the release approval pane**: the request and its token from the project's stream, the preview on a click, the diff, approve and reject observed, the step-up round trip with the reason kept, stale and expired, decided by someone else (Task 7) | No | After Task 7's commit | |
+| 4 | 5 | **The look**: the six shared and fourteen operations components ported to TSX in `src/system/`, each held markup-identical to its reference by the parity test; the stylesheets; the shell's rail in the system's own component | No | After Task 5's commit | ✅ **DONE 2026-10-15** (`manifest-p11-s4`, 12:15–12:40 PDT): Task 5 `74e02bd8` on `p11-admin-ui` — twenty ports held by 103 parity cases, the rail as `<ConsoleRail>`, its *Sign out* working; *What executing this plan found*, *Sitting 4* |
+| 5 | 6, 7 | **The queue** — the headline from our band, the two bands, the rows, the filter, the keyboard, the URL, the 60-second read (Task 6) — and **the release approval pane**: the request and its token from the project's stream, the preview on a click, the diff, approve and reject observed, the step-up round trip with the reason kept, stale and expired, decided by someone else (Task 7) | No | After Task 7's commit | ← **next** (a fresh session, `manifest-p11-s5`; it opens with `git -C /Users/rich/Developer/manifest-p11 rebase main` — the branch is one commit ahead of `main` `66352869` — then reads *Sitting 4*'s *What Tasks 6–12 inherit*) |
 | 6 | 8, 9 | **The team's step and UBC's answer** — submit, file, hand back, record, every body exactly what the operation requires, a granted change in its two writes (Task 8) — and **the fleet**: the table, its filters in the URL, the instance count, archived rows (Task 9). **LANDING 2** at the close | **Yes — L2** | After L2's merge, read back. **If it overflows, L2 moves to sitting 7's open** | |
 | 7 | 10, 11 | **The project's page** — environments and their sets, incidents by cause, releases, the launch, people and agents, events live with the administrator's reason; reject an agent's question (Task 10) — and **Health and Settings** (Task 11) | No (L2, if it moved here) | After Task 11's commit | |
 | 8 | 12 | **The acceptance's headless half**: `make demo-admin` (the walk) and its step in both acceptances, its negative controls, **the plan's one whole-branch review and its one fix wave**. **LANDING 3** at the close; then RUNBOOK and WALKTHROUGH in the shared checkout | **Yes — L3** | After L3's merge and the two documents, read back | |
@@ -2164,3 +2164,83 @@ volume(s) are dead"* (17 orphaned mirrors named, as before); `litellm-orphans.sh
 yielded an LLM_API_KEY hash"* (`muddiest-point`'s); `app-images.sh` *"2 app image(s) are dead"*, both `muddiest-point`'s older builds.
 **No `--apply` was tried**: every finding is W5B's app, which the truncation orphaned and the coordinator keeps to record. **The worktree
 stays** for sitting 4, on `p11-admin-ui` at `355f612` — `main` itself — clean, its `.env` symlink gone.
+
+### Sitting 4 — Task 5: the look — the drawing's components, ported and held to it (2026-10-15, `manifest-p11-s4`)
+
+**Who and when.** `manifest-p11-s4`, the third coordinated run's P11 build, sitting 4, GOed by `manifest-coord5` at 12:15 PDT; inline
+(`superpowers:executing-plans`). **Under HOLD until 12:33:14** (B1's `pnpm test`): reading and the code written; **FREE from 12:33:14**
+for every run (load 3.3–6.1, B1's light Docker step beside it). The worktree rebased onto `main` `66352869` first — documents only since
+`355f612` (`CLAUDE.md`, `docs/superpowers/`), so the contract's `dist/` was not rebuilt; the branch was `main` until Task 5's commit.
+The ledger is `.superpowers/sdd/2026-10-14-p11-admin-console/progress.md`.
+
+**Task 5** (`74e02bd8` on `p11-admin-ui`). **`src/system/`**: the six shared components the operations surface composes
+(`StateChip`, `Button`, `TwoFacts`, `InverseSurface`, `SegmentedControl`, `Choice`) and the fourteen of `design/admin/components.js`
+(`MachineValue`, `ConsoleRail`, `SettingRow`, `WaitHeadline`, `QueueRow`, `FactList`, `Tags`, `RawChip`, `DiffView`, `ObservedAction`,
+`EventLine`, `DataTable` — generic in its row — `FilterBar`, `EnvCell`), each a TSX function with its reference's elements, attributes
+**in the reference's order** (order is markup to `renderToStaticMarkup`) and text nodes (`who + ' · as a platform administrator'` is ONE
+string, as the drawing's is), no hooks; `cx.ts`, `icons.tsx` (the paths as data and one `Icon` — both references' `icon()`),
+`state-of.ts` (`stateOf`, `shorten`), `index.ts` (the twenty, `ICONS`, the helpers and the props' types). **`parity.test.tsx`**: the
+plan's test, **103 cases** — the plan's prop sets plus every prop SHAPE the mockup's `console.js` renders that they lacked (`[M3]`'s
+rule: a chip's `pulse`, a compact table with a rendering column, a filter bar's own label, a headline and a row bounded *up to*, a
+setting being edited, an actor who is no administrator, null production limits, every `stateOf` enum …) and a case holding `stateOf`
+and `shorten` to the drawing's. **`styles.css`** `@import`s the three stylesheets and carries the drawing PAGE's own `<style>`
+(`design/admin-console.html`: the body's background, ink and font from the tokens, `:focus-visible`) — the three stylesheets style no
+`body`. **`app.tsx`**: the shell is the drawing's `.mfa-shell` / `.mfa-content` / `.mfa-main` with `<ConsoleRail {...railOf(route, me)}>`
+— a release pane under Queue, a project's page under Fleet — and the placeholders take `.mfa-h1`. **RED first, as predicted** (no
+ports: the file fails to load); then, so each case was seen red on its own, `index.ts` as `export {}` → **103 of 103 red**; restored →
+**103 green**.
+
+**A decision of the sitting — THE RAIL'S *SIGN OUT* WORKS** (the coordinator: *"sound — record it … as a decision of the sitting"*,
+12:27). The ported `ConsoleRail` always draws a *Sign out* link, which the plain rail did not, and no task builds signing out. Rather
+than ship a dead link, **`auth.ts` gains the reference console's `signOut`** whole (`POST /auth/logout`, the answer's shape asserted —
+`200` with a same-origin or `https:` `redirectTo`, never `ok` alone; `window.location.assign`, as `signIn` here) **with its tests
+copied** (`auth.test.ts`, 11); the shell's one click listener reads a plain left click on `a.mf-rail__out` (`isSignOut`) and a refused
+sign-out is shown by `<Refusal>`, never swallowed. `signOutHref` stays the drawing's `#` — a `POST` route is never a link the browser
+follows. *Cost if wrong:* one function and a test file to remove; `EXPECT_FILES` moves by one more at L2.
+
+**Rulings** (the ledger has each with its cost): props are what the reference READS — `StateChip` has no `steps` and `TwoFacts` no
+`title`, which the plan's *Interfaces* listed and neither reference reads; `ObservedAction` gains `admissionLead` (the plan's own note);
+sources import without an extension (`app.tsx`'s idiom), tests with `.js` (`app.test.tsx`'s).
+
+**Findings:**
+
+**F1 My own `sed` took the wrong `title`** — removing `TwoFactsProps`' unread `title?: string` deleted `Fact`'s (both lines read `  title?:
+string`); **`pnpm typecheck` caught it** (`TS2339`), with `pnpm lint`'s unused `cx` import in the same file, after 159 green tests —
+Vitest strips types. Fixed before the commit.
+
+**F2 The console's first page load answers `/v1/me` `401` twice, then signs in** — StrictMode's double effect, before the mock's
+`/auth/login` round trip; the gate working (Task 2). And **`/favicon.ico` is `404`**: the console has no icon. **For Task 12**: a walk
+that counts console errors meets these three on a cold load.
+
+**F3 The plan's *Interfaces* listed two props no reference reads** (F1's `title`, and `StateChip`'s `steps`) — left out (*A port never
+renders what its reference does not*).
+
+**Step 4, the screenshot:** headless Chrome (its port from the system, Decision 17), `/queue` at 1440 × 1000 on 7101 (its mock on 7113,
+`bash scripts/admin-ui.sh`) beside the mockup's `#queue`: **the rail's computed styles are identical** — its box (0, 0, 240 × 1000), its
+`rgb(0, 52, 104)`, the *Operations* overline, the role, the items and the current one, *Sign out*, the page's background and font
+stack. The person differs (Operator One; the mockup's data names Rich), and so does the face, as Decision 6 says: the mockup loads
+Instrument Sans from Google Fonts, the console falls back to the system sans. Stopped with TERM (exit 143; F2 of sitting 1); 7101 and
+7113 free.
+
+**The negative controls (Step 5), all seen:** (a) one class in `QueueRow.tsx` → **exactly `QueueRow`'s three cases red**, 100 green;
+(b) `export function Foo` from `index.ts` → **only *no other* red**, naming `Foo`. And this sitting's own, for the tests written beside
+their code: (c) a release pane under Fleet → the `railOf` case red alone; (d) `signOut` accepting any string → the `javascript:` and
+protocol-relative cases red; (e) `isSignOut` ignoring modifier keys → its case red. Each restored by `git checkout --`; the tree clean.
+
+**The gates, on the final branch tree `74e02bd8`, under FREE:** `pnpm exec vitest run --project admin-ui --project packages` **twice,
+identical — 41 files, 487 passed** (sitting 3's 39 / 370 plus `parity.test.tsx` 103, `auth.test.ts` 11 and the rail's 3 in
+`app.test.tsx`), 40.3 s and 40.0 s, load 5.4–6.1; the `admin-ui` project alone 8 files / 159; `pnpm lint`, `pnpm typecheck` (seven
+packages) and `pnpm format:check` clean. The `unit` project not run (the plan's rule). **For L2's `EXPECT_` lines:** `pnpm test` gains
+2 files and 117 tests since L1 so far.
+
+**What Tasks 6–12 inherit:** every screen draws with `./system`'s exports, their props as the references read them (`gap` never
+set); **a screen that passes a port a new prop shape adds its case to `parity.test.tsx` in the same commit** (`[M3]`'s rule); the rail
+and `DataTable` render plain `<a href>`s and `onClick`s only where the drawing has them, so in-app links rely on the shell's one
+listener; `auth.ts` now owns `signIn` and `signOut`, and Task 7's `stepUpUrl` joins them (the boundary test's positive control reads
+`> 0` and still holds); F2's three console errors on a cold load are Task 12's to expect or remove.
+
+**The machine:** 7101 and 7113 free at the close; no Docker resource made; 7100 untouched. The three cleanup scripts bare: *"Nothing
+was changed. 0 network(s) and 0 volume(s) are dead"*; `litellm-orphans.sh` refused itself — *"4 app container(s) exist and NOT ONE
+yielded an LLM_API_KEY hash"* (`muddiest-point`'s, as at sitting 3); `app-images.sh` *"2 app image(s) are dead"*, both
+`muddiest-point`'s. **No `--apply` was tried**: every finding is W5B's app, which the coordinator keeps to record. **The worktree
+stays** for sitting 5, on `p11-admin-ui` at `74e02bd8` (one commit ahead of `main` `66352869`), clean, no `.env` symlink.

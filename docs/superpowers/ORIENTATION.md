@@ -2065,8 +2065,11 @@ inherit); **so is sitting 3** (2026-10-15, `manifest-p11-s3`): Task 4, the fleet
 a stored preview, the team's step and UBC's answer as `records.ts` writes them, an agent refused with §26's reason, the replay's hash keeping
 that reason (I7) — **and LANDING 1: `main` at `355f612`**, so `packages/admin-ui`, `MANIFEST_MOCK_FLEET=demo` and `make admin-ui` are on
 `main`, `pnpm test` runs the `admin-ui` project (231 files / 3756 tests, the `EXPECT_` lines), and the faculty front-end's mock carries the
-fleet (off unless asked) and the platform's replay of a reasoned retry. **Its sitting 4 (Task 5, the look) is next**, and its sittings table
-says where each stops; **sitting 3's F1 is Task 7's to build on** — the platform never refuses a second decision on a release whose preview
+fleet (off unless asked) and the platform's replay of a reasoned retry; **so is sitting 4** (2026-10-15, `manifest-p11-s4`): Task 5, the look
+— the drawing's six shared and fourteen operations components ported to TSX in `packages/admin-ui/src/system/`, held markup-identical to
+it by 103 parity cases, its stylesheets `@import`ed, the shell's rail its `ConsoleRail` with a working *Sign out* (`74e02bd8` on the
+branch; its record's *What Tasks 6–12 inherit*). **Its sitting 5 (Tasks 6 and 7, the queue and the release approval pane) is next**, and
+its sittings table says where each stops; **sitting 3's F1 is Task 7's to build on** — the platform never refuses a second decision on a release whose preview
 is still current, so *decided elsewhere* is read from `getApproval` and the stream. It takes a 7100 window only to land (L2 closes its sitting 6, L3 its sitting 8). Two of its traps are in TRAPS.md: a
 backgrounded `scripts/admin-ui.sh` ignores SIGINT (stop it with TERM), and `make doctor` in the worktree reads three fails for git-ignored
 files.
