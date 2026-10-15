@@ -2061,9 +2061,13 @@ only by its three fast-forward landings and its sittings' documents. **Sitting 1
 its own mock on 7113 by `make admin-ui` from the worktree — `8f9038f` since sitting 2's rebase: **a branch sha moves at every sitting's
 opening rebase; find a commit by its subject**); **so is sitting 2** (2026-10-15: the demo fleet `b289297` on the branch,
 `MANIFEST_MOCK_FLEET=demo` — its record names four planned states the platform cannot reach, built as it answers, and what Tasks 9–12
-inherit); **its sitting 3 is under way** (`manifest-p11-s3`): **Task 4 is done** — the fleet's decisions `979b10f` on the branch, every
-request body validated, the replay's hash keeping §26's reason (I7) — and **LANDING 1** (the mock's first change on `main`, G3) **is queued
-for the coordinator's window behind W5B's walk**; its sittings table says where each stops. It takes a 7100 window only to land (L1 closes its sitting 3). Two of its traps are in TRAPS.md: a
+inherit); **so is sitting 3** (2026-10-15, `manifest-p11-s3`): Task 4, the fleet's decisions — every request body validated, a sign-off on
+a stored preview, the team's step and UBC's answer as `records.ts` writes them, an agent refused with §26's reason, the replay's hash keeping
+that reason (I7) — **and LANDING 1: `main` at `355f612`**, so `packages/admin-ui`, `MANIFEST_MOCK_FLEET=demo` and `make admin-ui` are on
+`main`, `pnpm test` runs the `admin-ui` project (231 files / 3756 tests, the `EXPECT_` lines), and the faculty front-end's mock carries the
+fleet (off unless asked) and the platform's replay of a reasoned retry. **Its sitting 4 (Task 5, the look) is next**, and its sittings table
+says where each stops; **sitting 3's F1 is Task 7's to build on** — the platform never refuses a second decision on a release whose preview
+is still current, so *decided elsewhere* is read from `getApproval` and the stream. It takes a 7100 window only to land (L2 closes its sitting 6, L3 its sitting 8). Two of its traps are in TRAPS.md: a
 backgrounded `scripts/admin-ui.sh` ignores SIGINT (stop it with TERM), and `make doctor` in the worktree reads three fails for git-ignored
 files.
 

@@ -105,8 +105,8 @@ records and UBC's order), **§20** (step-up). **Design:** the refreshed [`2026-0
 |---|---|---|---|---|---|
 | 1 | 1, 2 | **The measurements and the worktree**: every fact re-read; an offline install and the contract's `dist/`; the references rendered under React 19.3.0 in a `node:vm`; a `.test.tsx` under a new Vitest project; what the platform's rules let the demo fleet hold. **The skeleton**: `packages/admin-ui` on 7101, its Vitest project in `pnpm test`, its lint block and boundary test, `src/api.ts`, the router and the shell, the administrator's gate, **`make doctor` asking 7101 and 7113** | No | After Task 2's commit on the branch | ✅ **DONE 2026-10-15** (`manifest-p11-s1`, 09:10–09:47 PDT): the baseline `7fd25e4` on `main`; the skeleton `c2cb418` on `p11-admin-ui`; *What executing this plan found*, *Sitting 1* |
 | 2 | 3 | **The mock's demo fleet, read**: thirteen projects, each object spread from a validated fixture, their reads by id, the queue across them, their event streams; every state one the platform can reach | No | After Task 3's commit | ✅ **DONE 2026-10-15** (`manifest-p11-s2`, 09:49–10:18 PDT): the demo fleet `b289297` on `p11-admin-ui`; *What executing this plan found*, *Sitting 2* |
-| 3 | 4 | **The demo fleet's decisions, with state**, every request body validated; the replay's hash keeping §26's reason. **LANDING 1** at the close — the mock's first change in this lane (**G3**), the new package, `pnpm install` in the shared checkout | **Yes — L1** | After L1's merge and the shared checkout's install, both read back | ◐ **Task 4 DONE 2026-10-15** (`manifest-p11-s3`, from 10:17 PDT): `979b10f` on `p11-admin-ui`; **L1 QUEUED** for the coordinator's window behind W5B's walk; *What executing this plan found*, *Sitting 3* |
-| 4 | 5 | **The look**: the six shared and fourteen operations components ported to TSX in `src/system/`, each held markup-identical to its reference by the parity test; the stylesheets; the shell's rail in the system's own component | No | After Task 5's commit | |
+| 3 | 4 | **The demo fleet's decisions, with state**, every request body validated; the replay's hash keeping §26's reason. **LANDING 1** at the close — the mock's first change in this lane (**G3**), the new package, `pnpm install` in the shared checkout | **Yes — L1** | After L1's merge and the shared checkout's install, both read back | ✅ **DONE 2026-10-15** (`manifest-p11-s3`, 10:17–12:20 PDT): Task 4 `979b10f` on the branch; **LANDING 1 — `main` at `355f612`**, `pnpm test` 231 / 3756 twice; *What executing this plan found*, *Sitting 3* |
+| 4 | 5 | **The look**: the six shared and fourteen operations components ported to TSX in `src/system/`, each held markup-identical to its reference by the parity test; the stylesheets; the shell's rail in the system's own component | No | After Task 5's commit | ← **next** (a fresh session, `manifest-p11-s4`; it opens with `git -C /Users/rich/Developer/manifest-p11 rebase main` — the branch is `main` at `355f612` now — then reads *Sitting 3*'s findings) |
 | 5 | 6, 7 | **The queue** — the headline from our band, the two bands, the rows, the filter, the keyboard, the URL, the 60-second read (Task 6) — and **the release approval pane**: the request and its token from the project's stream, the preview on a click, the diff, approve and reject observed, the step-up round trip with the reason kept, stale and expired, decided by someone else (Task 7) | No | After Task 7's commit | |
 | 6 | 8, 9 | **The team's step and UBC's answer** — submit, file, hand back, record, every body exactly what the operation requires, a granted change in its two writes (Task 8) — and **the fleet**: the table, its filters in the URL, the instance count, archived rows (Task 9). **LANDING 2** at the close | **Yes — L2** | After L2's merge, read back. **If it overflows, L2 moves to sitting 7's open** | |
 | 7 | 10, 11 | **The project's page** — environments and their sets, incidents by cause, releases, the launch, people and agents, events live with the administrator's reason; reject an agent's question (Task 10) — and **Health and Settings** (Task 11) | No (L2, if it moved here) | After Task 11's commit | |
@@ -2073,11 +2073,12 @@ stays** for sitting 3, on `p11-admin-ui` at `b289297`, clean; `packages/mock` re
 
 **Who and when.** `manifest-p11-s3`, the third coordinated run's P11 build, sitting 3, GOed by `manifest-coord5` at 10:17 PDT; inline
 (`superpowers:executing-plans`). **Task 4 under FREE**, beside W5B's walk on 7100 (nothing of 7100's touched), load 3.1–4.6 on AC;
-**LANDING 1 in the coordinator's window** — QUEUED at 10:45 behind W5B's walk on 7100 (its build, launch and member-kill), *"7100 is yours"* + HOLD and *"land it"* to follow; G3's notice relayed to W5B, the only live app worker, at 10:45. The worktree rebased onto `main` `1f89905` first — `main` had moved by
+**LANDING 1 in the coordinator's window** — queued at 10:45 behind W5B's walk on 7100; G3's notice relayed to W5B, the only live app
+worker, which answered CLEAR at 10:45; *"7100 is yours"* + HOLD and *"land it"* at 11:26:17, once W5B released 7100 (11:25:49). The worktree rebased onto `main` `1f89905` first — `main` had moved by
 documents alone (`docs/superpowers/`), so the contract's `dist/` was not rebuilt; the skeleton is `450e602` and the fleet `a9d7f88` on the
 branch since. The ledger is `.superpowers/sdd/2026-10-14-p11-admin-console/progress.md`.
 
-**Task 4** (`979b10f` on `p11-admin-ui`; on `main` only at L1). **`fleet.ts`** keeps an administrator's decisions in the
+**Task 4** (`979b10f` on `p11-admin-ui`, `b35e91d` on `main` since L1). **`fleet.ts`** keeps an administrator's decisions in the
 state `createFleet` returns, each refused in the platform's order and words and written as the platform writes it, each announced on the
 project's stream: **a release's sign-off** — `createApprovalPreview` (stored thirty minutes, its diff the platform's facts against the
 last approved release with the candidate excluded, the security notes verbatim, a first launch `no-previous-release`), `getApprovalPreview`,
@@ -2142,6 +2143,24 @@ files, 370 passed** (sitting 2's 39 / 357 plus 13), 40.3 s and 39.3 s; the mock'
 packages) and `pnpm format:check` clean; and **M10's proxy** — `@manifest/mock`'s `src/index.ts` compiled under manifest-app's own
 compiler options (`bundler`, `ES2023`, `types: node`): clean, `fleet.ts` among its files.
 
-**LANDING 1** — *pending* (this entry is written while it waits; the landing's run, its `EXPECT_` lines and the merge are recorded here when it closes). Expected: `EXPECT_FILES` 224 → 231 (+6 `admin-ui`, +1 `fleet.test.ts`), `EXPECT_TESTS` 3691 → 3756 (+42, +10, +12, +1); `EXPECT_DOCTOR` 22 and `EXPECT_VERIFY` 67 unchanged.
+**LANDING 1 — `main` at `355f612`** (11:26–12:13 PDT). The branch rebased onto `main` `d2e2cf0` (TESTED; documents only since its
+base, so no `dist/` rebuild), the shared `.env` symlinked into the worktree (`ln` exit 0 — allowed, as at sitting 1 — never read). No call
+assertion was held at either run's start (Zoom running, no meeting), so both ran at utility QoS. **`pnpm test` twice, identical — 231 files,
+3756 tests, exit 0**, the counts predicted at *"ready for L1"*: 1627.5 s (load median 5.75, max 19.99) and 1049.9 s (median 3.03, max
+7.52); the slowest files are all the `unit` project's (`driver.test.ts` 107.6 s), the `admin-ui` files milliseconds, `fleet.test.ts` 1.8 s.
+`pnpm lint`, `pnpm typecheck` (seven packages) and `pnpm format:check` clean. **The landing commit** moved `scripts/ci-acceptance.sh`'s
+`EXPECT_TESTS` 3691 → 3756 and `EXPECT_FILES` 224 → 231 (`EXPECT_DOCTOR` 22 and `EXPECT_VERIFY` 67 unchanged; no document restates the
+counts). **THE RACE, once:** `main` took `624deb6` after TESTED, touching only `docs/superpowers/2026-09-30-decisions.md`, so the branch
+rebased again and merged without a re-run, under the documents-only exception. The branch's 34 paths overlapped none of the shared
+checkout's uncommitted files (a peer's `TRAPS.md`, `plans/2026-10-03-load-rehearsal.md` and `spikes/load-baseline/`, left alone).
+`git merge --ff-only p11-admin-ui` from the shared checkout → **`355f612`** (the skeleton `249b17c`, the fleet `1799656`, its decisions
+`b35e91d`, the counts `355f612`); then **`pnpm install --offline --frozen-lockfile` exit 0** and **`pnpm typecheck` exit 0, seven packages,
+`admin-ui` among them**, read back there; the symlink removed. **7100 back** to the coordinator, still running but its tables truncated
+by the two runs (W5B's `muddiest-point` orphaned by them, as the coordinator expected); its G4 restart is the coordinator's (G4).
 
-**The machine (so far):** 7101 and 7113 free — no mock or console started this sitting; no Docker resource made; 7100 untouched. The worktree on `p11-admin-ui` at `979b10f`, clean.
+**The machine:** 7101 and 7113 free — no mock or console started this sitting; no Docker resource made; 7100 truncated by L1's two
+runs, not stopped, and handed back. The three cleanup scripts bare: `dead-app-resources.sh` *"Nothing was changed. 0 network(s) and 0
+volume(s) are dead"* (17 orphaned mirrors named, as before); `litellm-orphans.sh` refused itself — *"4 app container(s) exist and NOT ONE
+yielded an LLM_API_KEY hash"* (`muddiest-point`'s); `app-images.sh` *"2 app image(s) are dead"*, both `muddiest-point`'s older builds.
+**No `--apply` was tried**: every finding is W5B's app, which the truncation orphaned and the coordinator keeps to record. **The worktree
+stays** for sitting 4, on `p11-admin-ui` at `355f612` — `main` itself — clean, its `.env` symlink gone.
