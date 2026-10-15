@@ -2839,6 +2839,28 @@ capacity temporarily granted. An app whose first contact with its real audience 
 launch day will fail on launch day, and that is as true of capacity as it is of
 identity.
 
+**The owner or a collaborator runs it** — or an administrator, giving their reason
+(§26) — as D21's rehearsal is run, in their own session and stepped up, and it is
+one at a time across the platform; while it runs, nothing else is deployed to that
+app's staging. Manifest redeploys the release serving staging **in production's
+shape for the audience** — its instances, at production's resources, behind one
+balanced route — and puts the audience's arrival on it through the edge: for
+`large_course` and `public`, **500 people arriving within a minute and staying five
+minutes** (`synchronised`) **or arriving over five minutes** (`steady`). **Each
+arriving person asks for three pages — the app's front page, its health path and
+its sign-in — and then one every ten seconds while they stay; no page's images or
+scripts are fetched.** So `synchronised` is **75 requests a second for the first
+minute, then 50 a second for five minutes**, and `steady` is **10, 20, 30, 40 and
+50 a second, a minute each**. It **passes** when at least 99% of requests are
+answered — **anything but a server error, the edge's own rate limit or a
+timeout** — the 95th percentile is under two seconds, and every instance stays
+healthy with no exit and no out-of-memory exit; **a generator that reached less
+than nine-tenths of the rate asked is a failure, never a pass.** Then staging is
+given back its own shape. The numbers are platform settings (§26), these their
+defaults. The item is met by the newest passing rehearsal of the release that would
+launch, at the audience — its scale and its burst — it was run for; after launch,
+it is asked again only when the audience is raised.
+
 ### Audience is not `resources`
 
 `manifest.yaml`'s `resources` block sizes *one instance* and is bounded by the
