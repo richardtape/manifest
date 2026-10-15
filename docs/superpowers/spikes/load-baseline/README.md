@@ -24,6 +24,7 @@ number at `d2e2cf0d`: [`facts-at-d2e2cf0.md`](facts-at-d2e2cf0.md).
 | `[M4]` | A rate limit that skips one address | **The zone's own `match` takes a `not`**, `{"remote_ip":{…every address…},"not":[{"remote_ip":{"ranges":["<addr>/32"]}}]}`: the exempt client sent **1,300 with no `429`**, another was cut at 600. **Counters SURVIVE a PATCH** — identical or changing the zone. `0.0.0.0/0` is accepted and limits nobody. A malformed address: `500`, the old config kept | Task 3's JSON, its Docker case's counting, its negative control (a), its validation |
 | `[M5]` | A set in production's shape, given back | Through the driver's own `ensureInstances`, on a hostname no project holds: **the GRANT (one → three at production's resources, the route moved in one change) 3.6 s; the TAKE-DOWN (three → one) 1.4 s**; retires 0.1–0.3 s; each member idle 25–27 MiB, its limits `Memory` 512 Mi and **`MemorySwap` 1 Gi** | Task 4's time budget (the moves are seconds; the load is the ten minutes); the laptop's memory |
 | `[M7]` | An out-of-memory exit | **`exited` / `137` / `OOMKilled: true`** — and a plain `SIGKILL` is `exited` / `137` / **`false`**: only the flag tells them apart. **Two surprises: `OOMKilled` is STICKY and is set on a container still RUNNING** (a child killed under the init); **an app may use swap equal to its memory** (`MemorySwap` unset → twice `Memory`) | Task 3's mapping; Task 4's `judge`; Task 8a's fixture |
+| `[M3b]` | What vegeta sustains here (sitting 2) | **Every rate it was asked, to two decimals: 10.03 … 400.04 a second, 0 errors**, p95 ≤ 3.7 ms through a throwaway Caddy (no limit) to a throwaway app; the generator at 400/s used 15.8 % of a CPU and 15 MiB. **Spec action A's peak is 75/s** — about a fifth of what was measured | Task 2 (no stop for Rich); Task 4's judge (a generator-bound run should not happen on this laptop); Task 8a |
 | `[M6]` | The gate numbers | **`pnpm test` once: 231 files, 3756 tests, all passed** — equal to `EXPECT_FILES`/`EXPECT_TESTS` since P11's LANDING 1 moved them during this sitting (224/3691 → 231/3756, `355f612`); `EXPECT_DOCTOR` 22, `EXPECT_VERIFY` 67; the Docker tier 305 / 0 skipped / 44 files (ORIENTATION §2, not re-run). **Contract `1.9.0`** (`document.ts:130`, `openapi.json`, 76 operations) — so this plan's is **`1.10.0`** | Every later gate |
 
 ## Findings for the later sittings
@@ -309,6 +310,41 @@ beside FE-62's event field (Task 5), in `1.10.0`, additive; today a replacement'
 - **The contract and the mock, in the same step**: `document.ts:130` and its notes, `packages/contract/package.json:3`, the generated
   `openapi.json` and `schema.d.ts`, `docs/api/events.md` and the reference; the mock's fixtures typed by the schema
   (`packages/mock/src/fixtures.ts`: the instances `:126`–`:235`, `INCIDENTS` `:654-670`), `server.ts:461`, `script.ts:296`.
+
+## `[M3b]` — what vegeta sustains here (sitting 2, 2026-10-15, `manifest-b-s2`)
+
+*Task 2's Step 2, the measurement Task 1 could not make before the image existed. 12:57:28–13:00:04 PDT, under
+`manifest-coord5`'s HOLD (no Vitest anywhere, 0 `vitest` processes; AC power; no Zoom assertion until after it ended).
+Probe: [`probes/m3b-vegeta.sh`](probes/m3b-vegeta.sh); raw output: [`results-m3b-2026-10-15.txt`](results-m3b-2026-10-15.txt);
+each rate's `vegeta report -type=json`, WHOLE, is `packages/control-plane/src/launch/load-fixtures/report-<rate>.json` (Task 2's
+unit tests read them).*
+
+**vegeta v12.13.0** (`manifest/vegeta:12.13.0`, built by `infra/seed/build-vegeta.sh` from the release's `linux_arm64` archive,
+sha256 `950381173a55…` — equal to the release's checksums file AND GitHub's own asset digest), in a container hardened exactly as
+`launch/load.ts` creates it (CapDrop ALL, `no-new-privileges`, read-only root, results on a tmpfs, 256 pids, 512 MiB, no swap),
+**against a THROWAWAY Caddy** from the edge's own image (v2.11.4, TLS from its own internal CA, **no rate limit**) on its own
+network, fronting a throwaway Node app that answers the three paths as a skeleton app does a stranger ([M2]: `/` 200 with ~2.2
+KB, `/healthz` 200, `/login` 302) with no database behind it — so nothing behind the edge is the slower side. The live edge, 7100
+and every app untouched; every container and the network removed after, counted gone. 30 s per rate, the three paths round
+robin, `-timeout=10s`, `-redirects=-1`, `-max-body=0`, one keep-alive pool.
+
+| Asked | Achieved (vegeta's `rate`) | Requests | Codes | p50 | p95 | p99 | max | Generator mid-run | Edge | App |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 10/s | **10.03/s** | 300 | 200 × 200, 302 × 100 | 2.5 ms | 3.7 ms | 5.5 ms | 6.1 ms | 1.5 % CPU, 8.6 MiB | 1.5 % | 0.9 % |
+| 50/s | **50.03/s** | 1,500 | 200 × 1,000, 302 × 500 | 2.1 ms | 3.3 ms | 4.3 ms | 10.2 ms | 6.4 %, 9.9 MiB | 9.8 % | 2.8 % |
+| 100/s | **100.03/s** | 3,000 | 200 × 2,000, 302 × 1,000 | 1.6 ms | 2.7 ms | 3.5 ms | 8.1 ms | 8.9 %, 12.5 MiB | 14.4 % | 4.5 % |
+| 200/s | **200.03/s** | 6,000 | 200 × 4,000, 302 × 2,000 | 1.1 ms | 2.4 ms | 4.5 ms | 109.5 ms | 13.7 %, 13.8 MiB | 24.7 % | 9.1 % |
+| 400/s | **400.04/s** | 12,000 | 200 × 8,000, 302 × 4,000 | 0.6 ms | 1.3 ms | 2.9 ms | 33.9 ms | 15.8 %, 15.5 MiB | 25.0 % | 11.6 % |
+
+**0 errors at every rate. Host load 3.84 before, 3.37 after** (12 CPUs; the VM 6). **Spec action A's profile peaks at 75 a
+second** (`synchronised`'s arrival minute) — **the generator reaches it with about five times the headroom measured here and a
+sixth of one CPU at 400**, so sitting 2's stop-and-ask does not fire: the numbers stand as Rich approved them. A result is ~260 bytes
+on the tmpfs with `-max-body=0` (2,589 bytes for ten), so the synchronised profile's ~19,500 requests are ~5 MiB.
+
+**What it does not measure**: an app's own ceiling (Task 4's Docker case and Task 8a's fixture), and the real edge's route (with
+its headers and health checks) — the latter measured the same day by `load.docker.test.ts`'s composed case: **through a real route
+on the live edge, exempted by the Docker driver's verb, 750 requests at 30 a second all answered (p50 1.9 ms, p95 2.8 ms, p99 4.0
+ms); not exempted, 600 answered and 150 refused `429`** (`d33d950f`).
 
 ## The machine, left as found
 

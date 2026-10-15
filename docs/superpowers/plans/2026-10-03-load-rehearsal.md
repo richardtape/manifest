@@ -27,8 +27,10 @@
 
 > **SITTING 1 IS DONE (2026-10-15, `manifest-b-s1`, Task 1 `a46bdad9`)** — the measurements are
 > [`../spikes/load-baseline/README.md`](../spikes/load-baseline/README.md), and a *SITTING 1 MEASURED* note sits under each task one
-> changes. **Sitting 2 is next.** At its open: **Spec action D as RICH RE-WORDED IT** (`624deb66`; `make seed` already builds five images,
-> so the draft's *"one of two"* was false — sitting 1's F1), then C, each applied with its shared pages' sweep.
+> changes. **SITTING 2 IS DONE (2026-10-15, `manifest-b-s2`)**: Spec actions C and D APPLIED (`a5c44838`; D in Rich's re-worded words),
+> vegeta v12.13.0 downloaded and checksum-verified, Task 2 `3205b956` (the generator), Task 3 `fff41f8c` (the exemption, `outOfMemory`),
+> the two composed through the real edge `d33d950f`; a *SITTING 2 BUILT AND MEASURED* note sits under Task 4. **Sitting 3 is next: Spec
+> action A at its open (approved as drafted, `3ba424a`), then Task 4.**
 
 > **WRITTEN 2026-10-03, AFTERNOON, BY THE PLANNING SESSION `manifest-c7`** (coordinated by `manifest-94`), after FE-32's plan and placed
 > BEFORE it: Rich, 2026-10-03, ~13:46 PDT, answering FE-44, *"Build the load rehearsal first"* — §24's load rehearsal, before faculty use
@@ -135,8 +137,8 @@ contract `1.11.0`); then BYOA on the laptop ([`2026-10-13-byoa-on-the-laptop.md`
 | Sitting | Tasks | What it delivers | `pnpm test:docker` owed? | Where it stops | Status |
 |---|---|---|---|---|---|
 | 1 | 1 | **The measurements**: every fact re-read (A1's sittings 6–8 included); a container on the platform network reaching staging through the edge (the CA, SNI, the source address Caddy sees); the laptop's headroom (what vegeta sustains is Task 2's, after its download); a route whose rate limit skips one address, in a THROWAWAY Caddy from the edge's image; a staging-shaped set in production's N-instance shape on a hostname no project holds, started and given back; an out-of-memory exit as Docker reports it; the gate numbers | No | After Task 1's commit | **DONE 2026-10-15** (`manifest-b-s1`, the third coordinated run's B1): Task 1 `a46bdad9` — [`../spikes/load-baseline/`](../spikes/load-baseline/README.md); 14 findings, F1 (Spec action D's count) re-worded by Rich (`624deb66`); a *SITTING 1 MEASURED* note under Tasks 2–6 and 8a |
-| 2 | 2, 3 | **Spec actions C and D applied first** (staged scripts Rich runs). **The generator** (vegeta built locally — its download and checksum a Rich-step at this sitting's open — its container, its one-line result) and **the edge's exemption** with its **`Driver` verb** (`setRateLimitExemption`, both drivers, the driver contract), **and `InstanceStatus.outOfMemory`** | Yes — `launch/`, `routing/`, `runtime/`, `infra/` | After both commits, with one generator run through the real edge quoted. **It stops and asks Rich** if `[M3b]` finds the laptop cannot sustain Spec action A's profile — the numbers are his | ← **next** (`manifest-b-s2`): Spec actions C and D — **D as Rich re-worded it** (`624deb66`) — applied at its open; vegeta's download his standing yes (`3ba424a`) |
-| 3 | 4 | **Spec action A applied first.** **The run**: grant, read back, load, watch, judge, record — the row written `running` BEFORE the grant — and take down; one at a time platform-wide, by a database invariant; **the boot's pass 2⅞**; the `load_rehearsals` table. No wire change | Yes — `launch/`, `releases/`, `db/` | After the commit, with one run through the edge on driver 1 from a scratch script, passed, and staging back in its own shape | |
+| 2 | 2, 3 | **Spec actions C and D applied first** (staged scripts Rich runs). **The generator** (vegeta built locally — its download and checksum a Rich-step at this sitting's open — its container, its one-line result) and **the edge's exemption** with its **`Driver` verb** (`setRateLimitExemption`, both drivers, the driver contract), **and `InstanceStatus.outOfMemory`** | Yes — `launch/`, `routing/`, `runtime/`, `infra/` | After both commits, with one generator run through the real edge quoted. **It stops and asks Rich** if `[M3b]` finds the laptop cannot sustain Spec action A's profile — the numbers are his | **DONE 2026-10-15** (`manifest-b-s2`, the third coordinated run's B2): Spec actions C and D `a5c44838` (in-session, D in Rich's words); vegeta v12.13.0, both checksums matched; Task 2 `3205b956`, Task 3 `fff41f8c`, composed `d33d950f` (exempted 750/750 at 30.04/s, p95 2.8 ms; not, 600 + 150 × `429`); `[M3b]` 400/s with 0 errors — no stop for Rich; the Docker tier and `pnpm` twice in the record |
+| 3 | 4 | **Spec action A applied first.** **The run**: grant, read back, load, watch, judge, record — the row written `running` BEFORE the grant — and take down; one at a time platform-wide, by a database invariant; **the boot's pass 2⅞**; the `load_rehearsals` table. No wire change | Yes — `launch/`, `releases/`, `db/` | After the commit, with one run through the edge on driver 1 from a scratch script, passed, and staging back in its own shape | ← **next** (`manifest-b-s3`): Spec action A at its open (approved as drafted, `3ba424a`); read Task 4's *SITTING 2 BUILT AND MEASURED* note first |
 | 4 | 5 | **Spec action B applied first.** **The operation**: `runLoadRehearsal` (`202`) and `getLoadRehearsal`; its codes, declared on every operation that answers them; `load_rehearsal.completed`; **staging deploys refused while a run holds the project**; **contract `1.10.0`** | Yes — `launch/`, `releases/`, `observability/` | After the commit, with the front-end told and one run through the edge polled to its end | |
 | 5 | 6, 7 | **The checklist** — met by a `passed` measurement, at the scale and the burst, for the first launch and an audience raised (Q3) — and **the clients**: the console's *Run the load rehearsal*, the mock's stage, the guide | Yes — `launch/` | After both commits, with the front-end told | |
 | 6 | 8a | **The acceptance's demo**: `make demo-load`, three times on each driver (fresh, re-use, from `make reset`), and its negative controls | Yes, if any code changes | After the demo's commit and its controls | |
@@ -786,6 +788,21 @@ script calls it (Step 4).** Nothing on the wire changes here.
 > twice its memory (F3). Pass 2⅞ goes between `releases/recover.ts:242` and `:244`; `shape.ts:10-11`'s comment on `'replacement'` is stale
 > (F12). `[M5]`'s grant and take-down times are in the record.
 
+> **SITTING 2 BUILT AND MEASURED** (`3205b956` Task 2, `fff41f8c` Task 3, `d33d950f` the two composed; the record's *Sitting 2*):
+> **`createLoadGenerator` is NOT bound at boot yet** — Task 4 binds it in `src/index.ts` beside its caller (the engine, `config.caCertPath`,
+> `config.dnsServer`; `hardStopMs` from Decision 7's eight minutes) and exports it from `launch/index.ts` (sitting 2's ruling: a deps slot
+> nobody read). `start()` answers the address BEFORE any load; `go()` after the exemption; `done` reads one line and removes the container
+> whatever happens (labelled `manifest.load-rehearsal=<id>`, named by nobody — pass 2⅞ finds it by the label). **CLEAR THE EXEMPTION
+> BEFORE THE GENERATOR'S CONTAINER IS GONE — or at once after, never later**: Docker handed the removed generator's address (`10.89.0.11`)
+> to the NEXT container on `manifest-platform` at once (measured, `d33d950f`), so an exemption left behind exempts whoever is started
+> next. `Driver.setRateLimitExemption` refuses `ADDRESS_INVALID` (anything but one address) and `INSTANCE_NOT_FOUND` (no route), leaves a
+> switched-off name the page, and is forgotten by any route written afresh — so the take-down's redeploy clears it anyway, and pass 2⅞'s
+> clear on a name with no route must expect `INSTANCE_NOT_FOUND`. **`InstanceStatus.outOfMemory` is Docker's `OOMKilled` WHATEVER the
+> state** (sitting 2's ruling on F2): `true` of a member still running whose process was killed at its ceiling, and sticky — the grant
+> starts fresh members, so for `judge` it means *during this run*; the fake's `crash(id, 137, { outOfMemory: true })` says it. A `429` is
+> counted not answered (the composed case: unexempted, 600 answered of 750). `LoadReport` carries no error strings (vegeta's own list is
+> per-connection and dropped inside the container) — `timeouts` and each path's status `0` say what failed.
+
 **Files:**
 - Modify: `releases/shape.ts` — `DeployPurpose` (A1 declares it there) gains `'load-rehearsal'`, and `shapeFor` its row for staging, written
   BEFORE the *"not production → one"* line (*Read this first* 13); `shape.test.ts` — its staging case renamed to the purposes it covers,
@@ -1353,3 +1370,94 @@ the ledger has it). The Docker tier not owed (nothing under `packages/` or `infr
 `muddiest-point` images); every throwaway gone; the three cleanup scripts bare — 0 dead networks or volumes, `litellm-orphans.sh`
 refusing itself (four app containers, no AI key among them: `muddiest-point`'s), 17 orphaned mirrors named (`muddiest-point.git` new).
 `muddiest-point`'s containers, rows truncated, left for the coordinator. **Fourteen findings.**
+
+### Sitting 2 — 2026-10-15, 12:47–15:50 PDT (`manifest-b-s2`, the third coordinated run's job B2): Spec actions C and D, vegeta, Tasks 2 and 3
+
+**Opened** by `manifest-coord5`'s GO (12:47), relaying Rich's decisions — `3ba424a` (A–D approved as drafted; vegeta's download a
+standing yes, checksum-verified, a mismatch stopping the sitting), `d5b0eb2` (his allow line for committing an approved spec action),
+`624deb66` (D re-worded), `d2e2d772` (Docker at 6 CPUs) and his word that work may run during his calls (13:00–16:00). HEAD `3293d9b7`.
+7100 held from the open (real GitHub, 0 projects). Rich was on a Zoom call from ~13:00, so every whole-suite run went at background
+priority.
+
+**At the open — W5B's orphans** (`manifest-coord5`'s ask): `muddiest-point` had 10 running containers and no row in 7100 (0 projects, 0
+instances, read first). Removed by name (`docker rm -f -v`), with its three runtime routes (`DELETE /id/…` on 7119 — staging and sandbox
+on `srv0`, production on `srv1`, each `200`), 7 named volumes, 2 images, and — through `dead-app-resources.sh --apply`, the edge and the
+container resolver being attached — its 3 networks; read back to zero. No LiteLLM user was its (no container carried `LLM_API_KEY`).
+**`litellm-orphans.sh`, which refused itself at sitting 1's close**, then read 0 app containers and listed three budget users with no live
+key — two people's (`mf-person-…`) and `mf-platform-intake` — so `--apply` (allowed) deleted them, resetting those months on this laptop
+(a mint recreates each). `app-images.sh` 0 dead. The GitHub repository `Manifest-local-dev/muddiest-point` is Rich's and was not touched.
+Machine after: 21 containers (13 running), 12 networks, 39 volumes.
+
+**Spec actions C and D — APPLIED AND COMMITTED IN THE SESSION** (`a5c44838`, 12:50): the edits and the commit were both allowed under
+`d5b0eb2` (no staged script). C word for word (§11's interface line after `restoreRoute`; §20's sentence after its bullet list); **D in
+Rich's re-worded words** (`624deb66`), not the draft's. Read back: those lines and nothing else. **The four shared pages, checked: none
+changes** — none restates the `Driver` interface, the per-IP limit (the stories page's l.302 *"rate limiting at the front door"* is a
+public app's own guard; the schematic's *"limited to a rate set on its own credential"* is the per-token limit) or a count of built images.
+`infra/caddy/Dockerfile:1`'s copy of §20's old sentence swept in Task 2's commit.
+
+**vegeta's download** (Rich's standing yes, 12:51): **v12.13.0** — GitHub's `releases/latest`, published 2025-10-31 (the one before,
+v12.12.0, 2024-07-29). `linux_arm64` `950381173a55…`, `linux_amd64` `e8759ce45c14…`: each `shasum -c` OK against the release's
+`vegeta_12.13.0_checksums.txt` **and equal to GitHub's own server-side asset digest** (the checksums file's too, `384239c9…`) — a second,
+independent source. No mismatch. Into `infra/seed-cache/vegeta/` (git-ignored). Nothing else used the network.
+
+**Task 2 — the generator** (`3205b956`; the Dockerfile's parser directive `30b14484`): `infra/vegeta/` (the lock, both sha256s; a
+Dockerfile FROM `alpine:3.22` by `images.lock`'s digest, the archive checked a third time in the build, a non-root user, the archive's
+sha256 a label); `infra/seed/build-vegeta.sh`, `make seed`'s step 4a after the mirror — download if absent, verify against the lock AND
+the published file, build into the DAEMON as `manifest/vegeta:12.13.0` (1.6 s from the cache; offline without it, exit 1 naming why); a
+new doctor check (the image built AND labelled with the lock's archive for this daemon's architecture) — **`EXPECT_DOCTOR` 22 → 23**,
+measured 23/0/0; `launch/load.ts` (`createLoadGenerator`, `readLoadResult`) with 27 unit tests, the seed step's 4, and Docker cases.
+**`[M3b]`** (12:57–13:00, under the coordinator's HOLD): vegeta reached **10.03 / 50.03 / 100.03 / 200.03 / 400.04 a second** for 10–400
+asked, 0 errors, p95 ≤ 3.7 ms, at 15.8 % of a CPU and 15 MiB at 400 — **Spec action A's 75 a second is within reach, so the sitting's
+stop-and-ask did not fire** ([`../spikes/load-baseline/`](../spikes/load-baseline/README.md), `[M3b]`).
+
+**Task 3 — the exemption and `outOfMemory`** (`fff41f8c`): `Driver.setRateLimitExemption` on both drivers and the contract; routing's
+`setRouteRateLimitExemption` PATCHes the route as the edge holds it with only the zone's `match` changed; `ADDRESS_INVALID`;
+`InstanceStatus.outOfMemory` from `State.OOMKilled`; the fake's `crash(…, { outOfMemory })`. On the real edge: the exempt client 1,200
+with no `429`, a fresh one cut at 600, cleared and the first limited again.
+
+**The stop, quoted** (`d33d950f`, Tasks 2 and 3 composed as Task 4 will call them): a stub app behind a real route on the live edge
+(600 a minute per address), the generator at 30 a second for 25 s — **exempted through the Docker driver's own verb: 750 requests, 750
+answered, 30.04/s achieved, p50 1.9 ms, p95 2.8 ms, p99 4.0 ms, from `10.89.0.11`; not exempted: 600 answered, 150 `429`.**
+
+**Rulings** (the ledger has each with its cost): the generator is not bound at boot until Task 4 binds it beside its caller, nor exported
+from `launch/index.ts` (a deps slot nobody read); `load.docker.test.ts`'s first cases load the edge's staging wildcard (no project's
+route touched), its composed cases a stub app's real route; vegeta's `errors` list dropped inside the container; `readLoadResult` refuses
+counts that do not add up and paths the run did not load; a third Docker case (a 1 ms timeout) for Go's real timeout words; **the verb
+PATCHes the route as held rather than rebuilding it with `buildRoute({…, rateLimitExempt})` from the containers** (the plan's Files) —
+Decision 5's *exactly the set the hostname reaches now*; **F2: `outOfMemory` is `OOMKilled` whatever the state**, documented sticky;
+`ADDRESS_INVALID`, a new driver refusal (never on the wire); the fake forgets an exemption on any route written afresh; commits on
+single-file runs (the DB-free scratch config, Docker files included with `MANIFEST_TEST_DOCKER=1`), the whole suite twice at the close.
+
+**Negative controls, watched red and restored**: a `429` counted answered → only *"counts a 429 and a 5xx as NOT answered"* (1,400 vs
+1,300); the container's timeout match broken → only the real-timeout Docker case (0 timeouts) — **its first attempt stayed GREEN because
+my `sed` never matched (no diff): redone by exact replacement** (a green control is a question); the awk path fold off by one → the
+two-phase case (*"a path the run did not load: 'healthz'"*); each of the seed step's three checks broken → only its own case; doctor's
+check → FAIL for the image absent and for the lock pinning another archive; Task 3's **(a)** the exemption written as `0.0.0.0/0` →
+only the other client's assertion (`{"200":700}`); **(b)** `outOfMemory` read from exit `137` → the kill row AND F2's running row (the
+plan predicted the kill row alone; F2's row came after the prediction).
+
+**Findings**
+1. **F1 — DOCKER HANDS A REMOVED GENERATOR'S ADDRESS TO THE NEXT CONTAINER AT ONCE** (`10.89.0.11` twice in the composed case): an
+   exemption left after the generator is gone exempts whoever is started next on `manifest-platform`. Task 4 clears it before (or at once
+   after) the container goes — under its *SITTING 2* note.
+2. **F2 — VEGETA'S `errors` LIST IS PER-CONNECTION**: one string per distinct error, a local port in many (`read tcp 10.89.0.13:45678->…`),
+   so it is unbounded; the container drops it from every report it prints. What failed is still in the line: `timeouts` and each path's
+   status `0`. Task 4 may add a capped map of error kinds if a failed run's reason needs one.
+3. **F3 — GO'S TIMEOUT WORDS ARE *"(Client.Timeout exceeded while awaiting headers)"*** (vegeta 12.13.0, measured), and the error string
+   carries the URL — so a timeout is matched on Go's own phrases, never on the word *timeout*, which an app's slug may contain.
+4. **F4 — BUILDKIT RESOLVES `alpine:3.22@<digest>` FROM THE DAEMON'S STORE IN 0.0 s**, every step cached on a rebuild; the image's id
+   moves at each build only because each exports a new attestation index (the config digest is the same, no dangling image). Whether it
+   builds with the network OFF is the offline acceptance's to confirm (Rich's, by hand).
+5. **F5 — A `FROM` ARGUMENT WITH NO DEFAULT TRIPS BUILDKIT'S `InvalidDefaultArgInFrom` CHECK** — skipped by its parser directive rather
+   than given a default that would drift from `images.lock`; without the argument the build fails (`invalid reference format`).
+6. **F6 — THE PLAN'S FILES AND THE CODE DIFFER IN TWO PLACES, BY RULING**: no boot binding yet (Task 4's); no `buildRoute` input — the
+   route is PATCHed as held.
+7. **F7 — `litellm-orphans.sh` AT THE OPEN** listed two people's budgets and the platform's intake budget as orphans (no live key), once
+   the keyless app containers that made it refuse itself were gone: their months on this laptop were reset by `--apply`.
+8. **F8 — MY OWN THREE**: a control whose `sed` never matched (above); an unquoted `$P` in zsh (the shell these tool calls run) staged
+   nothing on the first commit attempt — no word splitting — so the paths went in as `"$@"`; and a scripted edit written against
+   imports Prettier had since reflowed did not apply (seen: the run said `3 skipped`).
+
+**Gates**: `pnpm test` twice on the final tree (`30b14484`; the code `d33d950f`, the only change after it a Dockerfile parser directive no test reads) — **233 files / 3800 tests both times**, 3,335.6 s and 3,330.7 s at background priority (Rich on a call; scale 7; load median 4.98 and 4.88, max 11.61 and 10.54, not forced) — so `EXPECT_TESTS` 3756 → 3800 and `EXPECT_FILES` 231 → 233 (`6fba2128`); `EXPECT_DOCTOR` 22 → 23 with Task 2 (measured 23/0/0); lint, typecheck and format:check clean on every commit. **The Docker tier** (owed: `launch/`, `routing/`, `runtime/`, `infra/`): **315/315, 45 files, 1,940.7 s** through the wrapper at utility (the call over by then), load median 6.62 / max 19.56, 12 → 19 networks, 7100 stopped — ORIENTATION §2’s row moves 305/44 → 315/45; its composed case again under the tier’s load: exempted 750/750 at 30.04/s (p95 4.2 ms), not exempted 600 + 150 × `429`. The slow list: nothing of this sitting’s (its unit files 11–904 ms). Inline execution; the plan’s one whole-branch review is Task 8b’s (sitting 7).
+
+**The machine**: at the open (12:47) 31 containers (23 running), 15 networks, 49 volumes, 62 images (`docker images -q`); after the orphans 21/13, 12, 39, 60; **at the close (15:47) 21 containers (13 running), 12 networks, 39 volumes, 61 images** — the one more is `manifest/vegeta:12.13.0`, in the daemon by design (it survives `make reset` and every cleanup script). After the tier: `dead-app-resources.sh --apply` 7 networks and 1 volume, `litellm-orphans.sh --apply` `mf-platform-intake` (recreated by the tier’s boots) and `p4b-probe-user`, `app-images.sh --apply` 14 images — each re-read to zero; `make verify` 67/0/0, runtime routes 0, `srv1` none. Every throwaway gone (`[M3b]`’s network and three containers, every generator, both clients, the stubs). **7100** (15:46): real GitHub from `.env`, `capableModel` and `ubc-qwen-27b` registered, 16 secrets scrubbed; G4’s one call to `default-chat-large` answered `200` by **`gpt-6.1-sol`, 0 fallbacks**; **0 projects**. HOLD given back to `manifest-coord5` at 15:47.
