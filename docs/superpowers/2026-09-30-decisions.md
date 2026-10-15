@@ -2081,3 +2081,14 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
     0600 copy, the seven lines commented, restored byte-identical by cmp, 7100 back on real GitHub at the close); (c) `make reset` where
     a plan's runs are "from make reset"; (d) inline execution, one sitting per session. Rejected: "All but the vulndb refresh"; "Ask me
     each time". He reopened manifest-app-walk2 and manifest-b-s2/-s3/-s4 after his settings change (~18:43).
+
+    And at ~18:47 PDT, in chat to manifest-coord4: "Do you think there's any possibility of having a separate agent, in parallel, work
+    on the more stylized version of the console? Right now the console is suuuuper basic, but we're getting to the point where demos
+    need to start showing what the operator experience is going to look like." Told: the administrator's console (P11) was designed
+    and drawn on 2026-09-27 (2026-09-27-admin-console-design.md; the clickable mockup https://claude.ai/artifact/N8qj84CVbvJ7f2L6xKfQ25,
+    usable in demos today) with no plan and `packages/admin-ui` unbuilt. Asked through the question tool; his answer: "Plan + review
+    now, build after approval (Recommended)" — P11 JOINS THE THIRD RUN: a planning session (manifest-p11-plan; documents only — the
+    09-27 design refreshed against contract 1.9.0 and B's 1.10.0 drafts, then the P11 plan for packages/admin-ui, mock-driven, built in a
+    manifest worktree) and a fresh review session (manifest-p11-review), beside everything; HE APPROVES the plan; its build sittings then
+    run as a parallel lane beside B, taking 7100 windows from the coordinator. P11 thus enters his order as a parallel lane, not ahead of
+    GT, B, FE-32 or BYOA. Rejected: "Plan and build straight through" (the coordinator approving under the delegation); "Not now".
