@@ -16,7 +16,9 @@ names the next job** and the current plan's sittings table says how far it has g
 passes; the newest is **the gentler test tiers** (`docs/superpowers/plans/2026-10-14-gentler-test-tiers.md`), EXECUTED 2026-10-14/15,
 inline, three sittings in the second and third coordinated runs — `pnpm test` and `pnpm test:docker` run through `scripts/test-gently.sh`,
 and Docker Desktop runs 6 CPUs (Rich's *"keep 6"*, `d2e2d77`); the contract is still `1.9.0` (A1's). **The next plan is B** (the load
-rehearsal, FE-44, `docs/superpowers/plans/2026-10-03-load-rehearsal.md` — ORIENTATION §7e); then FE-32 with §12's package allowlist (approved), BYOA on the laptop (approved 2026-10-13, `2b3dd6d`), Phase 3 (sandboxes), A2 (hibernation), the
+rehearsal, FE-44, `docs/superpowers/plans/2026-10-03-load-rehearsal.md` — ORIENTATION §7e); **P11, the administrator's console,
+is building as a parallel lane beside B** (`docs/superpowers/plans/2026-10-14-p11-admin-console.md`, approved by Rich 2026-10-15,
+`ab6c7b7a`; its worktree `/Users/rich/Developer/manifest-p11`; ORIENTATION §7e); then FE-32 with §12's package allowlist (approved), BYOA on the laptop (approved 2026-10-13, `2b3dd6d`), Phase 3 (sandboxes), A2 (hibernation), the
 vulnerability database in the console, and FE-45 (Rich, 2026-10-03, 15:28; A2 awaits a second review; B's is done, `6f99611`, revised `b25d7e3`, approved `0e9db93`). Rich's decisions since 2026-09-30 are in `docs/superpowers/2026-09-30-decisions.md`. Each plan's *What executing this plan found* is its record; this file keeps none of it.
 
 | Plan | Executed | What it made true | Acceptance |
