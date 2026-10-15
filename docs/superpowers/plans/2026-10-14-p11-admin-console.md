@@ -105,7 +105,7 @@ records and UBC's order), **§20** (step-up). **Design:** the refreshed [`2026-0
 |---|---|---|---|---|---|
 | 1 | 1, 2 | **The measurements and the worktree**: every fact re-read; an offline install and the contract's `dist/`; the references rendered under React 19.3.0 in a `node:vm`; a `.test.tsx` under a new Vitest project; what the platform's rules let the demo fleet hold. **The skeleton**: `packages/admin-ui` on 7101, its Vitest project in `pnpm test`, its lint block and boundary test, `src/api.ts`, the router and the shell, the administrator's gate, **`make doctor` asking 7101 and 7113** | No | After Task 2's commit on the branch | ✅ **DONE 2026-10-15** (`manifest-p11-s1`, 09:10–09:47 PDT): the baseline `7fd25e4` on `main`; the skeleton `c2cb418` on `p11-admin-ui`; *What executing this plan found*, *Sitting 1* |
 | 2 | 3 | **The mock's demo fleet, read**: thirteen projects, each object spread from a validated fixture, their reads by id, the queue across them, their event streams; every state one the platform can reach | No | After Task 3's commit | ✅ **DONE 2026-10-15** (`manifest-p11-s2`, 09:49–10:18 PDT): the demo fleet `b289297` on `p11-admin-ui`; *What executing this plan found*, *Sitting 2* |
-| 3 | 4 | **The demo fleet's decisions, with state**, every request body validated; the replay's hash keeping §26's reason. **LANDING 1** at the close — the mock's first change in this lane (**G3**), the new package, `pnpm install` in the shared checkout | **Yes — L1** | After L1's merge and the shared checkout's install, both read back | ← **next** (a fresh session, `manifest-p11-s3`; it opens with `git -C /Users/rich/Developer/manifest-p11 rebase main`, then reads *Sitting 2*'s findings) |
+| 3 | 4 | **The demo fleet's decisions, with state**, every request body validated; the replay's hash keeping §26's reason. **LANDING 1** at the close — the mock's first change in this lane (**G3**), the new package, `pnpm install` in the shared checkout | **Yes — L1** | After L1's merge and the shared checkout's install, both read back | ◐ **Task 4 DONE 2026-10-15** (`manifest-p11-s3`, from 10:17 PDT): `979b10f` on `p11-admin-ui`; **L1 QUEUED** for the coordinator's window behind W5B's walk; *What executing this plan found*, *Sitting 3* |
 | 4 | 5 | **The look**: the six shared and fourteen operations components ported to TSX in `src/system/`, each held markup-identical to its reference by the parity test; the stylesheets; the shell's rail in the system's own component | No | After Task 5's commit | |
 | 5 | 6, 7 | **The queue** — the headline from our band, the two bands, the rows, the filter, the keyboard, the URL, the 60-second read (Task 6) — and **the release approval pane**: the request and its token from the project's stream, the preview on a click, the diff, approve and reject observed, the step-up round trip with the reason kept, stale and expired, decided by someone else (Task 7) | No | After Task 7's commit | |
 | 6 | 8, 9 | **The team's step and UBC's answer** — submit, file, hand back, record, every body exactly what the operation requires, a granted change in its two writes (Task 8) — and **the fleet**: the table, its filters in the URL, the instance count, archived rows (Task 9). **LANDING 2** at the close | **Yes — L2** | After L2's merge, read back. **If it overflows, L2 moves to sitting 7's open** | |
@@ -1511,7 +1511,10 @@ required); *What Instructor One will see*: the publisher's sentence (fact 3; the
     *"The preview is more than 30 minutes old. Nothing was recorded. Take a new one."* and **no automatic re-take**; a re-read while open
     finding the item gone → `gone-elsewhere` with `getApproval`'s `decidedByName` (the reducer's case gives it a synthetic approval by
     *"Operator Two"* — the demo fleet has one administrator — and expects *"Operator Two approved this on October 14, 2026."*), or null
-    (*"This is no longer waiting on us."*).
+    (*"This is no longer waiting on us."*). **Sitting 3's F1:** the platform never refuses a second decision on a release whose preview
+    is still current (its baseline excludes the release in hand; the demo fleet records it, `201`) — so *decided elsewhere* is learned
+    from the re-read (`getApproval`, the stream), never from a refusal; `STALE` comes only when ANOTHER decision moved the project's last
+    approved release (the fleet's `chem-lab-booking`: approve r1, then decide r2 on its earlier preview).
   - `stream.test.ts`: `askedThrough` over a replay holding two `approval.requested` frames for the release (the newest wins), one with
     `actor.token` → its name, one without → `null` (asked in a session), and none → `null` for the request itself (*"through which token"* is
     then not said, never guessed).
@@ -1583,7 +1586,9 @@ Modify `src/screens/queue.tsx`, `src/router.ts` (`/projects/<id>/records`), `src
     record's, unchanged> }, { …, state: 'active', registeredAttributes: <the granted set> }]`; the pane runs them in order, **each on its own
     key held until its answer**; **a failed second write** leaves the pane showing the record at `submitted` with *"Record UBC IAM's answer"*
     offered again and the first write never repeated; the sentence beside the moves says *"A change UBC IAM granted is recorded in two
-    steps: with UBC IAM, then active."*
+    steps: with UBC IAM, then active."* **Sitting 3's F2:** the first write stamps `submittedAt` NOW (an administrator's record —
+    `records.ts`'s `sentNow`), not a Vancouver noon (the team's submission's), so the item turns `iam-registration` with that instant as
+    its `since`; and an empty `registeredAttributes` is the schema's `400 REQUEST_INVALID` (F3), never `LAUNCH_RECORD_INVALID`.
   - `record-pane.test.tsx` — a `sent` registration: its package (every attribute's name, OID, purpose, `usedAt`, *unused* marked), the
     certificate's fingerprint and expiry, the warnings; **Submit** needs a reference and offers today in Vancouver, refusing a day after today
     in the form before the API does; **File the change request** for a change (`sentFrom: 'active'`), with registered and requested
@@ -2063,3 +2068,80 @@ gains the `admin-ui` project (6 / 42) and `fleet.test.ts` (1 / 10) so far.
 Docker resource made; 7100 untouched. The three cleanup scripts bare: *"Nothing was changed. 0 network(s) and 0 volume(s) are dead"*,
 *"Nothing to delete"* (0 app containers read), *"Nothing was changed. 0 app image(s) are dead"* — no `--apply` owed. **The worktree
 stays** for sitting 3, on `p11-admin-ui` at `b289297`, clean; `packages/mock` reaches `main` only at L1 (G3).
+
+### Sitting 3 — Task 4 and LANDING 1: the demo fleet's decisions, and the mock's first change on `main` (2026-10-15, `manifest-p11-s3`)
+
+**Who and when.** `manifest-p11-s3`, the third coordinated run's P11 build, sitting 3, GOed by `manifest-coord5` at 10:17 PDT; inline
+(`superpowers:executing-plans`). **Task 4 under FREE**, beside W5B's walk on 7100 (nothing of 7100's touched), load 3.1–4.6 on AC;
+**LANDING 1 in the coordinator's window** — QUEUED at 10:45 behind W5B's walk on 7100 (its build, launch and member-kill), *"7100 is yours"* + HOLD and *"land it"* to follow; G3's notice relayed to W5B, the only live app worker, at 10:45. The worktree rebased onto `main` `1f89905` first — `main` had moved by
+documents alone (`docs/superpowers/`), so the contract's `dist/` was not rebuilt; the skeleton is `450e602` and the fleet `a9d7f88` on the
+branch since. The ledger is `.superpowers/sdd/2026-10-14-p11-admin-console/progress.md`.
+
+**Task 4** (`979b10f` on `p11-admin-ui`; on `main` only at L1). **`fleet.ts`** keeps an administrator's decisions in the
+state `createFleet` returns, each refused in the platform's order and words and written as the platform writes it, each announced on the
+project's stream: **a release's sign-off** — `createApprovalPreview` (stored thirty minutes, its diff the platform's facts against the
+last approved release with the candidate excluded, the security notes verbatim, a first launch `no-previous-release`), `getApprovalPreview`,
+`approveRelease`/`rejectRelease` (the body; the step-up when `MANIFEST_MOCK_STEP_UP=1`; `APPROVAL_PREVIEW_REQUIRED`; a preview of this
+release or `404`; `APPROVAL_PREVIEW_EXPIRED`, then `APPROVAL_PREVIEW_STALE` naming what moved; an `Approval` carrying the preview's diff),
+`getApproval` — the request closed by any decision since it was asked, the checklist's `admin-approval` read from the newest decision as
+`launch/readiness.ts` reads it (first launch and launched), the history's launch approvals kept as rows with their previews; **the team's
+step** — `submit…` at Vancouver noon of `sentAt ?? today` (`LAUNCH_SENT_AT_INVALID`, `notWithTeam`), a change filed as
+`change_requested` from `active`, `return…` to the state it was sent from; **UBC's answer** — `recordIamRegistration` and
+`recordPrivacyAssessment` along `launch/transitions.ts`'s arrows, around the team (`sent` names its two operations), with `records.ts`'s
+write: `environment` production's when absent, the entity fixed once registered, registered values moved only by a write reaching
+`active`, `requestedAttributes` named by a change and cleared on `active`, `registeredAt` moved on `active` and cleared by a lapse, an
+administrator's record into `submitted` stamped now, the upsert's cert fields and reviewer written as sent; **an agent's question** —
+`rejectPendingAction`/`confirmPendingAction`: the body, §26's reason (Operator One is a member of no fleet project), the archive, the step-up
+on confirm only, `PENDING_ACTION_RESOLVED`, the sentence with the platform's administrator suffix and `actor.asAdministrator: true`; **an
+archived project** refuses every write `PROJECT_ARCHIVED`. **EVERY BODY IS VALIDATED FIRST** (C1) against its operation's request schema
+by the server's own validator (`FleetContext.validate`), refused `400 REQUEST_INVALID` naming the field. **`server.ts`**: the replay stores
+the hash its check computes, §26's reason in it (I7); the held ids are read per request (a preview is held from the moment it is taken);
+the scripted reason check stands aside for a fleet id (`Fleet.holds`), which asks it after the body, the platform's order.
+`adminReasonOf`, `assertAdminReason` and `stepUpRefusal` moved into `refusal.ts`; `launch.ts` exports `notWithTeam` and `sentDay`
+(unchanged). **`fleet.test.ts`** gains twelve cases, **`server.test.ts`** one (I7). **RED first, as predicted**: the twelve each `501`
+(the fleet answered no decision), the ten reads green.
+
+**Findings and rulings** (the ledger has each with its cost):
+
+**F1 A NEW KEY ON A STILL-CURRENT PREVIEW IS A SECOND DECISION, NOT `409 APPROVAL_PREVIEW_STALE`** (Step 1 predicted the 409). The
+platform's baseline is the last approved release WITH THE RELEASE IN HAND EXCLUDED (`lastApprovedReleaseFor`), so a release's own decision
+never stales its own preview; a second decision is recorded — the published `rejectRelease` example is exactly that, a withdrawal
+(*"withdrawn — the destination is not in the PIA"*). Built so, and tested: the same key replays (one record), a new key withdraws, the
+checklist says the rejection is final. **STALE is tested where the platform makes it** — *"in practice another decision moved the last
+approved release"* (`error-codes.ts`): `chem-lab-booking`'s r1 approved, r2's earlier preview → *"…changed since this preview was taken —
+take a new one. Moved: baselineReleaseId."*. **For Task 7**: *decided by someone else* is read from `getApproval` and the stream; the
+platform will not refuse the second administrator's decision.
+
+**F2 AN ADMINISTRATOR'S RECORD STAMPS `submittedAt` NOW**, not at a Vancouver noon (Step 1's A20 line said noon): `records.ts`'s
+`sentNow` writes `new Date()`; noon is the TEAM's submission's (`recordIamSubmission`). So the granted change's first write turns the item
+`iam-registration` with `since` the record's instant. **For Task 8**: the two-write grant's item is *"with UBC since now"*, never a day.
+
+**F3 AN EMPTY `registeredAttributes` IS `400 REQUEST_INVALID`**, not `LAUNCH_RECORD_INVALID` (the rules list): the request schema's
+`minItems: 1` refuses it before `records.ts` reads it — its own check is a guard behind the schema, unreachable through the route. The
+fleet's copy was removed as dead.
+
+**F4 Task 3's `project.renamed` sentence lacked the platform's administrator suffix** — `publishEvent` appends *" Operator One acted as a
+platform administrator — reason: '…'."* to every event an administrator publishes as no member. Fixed with the helper the refused question
+uses (the sentence now matches what `bio-201-scheduler`'s people would read).
+
+**F5 An UNKNOWN preview id under a fleet release answers the MOCK's `404 NOT_FOUND`** (*"manifest-mock holds no approval preview …"*):
+`assertHeld` runs first. A known preview of ANOTHER release answers the platform's words. Same code; recorded.
+
+**Rulings beside them:** `FleetContext` gains `validate` and `Fleet` gains `holds` (as F7 of sitting 2 added `query`); the guards moved to
+`refusal.ts` so the fleet uses the server's own checks without an import cycle; the checklist's baseline is now the platform's (the last
+approved release, the candidate excluded) rather than *the release production serves* — identical for the thirteen as built.
+
+**The negative controls (Step 5), all seen:** (a) the fleet's state shared module-wide → *keeps each server's decisions its own* red (the
+second server's queue lost the item), with three cases polluted by the shared state; (b) `submitted → expired` allowed → the record-refusal
+case red alone (`200` for `409`); (c) the request validation skipped → the C1 case red (an unvalidated body wrote a record the outgoing
+validator then refused, `500`) and the empty-list line (`200` for `400`) — both request-validation lines, nothing else; (d) the hash stored
+without the reason → the I7 case red alone (`409` for `200`) — the pre-existing defect, reproduced. Each restored from the commit.
+
+**The gates for Task 4, on `979b10f`, under FREE:** `pnpm exec vitest run --project admin-ui --project packages` **twice, identical — 39
+files, 370 passed** (sitting 2's 39 / 357 plus 13), 40.3 s and 39.3 s; the mock's suite 5 files / 94; `pnpm lint`, `pnpm typecheck` (seven
+packages) and `pnpm format:check` clean; and **M10's proxy** — `@manifest/mock`'s `src/index.ts` compiled under manifest-app's own
+compiler options (`bundler`, `ES2023`, `types: node`): clean, `fleet.ts` among its files.
+
+**LANDING 1** — *pending* (this entry is written while it waits; the landing's run, its `EXPECT_` lines and the merge are recorded here when it closes). Expected: `EXPECT_FILES` 224 → 231 (+6 `admin-ui`, +1 `fleet.test.ts`), `EXPECT_TESTS` 3691 → 3756 (+42, +10, +12, +1); `EXPECT_DOCTOR` 22 and `EXPECT_VERIFY` 67 unchanged.
+
+**The machine (so far):** 7101 and 7113 free — no mock or console started this sitting; no Docker resource made; 7100 untouched. The worktree on `p11-admin-ui` at `979b10f`, clean.

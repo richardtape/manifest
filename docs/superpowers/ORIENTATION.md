@@ -2061,8 +2061,9 @@ only by its three fast-forward landings and its sittings' documents. **Sitting 1
 its own mock on 7113 by `make admin-ui` from the worktree — `8f9038f` since sitting 2's rebase: **a branch sha moves at every sitting's
 opening rebase; find a commit by its subject**); **so is sitting 2** (2026-10-15: the demo fleet `b289297` on the branch,
 `MANIFEST_MOCK_FLEET=demo` — its record names four planned states the platform cannot reach, built as it answers, and what Tasks 9–12
-inherit); **its sitting 3 (Task 4, the fleet's decisions, then LANDING 1 — the mock's first change on `main`, G3) is next**, and its
-sittings table says where each stops. It takes a 7100 window only to land (L1 closes its sitting 3). Two of its traps are in TRAPS.md: a
+inherit); **its sitting 3 is under way** (`manifest-p11-s3`): **Task 4 is done** — the fleet's decisions `979b10f` on the branch, every
+request body validated, the replay's hash keeping §26's reason (I7) — and **LANDING 1** (the mock's first change on `main`, G3) **is queued
+for the coordinator's window behind W5B's walk**; its sittings table says where each stops. It takes a 7100 window only to land (L1 closes its sitting 3). Two of its traps are in TRAPS.md: a
 backgrounded `scripts/admin-ui.sh` ignores SIGINT (stop it with TERM), and `make doctor` in the worktree reads three fails for git-ignored
 files.
 
