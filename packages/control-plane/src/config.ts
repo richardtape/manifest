@@ -267,7 +267,7 @@ const envSchema = z.object({
    * THE ACCOUNT D21's REHEARSAL SIGNS IN AS (R2, P6a Task 14).
    *
    * A rehearsal is only evidence if somebody actually signs in, so the platform needs a
-   * test identity. On this laptop that is one of the Manifest IdP's three fixture users
+   * test identity. On this laptop that is one of the Manifest IdP's fixture users
    * (`infra/idp/config/authsources.php`), whose passwords equal their usernames and are in
    * the repository — they guard nothing, and `instructor` is the one every demo uses.
    *

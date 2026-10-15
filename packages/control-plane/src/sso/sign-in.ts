@@ -64,7 +64,7 @@ export interface CwlSignInProbeOptions {
   /**
    * THE ACCOUNT THE REHEARSAL SIGNS IN AS.
    *
-   * On this laptop it is one of the Manifest IdP's three fixture users
+   * On this laptop it is one of the Manifest IdP's fixture users
    * (`infra/idp/config/authsources.php`), whose passwords equal their usernames and are in
    * the repository — they guard nothing. A rehearsal against UBC's staging IdP (D21, the
    * external-track obligation §9 names) would use a UBC-issued test account, and it goes
