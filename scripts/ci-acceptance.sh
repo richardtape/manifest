@@ -328,8 +328,13 @@ red() { printf '\033[31m%s\033[0m' "$1"; }
 # file: `releases/watch.test.ts` +1 (a replacement that throws before it starts anything is not a refusal — the next pass replaces the
 # member) and `routing/readiness.test.ts` +1 (a member first seen after more than 4 × N other answers is still reached — the identity
 # window is 16 × N); `routing/caddy.test.ts`'s status-list pin was REWRITTEN, not added (the passive policy counts no status).
-EXPECT_TESTS=3654
-EXPECT_FILES=220
+# EXPECT_TESTS 3654 -> 3673 and EXPECT_FILES 220 -> 222 (2026-10-14, the gentler test tiers plan's sitting 1, `manifest-gt-s1`):
+# Task 2's new `test-timeouts.test.ts` (7: the scale's parsing and arithmetic, and the scanner that every explicit limit goes
+# through `scaled()`) and Task 3's new `test-gently.test.ts` (12: the wrapper's priority, scale, gate, summary, status and leftovers).
+# Measured 3673/222, 0 failed, twice on the final tree through `scripts/test-gently.sh` — utility priority, timeout scale 3
+# (18:32:55-18:50:50, 1072.6 s, and 18:51:24-19:09:22, 1074.7 s), 7100 running beside them.
+EXPECT_TESTS=3673
+EXPECT_FILES=222
 # EXPECT_DOCTOR 21 -> 22 (2026-10-03, the UBC AI Gateway plan's sitting 2, Task 2): the gateway key's expiry, a
 # check_warn — counted, never failing — from 14 days ahead (its Decision 11). Measured: 22 checks, 0 failed, 0 warnings.
 EXPECT_DOCTOR=22
