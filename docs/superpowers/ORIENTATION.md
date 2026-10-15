@@ -2018,7 +2018,7 @@ named in the row below.*
 | **A1** | [`plans/2026-10-03-production-instances.md`](plans/2026-10-03-production-instances.md) — **EXECUTED 2026-10-13/14**, ten tasks in eight sittings, inline, in the second coordinated run | `make demo-capacity` — either driver, green on both (five controls red as predicted); every launch demo on two instances on both drivers; a step of `make ci-acceptance` (12) and of the offline acceptance (19); **Rich clicking it** | **Sitting 8's F2–F4 are the ones to read**: the edge ejected a member for the APP's own `502`/`504` (a shared outage ejected all), a replacement that failed before it started stopped replacing for good, and the deploy's identity window failed good releases under traffic — all three found only by the plan's one whole-branch review. **Sitting 7's F1**: a launched app on the laptop signs in at UBC's real IdP. **Sitting 7's F6**: every route change resets idle sockets through the edge. **Sitting 1's `[M3]`**: a CWL sign-in could not cross instances until the SAML request cache moved into the app's Mongo |
 | **FE-46/47/5** | [`plans/2026-10-03-fe46-fe47-fe5.md`](plans/2026-10-03-fe46-fe47-fe5.md) — **EXECUTED 2026-10-08/09**, eleven tasks (1–9, with 2b, and 8 as 8a and 8b) in five sittings, inline, in the coordinated run | `make demo-launch` — either driver, green three times on EACH (fresh, re-use with the change leg, re-use again) and from a `make reset` machine; `make demo-token` fresh, re-use and from `make reset` (driver 1's alone); step 16 of the offline acceptance; a step of `make ci-acceptance`; six controls, one per Review Focus line; **Rich clicking the team's step** | **Sitting 5's F1 and F5 are the ones to read**: a change UBC sent back with questions was drafted again from the launch CANDIDATE and sent as NO change — the new attribute dropped silently — found only by the plan's one whole-branch review; and the acceptance's own *"since the SECOND send"* check could not fail, because it compared a column with itself — found by making a control go red through the edge. **Sitting 5's F19**: the cleanup script every sitting runs with `--apply` deleted an ARCHIVED project's data. **Sitting 5's F9–F11**: controls predicted without re-reading an earlier sitting's, red for the wrong reason (a database CHECK), or green because a guard is three layers deep. **Sitting 4's F1**: one Vitest file turns the next demo fresh. **Sitting 2's F13**: nodemailer folds a CR/LF in a subject itself |
 | **Gentler test tiers** | [`plans/2026-10-14-gentler-test-tiers.md`](plans/2026-10-14-gentler-test-tiers.md) — **EXECUTED 2026-10-14/15**, seven tasks in three sittings, inline, in the second and third coordinated runs | `pnpm test` and `pnpm test:docker` through `scripts/test-gently.sh` — green under ten CPU burners at utility 5, under six at background 7, refused above a load of 12; the Docker tier at 12 CPUs, then at 6 (Rich's *"keep 6"*) | **Sitting 2's F2 and F3 are the ones to read**: twelve burners STARVE a utility run (~1 % of a core), so the gate, not a scale, keeps a run out of saturation; and a scale set from a quiet ratio read 4 red at the gate's edge. **Sitting 3's F1**: Docker Desktop's *Apply & restart* also applied a pending update (4.87.0 → 4.95.0) — read the version on both sides of a restart a measurement brackets |
-### 7e. B, the load rehearsal — its sitting 1 (`manifest-b-s1`); W5B's 7100 walk (the front end's) in the coordinator's windows ← **START HERE**
+### 7e. B, the load rehearsal — its sitting 2 (`manifest-b-s2`: Tasks 2 and 3, Spec actions C and D at its open) ← **START HERE**
 
 **THE GENTLER TEST TIERS PLAN IS EXECUTED** (2026-10-14/15 — `manifest-gt-s1`, `-s2` and `-s3` in the second and third coordinated runs; its
 *What executing this plan found* is the record): `pnpm test` and `pnpm test:docker` run through `scripts/test-gently.sh` (utility priority;
@@ -2042,16 +2042,30 @@ not owed (`sso/sign-in.ts`'s change is a comment, its emitted JS byte-identical)
 on its own driver**: `make demo-production`'s on driver 1 (`launch-app`), `make demo-launch`'s on the fake (`launchpath-github`) — driver 1's
 `make demo-launch` uses `launchpath-local`, which `make demo-capacity` never touches.
 
-**THE NEXT PLATFORM JOB IS B — [`plans/2026-10-03-load-rehearsal.md`](plans/2026-10-03-load-rehearsal.md), its sitting 1 (Task 1 alone,
-`manifest-b-s1`)** — approved as revised 2026-10-14 (`0e9db93`, under Rich's delegation, which he approved with the rest at 07:31, `8e04181`);
-**seven sittings**, inline, one fresh session per sitting; contract **`1.10.0`**; its Spec actions A–D **approved as drafted** (Rich,
-`3ba424a`), each applied at its sitting's open (C and D at sitting 2, A at 3, B at 4). **Both of what it waited on are done**: the gentler test tiers'
-sitting 3 (B measures on the VM's CPUs — its Task 1 reads `docker info --format '{{.NCPU}}'`: **6**, and records Docker Desktop 4.95.0) and FIX. Read
-its **READ FIRST** banners, then Task 1 — which re-reads every fact A1's sittings 6–8 changed.
+**B'S SITTING 1 IS DONE** (2026-10-15, `manifest-b-s1`, the third coordinated run's B1; Task 1 `a46bdad9`; the plan's *Sitting 1* is
+the record, [`spikes/load-baseline/`](spikes/load-baseline/README.md) the measurements): the 22 facts re-read at `d2e2cf0d` (none changed
+in meaning); a container on `manifest-platform` reaches staging through the edge and **Caddy sees its own platform address** (the
+exemption's key); **a rate-limit zone's own `match` takes a `not remote_ip`** (a throwaway Caddy: 1,300 exempt, the other cut at 600;
+**counters survive every PATCH**; `0.0.0.0/0` accepted); a production-shaped set granted in **3.6 s** and given back in **1.4 s** through
+the driver; **an out-of-memory exit is `OOMKilled: true` — STICKY, and true on a container still running** — and **an app may use swap
+equal to its memory** (`MemorySwap` unset); `pnpm test` once **231/3756**. Fourteen findings; a *SITTING 1 MEASURED* note sits under each
+task they change. **F1 went to Rich: Spec action D's approved *"one of two images built"* was false — `make seed` builds five — and he
+RE-WORDED it** (~11:45, `624deb66`; the plan's Spec action D carries the words).
 
-**W5B's walk** (the front end's — `manifest-app-walk2`, the app lane, `9ab66d7`: a `class` app on two production instances seen on its page)
-**resumes on 7100 in the coordinator's windows**, beside B's documents-only open, as `manifest-coord5` schedules them; its record is
-manifest-app's.
+**THE NEXT PLATFORM JOB IS B'S SITTING 2 — [`plans/2026-10-03-load-rehearsal.md`](plans/2026-10-03-load-rehearsal.md), Tasks 2 and 3
+(`manifest-b-s2`)** — approved as revised (`0e9db93`); seven sittings, inline, one fresh session per sitting; contract **`1.10.0`** at
+sitting 4. **At its open: Spec actions C and D — D IN RICH'S RE-WORDED WORDS (`624deb66`), NOT THE DRAFT'S** — tried in the sitting
+(allowed since `d5b0eb2`), else one staged script Rich runs, each with its shared pages' sweep; then **vegeta's download** (Rich's standing
+yes, `3ba424a`; checksum-verified against the release's file AND the lock — a mismatch stops and goes to him); then `[M3b]` through a
+throwaway Caddy route, which **stops and asks Rich** if the laptop cannot reach Spec action A's profile. **Read its READ FIRST banners and
+the *SITTING 1 MEASURED* notes under Tasks 2 and 3 first** — the matcher's JSON, the counters across a PATCH (F5), a malformed address's
+`500` (F6), the `running` row with `OOMKilled: true` (F2: its ruling is sitting 2's), the generator's address (F7), the image's home and a
+NEW doctor check (F11). **The Docker tier IS owed** (`launch/`, `routing/`, `runtime/`, `infra/`) — 7100 STOPPED for it, then G4. **The
+vulnerability database goes stale 2026-10-15 23:32**: a Docker tier or demo after that refreshes it first (`make refresh-vulndb`, the
+network on — standing yes) and watches the next build (FE-57). **7100 as B1 left it** (12:40): real GitHub from `.env`, G4 proved on
+`gpt-6.1-sol` (0 fallbacks), **0 projects** (LANDING 1's and B1's `pnpm test` truncated them); 15 networks; `muddiest-point`'s containers
+(W5B's walk app, its rows truncated) still there — the coordinator's to clear. **W5B's walk is closed** (~11:36, `manifest-coord5`); its
+record is manifest-app's.
 
 **P11, THE ADMINISTRATOR'S CONSOLE, IS A PARALLEL LANE BESIDE B** — [`plans/2026-10-14-p11-admin-console.md`](plans/2026-10-14-p11-admin-console.md),
 approved by Rich 2026-10-15 ~08:54 (`ab6c7b7a`), nine sittings, one tab each (`manifest-p11-s1` … `-s9`), GOed by the coordinator. **It is
@@ -2114,10 +2128,10 @@ tell the question's expiry from the token's; the control plane has no shutdown h
 answer `LAUNCH_GAP_ANSWERS_INVALID` where the platform answers `REQUEST_INVALID`; a response example in the published document is validated
 only by the mock's `server.test.ts` (A1 sitting 6, F6).
 
-**WHERE THE NEXT SITTING STOPS, AND HOW IT ENDS:** the next PLATFORM sitting is B's sitting 1, and it stops where B's sittings table says
-(after Task 1). Its close-out is the same as every sitting's (§6): the sittings table, the plan's *What executing this plan found*, this §7e
-handed on to B's sitting 2, and the roadmap. W5B's walk is the front end's job, and its record is manifest-app's; it holds 7100 in the
-coordinator's window and leaves its one new private repository in `Manifest-local-dev` KEPT (named in CLAUDE.md's unowned list).
+**WHERE THE NEXT SITTING STOPS, AND HOW IT ENDS:** the next PLATFORM sitting is B's sitting 2, and it stops where B's sittings table says
+(after Tasks 2 and 3's commits, with one generator run through the real edge quoted — or earlier, asking Rich, if `[M3b]` finds the laptop
+short of Spec action A's profile). Its close-out is the same as every sitting's (§6): the sittings table, the plan's *What executing this
+plan found*, this §7e handed on to B's sitting 3, and the roadmap; **it does not start sitting 3**.
 
 **THE TWO RULES A SITTING CANNOT GET FROM ANYWHERE ELSE**, restated because they live only in each plan's *Global
 Constraints*:

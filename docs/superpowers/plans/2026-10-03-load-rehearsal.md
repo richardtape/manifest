@@ -25,6 +25,11 @@
 
 > **AND SINCE THE GENTLER TEST TIERS PLAN (2026-10-14, [`2026-10-14-gentler-test-tiers.md`](./2026-10-14-gentler-test-tiers.md), placed between A1 and this plan — Rich's 1–4, `abdd01e`; approved `b492e31`):** `pnpm test` and `pnpm test:docker` run through `scripts/test-gently.sh` (utility priority, a timeout scale, a load gate — exit 75 is the gate); `resetDatabase` retries a deadlock; and **Docker Desktop's CPU count is what Rich chose in its sitting 3 — 6** (*"keep 6"*, 2026-10-15 ~09:33, `d2e2d77`; the Docker tier read 1502.7 s at 6 against 1977.1 s at 12), **on Docker Desktop 4.95.0, Engine 29.8.2** (the CPU-limit restart applied a pending update — that plan's *Sitting 3*, F1) — this plan's Task 1 reads `docker info --format '{{.NCPU}}'`, records the version, and measures on it. **THAT PLAN IS EXECUTED (2026-10-15).** **This plan starts after that plan's sitting 3, and after the small out-of-plan fix session placed before it** (`b967a8e`, `1fe7d7f`: the driver-2 sensitive-diff race and the launch demos' re-use check after `make demo-capacity` — this plan's sitting 7 runs `make ci-acceptance`). **That fix session is DONE (2026-10-15, `manifest-fix2`): `a4937a6` (a commit's sensitive diff is never against its own row) and `f57b3cb` (a launch demo's re-use passes on a self-serve release since an approval) — so driver 2's `make ci-acceptance` no longer meets the race, and a launch demo's re-use right after `make demo-capacity` is green (the roadmap's *Tracked defects*).**
 
+> **SITTING 1 IS DONE (2026-10-15, `manifest-b-s1`, Task 1 `a46bdad9`)** — the measurements are
+> [`../spikes/load-baseline/README.md`](../spikes/load-baseline/README.md), and a *SITTING 1 MEASURED* note sits under each task one
+> changes. **Sitting 2 is next.** At its open: **Spec action D as RICH RE-WORDED IT** (`624deb66`; `make seed` already builds five images,
+> so the draft's *"one of two"* was false — sitting 1's F1), then C, each applied with its shared pages' sweep.
+
 > **WRITTEN 2026-10-03, AFTERNOON, BY THE PLANNING SESSION `manifest-c7`** (coordinated by `manifest-94`), after FE-32's plan and placed
 > BEFORE it: Rich, 2026-10-03, ~13:46 PDT, answering FE-44, *"Build the load rehearsal first"* — §24's load rehearsal, before faculty use
 > it for real, as a plan of its own, after the Manifest team's step and before FE-32. **Every fact in *Read this first* was read from the code
@@ -129,8 +134,8 @@ contract `1.11.0`); then BYOA on the laptop ([`2026-10-13-byoa-on-the-laptop.md`
 
 | Sitting | Tasks | What it delivers | `pnpm test:docker` owed? | Where it stops | Status |
 |---|---|---|---|---|---|
-| 1 | 1 | **The measurements**: every fact re-read (A1's sittings 6–8 included); a container on the platform network reaching staging through the edge (the CA, SNI, the source address Caddy sees); the laptop's headroom (what vegeta sustains is Task 2's, after its download); a route whose rate limit skips one address, in a THROWAWAY Caddy from the edge's image; a staging-shaped set in production's N-instance shape on a hostname no project holds, started and given back; an out-of-memory exit as Docker reports it; the gate numbers | No | After Task 1's commit | ← **next**, once approved and A1's sitting 8 has closed |
-| 2 | 2, 3 | **Spec actions C and D applied first** (staged scripts Rich runs). **The generator** (vegeta built locally — its download and checksum a Rich-step at this sitting's open — its container, its one-line result) and **the edge's exemption** with its **`Driver` verb** (`setRateLimitExemption`, both drivers, the driver contract), **and `InstanceStatus.outOfMemory`** | Yes — `launch/`, `routing/`, `runtime/`, `infra/` | After both commits, with one generator run through the real edge quoted. **It stops and asks Rich** if `[M3b]` finds the laptop cannot sustain Spec action A's profile — the numbers are his | |
+| 1 | 1 | **The measurements**: every fact re-read (A1's sittings 6–8 included); a container on the platform network reaching staging through the edge (the CA, SNI, the source address Caddy sees); the laptop's headroom (what vegeta sustains is Task 2's, after its download); a route whose rate limit skips one address, in a THROWAWAY Caddy from the edge's image; a staging-shaped set in production's N-instance shape on a hostname no project holds, started and given back; an out-of-memory exit as Docker reports it; the gate numbers | No | After Task 1's commit | **DONE 2026-10-15** (`manifest-b-s1`, the third coordinated run's B1): Task 1 `a46bdad9` — [`../spikes/load-baseline/`](../spikes/load-baseline/README.md); 14 findings, F1 (Spec action D's count) re-worded by Rich (`624deb66`); a *SITTING 1 MEASURED* note under Tasks 2–6 and 8a |
+| 2 | 2, 3 | **Spec actions C and D applied first** (staged scripts Rich runs). **The generator** (vegeta built locally — its download and checksum a Rich-step at this sitting's open — its container, its one-line result) and **the edge's exemption** with its **`Driver` verb** (`setRateLimitExemption`, both drivers, the driver contract), **and `InstanceStatus.outOfMemory`** | Yes — `launch/`, `routing/`, `runtime/`, `infra/` | After both commits, with one generator run through the real edge quoted. **It stops and asks Rich** if `[M3b]` finds the laptop cannot sustain Spec action A's profile — the numbers are his | ← **next** (`manifest-b-s2`): Spec actions C and D — **D as Rich re-worded it** (`624deb66`) — applied at its open; vegeta's download his standing yes (`3ba424a`) |
 | 3 | 4 | **Spec action A applied first.** **The run**: grant, read back, load, watch, judge, record — the row written `running` BEFORE the grant — and take down; one at a time platform-wide, by a database invariant; **the boot's pass 2⅞**; the `load_rehearsals` table. No wire change | Yes — `launch/`, `releases/`, `db/` | After the commit, with one run through the edge on driver 1 from a scratch script, passed, and staging back in its own shape | |
 | 4 | 5 | **Spec action B applied first.** **The operation**: `runLoadRehearsal` (`202`) and `getLoadRehearsal`; its codes, declared on every operation that answers them; `load_rehearsal.completed`; **staging deploys refused while a run holds the project**; **contract `1.10.0`** | Yes — `launch/`, `releases/`, `observability/` | After the commit, with the front-end told and one run through the edge polled to its end | |
 | 5 | 6, 7 | **The checklist** — met by a `passed` measurement, at the scale and the burst, for the first launch and an audience raised (Q3) — and **the clients**: the console's *Run the load rehearsal*, the mock's stage, the guide | Yes — `launch/` | After both commits, with the front-end told | |
@@ -196,6 +201,14 @@ survive any re-cut:** Task 1 first and alone; Task 8 last, 8b alone; no task a s
 *Read at `e969f9d` on 2026-10-03; the facts the first revision added were read at `75030d8`. **Re-read at `c7e0978` (2026-10-14) by the
 second review** — A1 through its sitting 5 — and every line number below is that commit's; facts 13–22 are the second review's. A1's
 sittings 6–8 land after it (the review's §3), so Task 1's `[M1]` re-reads every one.*
+
+> **RE-READ AT `d2e2cf0d` BY TASK 1 (2026-10-15, sitting 1 — every fact's lines at that commit:
+> [`../spikes/load-baseline/facts-at-d2e2cf0.md`](../spikes/load-baseline/facts-at-d2e2cf0.md)). None changed in meaning.** Lines moved:
+> **6** → `routing/caddy.ts:156-166` (and 8: no `unhealthy_status` at all, `745def2`); **16** → the skeleton's `/login` `server.js:120`, the
+> ACS `:125`, `/healthz` `:104-111`, the starter's static `/` `proof-app/server.js:365` (`1d40042`); **17** → `releases/watch.ts:197-203`,
+> launched-only COMMITTED (`59a540f`). **Fact 1's *"the audience's `burst` is read only by the checklist"* is wrong: nothing reads `burst`
+> yet** — Task 6 is its first reader. Already slightly off at `c7e0978`: `db/locks.ts:96-117`, `restoreRoute` `:774-816`, the fake's
+> `crash` `:58`, `samlRequestCache` `:77-110`; the set watcher is created at `src/index.ts:453` and STARTED at `:471`.
 
 **What §24 asks, and what exists.**
 1. **§24's production counts are BUILT** (A1's Task 5, `163f42c`): **`shapeFor(kind, purpose, audience)`** (`releases/shape.ts:46-55`) is
@@ -583,6 +596,16 @@ docs/superpowers/spikes/load-baseline/                 NEW (T1)
 is a Rich-step**: the network, at his yes AT THIS SITTING (Rich, 2026-10-03: *"Build it locally"* — *"its download a Rich-step at that
 sitting"*).
 
+> **SITTING 1 MEASURED** ([`../spikes/load-baseline/`](../spikes/load-baseline/README.md)): `alpine:3.22` is in the daemon by
+> `infra/images.lock:5`'s digest (`sha256:14358309…`; Alpine 3.22.5, `aarch64`), and its busybox v1.37.0 has `sh`, `awk`, `cat`, `base64`
+> and `touch` (run, not just found). **The address Task 3 exempts is the generator container's own address on `manifest-platform`** — the
+> edge's `remote_host` read `10.89.0.13` for a container at `10.89.0.13` — so `start()` reads `NetworkSettings.Networks["manifest-platform"]
+> .IPAddress` (F7). **A daemon image `manifest/vegeta:<version>` survives `make reset` and all three cleanup scripts**; a generator
+> CONTAINER named `mf-…` would be removed by `make reset` (`Makefile:107`) and counted as the app's by `dead-app-resources.sh` (`:78`);
+> `scripts/doctor.sh` checks images only by its lists and does not check `manifest-caddy:local`, so a doctor check for the generator is NEW
+> and moves `EXPECT_DOCTOR` (F11). **Spec action D's words changed** (Rich, `624deb66`; F1). `infra/caddy/Dockerfile:1` repeats §20's old
+> sentence — sweep it with D.
+
 **Files:**
 - Create: `infra/vegeta/Dockerfile` (`FROM` the daemon's mirrored `alpine:3.22` by digest; `COPY` the verified binary; `RUN vegeta
   --version`; a non-root user), `infra/vegeta/vegeta.lock` (`version`, and per architecture `url` and `sha256`)
@@ -707,6 +730,18 @@ sitting"*).
 **Sitting 2, after Task 2. Spec action C applied first.** Decision 5. **Its callers are Task 4's run and the boot's pass 2⅞** — and, for
 `InstanceStatus.outOfMemory`, Task 4's watch (Decision 8).
 
+> **SITTING 1 MEASURED** ([`../spikes/load-baseline/`](../spikes/load-baseline/README.md), `[M4]` in a throwaway Caddy from the edge's
+> image, `[M7]` in throwaways): **`[M4]`'s shape is the zone's own `match` given a `not`** — `{"remote_ip":{"ranges":["0.0.0.0/0","::/0"]},
+> "not":[{"remote_ip":{"ranges":["<address>/32"]}}]}` — no new handler, no subroute: the exempt client sent 1,300 in a minute with no
+> `429`, another was cut at 600; Caddy reads it back `not` first, so compare parsed JSON. **`0.0.0.0/0` is accepted and limits nobody**
+> (control (a) stands). **caddy-ratelimit's counters SURVIVE every PATCH** — identical, or changing the zone's `match` — so the Docker
+> case's limited client starts fresh (a new address), and the exempt address starts at zero once cleared (F5). **A malformed address is the
+> admin API's `500`, the old config kept** — validate before writing, and refuse with the driver's own code (F6). **`[M7]`: an
+> out-of-memory exit is `{ Status: 'exited', ExitCode: 137, OOMKilled: true }`, a kill `{ exited, 137, false }`** (control (b) stands) —
+> **and `OOMKilled` is STICKY: `true` on a container still `running`** after a process the app started was killed under the init, and
+> after an exit `0`. The mapping's table gains a `running` row, with what `outOfMemory` means there (F2; the record recommends `true`
+> whatever the state).
+
 **Files:**
 - Modify: `packages/control-plane/src/routing/caddy.ts` — the route input gains `rateLimitExempt?: string` (one address); the `rate_limit`
   handler's zone (or the handler) takes `[M4]`'s matcher when it is set
@@ -742,6 +777,14 @@ sitting"*).
 
 **Sitting 3, alone. Spec action A applied first.** Decisions 2, 3, 6–9, 12, 13. **Its caller is Task 5's route; until then a scratch
 script calls it (Step 4).** Nothing on the wire changes here.
+
+> **SITTING 1 MEASURED** ([`../spikes/load-baseline/`](../spikes/load-baseline/README.md)): **staging and production resolve to the SAME
+> resources unless the manifest's `environments` block says otherwise** (`spec/resolve.ts:113-117`; node-ts-mongo's defaults, 0.5 CPU /
+> 512 Mi / 256 pids / 2 Gi, for both) — so `load.docker.test.ts`'s *"staging's instance afterwards at staging's own resources
+> (`HostConfig.Memory`)"* cannot fail unless its app sets `environments.production.resources` to what staging does not have (F4). `judge`
+> meets a member `running` with `outOfMemory: true` (F2), and a member that swaps before it is killed — an app's `MemorySwap` is unset, so
+> twice its memory (F3). Pass 2⅞ goes between `releases/recover.ts:242` and `:244`; `shape.ts:10-11`'s comment on `'replacement'` is stale
+> (F12). `[M5]`'s grant and take-down times are in the record.
 
 **Files:**
 - Modify: `releases/shape.ts` — `DeployPurpose` (A1 declares it there) gains `'load-rehearsal'`, and `shapeFor` its row for staging, written
@@ -820,6 +863,15 @@ script calls it (Step 4).** Nothing on the wire changes here.
 **Sitting 4, alone. Spec action B applied first.** Decisions 1, 6, 7, 11. **Contract `1.10.0`.** **Its callers are the console, the mock's
 clients and `make demo-load`.**
 
+> **SITTING 1 MEASURED — FE-63, its placement `manifest-coord5`'s at this sitting's open** (its GO of 2026-10-15 11:27): the front end's
+> FE-63 asks that an instance or its Incident say it is a replacement, beside FE-62's event field, in `1.10.0`. **The stored mark already
+> exists, on the instance** — `instances.replacing` (`db/schema.ts:347-349`, written for every member of a replacement set,
+> `release.ts:588-589`) — so the instance's mark needs no migration, and an Incident's can be derived by the join `listIncidents` already
+> makes (`observability/incidents.ts:115-127`). `incidents.cause` has no replacement value; a replacement's failed deploy is
+> `cause: 'deploy'` (`release.ts:1134-1139` passes none). What it would touch, file by file, is the record's *FE-63* section (F13).
+> `incident.opened`'s schema is `observability/event-schemas.ts:319-328` (strict, no `cause`); its publishers `release.ts:1145-1163` and
+> `watch.ts:461`.
+
 **Files:**
 - Modify: `api/routes/launch.ts` — **`runLoadRehearsal`** (`POST /v1/projects/{projectId}/load-rehearsal`, `credential: 'session'`,
   `capability: 'launch:rehearse'`, stepped up, **`202` with the `running` `LoadRehearsal`**) and **`getLoadRehearsal`** (`GET
@@ -869,6 +921,9 @@ clients and `make demo-load`.**
 ## Task 6: The checklist — met by a measurement
 
 **Sitting 5.** Decision 10.
+
+> **SITTING 1 MEASURED:** nothing reads an audience's `burst` yet — `loadRehearsalItems` keys on `audience?.scale` alone
+> (`launch/readiness.ts:229`); `burst` is stored and echoed only (`api/routes/projects.ts:299`, `:391`). This item is its first reader (F10).
 
 **Files:**
 - Modify: `launch/readiness.ts` — `loadRehearsalItems` (`:227-240` at `c7e0978`) becomes `loadRehearsalItem(db, project, candidate,
@@ -925,6 +980,14 @@ clients and `make demo-load`.**
 **SPLIT BY THE SECOND REVIEW (I10)**, as A1 split its own acceptance (its Task 9 alone in sitting 7, Task 10 in sitting 8): one `make
 demo-load` run holds two full rehearsals — the pass and the fall-over — ~8–9 minutes each, so three runs on each driver are ~2 hours
 before a control is seen. **8a is sitting 6** (the demo and its controls); **8b is sitting 7, alone and last** (everything else).
+
+> **SITTING 1 MEASURED** ([`../spikes/load-baseline/`](../spikes/load-baseline/README.md)): **the fixture's `manifest.yaml` sets
+> `environments.production.resources`** to a memory staging does not have, or Step 1's *"at its own resources (`HostConfig.Memory`)"*
+> cannot fail (F4). **The journey's `seeEveryMember` still waits `4 × N`** (`journey/src/serving-set.ts:42`) where the platform moved to
+> `16 × N` (`745def2`) — no read of a set through the edge while the generator loads may use it as it stands (F8). **`journey/src/capacity.ts`
+> exports nothing**: extract what the demo reuses into an exported module (F9). A fixture that falls over by MEMORY must allocate past
+> TWICE its ceiling (an app's `MemorySwap` is unset, F3). Unloaded, a skeleton app's staging answers `/` `200`, `/healthz` `200`, `/login`
+> `302` with no cookie, and each `/login` writes ONE `saml_requests` document (eight-hour TTL).
 
 **Files (8a):**
 - Create: `packages/journey/src/load.ts` (reusing `journey/src/serving-set.ts` for the set, A1's sitting 4), `scripts/demo-load.sh`;
@@ -1086,8 +1149,16 @@ boot."*
 **Why.** §20 says the custom Caddy image is *"built during `make seed` — the one image that is built rather than pulled"* (l.2088-2089).
 Rich's *"Build it locally"* makes the load generator a second.
 
-**Proposed.** *"…built during `make seed` — the one image that is built rather than pulled."* ⟶ *"…built during `make seed` — one of two
-images built rather than pulled; the other is §24's load generator, built from its release binary, checksum-verified."*
+**Proposed.** *"…built during `make seed` — the one image that is built rather than pulled."* ⟶ ~~*"…built during `make seed` — one of two
+images built rather than pulled; the other is §24's load generator, built from its release binary, checksum-verified."*~~
+
+> **RE-WORDED BY RICH, 2026-10-15 ~11:45 PDT (`624deb66`; his *"yes I am happy to go with your recommendation"*, to `manifest-coord5`),
+> option (a), after Task 1 found the draft's count false** (sitting 1's F1): `make seed` already builds FIVE images —
+> `infra/seed/seed.sh:17` runs `$COMPOSE --profile github build`, and `infra/compose.yaml` builds `manifest-dnsmasq:local`,
+> `manifest-caddy:local`, `manifest-egress:local`, `manifest-idp:local` and `manifest-github-fake:local` — so l.2089 is already false and
+> *"one of two"* would be too. **D's words, as applied at sitting 2's open:** *"…built during `make seed` — the platform builds its own
+> images rather than pulling them where it must (this one, its resolver, egress proxy and IdP), and builds §24's load generator there
+> too, from its release binary, checksum-verified."* Rejected: (b) apply the draft, its count wrong; (c) drop D and correct the count later.
 
 *Shared pages:* checked — none says how many images are built (`grep -i 'built rather'` over the four finds nothing); unchanged.
 
@@ -1195,3 +1266,90 @@ row stops blocking staging rather than the boot retrying it (a person's next dep
 ## What executing this plan found
 
 *(One dated section per sitting.)*
+
+### Sitting 1 — 2026-10-15, 11:27–12:55 PDT (`manifest-b-s1`, the third coordinated run's job B1): Task 1 — the measurements
+
+**Opened** by `manifest-coord5`'s GO (11:27), which relayed Rich's decisions — the decisions file's *2026-10-14, ~18:34* entry and its
+appended words (`6c9949a`: *"B, the load rehearsal, 7 sittings"*, his delegation continuing; `3ba424a`: Spec actions A–D approved as
+drafted; `bdfc6f2`: the standing yeses — inline execution among them) and `d2e2d772` (Docker Desktop kept at 6 CPUs) — and handed over
+FE-63 to be noted here. HEAD `d2e2cf0d`. 7100 was P11's LANDING 1's under the coordinator's HOLD until 12:14, so the sitting measured
+what needed neither 7100 nor heavy CPU first, with Rich on a Zoom call. **Task 1** (`a46bdad9`): the record is
+[`../spikes/load-baseline/README.md`](../spikes/load-baseline/README.md), its raw output `results-task1-2026-10-15.txt`, its probes
+`probes/`, and `[M1]`'s fact-by-fact table at `d2e2cf0d`, `facts-at-d2e2cf0.md` — read by one read-only agent and the claims the record
+leans on re-read by hand (facts 1, 6, 14–17 and 20, and the five images of F1). **Measured on Docker Desktop 4.95.0, Engine 29.8.2,
+`NCPU` 6** (`docker info`), the VM 7,934 MiB. A *SITTING 1 MEASURED* note now sits under each task a measurement changes (2, 3, 4, 5, 6,
+8a) and under *Read this first*; Spec action D carries Rich's re-wording (F1).
+
+1. **F1 — SPEC ACTION D'S APPROVED WORDS WERE FALSE: `make seed` builds FIVE images, not one** — `infra/seed/seed.sh:17` runs `$COMPOSE
+   --profile github build`, and `infra/compose.yaml` builds `manifest-dnsmasq:local`, `manifest-caddy:local`, `manifest-egress:local`,
+   `manifest-idp:local` and `manifest-github-fake:local` (all five in the daemon), so §20's *"the one image that is built rather than
+   pulled"* (l.2089) is already false and D's *"one of two"* would have been. Put to `manifest-coord5` at 11:42 with three options; it
+   verified the premise and put it to Rich: **re-worded, option (a)** (~11:45, `624deb66`) — the words are at Spec action D. Applied at
+   sitting 2's open with the shared pages' sweep.
+2. **F2 — `State.OOMKilled` IS STICKY, AND SET ON A CONTAINER STILL RUNNING** (`[M7]` case (c)): under the init every app runs with, a
+   process the app started that hits the ceiling is killed, the container stays `running` — and `OOMKilled` reads `true`, and stays `true`
+   after an exit `0`. An out-of-memory EXIT is `{ exited, 137, true }`; a plain `SIGKILL` `{ exited, 137, false }` — only the flag tells
+   them apart (Task 3's control (b) stands). Task 3's mapping has only `exited` rows; recommendation recorded: `outOfMemory: true` whatever
+   the state, `judge` failing on it as *"an instance ran out of memory"*.
+3. **F3 — AN APP CONTAINER MAY USE SWAP EQUAL TO ITS MEMORY**: the driver sets `Memory` and leaves `MemorySwap` unset
+   (`runtime/docker/hardening.ts:28`), read back as twice `Memory`; the VM has 2 GiB of swap. A 64 MiB ceiling was killed at 104 MiB (48
+   MiB with swap off). For the rehearsal a member is slow before it is killed, so the p95 rule meets it first; a fixture that falls over by
+   memory must allocate past twice its ceiling. **Recorded, not this plan's**: whether apps should swap at all is §12's hardening.
+4. **F4 — STAGING AND PRODUCTION RESOLVE TO THE SAME RESOURCES UNLESS THE MANIFEST SAYS OTHERWISE** (`spec/resolve.ts:113-117`;
+   node-ts-mongo's defaults for both, the proof app setting no `environments`) — so Task 4's and Task 8a's *"staging back at its own
+   resources (`HostConfig.Memory`)"* is a check that cannot fail unless the app declares `environments.production.resources` that staging
+   does not have. Recorded under Tasks 4 and 8a.
+5. **F5 — caddy-ratelimit's COUNTERS SURVIVE EVERY PATCH** (`[M4]` T3, T4): identical, or changing the zone's `match`. Task 3's Docker case
+   counts with a fresh address; an exempt address's requests are never counted, so once cleared it starts at zero.
+6. **F6 — A MALFORMED EXEMPTION IS THE ADMIN API'S `500`, AND THE PREVIOUS CONFIG KEEPS SERVING** (`[M4]` T7): Task 3 validates the
+   address and refuses with the driver's own code before it writes.
+7. **F7 — THE EXEMPTION KEYS ON THE GENERATOR CONTAINER'S OWN `manifest-platform` ADDRESS** (`[M2]`): the edge's staging wildcard echoed
+   `remote=10.89.0.13` for a container at `10.89.0.13` — no NAT, no proxy header. A host's request arrives as `10.89.0.1`.
+8. **F8 — THE JOURNEY'S `seeEveryMember` STILL WAITS `4 × N`** (`packages/journey/src/serving-set.ts:42`), where the platform's identity
+   check moved to `16 × N` (`routing/readiness.ts:109`, `745def2`) because live traffic made `4 × N` miss a member about 1 in 65 at three.
+   Task 8a's reads through the edge while the generator loads must not use it as it stands.
+9. **F9 — `packages/journey/src/capacity.ts` EXPORTS NOTHING**: `make demo-capacity`'s set readers are private; Task 8a extracts what it
+   reuses.
+10. **F10 — NOTHING READS AN AUDIENCE'S `burst` YET** — fact 1 said the checklist did; `loadRehearsalItems` keys on `scale` alone
+    (`launch/readiness.ts:229`). Task 6 is its first reader.
+11. **F11 — THE GENERATOR'S IMAGE IS SAFE IN THE DAEMON; ITS CONTAINER'S NAME IS A CHOICE**: a daemon image `manifest/vegeta:<version>`
+    survives `make reset` and all three cleanup scripts (none removes a daemon image outside `127.0.0.1:7107/local/`); a container named
+    `mf-…` would be removed by `make reset` (`Makefile:107`) and counted as the app's by `dead-app-resources.sh` (`:78`). `doctor.sh` checks
+    images only by its lists and does not check `manifest-caddy:local`, so a check for vegeta's image is a new check (`EXPECT_DOCTOR`).
+12. **F12 — TWO STALE COMMENTS**: `runtime/docker/driver.ts:572-574` (passive checks *"`502` and `504`"*, gone since `745def2`) and
+    `releases/shape.ts:10-11` (`'replacement'` *"passed by nothing until the watcher exists"*, passed since `68274fa`). Task 4 edits
+    `shape.ts`; the driver's is whoever next edits that file.
+13. **F13 — FE-63's REPLACEMENT MARK: THE INSTANCE ALREADY STORES IT** (`instances.replacing`, `db/schema.ts:347-349`) — no migration for
+    the instance's mark; an Incident's derivable by `listIncidents`' existing join; `incidents.cause` has no replacement value. The whole
+    touch list is the record's *FE-63* section; its placement is `manifest-coord5`'s at sitting 4's open (noted under Task 5).
+14. **F14 — `pgrep -fl` PRINTED A RUNNING VITEST'S ENVIRONMENT, A SESSION TOKEN INCLUDED, INTO THIS SITTING'S RAW OUTPUT** — caught by a
+    scan before anything was staged, and the four lines removed from the results file (it says so where they were). **Why:** Vitest sets
+    `process.title` (`node (vitest)`), and on macOS that overwrites the argument area so `ps`/`pgrep -fl` read on into the environment
+    strings that follow it — measured: a `node` given `process.title = 'node (b1probe)'` listed as `node (b1probe) TERM_SESSION_ID=…
+SSH_AUTH_SOCK=…`, the same `node` without a title listed no variable; which variables show depends on the original arguments' length. A
+probe whose output is committed counts processes with `pgrep -f … | wc -l`, never `-l`. (TRAPS.md.)
+
+**`[M2]`'s app half** ran at 11:46 on `muddiest-point`'s STAGING (W5B's walk app, done with at 11:36, its image built 10:44 — after
+`1d40042`), `manifest-coord5`'s choice under Rich's delegation (11:47) since 7100 would hold no project after LANDING 1: `/` `200`,
+`/healthz` `200`, `/login` `302` to the laptop IdP with no cookie; `saml_requests` 0 → 1 (TTL 28,800 s), counted by `mongosh` inside
+its staging DB container. Nothing of its production or repository touched.
+
+**The window** (12:14–12:40, `manifest-coord5`'s *"7100 is yours"* after LANDING 1 landed at `355f612`, which moved `EXPECT_TESTS`
+3691 → 3756 and `EXPECT_FILES` 224 → 231 during this sitting): **`[M6]` `pnpm test` once — 231 files, 3756 tests, all passed**, equal to
+the `EXPECT_` lines, 1,093.97 s at utility, load median 3.40; **`[M5]`** through the Docker driver's own `ensureInstances` on
+`bs1-m5.staging.manifest.internal` (no project): the GRANT (one → three at production's resources, the route moved in one change)
+**3.6 s**, the TAKE-DOWN (three → one) **1.4 s**, retires 0.1–0.3 s, each member idle 25–27 MiB with `Memory` 512 Mi and `MemorySwap` 1
+Gi (F3, on containers the driver made) — the moves are seconds, the ten minutes are the load's; then **G4**: 7100 restarted from `.env`
+(`capableModel` and `ubc-qwen-27b` *unchanged*, 16 secrets scrubbed) and ONE call to `default-chat-large` answered by **`gpt-6.1-sol`,
+`x-litellm-attempted-fallbacks: 0`**, through the UBC gateway. 7100 handed back at 12:40 with 0 projects (the two runs' truncations).
+**The probe's two defects, mine** (in `probes/m5-set.ts`'s comments): fixed ids must differ in their first eight characters
+(`instanceName` takes the release's and the instance's first eight), and `retireInstance` takes the driver's handle id, not an
+instance's uuid (given one, it finds nothing and answers at once) — the record's numbers are the third, corrected run's.
+
+**Gates**: `pnpm test` ONCE — nothing any gate covers changed (the sitting's only code is `probes/`, outside every package and Prettier's
+remit; `eslint` over it clean), so the close's *"twice on the final tree"* would run an unchanged tree again (A1's sitting 1's ruling;
+the ledger has it). The Docker tier not owed (nothing under `packages/` or `infra/`). **The machine** (12:40, `docker`, `psql`, `curl`):
+31 containers (23 running), 15 networks, 49 volumes — the 11:29 snapshot exactly; images 54 → 52 (`app-images.sh --apply`: two dead
+`muddiest-point` images); every throwaway gone; the three cleanup scripts bare — 0 dead networks or volumes, `litellm-orphans.sh`
+refusing itself (four app containers, no AI key among them: `muddiest-point`'s), 17 orphaned mirrors named (`muddiest-point.git` new).
+`muddiest-point`'s containers, rows truncated, left for the coordinator. **Fourteen findings.**

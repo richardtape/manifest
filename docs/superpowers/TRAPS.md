@@ -2897,3 +2897,11 @@ exercise its Ctrl-C path faithfully, start it under `set -m` (its own process gr
 `infra/registry-auth/token.key` are git-ignored, so a worktree has none of them (`.env missing`, `token.key is missing`, `docker compose
 config failed — is .env present?`, and the CA's WARN). Read only the line you came for (P11's control reads the ports line); the doctor
 that counts is the shared checkout's.
+
+**`pgrep -fl` (AND `ps`) PRINTS PART OF A NODE PROCESS'S ENVIRONMENT WHEN IT HAS SET `process.title` — VITEST DOES** (B's sitting 1, F14,
+2026-10-15). A headroom probe's `pgrep -fl 'vites[t]'` wrote four lines like `node (vitest) NVM_INC=… COREPACK_ROOT=…
+CLAUDE_CODE_MESSAGING_TOKEN=…` into a results file meant for a commit — a session's token among them; a scan caught it before anything was
+staged. On macOS a title overwrites the argument area and `ps` reads on into the environment strings beside it: a `node` titled `node
+(b1probe)` listed as `node (b1probe) TERM_SESSION_ID=… SSH_AUTH_SOCK=…`, the same `node` untitled listed none (which variables show depends
+on the original arguments' length). **Count processes with `pgrep -f … | wc -l`; never put `-l`, `ps -o command` or `ps -E` output in a
+file that is committed or sent**, and `grep -n 'TOKEN\|SECRET\|KEY='` any raw output before staging it.
