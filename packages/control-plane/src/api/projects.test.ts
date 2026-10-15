@@ -1161,7 +1161,9 @@ describe('POST /v1/projects/:id/spec', () => {
 
   it('reports NO sensitive diff for an unchanged manifest that declares a service (P5a sitting 6)', async () => {
     // Through the database, because that is where the shape changes: the previous spec is
-    // read back from jsonb, whose key order is not zod's.
+    // read back from jsonb, whose key order is not zod's. ACROSS TWO COMMITS: a commit is never
+    // compared with its own row (driver 2's race, the FIX session), so validating ONE commit twice
+    // answers its change both times — and the manifest unchanged is the NEXT commit's.
     const { app, deps, session } = await loggedIn()
     const created = await app.inject({
       ...create('chem-labs'),
@@ -1169,9 +1171,10 @@ describe('POST /v1/projects/:id/spec', () => {
       headers: mutationHeaders(deps),
     })
     const projectId = created.json().id as string
+    const repo = deps.source.repositoryFor('chem-labs')
     await writeFiles(
       deps.source,
-      deps.source.repositoryFor('chem-labs'),
+      repo,
       {
         'manifest.yaml': [
           'manifest: 1',
@@ -1197,10 +1200,14 @@ describe('POST /v1/projects/:id/spec', () => {
         cookies: { '__Host-manifest_session': session },
         headers: mutationHeaders(deps),
       })
-    expect((await validate()).json().sensitiveDiff.sensitive).toBe(true)
-    const again = await validate()
-    expect(again.statusCode).toBe(201)
-    expect(again.json().sensitiveDiff).toEqual({ sensitive: false, fields: [] })
+    const declared = { sensitive: true, fields: ['services'] }
+    expect((await validate()).json().sensitiveDiff).toEqual(declared)
+    // The same commit again: still its change, never "none" against its own row.
+    expect((await validate()).json().sensitiveDiff).toEqual(declared)
+    await writeFiles(deps.source, repo, { 'README.md': 'Chem labs.\n' }, 'docs: a readme')
+    const next = await validate()
+    expect(next.statusCode).toBe(201)
+    expect(next.json().sensitiveDiff).toEqual({ sensitive: false, fields: [] })
     await app.close()
   })
 

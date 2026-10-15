@@ -3,8 +3,10 @@ import { and, asc, count, eq, inArray } from 'drizzle-orm'
 import { describe, expect, it, vi } from 'vitest'
 import { SAMPLE_SECRETS } from '../build/testing.js'
 import { appSpecs, events } from '../db/index.js'
+import { getProject } from '../projects/index.js'
 import { writeFiles } from '../source/testing.js'
 import { ROUTE_DEFINITIONS } from './routes/index.js'
+import { validateAndRecord } from './spec-validation.js'
 import {
   mutationHeaders,
   refusal,
@@ -631,6 +633,58 @@ describe('createCommit — changes checked before anything is written (Task 6)',
       } finally {
         operator.mockRestore()
       }
+    })
+  })
+
+  it('a commit’s sensitive diff names its change when the push webhook recorded the commit FIRST (driver 2’s race, A1 sitting 8)', async () => {
+    await withProjectServer(async (ctx) => {
+      // THE RACE, MADE DETERMINISTIC: on driver 2 the push's webhook reaches the source observer
+      // while the route is still answering, and records the NEW commit's validation before the
+      // route's own `validateAndRecord` runs (`frontend-github`, 120 ms first). The webhook calls
+      // exactly this (`api/routes/webhooks.ts`' `processDelivery`), so it runs here, in the window
+      // between the commit landing and the route's validation.
+      const project = (await getProject(ctx.db, ctx.projectId))!
+      const source = ctx.deps.source
+      const realCommit = source.commit.bind(source)
+      vi.spyOn(source, 'commit').mockImplementation(async (repo, request) => {
+        const done = await realCommit(repo, request)
+        if (request.dryRun !== true)
+          await validateAndRecord(ctx.deps, project, done.commitSha!)
+        return done
+      })
+      const res = await post(
+        ctx,
+        commitBody(ctx.commitSha, [
+          {
+            op: 'write',
+            path: 'manifest.yaml',
+            content: await manifestWith(ctx, 'data:', '  classification: high'),
+          },
+        ]),
+      )
+      expect(res.statusCode, res.body).toBe(201)
+      const out = res.json() as {
+        commitSha: string
+        spec: { appSpecId: string | null; sensitiveDiff: unknown }
+      }
+      // The race happened: the commit has TWO validations, the webhook's the older.
+      const rows = await ctx.db
+        .select({ id: appSpecs.id })
+        .from(appSpecs)
+        .where(
+          and(
+            eq(appSpecs.projectId, ctx.projectId),
+            eq(appSpecs.commitSha, out.commitSha),
+          ),
+        )
+        .orderBy(asc(appSpecs.createdAt))
+      expect(rows).toHaveLength(2)
+      expect(out.spec.appSpecId).toBe(rows[1]!.id)
+      // Compared with the seed's manifest — never with the webhook's row of this same commit.
+      expect(out.spec.sensitiveDiff).toEqual({
+        sensitive: true,
+        fields: ['data.classification'],
+      })
     })
   })
 

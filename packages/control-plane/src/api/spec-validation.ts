@@ -1,4 +1,4 @@
-import { and, desc, eq } from 'drizzle-orm'
+import { and, desc, eq, ne } from 'drizzle-orm'
 import { narrowSessionsHoldingMore } from '../ai/index.js'
 import { appSpecs, projects, type Db } from '../db/index.js'
 import { makeRedactor, publishEvent, withActor } from '../observability/index.js'
@@ -48,14 +48,21 @@ export async function validateManifestText(
  * (P6b sitting 1, F7: compared with the previous row, an invalid commit in between made a
  * sensitive change report as none). THE ONE QUERY both a recorded validation and a commit's dry
  * run use; `null` (an invalid manifest) reports nothing.
+ *
+ * **NEVER THE COMMIT'S OWN ROW.** `commitSha` is the commit being judged, and the baseline is the
+ * newest valid spec of a DIFFERENT commit: on driver 2 a push's webhook can record the commit
+ * before the commit route validates it, and that row — the newest valid — compared the commit with
+ * itself, so a sensitive change answered none (A1 sitting 8, `frontend-github`). So a commit's
+ * second validation answers what its first did. `null` for a commit not yet made (a dry run).
  */
 export async function sensitiveAgainstNewestValid(
   db: Db,
   projectId: string,
   spec: ManifestSpec | null,
+  commitSha: string | null,
 ): Promise<{ sensitive: boolean; fields: string[] }> {
   if (spec === null) return { sensitive: false, fields: [] }
-  const previous = await newestValidSpec(db, projectId)
+  const previous = await newestValidSpec(db, projectId, commitSha)
   return previous === undefined
     ? { sensitive: false, fields: [] }
     : isSensitiveDiff(previous, spec)
@@ -88,15 +95,23 @@ export async function sensitiveSinceApprovedFor(
  * The project's NEWEST VALID `manifest.yaml`, parsed — never the newest row, which may be an
  * invalid commit's. THE ONE QUERY: the sensitive diff above, and the names an environment's
  * secrets list calls declared (the authoring API plan's Task 8). `undefined` before any.
+ * `exceptCommit` leaves one commit's rows out — the sensitive diff's own commit.
  */
 export async function newestValidSpec(
   db: Db,
   projectId: string,
+  exceptCommit: string | null = null,
 ): Promise<ManifestSpec | undefined> {
   const [row] = await db
     .select()
     .from(appSpecs)
-    .where(and(eq(appSpecs.projectId, projectId), eq(appSpecs.valid, true)))
+    .where(
+      and(
+        eq(appSpecs.projectId, projectId),
+        eq(appSpecs.valid, true),
+        exceptCommit === null ? undefined : ne(appSpecs.commitSha, exceptCommit),
+      ),
+    )
     .orderBy(desc(appSpecs.createdAt))
     .limit(1)
   return row === undefined ? undefined : (row.parsed as ManifestSpec)
@@ -118,8 +133,9 @@ export async function newestValidSpec(
  * lacks rather than reading `null` and recording an invalid spec for a commit it never read
  * (the D5 plan's Task 7).
  *
- * `isSensitiveDiff` (D9) is COMPUTED against the newest VALID spec, BEFORE this row is written
- * (`sensitiveAgainstNewestValid`), and REPORTED; it is enforced at the production deploy.
+ * `isSensitiveDiff` (D9) is COMPUTED against the newest VALID spec of ANOTHER commit, BEFORE this
+ * row is written (`sensitiveAgainstNewestValid` — another caller may have recorded this commit
+ * already), and REPORTED; it is enforced at the production deploy.
  */
 export async function validateAndRecord(
   deps: ServerDeps,
@@ -136,6 +152,7 @@ export async function validateAndRecord(
     deps.db,
     project.id,
     result.valid ? result.spec : null,
+    sha,
   )
   const sensitiveSinceApproved = await sensitiveSinceApprovedFor(
     deps,

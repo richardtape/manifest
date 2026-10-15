@@ -580,6 +580,7 @@ export const sourceRoutes = [
           deps.db,
           project.id,
           verdict.spec,
+          null,
         ),
         sensitiveSinceApproved: await sensitiveSinceApprovedFor(
           deps,
