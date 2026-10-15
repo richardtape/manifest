@@ -180,3 +180,58 @@ the twelve burners to `pri` 17 while the suite's worker stayed at 31. So the pla
 twelve burners"* — does not hold: its gate at 12 sits far below what twelve burners make, and at the level of an ordinary busy day here
 (the quiet runs' own peaks reached 10.4, and 33 just after a wake). Recorded for Task 6, whose forced run under twelve burners is the
 evidence for any other number.
+
+## After — the wrapped runs (Task 6, sitting 2)
+
+*Measured 2026-10-14/15, 19:40–00:50 PDT, by `manifest-gt-s2` (the third coordinated run's job GT2, coordinated by `manifest-coord5`, every
+other session's Vitest held), on AC in clamshell mode (lid closed, an external display — `AppleClamshellCausesSleep` No; `manifest-coord5`
+ruled Rich's *"lid open and on AC"* met in substance: it cannot sleep), with no Sleep or Wake in `pmset -g log` over any run. The tree:
+Task 4's retry (`09f2f0b`) and the review's fix wave (`07c4601`) in all but run A; the utility scale 5 (`f43f894`) in the last. 3680 tests
+in 223 files (+7 and +1 on Task 1's: Task 4's six, the fix wave's one). Versions as above.*
+
+| Run | Burners | 1-min load at the gate · min / median / max | Wall (Vitest) | ÷ quiet normal | Result |
+|---|---|---|---|---|---|
+| **A1** — the gate's live control, unforced | 12 | **26.08** — REFUSED, `exit 75`, no test run | — | — | as designed |
+| **A2** — utility, scale 3, FORCED | 12 | 30.29 · 30.29 / 51.52 / 113.57 | stopped at 30 min | — | **starved**: 4 of 220 files, 58 red, all `Test timed out in 15000ms` |
+| **N** — the load the gate admits (no tests) | 8 | 8.42 at 120 s, 8.96 at 210 s, from a base of 2.30 | — | — | ~1 per burner below saturation |
+| **U** — utility, scale 3, unforced | 10 | **11.61** · 11.61 / 14.67 / 26.55 | 2579.6 s | 2.30 (2.21 ÷ quiet utility) | **red 4**: 3 `Test timed out in 15000ms`, 1 follow-on |
+| **B** — background, scale 7, unforced | 6 | **7.99** · 7.91 / 8.99 / 15.13 | 2511 s | 2.24 | **green**, 3680/3680 |
+| **U5** — utility, **scale 5**, unforced | 10 | **11.88** · 11.85 / 14.42 / 22.00 | 2523 s | 2.25 | **green**, 3680/3680 |
+
+**A2 — twelve burners starve a utility run; the gate is what keeps a run out of that.** In 30 minutes the forced run finished four of 220
+files: `releases` 38.3 s, `launch` 601.3 s (33 red), `delivery` 623.1 s (25 red), `records` 18.6 s — 1 281 s against 130.8 s quiet and
+273.8 s under the same twelve burners at NORMAL priority (sitting 1; 10 red at 5 s there). At its end the suite's worker (`pri` 20) got
+0.22 s of CPU in 21 s — ~1 % of one core — while each burner got ~86 %. Utility priority does exactly what Rich asked (his work wins
+outright), so no timeout scale can make a run green under full saturation by normal-priority work: twelve burners (a 1-minute load of
+26–330) is a load the design REFUSES, not one it survives. Stopped by SIGINT to its process group (the RUNBOOK's Ctrl-C); Vitest wrote no
+JSON. *(The plan's Decision 5 had chosen the gate as "the load Task 6 proves the scaled run green at — twelve burners"; sitting 1's F5
+already showed twelve burners make 26–330, not 12. `manifest-coord5`, under Rich's delegation, restated it: the gate's edge is the
+heaviest load it ADMITS, and N burners holding the load there prove it.)*
+
+**N — below saturation each burner adds about one to the 1-minute load** (eight read 8.42 at the gate's moment), so ten burners sit at the
+gate's edge (11.61 and 11.88 at the moment the gate read them) and six at ~8 — the plan's own Step 2 load (*"a call's worth"*), admitted.
+
+**U — at the gate's edge the utility run was 2.21× its quiet self and read 4 red at scale 3.** The three timeouts were NOT slow tests
+(1.4–2.8 s quiet): `api/agents` FE-36 *a production deploy narrows the sessions holding what it no longer allows, before it answers*
+(1.6 s quiet), `source/github/driver` *pages the history newest first …* (2.8 s) and *resolves a branch to GitHub's NOW …* (1.7 s); the
+fourth, beside the first, `INTERNAL … expected 500 to be 201`. Per test (quiet ≥ 200 ms, n 832): median 1.85×, p90 2.73×, **p99 8.08×,
+max 19.51×** — with ten burners only ~2 cores are free, and when the suite's own processes (Postgres, git, a child Node) want more, utility
+loses to the burners in bursts. Scale 3 came from the QUIET ratio (1.04); Decision 3's own formula, max(2, ⌈2 × s⌉), at the edge's s =
+2.21 gives **5** (`manifest-coord5`, under Rich's delegation, 21:35) — 25 s a test covers p99 of tests to 3 s and the max of a 1 s test.
+
+**B — background under six burners is green at 7**, at 2.24× a quiet normal run: the price of running on a call, ~42 minutes. It keeps 7.
+
+**U5 — at scale 5 the same edge is green**: 3680/3680, 0 timed out, at 2.25× quiet; per test (n 832) median 1.90×, p90 2.81×, p99
+4.92×, max 7.45×. Its slowest: `document.test.ts` 55.6 s (synchronous — sitting 1's F6), `truncate.test.ts`'s reset case 20.3 s (= 3 ×
+6 250 + 1 500, by design) and `authz-contract`'s *PROJECT_ARCHIVED* 14.0 s. **The plan's Step 1 criterion — 0 red where the gate admits — is
+met at utility 5, background 7, gate 12.**
+
+**The knock-on pair** (Task 6 Step 3, a scratch file never committed, unwrapped, alone): test 1 holds `users` and, a second later,
+`audit.incidents` from work it never awaits, and times out at 500 ms. With the retry: test 1 red (`Test timed out in 500ms`), **test 2
+green**, one `[test harness] resetDatabase: the TRUNCATE failed with 40P01 (deadlock detected), attempt 1 of 3 — retrying in 100 ms` line.
+With `TRUNCATE_ATTEMPTS = 1`: test 1 red, **test 2 red** — `deadlock detected`, in its `beforeEach`.
+
+**The Docker tier at 12 CPUs** — the "before" of Task 7: `pnpm test:docker` through the wrapper (utility, scale 5 exported; its own limits
+120 s), 00:16:40, 7100 stopped, the chat model warm, NCPU 12: **305/305 in 44 files, Vitest 1977.1 s**, load min 2.20 / median 5.46 / max
+10.64 over 66 samples; 12 networks at its start, 19 at its end. **Against the unwrapped record (1322–1538 s) it is ~1.3–1.5× slower** —
+utility priority slows the tier's Node side; the Docker VM is not clamped — so Task 7's 6-CPU run is compared with THIS run.
