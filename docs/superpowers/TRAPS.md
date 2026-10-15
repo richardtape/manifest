@@ -2847,3 +2847,22 @@ check on driver 2 is it — read the project's `app_specs` rows (two for the sam
 did not yet serve it: the first call through our LiteLLM answered `400 … Invalid model name passed in model=gpt-6.1-sol`, and every build
 would have failed. **Only a call proves it**: after any repoint, make one small chat call to `default-chat-large` through LiteLLM (the
 master key read from `.env`, never printed) before anyone builds on it — and check the gateway's own `/v1/models` lists the name first.
+
+**A RUN THAT EXITS 75 WITHOUT RUNNING A TEST WAS REFUSED BY THE LOAD GATE** (the gentler test tiers plan, Tasks 3 and 5, 2026-10-14).
+`pnpm test` and `pnpm test:docker` are `scripts/test-gently.sh`: above a 1-minute load of `MANIFEST_TEST_MAX_LOAD` (default `hw.ncpu`,
+12) it prints `test-gently: REFUSED to start: the 1-minute load is <n>, above the gate of 12 …` and exits **75** before Vitest starts —
+no global setup, nothing truncated. It is not a red: wait for the load to fall (`Monitor` on `sysctl -n vm.loadavg`, never a `sleep`
+loop) or run with `MANIFEST_TEST_FORCE=1` and say so in the record — the summary line then reads `forced yes`. `make ci-acceptance`
+records it as `pnpm test FAIL exit 75 — REFUSED to start: …`. **Twelve CPU burners do not make a load of 12**: twelve `yes` processes
+read a 1-minute load of ~60 at once and 53–333 over a run (sitting 1's F5), so the gate refuses far less than "every core busy".
+
+**NEVER `kill -STOP` A TEST RUN** (the gentler test tiers plan, Decision 5). Vitest's limits are wall-clock timers: on `kill -CONT` every
+one that came due while the run was stopped fires at once, and every test in flight times out — a red run made by the pause. To make room
+for Rich, stop the run (Ctrl-C) and start it again with `MANIFEST_TEST_QOS=background` (RUNBOOK, *Running the test tiers gently*).
+
+**`MANIFEST_TEST_GENTLY` IN YOUR SHELL MAKES THE WRAPPER PASS STRAIGHT THROUGH** (the gentler test tiers plan, Task 3). The wrapper sets
+it for its own children, so a `pnpm test` started from inside a gentle run is gated and sampled once, by the outer one. Exported in a
+shell — or inherited by a script started from a test — it makes every later `pnpm test` run with no gate, no priority of its own, no
+scale of its own (Vitest's 5 s unless `MANIFEST_TEST_TIMEOUT_SCALE` is set) and no load line; `make ci-acceptance` then records `no load
+line — did pnpm test run through scripts/test-gently.sh?`. `env | grep MANIFEST_TEST_` before a run. **A test of the wrapper must scrub
+it** — the suite runs inside the wrapper, so every `MANIFEST_TEST_*` is in every test's environment (`test-gently.test.ts`'s `cleanEnv()`).

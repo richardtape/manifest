@@ -360,7 +360,8 @@ record() {
 }
 
 LOG="$(mktemp -t manifest-ci)"
-trap 'rm -f "$LOG"' EXIT
+LOAD_REPORT="$(mktemp -t manifest-load)"
+trap 'rm -f "$LOG" "$LOAD_REPORT"' EXIT
 
 # run <name> <command...> — reports, never exits.
 run() {
@@ -422,17 +423,23 @@ run "pnpm format:check" pnpm format:check
 # other way round it would empty the database the demos had just filled, the demos would
 # recreate their projects, and which step made the machine what it is would be hidden.
 bold "=== pnpm test ==="
-pnpm test 2>&1 | tee "$LOG"
+# `pnpm test` is scripts/test-gently.sh: utility priority, the timeout scale, the load gate. Its one
+# line — the load over the run, or why it refused to start — goes on this step's line in the summary,
+# PASS or FAIL, so a red says what the machine was doing (the gentler test tiers plan, Task 5).
+: > "$LOAD_REPORT"
+MANIFEST_TEST_LOAD_REPORT="$LOAD_REPORT" pnpm test 2>&1 | tee "$LOG"
 TEST_RC="${PIPESTATUS[0]}"
+LOAD_NOTE="$(cat "$LOAD_REPORT")"
+LOAD_NOTE="${LOAD_NOTE:-no load line — did pnpm test run through scripts/test-gently.sh?}"
 GOT_TESTS="$(grep -E '^ +Tests +[0-9]+ passed' "$LOG" | awk '{print $2}' | tail -1)"
 GOT_FILES="$(grep -E '^ +Test Files +[0-9]+ passed' "$LOG" | awk '{print $3}' | tail -1)"
 if [ "$TEST_RC" -ne 0 ]; then
-  record "pnpm test" FAIL "exit $TEST_RC"
+  record "pnpm test" FAIL "exit $TEST_RC — $LOAD_NOTE"
 elif [ "$GOT_TESTS" = "$EXPECT_TESTS" ] && [ "$GOT_FILES" = "$EXPECT_FILES" ]; then
-  record "pnpm test" PASS "$GOT_TESTS tests in $GOT_FILES files"
+  record "pnpm test" PASS "$GOT_TESTS tests in $GOT_FILES files — $LOAD_NOTE"
 else
   record "pnpm test" MOVED \
-    "counts moved: expected $EXPECT_TESTS in $EXPECT_FILES files, got ${GOT_TESTS:-none} in ${GOT_FILES:-none} — update ORIENTATION §2 and this script together"
+    "counts moved: expected $EXPECT_TESTS in $EXPECT_FILES files, got ${GOT_TESTS:-none} in ${GOT_FILES:-none} — update ORIENTATION §2 and this script together — $LOAD_NOTE"
 fi
 
 # ---------------------------------------------------------------- 4. the clients build

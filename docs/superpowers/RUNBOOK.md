@@ -1770,6 +1770,61 @@ edited. Its controls and their predictions are in the script's header; what each
 **A green run leaves** the two projects (the high one's privacy assessment drafted, for a person to read in the console's
 *Records*), and a `mf-person-` user at LiteLLM holding two ended sessions' keys.
 
+## Running the test tiers gently
+
+*Added by the gentler test tiers plan's sitting 2, 2026-10-14 (Task 5). Rich's yes to all four, 2026-10-14 (`abdd01e`).*
+
+**`pnpm test` and `pnpm test:docker` run through `scripts/test-gently.sh`** (`package.json`), so this Mac stays
+usable while they run, and a run does not fail because it is in use:
+
+- **Priority.** The tier runs under `taskpolicy -c utility` — the scheduler serves everything else first, and every
+  child inherits it (`ps -o pri=` reads 31 normal, 20 utility, 4 background).
+- **The timeout scale.** A lower priority is a slower run, so the wrapper exports `MANIFEST_TEST_TIMEOUT_SCALE` —
+  **3** at utility, **7** at background, 1 at normal — and `packages/control-plane/src/test-timeouts.ts` multiplies
+  the `unit` and `packages` projects' limits by it (5 s → 15 s a test at utility), every explicit `scaled(…)` limit,
+  and the reset's lock budget. The values are measured: [`spikes/gentler-tiers-baseline/README.md`](spikes/gentler-tiers-baseline/README.md).
+  The `docker` project keeps its 120 s. `slowTestThreshold` is 5 s (`vitest.config.ts`), so a piped run still names
+  every test over the old limit, with its duration — the **slow list** each close-out reads (ORIENTATION §6).
+- **The load gate.** Above a 1-minute load of **12** (`MANIFEST_TEST_MAX_LOAD`; by default `sysctl -n hw.ncpu`) the
+  wrapper **exits 75 before any test**, and says so on one line. **Exit 75 is the gate, not a red**: wait for the
+  load to fall — with `Monitor` on `sysctl -n vm.loadavg`, never a `sleep` loop — or run with `MANIFEST_TEST_FORCE=1`,
+  and say in the record that it was forced (the summary line does).
+- **The line at the end.** Every run ends with `test-gently: load (1-min) min … / median … / max … over N samples
+  30 s apart; QoS …, timeout scale …, gate …, forced …; exit …` — **read it before believing a red** (ORIENTATION §4's
+  trap 4). `make ci-acceptance` puts it on its `pnpm test` line, PASS or FAIL.
+
+**Rich on a call** (Zoom, Meet): `MANIFEST_TEST_QOS=background pnpm test` — background priority (throttled disk too)
+and scale 7: slower, and gentler. **To measure**, `MANIFEST_TEST_QOS=normal` runs as before, at scale 1.
+
+**One file, gently:** `bash scripts/test-gently.sh pnpm exec vitest run --project unit src/<path>`. Run unwrapped
+(`pnpm exec vitest run --project unit src/<path>`, from the repo root) it keeps normal priority and Vitest's 5 s.
+
+**A new explicit timeout** is `}, scaled(30_000))` (from `test-timeouts.ts`), never a bare number:
+`test-timeouts.test.ts` scans every unit and packages test file and refuses one, naming its `file:line`.
+
+**Never pause a run with `kill -STOP`.** Vitest's limits are wall-clock timers: on `kill -CONT` every one that came due
+while it was stopped fires at once, and every test in flight times out. Stop it (Ctrl-C) and start it again with
+`MANIFEST_TEST_QOS=background`.
+
+| Variable | Default | What it does |
+|---|---|---|
+| `MANIFEST_TEST_QOS` | `utility` | `utility`, `background` or `normal` — anything else exits 64 |
+| `MANIFEST_TEST_TIMEOUT_SCALE` | 3 / 7 / 1 by QoS | 1–10; outside it the run stops before any test, naming the value |
+| `MANIFEST_TEST_MAX_LOAD` | `hw.ncpu` (12) | the gate |
+| `MANIFEST_TEST_FORCE` | unset | `1` runs above the gate, marked `forced yes` |
+| `MANIFEST_TEST_SAMPLE_SECONDS` | 30 | the sampler's interval |
+| `MANIFEST_TEST_LOAD_REPORT` | unset | a file the end line (or the refusal) is also written to |
+| `MANIFEST_TEST_GENTLY` | set BY the wrapper | **in your shell it makes the wrapper pass straight through** — no gate, no priority of its own, no line (TRAPS) |
+
+Exit codes: the command's own; **75** refused by the gate; **64** a usage error or an unknown QoS; **69** no
+`taskpolicy` on `PATH`.
+
+**The reset survives a lock it did not cause** (Task 4): `resetDatabase` and the global setup truncate through
+`src/db/truncate.ts`, on an admin pool with `lock_timeout` = a quarter of a test's limit (3 750 ms at utility), and
+retry `40P01` (deadlock) and `55P03` (lock budget spent) three times, each a `[test harness] resetDatabase: …` line on
+stderr. **The test that timed out stays red** — the retry spares only the next one. It never ends another connection:
+7100 shares the database.
+
 ## `make ci-acceptance` and `make demo-console` — 1c's acceptance, in two halves
 
 *Added by P5c sitting 8, 2026-09-19 (Task 13).*
@@ -1812,7 +1867,9 @@ the summary counts it on its own line and says so; the exit status is still the 
 
 **`pnpm test` runs BEFORE the demos and the order is load-bearing**: it TRUNCATES the
 control plane's §6 tables. The other way round it would empty the database the demos had
-just filled, and which step made the machine what it is would be hidden.
+just filled, and which step made the machine what it is would be hidden. **Its line in the summary carries the
+wrapper's load line**, PASS or FAIL — or the gate's refusal, `exit 75` (*Running the test tiers gently*, above; the
+gentler test tiers plan's Task 5).
 
 **There is no CI workflow file, deliberately** (P5c Decision 11). Nothing can run this but
 a Mac with Docker Desktop, Ollama with two models, the platform CA trusted in the keychain
