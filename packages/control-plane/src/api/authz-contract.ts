@@ -19,6 +19,7 @@ import type { ErrorCode } from './error-codes.js'
 import { fastifyPath } from './contract/route.js'
 import { openApiDocument } from './contract/document.js'
 import { ROUTE_DEFINITIONS } from './routes/index.js'
+import { scaled } from '../test-timeouts.js'
 
 /** A person in a browser. Five, because §16 names five. */
 type SessionActor = 'owner' | 'collaborator' | 'stranger' | 'admin' | 'anonymous'
@@ -2952,71 +2953,75 @@ export function describeAuthorizationContract(
      *
      * **LAST, AND THE ORDER IS LOAD-BEARING**: it archives the project every row above addresses.
      */
-    it('declares PROJECT_ARCHIVED on exactly the operations that answer it once the project is archived', async () => {
-      const archived = await app.inject({
-        method: 'POST',
-        url: `/v1/projects/${fixture.projectId}/archive`,
-        payload: {},
-        cookies: await loginAs(deps, 'bio_prof', { steppedUp: true }),
-        headers: mutationHeaders(deps),
-      })
-      expect({ status: archived.statusCode, code: codeOf(archived.body) }).toEqual({
-        status: 200,
-        code: undefined,
-      })
-      const document = openApiDocument(ROUTE_DEFINITIONS) as {
-        paths: Record<string, Record<string, { 'x-manifest-error-codes': string[] }>>
-      }
-      const operations = new Map(
-        ROUTE_DEFINITIONS.map((route) => [
-          `${route.method} ${fastifyPath(route.path)}`,
-          {
-            operationId: route.operationId,
-            codes:
-              document.paths[route.path]![route.method.toLowerCase()]![
-                'x-manifest-error-codes'
-              ],
-          },
-        ]),
-      )
-      const answered = new Set<string>()
-      const outsideTheDocument: string[] = []
-      // `/auth/` addresses no project, and asking it again would sign the two actors out or start
-      // their step-ups — the only rows left out.
-      for (const route of ROUTES.filter((r) => !r.url.startsWith('/auth/'))) {
-        for (const actor of ['owner', 'admin'] as const) {
-          const { url, payload } = await route.request(fixture, actor)
-          const response = await app.inject({
-            method: route.method as 'GET',
-            url,
-            headers: mutationHeaders(deps),
-            ...(payload === undefined ? {} : { payload }),
-            cookies: cookies[actor]!,
-          })
-          if (codeOf(response.body) !== 'PROJECT_ARCHIVED') continue
-          const operation = operations.get(`${route.method} ${route.url}`)
-          if (operation === undefined)
-            outsideTheDocument.push(`${route.method} ${route.url}`)
-          else answered.add(operation.operationId)
+    it(
+      'declares PROJECT_ARCHIVED on exactly the operations that answer it once the project is archived',
+      async () => {
+        const archived = await app.inject({
+          method: 'POST',
+          url: `/v1/projects/${fixture.projectId}/archive`,
+          payload: {},
+          cookies: await loginAs(deps, 'bio_prof', { steppedUp: true }),
+          headers: mutationHeaders(deps),
+        })
+        expect({ status: archived.statusCode, code: codeOf(archived.body) }).toEqual({
+          status: 200,
+          code: undefined,
+        })
+        const document = openApiDocument(ROUTE_DEFINITIONS) as {
+          paths: Record<string, Record<string, { 'x-manifest-error-codes': string[] }>>
         }
-      }
-      const declared = [...operations.values()]
-        .filter((operation) => operation.codes.includes('PROJECT_ARCHIVED'))
-        .map((operation) => operation.operationId)
-        .sort()
-      // A route outside the document answering it would be a refusal no reader can find at all.
-      expect(outsideTheDocument).toEqual([])
-      // The measurement measured something: an archived project refuses every change.
-      expect(answered.size, 'operations answering PROJECT_ARCHIVED').toBeGreaterThan(10)
-      // …and READS still answer (the fixture's own project, as its owner).
-      const read = await app.inject({
-        method: 'GET',
-        url: `/v1/projects/${fixture.projectId}`,
-        cookies: cookies.owner!,
-      })
-      expect(read.statusCode, read.body).toBe(200)
-      expect(declared).toEqual([...answered].sort())
-    }, 60_000)
+        const operations = new Map(
+          ROUTE_DEFINITIONS.map((route) => [
+            `${route.method} ${fastifyPath(route.path)}`,
+            {
+              operationId: route.operationId,
+              codes:
+                document.paths[route.path]![route.method.toLowerCase()]![
+                  'x-manifest-error-codes'
+                ],
+            },
+          ]),
+        )
+        const answered = new Set<string>()
+        const outsideTheDocument: string[] = []
+        // `/auth/` addresses no project, and asking it again would sign the two actors out or start
+        // their step-ups — the only rows left out.
+        for (const route of ROUTES.filter((r) => !r.url.startsWith('/auth/'))) {
+          for (const actor of ['owner', 'admin'] as const) {
+            const { url, payload } = await route.request(fixture, actor)
+            const response = await app.inject({
+              method: route.method as 'GET',
+              url,
+              headers: mutationHeaders(deps),
+              ...(payload === undefined ? {} : { payload }),
+              cookies: cookies[actor]!,
+            })
+            if (codeOf(response.body) !== 'PROJECT_ARCHIVED') continue
+            const operation = operations.get(`${route.method} ${route.url}`)
+            if (operation === undefined)
+              outsideTheDocument.push(`${route.method} ${route.url}`)
+            else answered.add(operation.operationId)
+          }
+        }
+        const declared = [...operations.values()]
+          .filter((operation) => operation.codes.includes('PROJECT_ARCHIVED'))
+          .map((operation) => operation.operationId)
+          .sort()
+        // A route outside the document answering it would be a refusal no reader can find at all.
+        expect(outsideTheDocument).toEqual([])
+        // The measurement measured something: an archived project refuses every change.
+        expect(answered.size, 'operations answering PROJECT_ARCHIVED').toBeGreaterThan(10)
+        // …and READS still answer (the fixture's own project, as its owner).
+        const read = await app.inject({
+          method: 'GET',
+          url: `/v1/projects/${fixture.projectId}`,
+          cookies: cookies.owner!,
+        })
+        expect(read.statusCode, read.body).toBe(200)
+        expect(declared).toEqual([...answered].sort())
+      },
+      scaled(60_000),
+    )
 
     /**
      * §26'S REASON FOR AN ADMINISTRATOR WHO IS A COLLABORATOR (Spec action 5; the faculty-ready plan's
@@ -3027,47 +3032,52 @@ export function describeAuthorizationContract(
      * like the measurement below: the refusal comes before the archived state. Each answered operation
      * is also one the document declares — a subset of the 24 below.
      */
-    it('asks an administrator who is a COLLABORATOR for a reason on exactly what a collaborator may not do', async () => {
-      expect(fixture.adminIsMember).toBe(true)
-      const document = openApiDocument(ROUTE_DEFINITIONS) as {
-        paths: Record<string, Record<string, { 'x-manifest-error-codes': string[] }>>
-      }
-      const declared = new Set(
-        ROUTE_DEFINITIONS.filter((route) =>
-          document.paths[route.path]![route.method.toLowerCase()]![
-            'x-manifest-error-codes'
-          ].includes('ADMIN_REASON_REQUIRED'),
-        ).map((route) => route.operationId),
-      )
-      const answered = new Set<string>()
-      // `/auth/` addresses no project, and asking it would sign the administrator out.
-      for (const route of ROUTES.filter((r) => !r.url.startsWith('/auth/'))) {
-        const { url, payload } = await route.request(fixture, 'admin')
-        const response = await app.inject({
-          method: route.method as 'GET',
-          url,
-          headers: mutationHeaders(deps),
-          ...(payload === undefined ? {} : { payload }),
-          cookies: cookies.admin!,
-        })
-        if (codeOf(response.body) !== 'ADMIN_REASON_REQUIRED') continue
-        const definition = ROUTE_DEFINITIONS.find(
-          (r) => `${r.method} ${fastifyPath(r.path)}` === `${route.method} ${route.url}`,
+    it(
+      'asks an administrator who is a COLLABORATOR for a reason on exactly what a collaborator may not do',
+      async () => {
+        expect(fixture.adminIsMember).toBe(true)
+        const document = openApiDocument(ROUTE_DEFINITIONS) as {
+          paths: Record<string, Record<string, { 'x-manifest-error-codes': string[] }>>
+        }
+        const declared = new Set(
+          ROUTE_DEFINITIONS.filter((route) =>
+            document.paths[route.path]![route.method.toLowerCase()]![
+              'x-manifest-error-codes'
+            ].includes('ADMIN_REASON_REQUIRED'),
+          ).map((route) => route.operationId),
         )
-        answered.add(definition?.operationId ?? `${route.method} ${route.url}`)
-      }
-      expect([...answered].filter((operation) => !declared.has(operation))).toEqual([])
-      expect([...answered].sort()).toEqual([
-        'addMember',
-        'archiveProject',
-        'confirmPendingAction',
-        'deleteProject',
-        'deploy',
-        'rejectPendingAction',
-        'removeMember',
-        'restoreProject',
-      ])
-    }, 60_000)
+        const answered = new Set<string>()
+        // `/auth/` addresses no project, and asking it would sign the administrator out.
+        for (const route of ROUTES.filter((r) => !r.url.startsWith('/auth/'))) {
+          const { url, payload } = await route.request(fixture, 'admin')
+          const response = await app.inject({
+            method: route.method as 'GET',
+            url,
+            headers: mutationHeaders(deps),
+            ...(payload === undefined ? {} : { payload }),
+            cookies: cookies.admin!,
+          })
+          if (codeOf(response.body) !== 'ADMIN_REASON_REQUIRED') continue
+          const definition = ROUTE_DEFINITIONS.find(
+            (r) =>
+              `${r.method} ${fastifyPath(r.path)}` === `${route.method} ${route.url}`,
+          )
+          answered.add(definition?.operationId ?? `${route.method} ${route.url}`)
+        }
+        expect([...answered].filter((operation) => !declared.has(operation))).toEqual([])
+        expect([...answered].sort()).toEqual([
+          'addMember',
+          'archiveProject',
+          'confirmPendingAction',
+          'deleteProject',
+          'deploy',
+          'rejectPendingAction',
+          'removeMember',
+          'restoreProject',
+        ])
+      },
+      scaled(60_000),
+    )
 
     /**
      * §26'S REASON, DECLARED EXACTLY WHERE IT IS ANSWERED (the faculty-ready plan's Task 10, Decision
@@ -3086,87 +3096,91 @@ export function describeAuthorizationContract(
      * archived state, so without a reason every row still answers it, and with one an archived project
      * refuses every change — so nothing this measurement asks can move anything the rows above read.
      */
-    it('declares ADMIN_REASON_REQUIRED on exactly the operations that ask an administrator who is not a member for a reason — the 24 [M5] measured', async () => {
-      const admin = await ensureTestUser(deps.db, 'platform_admin')
-      expect(await removeMember(deps.db, fixture.projectId, admin.id)).toBe('removed')
-      fixture.adminIsMember = false
-      const document = openApiDocument(ROUTE_DEFINITIONS) as {
-        paths: Record<string, Record<string, { 'x-manifest-error-codes': string[] }>>
-      }
-      const operationOf = new Map(
-        ROUTE_DEFINITIONS.map((route) => [
-          `${route.method} ${fastifyPath(route.path)}`,
-          route.operationId,
-        ]),
-      )
-      const ask = async (route: RouteCase, reason?: string) => {
-        const { url, payload } = await route.request(fixture, 'admin')
-        const response = await app.inject({
-          method: route.method as 'GET',
-          url,
-          headers: {
-            ...mutationHeaders(deps),
-            ...(reason === undefined ? {} : { 'manifest-admin-reason': reason }),
-          },
-          ...(payload === undefined ? {} : { payload }),
-          cookies: cookies.admin!,
-        })
-        return codeOf(response.body)
-      }
-      const answered = new Set<string>()
-      const asking: RouteCase[] = []
-      // `/auth/` addresses no project, and asking it would sign the administrator out.
-      for (const route of ROUTES.filter((r) => !r.url.startsWith('/auth/'))) {
-        if ((await ask(route)) !== 'ADMIN_REASON_REQUIRED') continue
-        answered.add(
-          operationOf.get(`${route.method} ${route.url}`) ??
-            `${route.method} ${route.url}`,
+    it(
+      'declares ADMIN_REASON_REQUIRED on exactly the operations that ask an administrator who is not a member for a reason — the 24 [M5] measured',
+      async () => {
+        const admin = await ensureTestUser(deps.db, 'platform_admin')
+        expect(await removeMember(deps.db, fixture.projectId, admin.id)).toBe('removed')
+        fixture.adminIsMember = false
+        const document = openApiDocument(ROUTE_DEFINITIONS) as {
+          paths: Record<string, Record<string, { 'x-manifest-error-codes': string[] }>>
+        }
+        const operationOf = new Map(
+          ROUTE_DEFINITIONS.map((route) => [
+            `${route.method} ${fastifyPath(route.path)}`,
+            route.operationId,
+          ]),
         )
-        asking.push(route)
-      }
-      const declared = ROUTE_DEFINITIONS.filter((route) =>
-        document.paths[route.path]![route.method.toLowerCase()]![
-          'x-manifest-error-codes'
-        ].includes('ADMIN_REASON_REQUIRED'),
-      )
-        .map((route) => route.operationId)
-        .sort()
-      expect([...answered].sort()).toEqual(declared)
-      expect(declared).toEqual([
-        'addMember',
-        'archiveProject',
-        'clearAppSecret',
-        'confirmPendingAction',
-        'createCommit',
-        'createRelease',
-        'deleteProject',
-        'deploy',
-        'draftIamRegistration',
-        'draftPrivacyAssessment',
-        'endAgentSession',
-        'mintToken',
-        'rejectPendingAction',
-        'removeMember',
-        'requestApproval',
-        'restoreProject',
-        'runRehearsal',
-        'sendIamRegistration',
-        'sendPrivacyAssessment',
-        'setAppSecret',
-        'startAgentSession',
-        'startBuild',
-        'updateProject',
-        'validateSpec',
-      ])
-      // WITH a reason, none of them asks again.
-      const stillAsking: string[] = []
-      for (const route of asking)
-        if (
-          (await ask(route, 'the authorization contract asks')) ===
-          'ADMIN_REASON_REQUIRED'
+        const ask = async (route: RouteCase, reason?: string) => {
+          const { url, payload } = await route.request(fixture, 'admin')
+          const response = await app.inject({
+            method: route.method as 'GET',
+            url,
+            headers: {
+              ...mutationHeaders(deps),
+              ...(reason === undefined ? {} : { 'manifest-admin-reason': reason }),
+            },
+            ...(payload === undefined ? {} : { payload }),
+            cookies: cookies.admin!,
+          })
+          return codeOf(response.body)
+        }
+        const answered = new Set<string>()
+        const asking: RouteCase[] = []
+        // `/auth/` addresses no project, and asking it would sign the administrator out.
+        for (const route of ROUTES.filter((r) => !r.url.startsWith('/auth/'))) {
+          if ((await ask(route)) !== 'ADMIN_REASON_REQUIRED') continue
+          answered.add(
+            operationOf.get(`${route.method} ${route.url}`) ??
+              `${route.method} ${route.url}`,
+          )
+          asking.push(route)
+        }
+        const declared = ROUTE_DEFINITIONS.filter((route) =>
+          document.paths[route.path]![route.method.toLowerCase()]![
+            'x-manifest-error-codes'
+          ].includes('ADMIN_REASON_REQUIRED'),
         )
-          stillAsking.push(`${route.method} ${route.url}`)
-      expect(stillAsking).toEqual([])
-    }, 60_000)
+          .map((route) => route.operationId)
+          .sort()
+        expect([...answered].sort()).toEqual(declared)
+        expect(declared).toEqual([
+          'addMember',
+          'archiveProject',
+          'clearAppSecret',
+          'confirmPendingAction',
+          'createCommit',
+          'createRelease',
+          'deleteProject',
+          'deploy',
+          'draftIamRegistration',
+          'draftPrivacyAssessment',
+          'endAgentSession',
+          'mintToken',
+          'rejectPendingAction',
+          'removeMember',
+          'requestApproval',
+          'restoreProject',
+          'runRehearsal',
+          'sendIamRegistration',
+          'sendPrivacyAssessment',
+          'setAppSecret',
+          'startAgentSession',
+          'startBuild',
+          'updateProject',
+          'validateSpec',
+        ])
+        // WITH a reason, none of them asks again.
+        const stillAsking: string[] = []
+        for (const route of asking)
+          if (
+            (await ask(route, 'the authorization contract asks')) ===
+            'ADMIN_REASON_REQUIRED'
+          )
+            stillAsking.push(`${route.method} ${route.url}`)
+        expect(stillAsking).toEqual([])
+      },
+      scaled(60_000),
+    )
   })
 }

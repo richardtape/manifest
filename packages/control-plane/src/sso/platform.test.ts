@@ -6,6 +6,7 @@ import {
   SsoError,
 } from './index.js'
 import { mintSpKeypair } from './keypair.js'
+import { scaled } from '../test-timeouts.js'
 
 /**
  * §9's first sentence, as a pure function.
@@ -102,57 +103,61 @@ describe('the control plane’s own Service Provider (§9)', () => {
    * reader of `acsUrl` and `sloUrl` is unchanged; ONE SingleLogoutService, the first's, because
    * SimpleSAMLphp answers a logout at the first of a binding (`[M5]`).
    */
-  it('lists one ACS per origin in the platform’s row, the console’s first, and one SLO', async () => {
-    const entity = controlPlaneSpEntity({
-      entityBase: base,
-      origins: ['https://console.manifest.internal', 'https://app.manifest.internal'],
-    })
-    expect(entity.entityId).toBe(
-      'https://manifest.internal/sp/manifest-control-plane/platform',
-    )
-    expect(entity.acsUrl).toBe('https://console.manifest.internal/auth/saml/callback')
-    expect(entity.sloUrl).toBe('https://console.manifest.internal/auth/logout')
-    expect(entity.additionalAcsUrls).toEqual([
-      'https://app.manifest.internal/auth/saml/callback',
-    ])
-    expect(entity.endpoints).toEqual([
-      {
-        origin: 'https://console.manifest.internal',
-        acsUrl: 'https://console.manifest.internal/auth/saml/callback',
-        sloUrl: 'https://console.manifest.internal/auth/logout',
-      },
-      {
-        origin: 'https://app.manifest.internal',
-        acsUrl: 'https://app.manifest.internal/auth/saml/callback',
-        sloUrl: 'https://app.manifest.internal/auth/logout',
-      },
-    ])
-    const keypair = await mintSpKeypair({
-      projectId: '00000000-0000-0000-0000-000000000000',
-      environmentKind: 'staging',
-      slug: 'manifest-control-plane',
-      entityId: entity.entityId,
-    })
-    const row = renderSpMetadata(entity, keypair)
-    expect(row.AssertionConsumerService).toEqual([
-      {
-        index: 0,
-        Binding: 'urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST',
-        Location: 'https://console.manifest.internal/auth/saml/callback',
-      },
-      {
-        index: 1,
-        Binding: 'urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST',
-        Location: 'https://app.manifest.internal/auth/saml/callback',
-      },
-    ])
-    expect(row.SingleLogoutService).toEqual([
-      {
-        Binding: 'urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect',
-        Location: 'https://console.manifest.internal/auth/logout',
-      },
-    ])
-  }, 30_000)
+  it(
+    'lists one ACS per origin in the platform’s row, the console’s first, and one SLO',
+    async () => {
+      const entity = controlPlaneSpEntity({
+        entityBase: base,
+        origins: ['https://console.manifest.internal', 'https://app.manifest.internal'],
+      })
+      expect(entity.entityId).toBe(
+        'https://manifest.internal/sp/manifest-control-plane/platform',
+      )
+      expect(entity.acsUrl).toBe('https://console.manifest.internal/auth/saml/callback')
+      expect(entity.sloUrl).toBe('https://console.manifest.internal/auth/logout')
+      expect(entity.additionalAcsUrls).toEqual([
+        'https://app.manifest.internal/auth/saml/callback',
+      ])
+      expect(entity.endpoints).toEqual([
+        {
+          origin: 'https://console.manifest.internal',
+          acsUrl: 'https://console.manifest.internal/auth/saml/callback',
+          sloUrl: 'https://console.manifest.internal/auth/logout',
+        },
+        {
+          origin: 'https://app.manifest.internal',
+          acsUrl: 'https://app.manifest.internal/auth/saml/callback',
+          sloUrl: 'https://app.manifest.internal/auth/logout',
+        },
+      ])
+      const keypair = await mintSpKeypair({
+        projectId: '00000000-0000-0000-0000-000000000000',
+        environmentKind: 'staging',
+        slug: 'manifest-control-plane',
+        entityId: entity.entityId,
+      })
+      const row = renderSpMetadata(entity, keypair)
+      expect(row.AssertionConsumerService).toEqual([
+        {
+          index: 0,
+          Binding: 'urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST',
+          Location: 'https://console.manifest.internal/auth/saml/callback',
+        },
+        {
+          index: 1,
+          Binding: 'urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST',
+          Location: 'https://app.manifest.internal/auth/saml/callback',
+        },
+      ])
+      expect(row.SingleLogoutService).toEqual([
+        {
+          Binding: 'urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect',
+          Location: 'https://console.manifest.internal/auth/logout',
+        },
+      ])
+    },
+    scaled(30_000),
+  )
 
   it('refuses no origins at all — the platform is reached somewhere', () => {
     expect(() => controlPlaneSpEntity({ entityBase: base, origins: [] })).toThrow(
@@ -160,37 +165,41 @@ describe('the control plane’s own Service Provider (§9)', () => {
     )
   })
 
-  it('renders through the SAME renderer every app’s row goes through', async () => {
-    // The point of the whole file it lives in: the platform's row is not a
-    // second `entity_data` document written by hand somewhere else. A second
-    // producer of this shape is defect 49, and it cost a session.
-    const entity = controlPlaneSpEntity({
-      entityBase: base,
-      origins: ['http://127.0.0.1:7100'],
-    })
-    const keypair = await mintSpKeypair({
-      projectId: '00000000-0000-0000-0000-000000000000',
-      environmentKind: 'staging',
-      slug: 'manifest-control-plane',
-      entityId: entity.entityId,
-    })
-    const row = renderSpMetadata(entity, keypair)
+  it(
+    'renders through the SAME renderer every app’s row goes through',
+    async () => {
+      // The point of the whole file it lives in: the platform's row is not a
+      // second `entity_data` document written by hand somewhere else. A second
+      // producer of this shape is defect 49, and it cost a session.
+      const entity = controlPlaneSpEntity({
+        entityBase: base,
+        origins: ['http://127.0.0.1:7100'],
+      })
+      const keypair = await mintSpKeypair({
+        projectId: '00000000-0000-0000-0000-000000000000',
+        environmentKind: 'staging',
+        slug: 'manifest-control-plane',
+        entityId: entity.entityId,
+      })
+      const row = renderSpMetadata(entity, keypair)
 
-    expect(row.AssertionConsumerService[0]?.Location).toBe(entity.acsUrl)
-    expect(row.attributes).toEqual(CONTROL_PLANE_ATTRIBUTES)
-    expect(row['validate.authnrequest']).toBe(true)
-    expect(row['saml20.sign.assertion']).toBe(true)
-    // The IdP SIGNS the logout messages it sends this SP (2026-09-24). SimpleSAMLphp
-    // v2.5.3.1's `addRedirectSign` signs a LogoutRequest or LogoutResponse only when
-    // `sign.logout` (or `redirect.sign`) is set on the hosted IdP or on this row, and
-    // neither was — so every one arrived unsigned, and node-saml 5.1.0 ACCEPTS an
-    // unsigned redirect message (`hasValidSignatureForRedirect` returns true with no
-    // `Signature` at all). The SLO route now refuses unsigned; this is its other half.
-    expect(row['sign.logout']).toBe(true)
-    expect(row['validate.logout']).toBe(true)
-    // The base64 BODY, no PEM armour — armour in the row fails at signature
-    // validation with a message about the certificate rather than its encoding.
-    expect(row.certData).not.toContain('BEGIN CERTIFICATE')
-    expect(row.certData).toBe(keypair.certData)
-  }, 30_000)
+      expect(row.AssertionConsumerService[0]?.Location).toBe(entity.acsUrl)
+      expect(row.attributes).toEqual(CONTROL_PLANE_ATTRIBUTES)
+      expect(row['validate.authnrequest']).toBe(true)
+      expect(row['saml20.sign.assertion']).toBe(true)
+      // The IdP SIGNS the logout messages it sends this SP (2026-09-24). SimpleSAMLphp
+      // v2.5.3.1's `addRedirectSign` signs a LogoutRequest or LogoutResponse only when
+      // `sign.logout` (or `redirect.sign`) is set on the hosted IdP or on this row, and
+      // neither was — so every one arrived unsigned, and node-saml 5.1.0 ACCEPTS an
+      // unsigned redirect message (`hasValidSignatureForRedirect` returns true with no
+      // `Signature` at all). The SLO route now refuses unsigned; this is its other half.
+      expect(row['sign.logout']).toBe(true)
+      expect(row['validate.logout']).toBe(true)
+      // The base64 BODY, no PEM armour — armour in the row fails at signature
+      // validation with a message about the certificate rather than its encoding.
+      expect(row.certData).not.toContain('BEGIN CERTIFICATE')
+      expect(row.certData).toBe(keypair.certData)
+    },
+    scaled(30_000),
+  )
 })

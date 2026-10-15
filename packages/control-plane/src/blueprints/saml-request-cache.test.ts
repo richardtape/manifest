@@ -5,6 +5,7 @@ import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { promisify } from 'node:util'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { scaled } from '../test-timeouts.js'
 
 const run = promisify(execFile)
 
@@ -189,54 +190,70 @@ describe("node-ts-mongo@1's SAML request cache — a sign-in that crosses instan
     return JSON.parse(await readFile(out, 'utf8')) as RunResult
   }
 
-  it("hands the SAML library a request cache in the app's OWN database, expiring after eight hours", async () => {
-    const result = await runApp()
-    expect(result.error).toBeUndefined()
-    // THE DEFECT THIS EXISTS TO FIX, as an assertion: with no cacheProvider the library keeps
-    // each request id in the process that issued it, and a sign-in that crosses instances fails.
-    expect(result.hasCache).toBe(true)
-    expect(result.seen.databases).toEqual([DATABASE])
-    expect(result.seen.collections).toEqual(['saml_requests'])
-    // Mongo removes what is older than the library's own request-id expiry
-    // (`requestIdExpirationPeriodMs`, eight hours) — no timer in the process.
-    expect(result.seen.indexes).toEqual([
-      { keys: { createdAt: 1 }, options: { expireAfterSeconds: 8 * 60 * 60 } },
-    ])
-  }, 30_000)
+  it(
+    "hands the SAML library a request cache in the app's OWN database, expiring after eight hours",
+    async () => {
+      const result = await runApp()
+      expect(result.error).toBeUndefined()
+      // THE DEFECT THIS EXISTS TO FIX, as an assertion: with no cacheProvider the library keeps
+      // each request id in the process that issued it, and a sign-in that crosses instances fails.
+      expect(result.hasCache).toBe(true)
+      expect(result.seen.databases).toEqual([DATABASE])
+      expect(result.seen.collections).toEqual(['saml_requests'])
+      // Mongo removes what is older than the library's own request-id expiry
+      // (`requestIdExpirationPeriodMs`, eight hours) — no timer in the process.
+      expect(result.seen.indexes).toEqual([
+        { keys: { createdAt: 1 }, options: { expireAfterSeconds: 8 * 60 * 60 } },
+      ])
+    },
+    scaled(30_000),
+  )
 
-  it('answers the library exactly as its in-memory cache would: once per id, the value, then gone', async () => {
-    const { steps, firstSaveShape } = await runApp()
-    expect(firstSaveShape).toEqual({
-      value: '2026-10-13T19:00:00.000Z',
-      createdAtIsNumber: true,
-    })
-    expect(steps).toMatchObject({
-      // An id already issued and still live is not issued twice.
-      secondSave: null,
-      get: '2026-10-13T19:00:00.000Z',
-      // An assertion answering a request this app never made is refused by the library on null.
-      getUnknown: null,
-      remove: '_req1',
-      // CONSUMED: the library removes the id once it has answered it, so a REPLAY is refused.
-      getAfterRemove: null,
-      removeAgain: null,
-      removeNull: null,
-    })
-  }, 30_000)
+  it(
+    'answers the library exactly as its in-memory cache would: once per id, the value, then gone',
+    async () => {
+      const { steps, firstSaveShape } = await runApp()
+      expect(firstSaveShape).toEqual({
+        value: '2026-10-13T19:00:00.000Z',
+        createdAtIsNumber: true,
+      })
+      expect(steps).toMatchObject({
+        // An id already issued and still live is not issued twice.
+        secondSave: null,
+        get: '2026-10-13T19:00:00.000Z',
+        // An assertion answering a request this app never made is refused by the library on null.
+        getUnknown: null,
+        remove: '_req1',
+        // CONSUMED: the library removes the id once it has answered it, so a REPLAY is refused.
+        getAfterRemove: null,
+        removeAgain: null,
+        removeNull: null,
+      })
+    },
+    scaled(30_000),
+  )
 
-  it('treats an id older than eight hours as gone, whether or not Mongo has swept it yet', async () => {
-    const { steps } = await runApp()
-    expect(steps).toMatchObject({
-      getStale: null,
-      saveOverStale: true,
-      getAfterOverStale: 'new',
-    })
-  }, 30_000)
+  it(
+    'treats an id older than eight hours as gone, whether or not Mongo has swept it yet',
+    async () => {
+      const { steps } = await runApp()
+      expect(steps).toMatchObject({
+        getStale: null,
+        saveOverStale: true,
+        getAfterOverStale: 'new',
+      })
+    },
+    scaled(30_000),
+  )
 
-  it("REFUSES to start without the app's MongoClient — never a cache in the process instead", async () => {
-    // A silent fallback to the library's in-memory cache is the cross-instance failure itself,
-    // and it would show only when a person's sign-in landed on the other instance.
-    const result = await runApp('no-client')
-    expect(result.error).toMatch(/^configureCwl\(client\) needs the app's MongoClient/)
-  }, 30_000)
+  it(
+    "REFUSES to start without the app's MongoClient — never a cache in the process instead",
+    async () => {
+      // A silent fallback to the library's in-memory cache is the cross-instance failure itself,
+      // and it would show only when a person's sign-in landed on the other instance.
+      const result = await runApp('no-client')
+      expect(result.error).toMatch(/^configureCwl\(client\) needs the app's MongoClient/)
+    },
+    scaled(30_000),
+  )
 })

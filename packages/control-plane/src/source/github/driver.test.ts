@@ -29,6 +29,7 @@ import {
 } from '../testing.js'
 import { createGithubSourceDriver, refusedWhileNew } from './driver.js'
 import { gitWithToken } from './git.js'
+import { scaled } from '../../test-timeouts.js'
 
 const run = promisify(execFile)
 
@@ -1115,24 +1116,28 @@ describe('the GitHub driver absorbs GitHub’s lag on a repository it has just m
    * passes its own `createRetryDelaysMs`, so a default of `[]` or a broken `??` stayed green. This driver
    * is built WITHOUT the option, and pays the default's first wait — about a second.
    */
-  it('a driver built with no schedule of its own retries on the production one — retry 1 of 5, in 1000 ms', async () => {
-    const h = await harness({ quirks: { notFoundAfterCreate: { push: 1 } } })
-    const said = vi.spyOn(console, 'error').mockImplementation(() => undefined)
-    try {
-      await h.driver.createRepository('chem-labs', SEED)
-      expect(await upstreamMain(h, 'chem-labs')).toBe(
-        await lsRemoteMain(h.fake, 'chem-labs'),
-      )
-      const lines = retries(said)
-      expect(lines).toHaveLength(1)
-      expect(lines[0]).toContain('the seed push')
-      expect(lines[0]).toContain('retry 1 of 5')
-      expect(lines[0]).toContain('in 1000 ms')
-    } finally {
-      said.mockRestore()
-      await h.cleanup()
-    }
-  }, 15_000) // the default's first wait is a second; vitest's 5 s leaves too little under load
+  it(
+    'a driver built with no schedule of its own retries on the production one — retry 1 of 5, in 1000 ms',
+    async () => {
+      const h = await harness({ quirks: { notFoundAfterCreate: { push: 1 } } })
+      const said = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+      try {
+        await h.driver.createRepository('chem-labs', SEED)
+        expect(await upstreamMain(h, 'chem-labs')).toBe(
+          await lsRemoteMain(h.fake, 'chem-labs'),
+        )
+        const lines = retries(said)
+        expect(lines).toHaveLength(1)
+        expect(lines[0]).toContain('the seed push')
+        expect(lines[0]).toContain('retry 1 of 5')
+        expect(lines[0]).toContain('in 1000 ms')
+      } finally {
+        said.mockRestore()
+        await h.cleanup()
+      }
+    },
+    scaled(15_000),
+  ) // the default's first wait is a second; vitest's 5 s leaves too little under load
 
   it('a seed push answered with NO line for main — lp-starter-g’s `Done` — is tried again, and lands', async () => {
     const h = await harness({ quirks: { notFoundAfterCreate: { pushPack: 1 } } }, FAST)

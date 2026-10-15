@@ -14,6 +14,7 @@ import {
   withProjectServer,
   type TestProject,
 } from './testing.js'
+import { scaled } from '../test-timeouts.js'
 
 afterAll(resetDatabase)
 
@@ -106,131 +107,135 @@ describe('an administrator acting on a project they are not a member of gives a 
    * is refused WITHOUT the header, by its code, and then answered WITH it: the same administrator, the
    * same request, the header the only difference. The archive is last: it switches the project off.
    */
-  it('refuses each change without the reason, by its code, and makes it with one', async () => {
-    await withProjectServer(async (ctx) => {
-      const releaseId = await released(ctx)
-      const admin = await loginAs(ctx.deps, 'platform_admin', { steppedUp: true })
-      // The person the member row adds has signed in once.
-      await ensureTestUser(ctx.db, 'bio_colleague')
-      const head = await ctx.deps.source.resolveRef(
-        ctx.deps.source.repositoryFor(
-          (
-            await ctx.app.inject({
-              method: 'GET',
+  it(
+    'refuses each change without the reason, by its code, and makes it with one',
+    async () => {
+      await withProjectServer(async (ctx) => {
+        const releaseId = await released(ctx)
+        const admin = await loginAs(ctx.deps, 'platform_admin', { steppedUp: true })
+        // The person the member row adds has signed in once.
+        await ensureTestUser(ctx.db, 'bio_colleague')
+        const head = await ctx.deps.source.resolveRef(
+          ctx.deps.source.repositoryFor(
+            (
+              await ctx.app.inject({
+                method: 'GET',
+                url: `/v1/projects/${ctx.projectId}`,
+                cookies: ctx.ownerCookies,
+              })
+            ).json().slug as string,
+          ),
+          'main',
+        )
+        const rows: { name: string; call: () => Call; ok: number }[] = [
+          {
+            name: 'rename',
+            call: () => ({
+              method: 'PATCH',
               url: `/v1/projects/${ctx.projectId}`,
-              cookies: ctx.ownerCookies,
-            })
-          ).json().slug as string,
-        ),
-        'main',
-      )
-      const rows: { name: string; call: () => Call; ok: number }[] = [
-        {
-          name: 'rename',
-          call: () => ({
-            method: 'PATCH',
-            url: `/v1/projects/${ctx.projectId}`,
-            payload: { name: 'Renamed by an administrator' },
-          }),
-          ok: 200,
-        },
-        {
-          name: 'validate',
-          call: () => ({
-            method: 'POST',
-            url: `/v1/projects/${ctx.projectId}/spec`,
-            payload: {},
-          }),
-          ok: 201,
-        },
-        {
-          name: 'commit',
-          call: () => ({
-            method: 'POST',
-            url: `/v1/projects/${ctx.projectId}/commits`,
-            payload: {
-              baseCommit: head,
-              message: 'an administrator fixes a page',
-              changes: [{ op: 'write', path: 'admin.txt', content: 'fixed\n' }],
-            },
-          }),
-          ok: 201,
-        },
-        {
-          name: 'secret',
-          call: () => ({
-            method: 'PUT',
-            url: `/v1/environments/${ctx.stagingEnvironmentId}/secrets/ADMIN_KEY`,
-            payload: { value: 'a-value-the-admin-set' },
-          }),
-          ok: 200,
-        },
-        {
-          name: 'build',
-          call: () => ({
-            method: 'POST',
-            url: `/v1/projects/${ctx.projectId}/builds`,
-            payload: {},
-          }),
-          ok: 202,
-        },
-        {
-          name: 'deploy',
-          call: () => ({
-            method: 'POST',
-            url: `/v1/environments/${ctx.stagingEnvironmentId}/deploy`,
-            payload: { releaseId },
-          }),
-          ok: 200,
-        },
-        {
-          name: 'member',
-          call: () => ({
-            method: 'POST',
-            url: `/v1/projects/${ctx.projectId}/members`,
-            payload: { puid: 'bio_colleague', role: 'collaborator' },
-          }),
-          ok: 201,
-        },
-        {
-          name: 'token',
-          call: () => ({
-            method: 'POST',
-            url: `/v1/projects/${ctx.projectId}/tokens`,
-            payload: {
-              name: 'admin-agent',
-              capabilities: ['project:read'],
-              expiresInDays: 1,
-            },
-          }),
-          ok: 201,
-        },
-        {
-          name: 'archive',
-          call: () => ({
-            method: 'POST',
-            url: `/v1/projects/${ctx.projectId}/archive`,
-            payload: {},
-          }),
-          ok: 200,
-        },
-      ]
-      for (const row of rows) {
-        const without = await send(ctx, admin, row.call())
-        expect({ row: row.name, ...refusal(without) }).toEqual({
-          row: row.name,
-          status: 400,
-          code: 'ADMIN_REASON_REQUIRED',
-        })
-        const withIt = await send(ctx, admin, row.call(), REASON)
-        expect({ row: row.name, status: withIt.statusCode }, withIt.body).toEqual({
-          row: row.name,
-          status: row.ok,
-        })
-        await ctx.deps.builds.idle()
-      }
-    })
-  }, 60_000)
+              payload: { name: 'Renamed by an administrator' },
+            }),
+            ok: 200,
+          },
+          {
+            name: 'validate',
+            call: () => ({
+              method: 'POST',
+              url: `/v1/projects/${ctx.projectId}/spec`,
+              payload: {},
+            }),
+            ok: 201,
+          },
+          {
+            name: 'commit',
+            call: () => ({
+              method: 'POST',
+              url: `/v1/projects/${ctx.projectId}/commits`,
+              payload: {
+                baseCommit: head,
+                message: 'an administrator fixes a page',
+                changes: [{ op: 'write', path: 'admin.txt', content: 'fixed\n' }],
+              },
+            }),
+            ok: 201,
+          },
+          {
+            name: 'secret',
+            call: () => ({
+              method: 'PUT',
+              url: `/v1/environments/${ctx.stagingEnvironmentId}/secrets/ADMIN_KEY`,
+              payload: { value: 'a-value-the-admin-set' },
+            }),
+            ok: 200,
+          },
+          {
+            name: 'build',
+            call: () => ({
+              method: 'POST',
+              url: `/v1/projects/${ctx.projectId}/builds`,
+              payload: {},
+            }),
+            ok: 202,
+          },
+          {
+            name: 'deploy',
+            call: () => ({
+              method: 'POST',
+              url: `/v1/environments/${ctx.stagingEnvironmentId}/deploy`,
+              payload: { releaseId },
+            }),
+            ok: 200,
+          },
+          {
+            name: 'member',
+            call: () => ({
+              method: 'POST',
+              url: `/v1/projects/${ctx.projectId}/members`,
+              payload: { puid: 'bio_colleague', role: 'collaborator' },
+            }),
+            ok: 201,
+          },
+          {
+            name: 'token',
+            call: () => ({
+              method: 'POST',
+              url: `/v1/projects/${ctx.projectId}/tokens`,
+              payload: {
+                name: 'admin-agent',
+                capabilities: ['project:read'],
+                expiresInDays: 1,
+              },
+            }),
+            ok: 201,
+          },
+          {
+            name: 'archive',
+            call: () => ({
+              method: 'POST',
+              url: `/v1/projects/${ctx.projectId}/archive`,
+              payload: {},
+            }),
+            ok: 200,
+          },
+        ]
+        for (const row of rows) {
+          const without = await send(ctx, admin, row.call())
+          expect({ row: row.name, ...refusal(without) }).toEqual({
+            row: row.name,
+            status: 400,
+            code: 'ADMIN_REASON_REQUIRED',
+          })
+          const withIt = await send(ctx, admin, row.call(), REASON)
+          expect({ row: row.name, status: withIt.statusCode }, withIt.body).toEqual({
+            row: row.name,
+            status: row.ok,
+          })
+          await ctx.deps.builds.idle()
+        }
+      })
+    },
+    scaled(60_000),
+  )
 
   it('asks nothing of an administrator who is a member, of the owner, of a read, or of an administrator’s own duty', async () => {
     await withProjectServer(async (ctx) => {

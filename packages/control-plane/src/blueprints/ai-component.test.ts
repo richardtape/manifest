@@ -17,6 +17,7 @@ import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { promisify } from 'node:util'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
+import { scaled } from '../test-timeouts.js'
 
 const run = promisify(execFile)
 
@@ -253,114 +254,150 @@ describe("node-ts-mongo@1's AI component, on the wire (§10, S3)", () => {
     return JSON.parse(await readFile(out, 'utf8')) as RunResult
   }
 
-  it('the fake gateway reproduces S3 Evidence 8: the toolkit alone, with no option, returns 192', async () => {
-    // THE POSITIVE CONTROL for every 768 below. Without it, "768 arrived" could be a
-    // fake that returns floats however it is asked, which would prove nothing about
-    // the option.
-    const result = await runApp('embed-without-format', both())
-    expect(result.error).toBeUndefined()
-    expect(result.dims).toBe(DIMENSIONS / 4)
-    expect(recorded[0]?.body).toMatchObject({ encoding_format: 'base64' })
-  }, 30_000)
+  it(
+    'the fake gateway reproduces S3 Evidence 8: the toolkit alone, with no option, returns 192',
+    async () => {
+      // THE POSITIVE CONTROL for every 768 below. Without it, "768 arrived" could be a
+      // fake that returns floats however it is asked, which would prove nothing about
+      // the option.
+      const result = await runApp('embed-without-format', both())
+      expect(result.error).toBeUndefined()
+      expect(result.dims).toBe(DIMENSIONS / 4)
+      expect(recorded[0]?.body).toMatchObject({ encoding_format: 'base64' })
+    },
+    scaled(30_000),
+  )
 
-  it('embed() asks for floats, and gets 768 of the right values back', async () => {
-    const result = await runApp('embed', both())
-    expect(result.error).toBeUndefined()
-    expect(result.count).toBe(1)
-    expect(result.dims).toBe(DIMENSIONS)
-    expect(result.first).toEqual([0.001, 0.002, 0.003])
-    expect(recorded).toHaveLength(1)
-    expect(recorded[0]).toMatchObject({
-      path: '/v1/embeddings',
-      authorization: `Bearer ${KEY}`,
-      body: {
-        model: 'default-embed',
-        encoding_format: 'float',
-        input: ['hello'],
-        // CHARGED TO THE PERSON, like an answer. Until P4b sitting 10 `embed(texts)`
-        // sent no `user`, and LiteLLM recorded every embedding the proof app made for
-        // a student with an EMPTY end_user — measured on the running platform.
+  it(
+    'embed() asks for floats, and gets 768 of the right values back',
+    async () => {
+      const result = await runApp('embed', both())
+      expect(result.error).toBeUndefined()
+      expect(result.count).toBe(1)
+      expect(result.dims).toBe(DIMENSIONS)
+      expect(result.first).toEqual([0.001, 0.002, 0.003])
+      expect(recorded).toHaveLength(1)
+      expect(recorded[0]).toMatchObject({
+        path: '/v1/embeddings',
+        authorization: `Bearer ${KEY}`,
+        body: {
+          model: 'default-embed',
+          encoding_format: 'float',
+          input: ['hello'],
+          // CHARGED TO THE PERSON, like an answer. Until P4b sitting 10 `embed(texts)`
+          // sent no `user`, and LiteLLM recorded every embedding the proof app made for
+          // a student with an EMPTY end_user — measured on the running platform.
+          user: EXPECTED_USER,
+        },
+      })
+    },
+    scaled(30_000),
+  )
+
+  it(
+    'embed() for nobody is REFUSED, before anything is sent',
+    async () => {
+      // A default that charges to no one is §10's attribution failing open, silently:
+      // nothing errors and the spend simply has no person on it.
+      const result = await runApp('embed-for-nobody', both())
+      expect(result.error).toMatch(/PUID/)
+      expect(recorded).toHaveLength(0)
+    },
+    scaled(30_000),
+  )
+
+  it(
+    'ask() sends the injected key and model, attributed to the NAMESPACED end user',
+    async () => {
+      const result = await runApp('ask', both())
+      expect(result.error).toBeUndefined()
+      expect(result.answer).toBe('Four')
+      expect(recorded).toHaveLength(1)
+      expect(recorded[0]).toMatchObject({
+        path: '/v1/chat/completions',
+        authorization: `Bearer ${KEY}`,
+        body: { model: 'default-chat', user: EXPECTED_USER },
+      })
+      // S3 Evidence 6: a bare hash is the cross-app lockout.
+      expect(recorded[0]?.body.user).not.toBe(
+        createHash('sha256').update(PUID).digest('hex'),
+      )
+    },
+    scaled(30_000),
+  )
+
+  it(
+    'askStreaming() delivers every chunk, attributed the same way',
+    async () => {
+      const result = await runApp('stream', both())
+      expect(result.error).toBeUndefined()
+      expect(result.chunks).toEqual(['Fo', 'ur'])
+      expect(result.content).toBe('Four')
+      expect(recorded[0]?.body).toMatchObject({
+        model: 'default-chat',
+        stream: true,
         user: EXPECTED_USER,
-      },
-    })
-  }, 30_000)
+      })
+    },
+    scaled(30_000),
+  )
 
-  it('embed() for nobody is REFUSED, before anything is sent', async () => {
-    // A default that charges to no one is §10's attribution failing open, silently:
-    // nothing errors and the spend simply has no person on it.
-    const result = await runApp('embed-for-nobody', both())
-    expect(result.error).toMatch(/PUID/)
-    expect(recorded).toHaveLength(0)
-  }, 30_000)
+  it(
+    'an embeddings-only app STARTS, embeds, and refuses a chat call by name',
+    async () => {
+      // §8's "if declared": `renderInjection` leaves LLM_DEFAULT_MODEL ABSENT for an
+      // app with no chat model, and the toolkit's OpenAI provider refuses to construct
+      // without a default model. Reading it as required would kill this app at boot.
+      const env = without(both(), 'LLM_DEFAULT_MODEL')
+      expect((await runApp('configure', env)).error).toBeUndefined()
+      const embedded = await runApp('embed', env)
+      expect(embedded.dims).toBe(DIMENSIONS)
+      const asked = await runApp('ask', env)
+      expect(asked.error).toMatch(/no chat model/)
+      expect(asked.error).toMatch(/ai\.models/)
+      expect(recorded.map((r) => r.path)).toEqual(['/v1/embeddings'])
+    },
+    scaled(60_000),
+  )
 
-  it('ask() sends the injected key and model, attributed to the NAMESPACED end user', async () => {
-    const result = await runApp('ask', both())
-    expect(result.error).toBeUndefined()
-    expect(result.answer).toBe('Four')
-    expect(recorded).toHaveLength(1)
-    expect(recorded[0]).toMatchObject({
-      path: '/v1/chat/completions',
-      authorization: `Bearer ${KEY}`,
-      body: { model: 'default-chat', user: EXPECTED_USER },
-    })
-    // S3 Evidence 6: a bare hash is the cross-app lockout.
-    expect(recorded[0]?.body.user).not.toBe(
-      createHash('sha256').update(PUID).digest('hex'),
-    )
-  }, 30_000)
+  it(
+    'a chat-only app starts, answers, and refuses embed() by name',
+    async () => {
+      const env = without(both(), 'EMBEDDINGS_PROVIDER', 'EMBEDDINGS_MODEL')
+      expect((await runApp('configure', env)).error).toBeUndefined()
+      expect((await runApp('ask', env)).answer).toBe('Four')
+      const embedded = await runApp('embed', env)
+      expect(embedded.error).toMatch(/no embedding model/)
+      expect(recorded.map((r) => r.path)).toEqual(['/v1/chat/completions'])
+    },
+    scaled(60_000),
+  )
 
-  it('askStreaming() delivers every chunk, attributed the same way', async () => {
-    const result = await runApp('stream', both())
-    expect(result.error).toBeUndefined()
-    expect(result.chunks).toEqual(['Fo', 'ur'])
-    expect(result.content).toBe('Four')
-    expect(recorded[0]?.body).toMatchObject({
-      model: 'default-chat',
-      stream: true,
-      user: EXPECTED_USER,
-    })
-  }, 30_000)
+  it(
+    'an app the platform gave no AI rows imports the component and is not AI-enabled',
+    async () => {
+      // `server.js` imports this file for EVERY app, so importing it must not throw for
+      // an app that declared no models — and a call must say what to declare.
+      const env = { MANIFEST_PROJECT_SLUG: SLUG, MANIFEST_ENV: ENV }
+      const configured = await runApp('configure', env)
+      expect(configured.enabled).toBe(false)
+      expect(configured.error).toMatch(/LLM_PROVIDER is required and was not injected/)
+      expect(configured.error).toMatch(/ai\.models/)
+      expect(recorded).toEqual([])
+    },
+    scaled(30_000),
+  )
 
-  it('an embeddings-only app STARTS, embeds, and refuses a chat call by name', async () => {
-    // §8's "if declared": `renderInjection` leaves LLM_DEFAULT_MODEL ABSENT for an
-    // app with no chat model, and the toolkit's OpenAI provider refuses to construct
-    // without a default model. Reading it as required would kill this app at boot.
-    const env = without(both(), 'LLM_DEFAULT_MODEL')
-    expect((await runApp('configure', env)).error).toBeUndefined()
-    const embedded = await runApp('embed', env)
-    expect(embedded.dims).toBe(DIMENSIONS)
-    const asked = await runApp('ask', env)
-    expect(asked.error).toMatch(/no chat model/)
-    expect(asked.error).toMatch(/ai\.models/)
-    expect(recorded.map((r) => r.path)).toEqual(['/v1/embeddings'])
-  }, 60_000)
-
-  it('a chat-only app starts, answers, and refuses embed() by name', async () => {
-    const env = without(both(), 'EMBEDDINGS_PROVIDER', 'EMBEDDINGS_MODEL')
-    expect((await runApp('configure', env)).error).toBeUndefined()
-    expect((await runApp('ask', env)).answer).toBe('Four')
-    const embedded = await runApp('embed', env)
-    expect(embedded.error).toMatch(/no embedding model/)
-    expect(recorded.map((r) => r.path)).toEqual(['/v1/chat/completions'])
-  }, 60_000)
-
-  it('an app the platform gave no AI rows imports the component and is not AI-enabled', async () => {
-    // `server.js` imports this file for EVERY app, so importing it must not throw for
-    // an app that declared no models — and a call must say what to declare.
-    const env = { MANIFEST_PROJECT_SLUG: SLUG, MANIFEST_ENV: ENV }
-    const configured = await runApp('configure', env)
-    expect(configured.enabled).toBe(false)
-    expect(configured.error).toMatch(/LLM_PROVIDER is required and was not injected/)
-    expect(configured.error).toMatch(/ai\.models/)
-    expect(recorded).toEqual([])
-  }, 30_000)
-
-  it('a PARTIAL AI block fails at configure, naming the variable — never a request with a hole in it', async () => {
-    const noEndpoint = await runApp('configure', without(both(), 'LLM_ENDPOINT'))
-    expect(noEndpoint.enabled).toBe(true)
-    expect(noEndpoint.error).toMatch(/LLM_ENDPOINT/)
-    const noProvider = await runApp('configure', without(both(), 'EMBEDDINGS_PROVIDER'))
-    expect(noProvider.error).toMatch(/EMBEDDINGS_PROVIDER/)
-    expect(recorded).toEqual([])
-  }, 60_000)
+  it(
+    'a PARTIAL AI block fails at configure, naming the variable — never a request with a hole in it',
+    async () => {
+      const noEndpoint = await runApp('configure', without(both(), 'LLM_ENDPOINT'))
+      expect(noEndpoint.enabled).toBe(true)
+      expect(noEndpoint.error).toMatch(/LLM_ENDPOINT/)
+      const noProvider = await runApp('configure', without(both(), 'EMBEDDINGS_PROVIDER'))
+      expect(noProvider.error).toMatch(/EMBEDDINGS_PROVIDER/)
+      expect(recorded).toEqual([])
+    },
+    scaled(60_000),
+  )
 })

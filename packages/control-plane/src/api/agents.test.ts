@@ -33,6 +33,7 @@ import {
   type TestProject,
 } from './testing.js'
 import { buildServer, type ServerDeps } from './server.js'
+import { scaled } from '../test-timeouts.js'
 
 const HOUR_MS = 3_600_000
 
@@ -1306,7 +1307,7 @@ describe('FE-36 — a session never holds more than its project now allows (Spec
 
   it(
     'a raise recorded while a session waits to start is the one its key is given',
-    { timeout: 30_000 },
+    { timeout: scaled(30_000) },
     async () => {
       await withBuilderServer('capable', async (ctx, lite) => {
         // The start reads the classification early, then waits on the gateway for the person's month —
@@ -1341,7 +1342,7 @@ describe('FE-36 — a session never holds more than its project now allows (Spec
 
   it(
     'a session whose key is being minted when the raise is recorded is narrowed by it before the commit answers',
-    { timeout: 30_000 },
+    { timeout: scaled(30_000) },
     async () => {
       await withBuilderServer('capable', async (ctx, lite) => {
         // The other order: the start is INSIDE its transaction — the project held, the old models read —

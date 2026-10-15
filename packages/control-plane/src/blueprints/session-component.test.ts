@@ -6,6 +6,7 @@ import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { promisify } from 'node:util'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { scaled } from '../test-timeouts.js'
 
 const run = promisify(execFile)
 
@@ -121,60 +122,80 @@ describe("node-ts-mongo@1's session component (§11 Redeploys, §8)", () => {
 
   const injected = () => ({ SESSION_SECRET: SECRET, MONGODB_DB_NAME: DATABASE })
 
-  it("keeps sessions in a connect-mongo store, in the app's own database, over the app's own client", async () => {
-    const result = await runApp(injected())
-    expect(result.error).toBeUndefined()
-    expect(result.madeBy).toBe('express-session')
-    // THE DEFECT THIS MODULE EXISTS TO FIX, as an assertion: with no `store`,
-    // express-session falls back to MemoryStore and every redeploy signs everyone out.
-    expect(result.store?.madeBy).toBe('connect-mongo')
-    // The SAME client the app holds — one connection pool and one set of credentials,
-    // not a second connection built from a URI.
-    expect(result.store?.sameClient).toBe(true)
-    expect(result.store?.options).toEqual({
-      // The database the platform injected and minted the credentials for — never a
-      // default, which is what `MONGODB_DB_NAME` cost before 2026-09-09.
-      dbName: DATABASE,
-      collectionName: 'sessions',
-      ttl: 8 * 60 * 60,
-      touchAfter: 5 * 60,
-      autoRemove: 'native',
-    })
-  }, 30_000)
+  it(
+    "keeps sessions in a connect-mongo store, in the app's own database, over the app's own client",
+    async () => {
+      const result = await runApp(injected())
+      expect(result.error).toBeUndefined()
+      expect(result.madeBy).toBe('express-session')
+      // THE DEFECT THIS MODULE EXISTS TO FIX, as an assertion: with no `store`,
+      // express-session falls back to MemoryStore and every redeploy signs everyone out.
+      expect(result.store?.madeBy).toBe('connect-mongo')
+      // The SAME client the app holds — one connection pool and one set of credentials,
+      // not a second connection built from a URI.
+      expect(result.store?.sameClient).toBe(true)
+      expect(result.store?.options).toEqual({
+        // The database the platform injected and minted the credentials for — never a
+        // default, which is what `MONGODB_DB_NAME` cost before 2026-09-09.
+        dbName: DATABASE,
+        collectionName: 'sessions',
+        ttl: 8 * 60 * 60,
+        touchAfter: 5 * 60,
+        autoRemove: 'native',
+      })
+    },
+    scaled(30_000),
+  )
 
-  it('signs with the injected secret, and sets a cookie that survives the edge', async () => {
-    const result = await runApp(injected())
-    expect(result.options).toEqual({
-      secret: SECRET,
-      resave: false,
-      saveUninitialized: false,
-      // TLS ends at the edge; without `proxy` express-session will not set a `secure`
-      // cookie and no session survives the redirect back from the IdP.
-      proxy: true,
-      cookie: { httpOnly: true, sameSite: 'lax', secure: true },
-    })
-  }, 30_000)
+  it(
+    'signs with the injected secret, and sets a cookie that survives the edge',
+    async () => {
+      const result = await runApp(injected())
+      expect(result.options).toEqual({
+        secret: SECRET,
+        resave: false,
+        saveUninitialized: false,
+        // TLS ends at the edge; without `proxy` express-session will not set a `secure`
+        // cookie and no session survives the redirect back from the IdP.
+        proxy: true,
+        cookie: { httpOnly: true, sameSite: 'lax', secure: true },
+      })
+    },
+    scaled(30_000),
+  )
 
-  it('REFUSES to start without SESSION_SECRET — there is no default to sign with', async () => {
-    // §16's drift test cannot catch a fallback: the variable is still READ, so the
-    // scan passes while every app silently signs its cookies with the same string.
-    const { SESSION_SECRET: _omitted, ...rest } = injected()
-    const result = await runApp(rest)
-    expect(result.error).toBe('SESSION_SECRET is required and was not injected (§8)')
-    expect(result.madeBy).toBeUndefined()
-  }, 30_000)
+  it(
+    'REFUSES to start without SESSION_SECRET — there is no default to sign with',
+    async () => {
+      // §16's drift test cannot catch a fallback: the variable is still READ, so the
+      // scan passes while every app silently signs its cookies with the same string.
+      const { SESSION_SECRET: _omitted, ...rest } = injected()
+      const result = await runApp(rest)
+      expect(result.error).toBe('SESSION_SECRET is required and was not injected (§8)')
+      expect(result.madeBy).toBeUndefined()
+    },
+    scaled(30_000),
+  )
 
-  it('REFUSES an EMPTY SESSION_SECRET, which is not a secret', async () => {
-    const result = await runApp({ ...injected(), SESSION_SECRET: '' })
-    expect(result.error).toBe('SESSION_SECRET is required and was not injected (§8)')
-  }, 30_000)
+  it(
+    'REFUSES an EMPTY SESSION_SECRET, which is not a secret',
+    async () => {
+      const result = await runApp({ ...injected(), SESSION_SECRET: '' })
+      expect(result.error).toBe('SESSION_SECRET is required and was not injected (§8)')
+    },
+    scaled(30_000),
+  )
 
-  it('REFUSES to start without MONGODB_DB_NAME — sessions never land in a database of its choosing', async () => {
-    const { MONGODB_DB_NAME: _omitted, ...rest } = injected()
-    const result = await runApp(rest)
-    expect(result.error).toBe('MONGODB_DB_NAME is required and was not injected (§8)')
-    expect(result.madeBy).toBeUndefined()
-  }, 30_000)
+  it(
+    'REFUSES to start without MONGODB_DB_NAME — sessions never land in a database of its choosing',
+    async () => {
+      const { MONGODB_DB_NAME: _omitted, ...rest } = injected()
+      const result = await runApp(rest)
+      expect(result.error).toBe('MONGODB_DB_NAME is required and was not injected (§8)')
+      expect(result.madeBy).toBeUndefined()
+    },
+    scaled(30_000),
+  )
 })
 
 describe('there is ONE copy of session handling (§20)', () => {

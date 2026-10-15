@@ -20,6 +20,7 @@ import { addMember } from '../projects/index.js'
 import { mintTestToken } from '../tokens/testing.js'
 import { buildServer, type ServerDeps } from './server.js'
 import { loginAs, mutationHeaders, projectBody, refusal, testDeps } from './testing.js'
+import { scaled } from '../test-timeouts.js'
 
 beforeEach(resetDatabase)
 afterAll(resetDatabase)
@@ -609,44 +610,52 @@ describe('a stream whose credential is gone is closed, at the moment it goes (FE
     expect(session.socket.readyState).toBe(WebSocket.OPEN)
   })
 
-  it('an expired token’s stream closes 4401 at its expiry', async () => {
-    // A REAL timer, not a fake one: the registry arms it from the token's own `expires_at`. 2.5 s
-    // ahead, fixed before the mint, so a loaded machine's setup (mint, upgrade, authorization,
-    // replay) still ends well before it.
-    const server = await streamServer()
-    const expiresAt = new Date(Date.now() + 2_500)
-    const { socket } = await tokenStream(server, { expiresAt })
-    const closed = await closeOf(socket, 4_000)
-    expect(closed).toMatchObject({
-      code: 4401,
-      reason: expect.stringContaining('expired'),
-    })
-    // AT its expiry: not before it (a timer armed at nought closes at once) and within a second of it.
-    expect(closed.at).toBeGreaterThanOrEqual(expiresAt.getTime() - TIMER_EARLY_MS)
-    expect(closed.at - expiresAt.getTime()).toBeLessThan(WITHIN_MS)
-  }, 10_000)
+  it(
+    'an expired token’s stream closes 4401 at its expiry',
+    async () => {
+      // A REAL timer, not a fake one: the registry arms it from the token's own `expires_at`. 2.5 s
+      // ahead, fixed before the mint, so a loaded machine's setup (mint, upgrade, authorization,
+      // replay) still ends well before it.
+      const server = await streamServer()
+      const expiresAt = new Date(Date.now() + 2_500)
+      const { socket } = await tokenStream(server, { expiresAt })
+      const closed = await closeOf(socket, 4_000)
+      expect(closed).toMatchObject({
+        code: 4401,
+        reason: expect.stringContaining('expired'),
+      })
+      // AT its expiry: not before it (a timer armed at nought closes at once) and within a second of it.
+      expect(closed.at).toBeGreaterThanOrEqual(expiresAt.getTime() - TIMER_EARLY_MS)
+      expect(closed.at - expiresAt.getTime()).toBeLessThan(WITHIN_MS)
+    },
+    scaled(10_000),
+  )
 
-  it('a session’s stream closes 4401 when the session expires — a session is armed too', async () => {
-    // A Phase 1 session cannot be revoked (§20), so its expiry is the bound this stream can enforce.
-    const server = await streamServer()
-    const owner = await ensureTestUser(server.deps.db, 'bio_prof')
-    const expiresAt = Date.now() + 2_500
-    const cookies = testSessionCookies(
-      owner,
-      server.deps.config.sessionSecret,
-      expiresAt - SESSION_TTL_MS,
-    )
-    const socket = await server.connect({ cookies })
-    const frames = recorder(socket)
-    await waitUntil(() => frames.some(isReady), 'the ready frame')
-    const closed = await closeOf(socket, 4_000)
-    expect(closed).toMatchObject({
-      code: 4401,
-      reason: expect.stringContaining('expired'),
-    })
-    expect(closed.at).toBeGreaterThanOrEqual(expiresAt - TIMER_EARLY_MS)
-    expect(closed.at - expiresAt).toBeLessThan(WITHIN_MS)
-  }, 10_000)
+  it(
+    'a session’s stream closes 4401 when the session expires — a session is armed too',
+    async () => {
+      // A Phase 1 session cannot be revoked (§20), so its expiry is the bound this stream can enforce.
+      const server = await streamServer()
+      const owner = await ensureTestUser(server.deps.db, 'bio_prof')
+      const expiresAt = Date.now() + 2_500
+      const cookies = testSessionCookies(
+        owner,
+        server.deps.config.sessionSecret,
+        expiresAt - SESSION_TTL_MS,
+      )
+      const socket = await server.connect({ cookies })
+      const frames = recorder(socket)
+      await waitUntil(() => frames.some(isReady), 'the ready frame')
+      const closed = await closeOf(socket, 4_000)
+      expect(closed).toMatchObject({
+        code: 4401,
+        reason: expect.stringContaining('expired'),
+      })
+      expect(closed.at).toBeGreaterThanOrEqual(expiresAt - TIMER_EARLY_MS)
+      expect(closed.at - expiresAt).toBeLessThan(WITHIN_MS)
+    },
+    scaled(10_000),
+  )
 
   it('a revoked token’s stream closes even when ending its sessions fails', async () => {
     // Ending an agent session needs the model gateway; closing a stream does not — so the close comes
@@ -687,170 +696,186 @@ describe('a stream whose credential is gone is closed, at the moment it goes (FE
     expect(close.at - revokedAt).toBeLessThan(WITHIN_MS)
   })
 
-  it('a token revoked after its upgrade authenticated, and before its stream registered, is closed 4401 by the stream’s own second read', async () => {
-    // THE WINDOW (the controller's ruling): the credential hook reads the token, then the stream
-    // registers. A revoke that commits in between calls `closeToken` on NOTHING — so the stream
-    // reads the token again once it is registered. Made deterministic: a second connection holds
-    // the token's row with the revoke written and not committed, so the hook's read sees it live
-    // and its `last_used_at` stamp waits on the row; the revoke commits while it waits. No
-    // `closeToken` is called here at all — the one the route would call found nothing registered.
-    const server = await streamServer()
-    const owner = await ensureTestUser(server.deps.db, 'bio_prof')
-    const token = await mintTestToken(server.deps.db, {
-      userId: owner.id,
-      projectId: server.projectId,
-      capabilities: ['project:read'],
-    })
-    const admin = new pg.Pool({
-      connectionString: process.env.MANIFEST_ADMIN_DATABASE_URL,
-    })
-    const lock = await admin.connect()
-    try {
-      const { rows: held } = await lock.query<{ pid: number }>(
-        'SELECT pg_backend_pid() AS pid',
-      )
-      await lock.query('BEGIN')
-      await lock.query('UPDATE delegated_tokens SET revoked_at = now() WHERE id = $1', [
-        token.row.id,
-      ])
-      const socket = await server.connect({ bearer: token.plaintext })
-      const frames = recorder(socket)
-      const outcome = closeOf(socket, 5_000)
-      // Waiting on THIS test's lock, in this database: the dev control plane on 7100 shares
-      // `manifest_control`, so the database alone would not tell its lock waits from the hook's.
-      await waitUntil(async () => {
-        const { rows } = await admin.query<{ waiting: string }>(
-          `SELECT count(*) AS waiting FROM pg_stat_activity
+  it(
+    'a token revoked after its upgrade authenticated, and before its stream registered, is closed 4401 by the stream’s own second read',
+    async () => {
+      // THE WINDOW (the controller's ruling): the credential hook reads the token, then the stream
+      // registers. A revoke that commits in between calls `closeToken` on NOTHING — so the stream
+      // reads the token again once it is registered. Made deterministic: a second connection holds
+      // the token's row with the revoke written and not committed, so the hook's read sees it live
+      // and its `last_used_at` stamp waits on the row; the revoke commits while it waits. No
+      // `closeToken` is called here at all — the one the route would call found nothing registered.
+      const server = await streamServer()
+      const owner = await ensureTestUser(server.deps.db, 'bio_prof')
+      const token = await mintTestToken(server.deps.db, {
+        userId: owner.id,
+        projectId: server.projectId,
+        capabilities: ['project:read'],
+      })
+      const admin = new pg.Pool({
+        connectionString: process.env.MANIFEST_ADMIN_DATABASE_URL,
+      })
+      const lock = await admin.connect()
+      try {
+        const { rows: held } = await lock.query<{ pid: number }>(
+          'SELECT pg_backend_pid() AS pid',
+        )
+        await lock.query('BEGIN')
+        await lock.query('UPDATE delegated_tokens SET revoked_at = now() WHERE id = $1', [
+          token.row.id,
+        ])
+        const socket = await server.connect({ bearer: token.plaintext })
+        const frames = recorder(socket)
+        const outcome = closeOf(socket, 5_000)
+        // Waiting on THIS test's lock, in this database: the dev control plane on 7100 shares
+        // `manifest_control`, so the database alone would not tell its lock waits from the hook's.
+        await waitUntil(async () => {
+          const { rows } = await admin.query<{ waiting: string }>(
+            `SELECT count(*) AS waiting FROM pg_stat_activity
             WHERE datname = current_database()
               AND wait_event_type = 'Lock'
               AND query ILIKE '%delegated_tokens%'
               AND $1 = ANY(pg_blocking_pids(pid))`,
-          [held[0]!.pid],
-        )
-        return Number(rows[0]!.waiting) > 0
-      }, 'the hook’s last_used_at stamp waiting on the token’s row')
-      await lock.query('COMMIT')
-      expect(await outcome).toMatchObject({ code: 4401 })
-      // Never subscribed: it was closed before its replay, and heard nothing of the project.
-      expect(frames).toEqual([])
+            [held[0]!.pid],
+          )
+          return Number(rows[0]!.waiting) > 0
+        }, 'the hook’s last_used_at stamp waiting on the token’s row')
+        await lock.query('COMMIT')
+        expect(await outcome).toMatchObject({ code: 4401 })
+        // Never subscribed: it was closed before its replay, and heard nothing of the project.
+        expect(frames).toEqual([])
+        expect(server.deps.bus.listenerCount(server.projectId)).toBe(0)
+        expect(server.deps.streams.closeToken(token.row.id)).toBe(0)
+      } finally {
+        await lock.query('ROLLBACK')
+        lock.release()
+        await admin.end()
+      }
+    },
+    scaled(15_000),
+  )
+
+  it(
+    'archiving closes the streams of the tokens it revoked, 4401, and leaves a member’s session stream open',
+    async () => {
+      // `project:read` is allowed on an archived project (§11, Decision 27): a person may still watch
+      // it. Closing their stream would be a second, unstated rule.
+      const server = await streamServer()
+      const session = await sessionStream(server)
+      const { socket, frames } = await tokenStream(server)
+      const closed = closeOf(socket)
+      const archived = await server.app.inject({
+        method: 'POST',
+        url: `/v1/projects/${server.projectId}/archive`,
+        cookies: await loginAs(server.deps, 'bio_prof', { steppedUp: true }),
+        headers: mutationHeaders(server.deps),
+        payload: {},
+      })
+      expect(archived.statusCode, archived.body).toBe(200)
+      expect(await closed).toMatchObject({
+        code: 4401,
+        reason: expect.stringContaining('revoked'),
+      })
+      // The member's stream hears the archive end — it is open, and live — and the token's never did:
+      // it was closed when the revoke committed, before the teardown that ends in `project.archived`.
+      await waitUntil(
+        () => eventTypesOf(session.frames).includes('project.archived'),
+        'project.archived on the member’s session stream',
+      )
+      expect(session.socket.readyState).toBe(WebSocket.OPEN)
+      expect(eventTypesOf(frames)).not.toContain('project.archived')
+      expect(server.deps.bus.listenerCount(server.projectId)).toBe(1)
+    },
+    scaled(15_000),
+  )
+
+  it(
+    'deleting a project closes every stream on it: a session’s 4404 at the tombstone, a token’s 4401 when the switch-off revoked it',
+    async () => {
+      const server = await streamServer()
+      const session = await sessionStream(server)
+      const token = await tokenStream(server)
+      const sessionClosed = closeOf(session.socket, 10_000)
+      const tokenClosed = closeOf(token.socket, 10_000)
+      const deleted = await server.app.inject({
+        method: 'DELETE',
+        url: `/v1/projects/${server.projectId}`,
+        cookies: await loginAs(server.deps, 'bio_prof', { steppedUp: true }),
+        headers: mutationHeaders(server.deps),
+      })
+      expect(deleted.statusCode, deleted.body).toBe(200)
+      expect(await sessionClosed).toMatchObject({ code: 4404 })
+      expect(await tokenClosed).toMatchObject({
+        code: 4401,
+        reason: expect.stringContaining('revoked'),
+      })
+      // The session's stream heard the delete itself before it closed: closed AFTER the tombstone's
+      // event, not before it.
+      expect(eventTypesOf(session.frames)).toContain('project.deleted')
       expect(server.deps.bus.listenerCount(server.projectId)).toBe(0)
-      expect(server.deps.streams.closeToken(token.row.id)).toBe(0)
-    } finally {
-      await lock.query('ROLLBACK')
-      lock.release()
-      await admin.end()
-    }
-  }, 15_000)
+      expect(server.deps.streams.closeProject(server.projectId)).toBe(0)
+    },
+    scaled(15_000),
+  )
 
-  it('archiving closes the streams of the tokens it revoked, 4401, and leaves a member’s session stream open', async () => {
-    // `project:read` is allowed on an archived project (§11, Decision 27): a person may still watch
-    // it. Closing their stream would be a second, unstated rule.
-    const server = await streamServer()
-    const session = await sessionStream(server)
-    const { socket, frames } = await tokenStream(server)
-    const closed = closeOf(socket)
-    const archived = await server.app.inject({
-      method: 'POST',
-      url: `/v1/projects/${server.projectId}/archive`,
-      cookies: await loginAs(server.deps, 'bio_prof', { steppedUp: true }),
-      headers: mutationHeaders(server.deps),
-      payload: {},
-    })
-    expect(archived.statusCode, archived.body).toBe(200)
-    expect(await closed).toMatchObject({
-      code: 4401,
-      reason: expect.stringContaining('revoked'),
-    })
-    // The member's stream hears the archive end — it is open, and live — and the token's never did:
-    // it was closed when the revoke committed, before the teardown that ends in `project.archived`.
-    await waitUntil(
-      () => eventTypesOf(session.frames).includes('project.archived'),
-      'project.archived on the member’s session stream',
-    )
-    expect(session.socket.readyState).toBe(WebSocket.OPEN)
-    expect(eventTypesOf(frames)).not.toContain('project.archived')
-    expect(server.deps.bus.listenerCount(server.projectId)).toBe(1)
-  }, 15_000)
-
-  it('deleting a project closes every stream on it: a session’s 4404 at the tombstone, a token’s 4401 when the switch-off revoked it', async () => {
-    const server = await streamServer()
-    const session = await sessionStream(server)
-    const token = await tokenStream(server)
-    const sessionClosed = closeOf(session.socket, 10_000)
-    const tokenClosed = closeOf(token.socket, 10_000)
-    const deleted = await server.app.inject({
-      method: 'DELETE',
-      url: `/v1/projects/${server.projectId}`,
-      cookies: await loginAs(server.deps, 'bio_prof', { steppedUp: true }),
-      headers: mutationHeaders(server.deps),
-    })
-    expect(deleted.statusCode, deleted.body).toBe(200)
-    expect(await sessionClosed).toMatchObject({ code: 4404 })
-    expect(await tokenClosed).toMatchObject({
-      code: 4401,
-      reason: expect.stringContaining('revoked'),
-    })
-    // The session's stream heard the delete itself before it closed: closed AFTER the tombstone's
-    // event, not before it.
-    expect(eventTypesOf(session.frames)).toContain('project.deleted')
-    expect(server.deps.bus.listenerCount(server.projectId)).toBe(0)
-    expect(server.deps.streams.closeProject(server.projectId)).toBe(0)
-  }, 15_000)
-
-  it('removing a member closes their token streams 4401 and their session streams 4404 — and a colleague’s stays open (Task 8)', async () => {
-    // §20 as Spec action 2 amended it: *"closes their open streams"*. The token's close is its revoke's,
-    // `4401`, after the removal's transaction commits; the person's own session stream is `4404` — the
-    // project is not theirs any more, and that is not a credential gone.
-    const server = await streamServer()
-    const ta = await ensureTestUser(server.deps.db, 'bio_student')
-    await addMember(server.deps.db, server.projectId, ta.id, 'collaborator')
-    const token = await mintTestToken(server.deps.db, {
-      userId: ta.id,
-      projectId: server.projectId,
-      capabilities: ['project:read'],
-    })
-    const theirToken = server.connect({ bearer: token.plaintext })
-    const theirSession = server.connect('bio_student')
-    const [tokenSocket, sessionSocket] = await Promise.all([theirToken, theirSession])
-    const tokenFrames = recorder(tokenSocket)
-    const sessionFrames = recorder(sessionSocket)
-    const colleague = await sessionStream(server)
-    await waitUntil(
-      () => tokenFrames.some(isReady) && sessionFrames.some(isReady),
-      'the TA’s two streams’ ready frames',
-    )
-    const tokenClosed = closeOf(tokenSocket)
-    const sessionClosed = closeOf(sessionSocket)
-    const removedAt = Date.now()
-    const res = await server.app.inject({
-      method: 'DELETE',
-      url: `/v1/projects/${server.projectId}/members/${ta.id}`,
-      cookies: await loginAs(server.deps, 'bio_prof', { steppedUp: true }),
-      headers: mutationHeaders(server.deps),
-    })
-    expect(res.statusCode, res.body).toBe(200)
-    const [tokenClose, sessionClose] = await Promise.all([tokenClosed, sessionClosed])
-    expect(tokenClose).toMatchObject({
-      code: 4401,
-      reason: expect.stringContaining('revoked'),
-    })
-    expect(sessionClose).toMatchObject({
-      code: 4404,
-      reason: expect.stringContaining('no longer a member'),
-    })
-    expect(tokenClose.at - removedAt).toBeLessThan(WITHIN_MS)
-    expect(sessionClose.at - removedAt).toBeLessThan(WITHIN_MS)
-    // THE POSITIVE CONTROL: the owner's stream is open, and hears the removal the TA's never did —
-    // closed before `member.removed` was published.
-    await waitUntil(
-      () => eventTypesOf(colleague.frames).includes('member.removed'),
-      'member.removed on the owner’s stream',
-    )
-    expect(colleague.socket.readyState).toBe(WebSocket.OPEN)
-    expect(eventTypesOf(tokenFrames)).not.toContain('member.removed')
-    expect(eventTypesOf(sessionFrames)).not.toContain('member.removed')
-    expect(server.deps.bus.listenerCount(server.projectId)).toBe(1)
-  }, 15_000)
+  it(
+    'removing a member closes their token streams 4401 and their session streams 4404 — and a colleague’s stays open (Task 8)',
+    async () => {
+      // §20 as Spec action 2 amended it: *"closes their open streams"*. The token's close is its revoke's,
+      // `4401`, after the removal's transaction commits; the person's own session stream is `4404` — the
+      // project is not theirs any more, and that is not a credential gone.
+      const server = await streamServer()
+      const ta = await ensureTestUser(server.deps.db, 'bio_student')
+      await addMember(server.deps.db, server.projectId, ta.id, 'collaborator')
+      const token = await mintTestToken(server.deps.db, {
+        userId: ta.id,
+        projectId: server.projectId,
+        capabilities: ['project:read'],
+      })
+      const theirToken = server.connect({ bearer: token.plaintext })
+      const theirSession = server.connect('bio_student')
+      const [tokenSocket, sessionSocket] = await Promise.all([theirToken, theirSession])
+      const tokenFrames = recorder(tokenSocket)
+      const sessionFrames = recorder(sessionSocket)
+      const colleague = await sessionStream(server)
+      await waitUntil(
+        () => tokenFrames.some(isReady) && sessionFrames.some(isReady),
+        'the TA’s two streams’ ready frames',
+      )
+      const tokenClosed = closeOf(tokenSocket)
+      const sessionClosed = closeOf(sessionSocket)
+      const removedAt = Date.now()
+      const res = await server.app.inject({
+        method: 'DELETE',
+        url: `/v1/projects/${server.projectId}/members/${ta.id}`,
+        cookies: await loginAs(server.deps, 'bio_prof', { steppedUp: true }),
+        headers: mutationHeaders(server.deps),
+      })
+      expect(res.statusCode, res.body).toBe(200)
+      const [tokenClose, sessionClose] = await Promise.all([tokenClosed, sessionClosed])
+      expect(tokenClose).toMatchObject({
+        code: 4401,
+        reason: expect.stringContaining('revoked'),
+      })
+      expect(sessionClose).toMatchObject({
+        code: 4404,
+        reason: expect.stringContaining('no longer a member'),
+      })
+      expect(tokenClose.at - removedAt).toBeLessThan(WITHIN_MS)
+      expect(sessionClose.at - removedAt).toBeLessThan(WITHIN_MS)
+      // THE POSITIVE CONTROL: the owner's stream is open, and hears the removal the TA's never did —
+      // closed before `member.removed` was published.
+      await waitUntil(
+        () => eventTypesOf(colleague.frames).includes('member.removed'),
+        'member.removed on the owner’s stream',
+      )
+      expect(colleague.socket.readyState).toBe(WebSocket.OPEN)
+      expect(eventTypesOf(tokenFrames)).not.toContain('member.removed')
+      expect(eventTypesOf(sessionFrames)).not.toContain('member.removed')
+      expect(server.deps.bus.listenerCount(server.projectId)).toBe(1)
+    },
+    scaled(15_000),
+  )
 
   it('closing the server unregisters every stream it holds — nothing is left for the next test', async () => {
     // An entry left registered keeps its expiry timer, and the timer keeps the socket's closure.

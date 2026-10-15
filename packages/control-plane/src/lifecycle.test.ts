@@ -2,6 +2,7 @@ import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 import { resetDatabase } from './db/testing.js'
 import { buildServer } from './api/index.js'
 import { loginAs, mutationHeaders, projectBody, testDeps } from './api/testing.js'
+import { scaled } from './test-timeouts.js'
 
 beforeEach(resetDatabase)
 // This file commits for real, so it clears up behind itself too.
@@ -195,7 +196,10 @@ describe('P2 acceptance: the full lifecycle against the fake driver', () => {
     // So: the control plane's own work is held to a tight bound, and the total to a
     // loose one that still catches a real regression — a hang, or a lifecycle that
     // quietly grows to thirty seconds and stops being run.
-    expect(controlPlaneWork).toBeLessThan(400)
-    expect(total).toBeLessThan(5000)
+    //
+    // Both scale with the tier's priority (the gentler test tiers plan): at macOS background QoS on a
+    // quiet machine the control plane's work read 475-586 ms, so 400 ms failed every background run.
+    expect(controlPlaneWork).toBeLessThan(scaled(400))
+    expect(total).toBeLessThan(scaled(5000))
   })
 })

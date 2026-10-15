@@ -43,6 +43,8 @@ import { readAFile } from './example-read.js'
 import { setStagingSecret } from './example-secret.js'
 import { whoAmI } from './example-session.js'
 import { mintATokenForAnAgent } from './example-token.js'
+// The one reading of the scale (the gentler test tiers plan); journey's tests are not typechecked (tsconfig excludes them), so the reach across packages costs nothing.
+import { scaled } from '../../control-plane/src/test-timeouts.js'
 
 /**
  * EVERY CODE EXAMPLE IN THE GUIDES IS A REAL FILE, TYPE-CHECKED AND RUN (the authoring API plan's
@@ -247,17 +249,21 @@ describe('the guides’ examples, run against manifest-mock (Decision 16)', () =
     expect(status.declared).toBe(true)
   })
 
-  it('example-build: started, watched on the stream to its end, and read', async () => {
-    ran.add('example-build')
-    const built = await buildAndWatch(
-      origin,
-      TOKEN,
-      PROJECT_ID,
-      '5f3c1b8e2a4d6f7c9b0e1a2d3c4b5a6978e9f0a1',
-    )
-    expect(built.status).toBe('succeeded')
-    expect(built.logLines).toBeGreaterThan(0)
-  }, 30_000)
+  it(
+    'example-build: started, watched on the stream to its end, and read',
+    async () => {
+      ran.add('example-build')
+      const built = await buildAndWatch(
+        origin,
+        TOKEN,
+        PROJECT_ID,
+        '5f3c1b8e2a4d6f7c9b0e1a2d3c4b5a6978e9f0a1',
+      )
+      expect(built.status).toBe('succeeded')
+      expect(built.logLines).toBeGreaterThan(0)
+    },
+    scaled(30_000),
+  )
 
   it('example-deploy: released and deployed to staging, its state read', async () => {
     ran.add('example-deploy')

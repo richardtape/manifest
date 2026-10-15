@@ -5,6 +5,7 @@ import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { promisify } from 'node:util'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { scaled } from '../test-timeouts.js'
 
 const run = promisify(execFile)
 
@@ -178,45 +179,57 @@ describe('the proof-app starter reads COURSE_CODE at startup', () => {
     COURSE_CODE: 'CHEM_121',
   })
 
-  it('boots with COURSE_CODE declared, and /api/me answers it for a signed-in person', async () => {
-    const result = await boot(injected())
-    expect(result.error).toBeUndefined()
-    expect(result.booted).toBe(true)
-    expect(result.listening).toEqual({ port: 3000, host: '0.0.0.0' })
-    expect(result.me).toEqual({
-      status: 200,
-      body: {
-        attributes: {
-          ubcEduCwlPuid: 'stu000001',
-          givenName: 'Sam',
-          sn: 'Student',
-          eduPersonAffiliation: 'student',
+  it(
+    'boots with COURSE_CODE declared, and /api/me answers it for a signed-in person',
+    async () => {
+      const result = await boot(injected())
+      expect(result.error).toBeUndefined()
+      expect(result.booted).toBe(true)
+      expect(result.listening).toEqual({ port: 3000, host: '0.0.0.0' })
+      expect(result.me).toEqual({
+        status: 200,
+        body: {
+          attributes: {
+            ubcEduCwlPuid: 'stu000001',
+            givenName: 'Sam',
+            sn: 'Student',
+            eduPersonAffiliation: 'student',
+          },
+          displayName: 'Sam Student',
+          affiliation: 'student',
+          endUserId: 'end-user-of-stu000001',
+          course: 'CHEM_121',
         },
-        displayName: 'Sam Student',
-        affiliation: 'student',
-        endUserId: 'end-user-of-stu000001',
-        course: 'CHEM_121',
-      },
-    })
-  }, 30_000)
+      })
+    },
+    scaled(30_000),
+  )
 
-  it('REFUSES to boot without COURSE_CODE — a dropped `env:` declaration fails the deploy, never a person’s sign-in', async () => {
-    const { COURSE_CODE: _omitted, ...rest } = injected()
-    const result = await boot(rest)
-    // The sentence the deploy's output carries, naming the fix — read by the building agent.
-    expect(result.error).toBe(
-      'COURSE_CODE is required and was not injected (§8). Declare it in manifest.yaml ' +
-        'under `env:`, or remove every read of it',
-    )
-    expect(result.booted).toBeUndefined()
-    // Before the app touches its database or takes a request.
-    expect(result.connected).toBe(false)
-    expect(result.listening).toBeNull()
-  }, 30_000)
+  it(
+    'REFUSES to boot without COURSE_CODE — a dropped `env:` declaration fails the deploy, never a person’s sign-in',
+    async () => {
+      const { COURSE_CODE: _omitted, ...rest } = injected()
+      const result = await boot(rest)
+      // The sentence the deploy's output carries, naming the fix — read by the building agent.
+      expect(result.error).toBe(
+        'COURSE_CODE is required and was not injected (§8). Declare it in manifest.yaml ' +
+          'under `env:`, or remove every read of it',
+      )
+      expect(result.booted).toBeUndefined()
+      // Before the app touches its database or takes a request.
+      expect(result.connected).toBe(false)
+      expect(result.listening).toBeNull()
+    },
+    scaled(30_000),
+  )
 
-  it('REFUSES an EMPTY COURSE_CODE too — an empty declaration is not a value', async () => {
-    const result = await boot({ ...injected(), COURSE_CODE: '' })
-    expect(result.error).toMatch(/^COURSE_CODE is required and was not injected/)
-    expect(result.listening).toBeNull()
-  }, 30_000)
+  it(
+    'REFUSES an EMPTY COURSE_CODE too — an empty declaration is not a value',
+    async () => {
+      const result = await boot({ ...injected(), COURSE_CODE: '' })
+      expect(result.error).toMatch(/^COURSE_CODE is required and was not injected/)
+      expect(result.listening).toBeNull()
+    },
+    scaled(30_000),
+  )
 })

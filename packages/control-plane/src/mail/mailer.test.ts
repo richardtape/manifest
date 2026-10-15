@@ -2,6 +2,7 @@ import net from 'node:net'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { createMailer, smtpTransport, type TeamNotice } from './index.js'
 import { composingTransport } from './testing.js'
+import { scaled } from '../test-timeouts.js'
 
 /**
  * THE MAILER (Decisions 10–12): a message nodemailer composes — one subject line, UTF-8, text only,
@@ -153,29 +154,33 @@ describe('the mailer’s failures (Decision 11)', () => {
     )
   })
 
-  it('a server that accepts and never answers is given up on at the transport’s bound, with its code', async () => {
-    const silent = net.createServer(() => {})
-    await new Promise<void>((resolve) => silent.listen(0, '127.0.0.1', resolve))
-    const lines: unknown[] = []
-    vi.spyOn(console, 'error').mockImplementation((line: unknown) => {
-      lines.push(line)
-    })
-    try {
-      const port = (silent.address() as net.AddressInfo).port
-      const mail = { ...MAIL, smtp: { ...MAIL.smtp, port } }
-      // The platform's own transport, with its bound lowered for the test (10 s on the platform).
-      const mailer = createMailer(
-        { ...CONFIG, mail },
-        smtpTransport(mail, { timeoutMs: 500 }),
-      )
-      const started = Date.now()
-      mailer.tellTeam(notice('Chem Labs'))
-      expect(Date.now() - started).toBeLessThan(100)
-      await mailer.settled()
-      expect(Date.now() - started).toBeLessThan(3_000)
-      expect(lines.map((l) => JSON.parse(l as string).error)).toEqual(['ETIMEDOUT'])
-    } finally {
-      silent.close()
-    }
-  }, 10_000)
+  it(
+    'a server that accepts and never answers is given up on at the transport’s bound, with its code',
+    async () => {
+      const silent = net.createServer(() => {})
+      await new Promise<void>((resolve) => silent.listen(0, '127.0.0.1', resolve))
+      const lines: unknown[] = []
+      vi.spyOn(console, 'error').mockImplementation((line: unknown) => {
+        lines.push(line)
+      })
+      try {
+        const port = (silent.address() as net.AddressInfo).port
+        const mail = { ...MAIL, smtp: { ...MAIL.smtp, port } }
+        // The platform's own transport, with its bound lowered for the test (10 s on the platform).
+        const mailer = createMailer(
+          { ...CONFIG, mail },
+          smtpTransport(mail, { timeoutMs: 500 }),
+        )
+        const started = Date.now()
+        mailer.tellTeam(notice('Chem Labs'))
+        expect(Date.now() - started).toBeLessThan(100)
+        await mailer.settled()
+        expect(Date.now() - started).toBeLessThan(3_000)
+        expect(lines.map((l) => JSON.parse(l as string).error)).toEqual(['ETIMEDOUT'])
+      } finally {
+        silent.close()
+      }
+    },
+    scaled(10_000),
+  )
 })
