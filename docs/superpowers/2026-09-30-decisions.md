@@ -2053,3 +2053,15 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
     So manifest-coord4 writes the third run's brief (manifest-app docs/plans/2026-10-14-coordination-3.md), gives him the tabs and
     manifest-coord5's starting prompt, and sends coord5 its GO once the second run's last job (the gentler test tiers' sitting 1)
     has closed and the second run is handed back.
+
+    And at ~18:39 PDT, before he heads out, through manifest-coord4's question tool:
+      5. B's SPEC ACTIONS A–D (docs/superpowers/plans/2026-10-03-load-rehearsal.md, "Spec actions — DRAFTED, NONE APPLIED", ll.1020–
+         1095 at 6c9949a): "Approve all four as drafted (Recommended)" — A (§24: what the load rehearsal is — who runs it, one at a
+         time, the arrival profile, the pass mark, settings with those defaults; and the stories page's l.128 line as 2f34041 decided),
+         B (D24's person-only list and its reasons sentence; §26's settings sentence), C (§11's Driver gains setRateLimitExemption;
+         §20's sentence on the generator's address), D (§20's "one of two images built rather than pulled"). Each is still APPLIED at its
+         sitting's open from a staged, guarded script that RICH RUNS (the classifier refuses a session's own spec edit and commit), with
+         the shared pages swept; any wording beyond the draft comes to him. Not "Decide each at its sitting", not "Approve C and D only".
+      6. vegeta's DOWNLOAD (B's sitting 2, a Rich-step in its plan): "Yes, standing yes (Recommended)" — the official release binary,
+         checksum-verified against the published checksums, network on; a mismatch stops the sitting and comes to him. Not "Ask me at
+         the time".
