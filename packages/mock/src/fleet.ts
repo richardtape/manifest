@@ -987,16 +987,18 @@ export function createFleet(t0: number): Fleet {
       actor: EventFrame['actor'],
     ): void => {
       const e = environments[kind]
+      // THE RETIRE PASS CHANGES A MEMBER'S STATE AND NOTHING ELSE: `lastSeenAt` is written by the deploy
+      // that starts an instance and by nothing after it (`releases/release.ts` is its one writer —
+      // neither the health probes, the retire pass nor the set watcher touch it), so `Fleet.lastDeployAt`
+      // (`max(lastSeenAt)`) is the newest deploy's, a replacement's included.
       for (const old of e.instances)
-        if (e.routes.includes(old.id) && old.state !== 'failed') {
-          old.state = 'gone'
-          old.lastSeenAt = at(ago - 30_000)
-        }
+        if (e.routes.includes(old.id) && old.state !== 'failed') old.state = 'gone'
       e.routes = []
       for (let m = 0; m < members; m++) {
         const instance = newInstance(e, release, ago, {
           state: 'healthy',
-          lastSeenAt: at(MINUTE),
+          // When the deploy recorded it healthy (its `instance.healthy` event, below).
+          lastSeenAt: at(ago - 20_000),
         })
         e.routes.push(instance.id)
         event(
@@ -1421,8 +1423,8 @@ export function createFleet(t0: number): Fleet {
           (m) => e.routes.includes(m.id) && m.state === 'healthy',
         )
         if (member === undefined) throw new Error(`${slug}: no member serves to exit`)
+        // `failed`, and its `lastSeenAt` still its deploy's: the watcher writes the state alone.
         member.state = 'failed'
-        member.lastSeenAt = at(exit.ago)
         const attempt = i + 1
         const replaced = exit.replacedAfter !== null
         const how = 'its process exited (code 137)'

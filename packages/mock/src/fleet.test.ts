@@ -229,6 +229,20 @@ describe('the demo fleet (MANIFEST_MOCK_FLEET=demo)', () => {
       state: 'healthy',
       instances: 2,
     })
+    // `lastDeployAt` IS THE NEWEST DEPLOY'S — `max(lastSeenAt)`, and only the deploy that starts an
+    // instance writes `lastSeenAt` (`releases/release.ts`; no probe, retire pass or watcher does): econ's
+    // last replacement started before its fourth exit, so its newest Incident is after it; cpsc-110-help's
+    // replacement served after its exit, so its Incident is before it; and a set nobody redeployed was
+    // last deployed when it launched, never "a minute ago".
+    const incidentAfterDeploy = (slug: string, kind: string) => {
+      const e = env(slug, kind)
+      return Date.parse(e.latestIncidentAt!) > Date.parse(e.lastDeployAt!)
+    }
+    expect(incidentAfterDeploy('econ-101-polls', 'production')).toBe(true)
+    expect(incidentAfterDeploy('cpsc-110-help', 'production')).toBe(false)
+    expect(
+      Date.now() - Date.parse(env('reading-responses', 'production').lastDeployAt!),
+    ).toBeGreaterThan(8 * 86_400_000)
     expect(row('hist-105-archive')).toMatchObject({ state: 'archived' })
     expect(row('hist-105-archive').archivedAt).not.toBeNull()
     expect(env('mus-100-listening', 'production')).toMatchObject({
