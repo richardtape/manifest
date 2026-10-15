@@ -14,6 +14,7 @@ import {
 import { Checks, JourneyStop } from './check.js'
 import { describeSeen, seeEveryMember } from './serving-set.js'
 import { askForSignOff, sendIt, teamSubmitted } from './example-launch-path.js'
+import { launchTrace } from './launch-trace.js'
 import { waitFor } from './wait.js'
 
 /**
@@ -1666,9 +1667,9 @@ async function step8Launch(): Promise<void> {
 // ─── reuse: a project that launched ────────────────────────────────────────────────────
 
 /**
- * Steps 1–8 ON A PROJECT THAT LAUNCHED: what a launch durably is — the three records, production
- * serving an approved release on the public listener, and nothing of the app's left waiting on the
- * administrators. Then steps 9–11 run as on the fresh path.
+ * Steps 1–8 ON A PROJECT THAT LAUNCHED: what a launch durably is — the three records, an approved
+ * release and production serving it or a self-serve release since, on the public listener, and
+ * nothing of the app's left waiting on the administrators. Then steps 9–11 run as on the fresh path.
  */
 async function reusePhase(): Promise<void> {
   checks.step('1–8. The app launched on an earlier run — what that launch durably is')
@@ -1711,16 +1712,14 @@ async function reusePhase(): Promise<void> {
     servingEnvironment.instance ?? undefined,
   )
   state.releaseId = serving.releaseId
-  const approval = unwrap(
-    await owner.GET('/v1/releases/{releaseId}/approval', {
-      params: { path: { releaseId: serving.releaseId } },
-    }),
-    'getApproval',
-  )
+  // NOT "the release production serves was approved": since P6b a launched app may serve a SELF-SERVE
+  // release, and `make demo-capacity` leaves this one on its own code-only release (`launch-trace.ts`).
+  const trace = await launchTrace(owner, id, serving)
+  console.log(`  ${trace.detail}`)
   checks.ok(
-    'the release production serves was approved',
-    approval.decision === 'approved',
-    approval.decision,
+    'a release of the app was approved, and production serves it or a self-serve release since',
+    trace.ok,
+    trace.detail,
   )
   // EVERY INSTANCE PRODUCTION SERVES (A1 Task 5), each within 4 × N requests.
   const servingSet = servingEnvironment.instances.map((member) => member.id)

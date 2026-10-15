@@ -10,6 +10,7 @@ import {
   type Schemas,
 } from '@manifest/contract'
 import { Checks, JourneyStop } from './check.js'
+import { launchTrace } from './launch-trace.js'
 import { describeSeen, seeEveryMember } from './serving-set.js'
 
 /**
@@ -332,8 +333,8 @@ async function step1Project(): Promise<void> {
  * not launched. Step 5 was the dangerous one: its rehearsal retired the live, approved
  * instance for the unapproved candidate for about a second on every re-use run (P6b sitting
  * 1, `[M7]`), and a launched project now refuses a rehearsal outright. So this checks what a
- * launched project DURABLY is — its records, the release production serves and its
- * approval, and §12's split — and stops.
+ * launched project DURABLY is — its records, an approved release and production serving it
+ * or a self-serve release since, and §12's split — and stops.
  */
 async function launchedReuse(client: ManifestClient, launchedAt: string): Promise<never> {
   checks.ok('the registration is active and the PIA approved', state.reused === true)
@@ -347,16 +348,14 @@ async function launchedReuse(client: ManifestClient, launchedAt: string): Promis
     'production is serving an instance',
     production.instance ?? undefined,
   )
-  const approval = unwrap(
-    await client.GET('/v1/releases/{releaseId}/approval', {
-      params: { path: { releaseId: serving.releaseId } },
-    }),
-    'getApproval',
-  )
+  // NOT "the release production serves was approved": since P6b a launched app may serve a SELF-SERVE
+  // release, and `make demo-capacity` leaves launch-app on its own code-only release (`launch-trace.ts`).
+  const trace = await launchTrace(client, state.projectId!, serving)
+  console.log(`  ${trace.detail}`)
   checks.ok(
-    'the release production serves was APPROVED — the durable trace of the first launch',
-    approval.decision === 'approved',
-    `${serving.releaseId}: ${approval.decision}`,
+    'a release was APPROVED — the durable trace of the first launch — and production serves it or a self-serve release since',
+    trace.ok,
+    trace.detail,
   )
   // EVERY INSTANCE PRODUCTION SERVES (A1 Task 5): the edge balances across the set, so one
   // answer names one member — each id of the set must answer within 4 × N requests.
