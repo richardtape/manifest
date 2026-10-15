@@ -2065,3 +2065,12 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
       6. vegeta's DOWNLOAD (B's sitting 2, a Rich-step in its plan): "Yes, standing yes (Recommended)" — the official release binary,
          checksum-verified against the published checksums, network on; a mismatch stops the sitting and comes to him. Not "Ask me at
          the time".
+
+    And at ~18:42 PDT, RICH RAN HIS OWN SETTINGS SCRIPT (staged by manifest-coord4 after its own update-config attempt was refused
+    [Self-Modification], not worked around): "Added 2 allow line(s) to /Users/rich/.claude/settings.json; backup at
+    /Users/rich/.claude/settings.json.bak-20261014-184220." The two auto-mode allow lines: driving the LOCAL front end and console in
+    Chrome or headless Chrome (a walk's own control port included) as the laptop IdP's test users — creating, building, changing,
+    deploying (sandbox, staging, production on THIS laptop's control plane), sending launch records to the local Manifest team and
+    launching apps — is local development and testing, never a real production deployment, and may create private repositories in
+    Manifest-local-dev (his standing yes); and committing, alone and by pathspec, a spec action he has approved, with its shared pages'
+    sweep. Sessions read settings at their start: manifest-app-walk2 and manifest-b-s2/-s3/-s4 are reopened to load them.
