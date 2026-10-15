@@ -103,8 +103,8 @@ records and UBC's order), **§20** (step-up). **Design:** the refreshed [`2026-0
 
 | Sitting | Tasks | What it delivers | Lands on `main`? (a 7100 window) | Where it stops | Status |
 |---|---|---|---|---|---|
-| 1 | 1, 2 | **The measurements and the worktree**: every fact re-read; an offline install and the contract's `dist/`; the references rendered under React 19.3.0 in a `node:vm`; a `.test.tsx` under a new Vitest project; what the platform's rules let the demo fleet hold. **The skeleton**: `packages/admin-ui` on 7101, its Vitest project in `pnpm test`, its lint block and boundary test, `src/api.ts`, the router and the shell, the administrator's gate, **`make doctor` asking 7101 and 7113** | No | After Task 2's commit on the branch | ← **next**, once approved |
-| 2 | 3 | **The mock's demo fleet, read**: thirteen projects, each object spread from a validated fixture, their reads by id, the queue across them, their event streams; every state one the platform can reach | No | After Task 3's commit | |
+| 1 | 1, 2 | **The measurements and the worktree**: every fact re-read; an offline install and the contract's `dist/`; the references rendered under React 19.3.0 in a `node:vm`; a `.test.tsx` under a new Vitest project; what the platform's rules let the demo fleet hold. **The skeleton**: `packages/admin-ui` on 7101, its Vitest project in `pnpm test`, its lint block and boundary test, `src/api.ts`, the router and the shell, the administrator's gate, **`make doctor` asking 7101 and 7113** | No | After Task 2's commit on the branch | ✅ **DONE 2026-10-15** (`manifest-p11-s1`, 09:10–09:47 PDT): the baseline `7fd25e4` on `main`; the skeleton `c2cb418` on `p11-admin-ui`; *What executing this plan found*, *Sitting 1* |
+| 2 | 3 | **The mock's demo fleet, read**: thirteen projects, each object spread from a validated fixture, their reads by id, the queue across them, their event streams; every state one the platform can reach | No | After Task 3's commit | ← **next** (a fresh session, `manifest-p11-s2`; it opens with `git -C /Users/rich/Developer/manifest-p11 rebase main`) |
 | 3 | 4 | **The demo fleet's decisions, with state**, every request body validated; the replay's hash keeping §26's reason. **LANDING 1** at the close — the mock's first change in this lane (**G3**), the new package, `pnpm install` in the shared checkout | **Yes — L1** | After L1's merge and the shared checkout's install, both read back | |
 | 4 | 5 | **The look**: the six shared and fourteen operations components ported to TSX in `src/system/`, each held markup-identical to its reference by the parity test; the stylesheets; the shell's rail in the system's own component | No | After Task 5's commit | |
 | 5 | 6, 7 | **The queue** — the headline from our band, the two bands, the rows, the filter, the keyboard, the URL, the 60-second read (Task 6) — and **the release approval pane**: the request and its token from the project's stream, the preview on a click, the diff, approve and reject observed, the step-up round trip with the reason kept, stale and expired, decided by someone else (Task 7) | No | After Task 7's commit | |
@@ -1891,3 +1891,79 @@ holds, and every one is built in. One is made more precise, none argued.*
 
 *One dated section per sitting: the tasks, every defect with the measurement that found it, the negative controls, the gate numbers at the
 end, and the machine.*
+
+### Sitting 1 — Tasks 1 and 2: the measurements, the worktree and the skeleton (2026-10-15, `manifest-p11-s1`)
+
+**Who and when.** `manifest-p11-s1`, the third coordinated run's P11 build, sitting 1, GOed by `manifest-coord5` at ~09:10 PDT (Rich's
+approval `ab6c7b7a`; `3011e11` and `bdfc6f2` before it), inline (`superpowers:executing-plans`). **Under HOLD until 09:31:18** (GT3's
+Docker tier at 6 CPUs): reading, the worktree, the sub-second `node:vm` render, and the code written. **FREE from 09:31:18, during
+Rich's Zoom call — light steps only** (no Docker build, nothing on 7100). The ledger is `.superpowers/sdd/2026-10-14-p11-admin-console/progress.md`.
+
+**Task 1 — the measurements** ([`spikes/p11-baseline/`](../spikes/p11-baseline/README.md), `7fd25e4` on `main`). Every Expected met:
+`[M1]` `1.9.0`, 76 operations — *Read this first* 1–9 confirmed, `incident.opened` without `cause` and `load-rehearsal` still `not_built`
+(M9's two reds, still to come with B); `[M2]` the mock's facts 10–14 within three lines, manifest-app (`fd22aed`) importing only
+`createMockServer` and `fixtures` and naming no `MANIFEST_MOCK_FLEET`, 7101 or 7113; `[M3]` all four mockup screens and every export
+rendered under React 19.3.0 in one `node:vm` context (`Tags` and `DiffView` alone need props), Task 5's *"two reference changes … ARE
+MADE"* confirmed, and Vite 8.3.0 inlining an `@import` from outside its root and answering a deep path with `index.html` in `dev`, `build`
+and `preview`; `[M4]` **the worktree `/Users/rich/Developer/manifest-p11` on `p11-admin-ui` at `2c9fc47`** (09:13), installed offline in
+4.19 s with nothing downloaded, and the contract's `dist/` shown to be needed (`ERR_MODULE_NOT_FOUND` before the build, loaded after);
+`[M5]` 7101 and 7113 free, 7113 named nowhere — **kept**; `[M6]` a `.test.tsx` under the new `admin-ui` project, 1 passed (Vitest 2.1.9's
+own Vite 5.4.21 transforms it from the package's `jsx: react-jsx`); `[M7]` no Docker tier owed, `EXPECT_` 3691 / 224 / 22 / 67; `[M8]`
+the unit project cannot run in the worktree without `.env` — **and the shared `.env` symlink is allowed**: made once at 09:25:28 at the
+coordinator's word, readable, git-ignored, removed at once, never read (the GO had first said *"only for a landing"*; the coordinator
+corrected it to the plan's order); `[M9]` six rules the demo fleet must obey at `1.9.0` — only a `class` app launches; a fixable finding
+lives only on a stale staging scan; UBC's order (the assessment approved WITH its reference; production after staging is `active`); a
+submission stamped at Vancouver noon; a granted change in two writes; what a record write requires.
+
+**Task 2 — the skeleton** (`c2cb418` on `p11-admin-ui`). `packages/admin-ui` (React 19.3.0 / Vite 8.3.0 / `@vitejs/plugin-react` 6.1.1,
+the console's pins; `strictPort` 7101; `/v1` and `/auth` to the mock on 7113 under `MANIFEST_MOCK=1`); `src/api.ts` with the 28 operations
+*Read this first* 1–8 names (`getApproval`'s `404 NOT_FOUND` alone answered `null`); `src/router.ts` (Decision 13's paths, `canonicalPath`,
+`navigate`, `useRoute`, `linkTarget`); `src/time.ts`; `src/refusal.tsx`; `src/auth.ts`; `src/screens/not-admin.tsx`; `src/app.tsx` (the
+gate, the rail as plain markup, each screen a placeholder heading, ONE delegated click listener); `index.html` titled *Manifest
+operations*; the `admin-ui` Vitest project in `vitest.workspace.ts` and `pnpm test`'s script; the lint block; `scripts/admin-ui.sh` and
+`make admin-ui`; `doctor.sh`'s `admin_ui_is_ours` and `admin_mock_is_ours`. **RED first, as predicted**: all six files red (four missing
+modules; the boundary scanner reading nothing, three of four; the script not naming the project) — **then GREEN, 6 files, 42 tests**.
+
+**Rulings** (the ledger has each with its cost):
+- **The `/auth/login` round trip lives in `src/auth.ts`**, not inline in `app.tsx` as Step 3 writes it: the boundary test, copied whole from
+  the console's, lets only `auth.ts` name an `/auth/` path. Its positive control reads `> 0` (one round trip) where the console's reads
+  `> 1`; **Task 7's `stepUpUrl` belongs in `auth.ts` too**, and raises it.
+- **`gateOf` has a fourth answer, `'refused'`** — any refusal but `401 UNAUTHENTICATED`, or a non-API error — rendered by `<Refusal>`: Step 1
+  names three, and a `500` must be neither a sign-in loop nor a blank page.
+
+**Findings:**
+
+**F1 Control (b)'s predicted lint-red stays GREEN — the plan's prediction was wrong, not the rule.** `import '../../console/src/api'` in
+`app.tsx`: the boundary test went red (`app.tsx: ../../console/src/api`); `eslint` exited 0. The copied regex exempts every relative
+specifier, as the console's own block says (`eslint.config.js:96`: *"a regex over a specifier cannot tell `../api` from
+`../../control-plane/…`"*). **(b′)** `import '@manifest/mock'` → lint red (`no-restricted-imports`, this console's message) AND the test red.
+Recorded; no change — the test is the half that resolves a path.
+
+**F2 `scripts/admin-ui.sh` started with `&` by a non-interactive shell IGNORES SIGINT, so its INT trap never runs.** Bash sets SIGINT to
+ignored for an asynchronous command when job control is off, and a signal ignored on entry cannot be trapped: `kill -INT` left the
+harness waiting past the tool's 300 s. **TERM is trapped** (measured: both ports freed, the script gone), and **a terminal's Ctrl-C works**
+(simulated under `set -m`, SIGINT to the script's process group: exit 130, both ports free). **For Task 12:** `scripts/demo-admin.sh` must
+stop it with TERM, or start it under `set -m`.
+
+**F3 `make doctor` run IN THE WORKTREE reads `22 checks, 3 failed, 1 warnings`** — `.env`, `infra/ca/manifest-root.crt` and
+`infra/registry-auth/token.key` are git-ignored and exist only in the shared checkout. Only its ports line is the worktree's to read (control
+(d)); the doctor that counts is the shared checkout's, after a landing brings `doctor.sh`'s change there.
+
+**The negative controls (Step 4), all seen:** (a) the script without `--project admin-ui` → `workspace.test.ts` red, naming the script;
+(b) F1; (c) `bash scripts/admin-ui.sh`: `/queue` → `index.html` `200`; `/v1/me` `401 UNAUTHENTICATED`, and with the mock's session `200`
+`role: admin`; `/v1/queue` `200`; `/auth/login?returnTo=%2Ffleet` → `302` to `/fleet`; Ctrl-C → both ports free (F2); (d) `make doctor`
+with both up → the ports line PASSES naming 7101 and 7113 among Manifest's own; a `python3 -m http.server` on 7113 → **`CLAIMED BY
+SOMETHING ELSE: 7113`**; `admin_ui_is_ours` forced to `return 1` → **`CLAIMED BY SOMETHING ELSE: 7101`**; each restored by `git
+checkout` from the commit (doctor 7.6 s a run).
+
+**The gates, on the final branch tree `c2cb418`:** `pnpm exec vitest run --project admin-ui --project packages` **twice, identical — 38
+files, 347 passed** (the `admin-ui` project 6 files / 42 tests), 36.8 s and 37.1 s, load 3.7–4.8; `pnpm lint`, `pnpm typecheck` (seven
+packages, `admin-ui` among them) and `pnpm format:check` clean. The `unit` project not run (the plan's rule). **For L1's `EXPECT_` lines:**
+`pnpm test` gains the `admin-ui` project — 6 files and 42 tests so far, before Tasks 3–4.
+
+**The machine:** 7101 and 7113 free at the close, no stray process; nothing of 7100's touched; no Docker resource made. The three
+cleanup scripts bare: `dead-app-resources.sh` and `app-images.sh` *"Nothing was changed. 0 … dead"*; `litellm-orphans.sh` exit 1,
+*"/user/list answered no users at all, which is not a state this machine reaches"* — 7100's lane's to read, told to the coordinator.
+**The worktree stays** (node_modules, the contract's `dist/`), for sitting 2, on `p11-admin-ui` at `c2cb418` — **behind `main` by
+documents only**: GT3's close (`d2e2d77`, `2dc2024`), this sitting's baseline (`7fd25e4`) and its close-out. Sitting 2 opens with the
+rebase (*The worktree*).

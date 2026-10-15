@@ -2884,3 +2884,16 @@ on the Resources page says a restart will update. So a before/after comparison a
 same containers returned by their restart policies, `make verify` 67/0/0, P3's `v1.44` pin still inside the API window (minimum 1.40).
 Read `defaults read /Applications/Docker.app/Contents/Info.plist CFBundleShortVersionString` and `docker version --format '{{.Server.Version}}
 {{.Server.APIVersion}}'` before and after, and record both.
+
+**A SCRIPT STARTED WITH `&` BY A NON-INTERACTIVE SHELL IGNORES SIGINT, AND ITS `trap … INT` NEVER RUNS** (P11's sitting 1, F2,
+2026-10-15). Bash sets SIGINT (and SIGQUIT) to ignored for an asynchronous command when job control is off, and a signal ignored on entry
+cannot be trapped or reset. So `bash scripts/admin-ui.sh &` from another script, then `kill -INT $pid`, did nothing — the harness's
+`wait` sat past the tool's 300 s while the console and its mock kept their ports. **TERM is trapped** (it freed 7101 and 7113 at once), and a
+terminal's Ctrl-C works, because there the script is the foreground job. To stop a backgrounded long-runner from a script, send TERM; to
+exercise its Ctrl-C path faithfully, start it under `set -m` (its own process group, SIGINT not ignored) and `kill -INT -- -<pgid>`.
+
+**`make doctor` RUN IN A GIT WORKTREE READS THREE FAILS AND A WARNING THAT ARE NOT THE MACHINE'S** (P11's sitting 1, F3, 2026-10-15) —
+`22 checks, 3 failed, 1 warnings` from `/Users/rich/Developer/manifest-p11`: `.env`, `infra/ca/manifest-root.crt` and
+`infra/registry-auth/token.key` are git-ignored, so a worktree has none of them (`.env missing`, `token.key is missing`, `docker compose
+config failed — is .env present?`, and the CA's WARN). Read only the line you came for (P11's control reads the ports line); the doctor
+that counts is the shared checkout's.

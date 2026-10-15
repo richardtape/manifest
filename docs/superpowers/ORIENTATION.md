@@ -2053,6 +2053,16 @@ its **READ FIRST** banners, then Task 1 — which re-reads every fact A1's sitti
 **resumes on 7100 in the coordinator's windows**, beside B's documents-only open, as `manifest-coord5` schedules them; its record is
 manifest-app's.
 
+**P11, THE ADMINISTRATOR'S CONSOLE, IS A PARALLEL LANE BESIDE B** — [`plans/2026-10-14-p11-admin-console.md`](plans/2026-10-14-p11-admin-console.md),
+approved by Rich 2026-10-15 ~08:54 (`ab6c7b7a`), nine sittings, one tab each (`manifest-p11-s1` … `-s9`), GOed by the coordinator. **It is
+built in the git worktree `/Users/rich/Developer/manifest-p11` on branch `p11-admin-ui`** (Rich's word, `3011e11`) and changes this checkout
+only by its three fast-forward landings and its sittings' documents. **Sitting 1 is done** (2026-10-15: the baseline
+[`spikes/p11-baseline/`](spikes/p11-baseline/README.md), `7fd25e4`; the skeleton `c2cb418` on the branch — `packages/admin-ui` on 7101,
+its own mock on 7113 by `make admin-ui` from the worktree); **its sitting 2 (Task 3, the demo fleet's reads) is next**, and its sittings
+table says where each stops. It takes a 7100 window only to land (L1 closes its sitting 3). Two of its traps are in TRAPS.md: a
+backgrounded `scripts/admin-ui.sh` ignores SIGINT (stop it with TERM), and `make doctor` in the worktree reads three fails for git-ignored
+files.
+
 **WHAT A1 LEFT THE NEXT PLANS, B ABOVE ALL (2026-10-14; A1's *What executing this plan found*, *Sitting 8*, has the story):**
 - **A1's review fix wave, `745def2`** — read it before Task 1's measurements, because B's generator is exactly the traffic it is about:
   the edge's passive health policy counts **no status** an app answers (a `502`/`504` from the app's own dependency used to eject members,
@@ -2105,7 +2115,8 @@ Constraints*:
   LINE DELIBERATELY DOES NOT RESTATE IT.** Read it: **other agents are working in this
   repository at the same time as you** — and a SECOND REPOSITORY now depends on this one's working tree (the faculty
   front-end links `packages/contract`, and runs `packages/mock` from source) — and `superpowers:executing-plans` and `using-git-worktrees` will both push you toward a
-  branch you must not make.
+  branch you must not make. **The one exception is P11's build** (Rich, `3011e11`): its sittings work in their worktree and branch, as
+  its plan's *How this plan is to be executed* says — and commit their documents here, by pathspec, like any sitting.
 - **Ask before `sudo`, and before touching anything outside the repository** — `~/Developer/manifest-app` and
   `~/Developer/saml-metadata-generator` included (the latter is read-only, and dirty with changes that are not ours).
   §6 rule 2, and CLAUDE.md's *Non-negotiables* has the rest.
@@ -2502,8 +2513,9 @@ reasoning is recorded.**
   A MOCKUP** (*"We're just trying to get some sense of a design"*): the design is
   [`2026-09-27-admin-console-design.md`](2026-09-27-admin-console-design.md), drawn as a clickable mockup on the
   shared design system (`design/admin-console.html`, published at
-  <https://claude.ai/artifact/N8qj84CVbvJ7f2L6xKfQ25>). `packages/admin-ui` is not built and no P11 plan is written;
-  the design's §13 says what one would do.
+  <https://claude.ai/artifact/N8qj84CVbvJ7f2L6xKfQ25>). `packages/admin-ui` was not built and no P11 plan written then;
+  the design's §13 said what one would do. **Since:** the P11 plan, written 2026-10-14 at Rich's *"Plan + review now, build after
+  approval"* (`3011e11`) and approved by him 2026-10-15 (`ab6c7b7a`), is being built in its worktree — §7e has where it is.
 - **HOW SCALAR ARRIVES — OPTION (a): THE NETWORK, FOR THAT ONE ADD, IN THE AUTHORING API PLAN'S SITTING 8** (Rich,
   2026-09-26, after its sitting 7, taking the recommendation). Sitting 7 measured `pnpm --filter @manifest/console add
   --offline @scalar/api-reference@1.72.0` refused by pnpm 11's supply-chain check in a scratch copy of the workspace, so
