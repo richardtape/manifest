@@ -1,3 +1,4 @@
+# check=skip=InvalidDefaultArgInFrom
 # §24's load generator — vegeta's official release binary on the mirrored alpine, BUILT HERE by `make seed`
 # (infra/seed/build-vegeta.sh), never pulled (Rich, 2026-10-03: "Build it locally"). The build script has
 # already checked the archive against infra/vegeta/vegeta.lock AND vegeta's published checksums file; the
@@ -5,7 +6,10 @@
 # the lock does not name.
 #
 # FROM BY DIGEST — the digest infra/images.lock holds for alpine:3.22, passed in by the build script, so the
-# base is the one the daemon already has and the build needs no network once the archive is cached.
+# base is the one the daemon already has and the build needs no network once the archive is cached (BuildKit
+# resolved it in 0.0 s from the daemon's own store, 2026-10-15). ALPINE_DIGEST has NO default on purpose — a
+# second copy of the digest here would drift from the lock — which is what the parser directive on line 1 tells
+# BuildKit's InvalidDefaultArgInFrom check: without the argument the build fails, it never falls back to a tag.
 ARG ALPINE_DIGEST
 FROM alpine:3.22@${ALPINE_DIGEST}
 
