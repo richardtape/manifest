@@ -2135,3 +2135,10 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
     from now load it. Before it, at ~08:55, his allow typed in W5B's tab: "I allow W5B's walk: the scripts/walk Node scripts on this
     laptop's platform as the test users — create, build, deploy, send launch records and launch muddiest-point (one private repo in
     Manifest-local-dev, kept)."
+
+    At ~09:33 PDT, in chat to manifest-coord5, on GT3's comparison (the gentler test tiers plan's sitting 3, Task 7): "keep 6" —
+    DOCKER DESKTOP STAYS AT 6 CPUs. The evidence put to him: the Docker tier at 6 CPUs 305/305 in 44 files, Vitest 1502.7 s (09:04:45–
+    09:29:48, wrapped, utility scale 5, Docker Desktop 4.95.0 / Engine 29.8.2), against GT2's at 12 CPUs 1977.1 s (ae544ec, 4.87.0 /
+    29.7.2) — 0.76×, ~430 s of the saving in four files whose slow tests wait, the other 40 files 0.95×, CPU-bound builds a little slower;
+    the plan's rule (keep 6 unless more than ~1.5× slower or a new red) met; the version change recorded as a confound that does not
+    change the answer. Rejected: 8; back to 12. His Docker Desktop step itself was done ~08:57 (NCPU 6 read at 09:02).
