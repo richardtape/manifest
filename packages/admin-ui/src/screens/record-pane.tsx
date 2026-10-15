@@ -750,8 +750,9 @@ export function RecordPaneView(props: RecordPaneViewProps) {
         iam !== null ? 'Record UBC IAM’s answer' : 'Record the Privacy Office’s answer',
         <>
           {para(
+            // Never `from '…` in this file's text: the boundary test reads that as an import.
             <>
-              {'Only the moves the platform allows from '}
+              {'Only the moves the platform allows from'}{' '}
               <code className="mfa-mono">{r.state}</code>
               {' are offered.'}
             </>,
