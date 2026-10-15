@@ -303,8 +303,8 @@ function iamSendableFrom(
   return null
 }
 
-/** A record the Manifest team does not hold — the platform's `notWithTeam`. */
-const notWithTeam = (what: string, state: string | undefined) =>
+/** A record the Manifest team does not hold — the platform's `notWithTeam` (the demo fleet's too). */
+export const notWithTeam = (what: string, state: string | undefined) =>
   new MockRefusal(
     409,
     'LAUNCH_TRANSITION_INVALID',
@@ -381,7 +381,11 @@ function checkGapAnswers(
 }
 
 /** The platform's `sentDay` for the team's record: a day that exists, has happened, and is not before the owner's send. */
-function sentDay(sentAt: string | undefined, ownerSent: string, now: number): string {
+export function sentDay(
+  sentAt: string | undefined,
+  ownerSent: string,
+  now: number,
+): string {
   const today = vancouverDay(new Date(now))
   const day = sentAt ?? today
   if (!/^\d{4}-\d{2}-\d{2}$/.test(day) || vancouverDay(vancouverNoon(day)) !== day)

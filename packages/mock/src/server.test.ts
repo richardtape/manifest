@@ -550,6 +550,40 @@ describe('manifest-mock refuses what the platform refuses', () => {
     )
   })
 
+  it('replays a retry carrying §26’s reason under its key, as the platform does — another reason is another request (I7)', async () => {
+    const scripted = createMockServer({ adminReason: true })
+    await new Promise<void>((resolve) => scripted.listen(0, '127.0.0.1', resolve))
+    const { port } = scripted.address() as { port: number }
+    const key = crypto.randomUUID()
+    const rename = (reason: string) =>
+      fetch(`http://127.0.0.1:${port}/v1/projects/${fixtures.PROJECT_ID}`, {
+        method: 'PATCH',
+        headers: {
+          ...session,
+          'content-type': 'application/json',
+          'idempotency-key': key,
+          'manifest-admin-reason': encodeURIComponent(reason),
+        },
+        body: JSON.stringify({ name: 'Renamed by an administrator' }),
+      })
+    try {
+      const first = await rename('The department asked.')
+      expect(first.status).toBe(200)
+      const answered = await first.text()
+      // THE SAME KEY, BODY AND REASON IS THE REPLAY — the first answer, byte for byte.
+      const retried = await rename('The department asked.')
+      expect(retried.status).toBe(200)
+      expect(await retried.text()).toBe(answered)
+      const other = await rename('Another reason.')
+      expect(other.status).toBe(409)
+      expect(((await other.json()) as { error: { code: string } }).error.code).toBe(
+        'IDEMPOTENCY_KEY_REUSED',
+      )
+    } finally {
+      await new Promise((resolve) => scripted.close(resolve))
+    }
+  })
+
   it('answers §26’s fleet 403 FORBIDDEN unless the role is admin', async () => {
     const member = await fetch(`${origin}/v1/fleet`, { headers: session })
     expect(member.status).toBe(403)

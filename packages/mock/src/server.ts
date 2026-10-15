@@ -10,7 +10,12 @@ import { WebSocketServer, type WebSocket } from 'ws'
 import * as f from './fixtures.js'
 import { READY, REPLAY, scripted, SCAN_SILENCE_MS } from './script.js'
 import { createValidator, type Validate } from './validate.js'
-import { MockRefusal } from './refusal.js'
+import {
+  adminReasonOf,
+  assertAdminReason,
+  MockRefusal,
+  stepUpRefusal,
+} from './refusal.js'
 import {
   createFleet,
   readyFor,
@@ -368,50 +373,7 @@ function assertSteppedUp(ctx: Context, capability: string): void {
   // the platform answers it otherwise — a production deploy is a question for its person, a production
   // secret is a person's alone. The mock plays neither, so a token is not refused here.
   if (!ctx.options.stepUp || ctx.steppedUp || ctx.credential === 'token') return
-  throw new MockRefusal(
-    403,
-    'STEP_UP_REQUIRED',
-    `'${capability}' needs a second authentication round trip`,
-    'Navigate the browser to /auth/step-up?returnTo=<the page you are on>, complete the CWL prompt, and make this request again.',
-  )
-}
-
-/**
- * THE PLATFORM'S DECODING of `Manifest-Admin-Reason`: percent-encoded UTF-8 is decoded, text that is
- * not a valid encoding is taken as sent, and it is trimmed — `null` when nothing is left.
- */
-function adminReasonOf(header: string | string[] | undefined): string | null {
-  if (header === undefined) return null
-  const raw = Array.isArray(header) ? header.join(', ') : header
-  let decoded = raw
-  try {
-    decoded = decodeURIComponent(raw)
-  } catch {
-    decoded = raw
-  }
-  const trimmed = decoded.trim()
-  return trimmed === '' ? null : trimmed
-}
-
-/** Task 10, when scripted: the platform's `400 ADMIN_REASON_REQUIRED`, in its words. */
-function assertAdminReason(header: string | string[] | undefined): void {
-  const reason = adminReasonOf(header)
-  const hint =
-    "Send why in the Manifest-Admin-Reason header — 1 to 500 characters, percent-encoded as UTF-8 when it is not plain ASCII. The project's people read it beside your name."
-  if (reason === null)
-    throw new MockRefusal(
-      400,
-      'ADMIN_REASON_REQUIRED',
-      'you are a platform administrator and not a member of this project, so this needs a reason',
-      hint,
-    )
-  if (reason.length > 500)
-    throw new MockRefusal(
-      400,
-      'ADMIN_REASON_REQUIRED',
-      `the reason is ${reason.length} characters; at most 500 are kept`,
-      hint,
-    )
+  throw stepUpRefusal(capability)
 }
 
 /** The `environment` path parameter, as the platform's schema allows it. */
@@ -1371,7 +1333,6 @@ export function createMockServer(options: MockOptions = {}): Server {
     resolved.fleet === 'demo'
       ? createFleet(Math.floor(Date.now() / 1000) * 1000)
       : undefined
-  const holding = heldFor(fleet)
 
   /**
    * WHEN THE SCRIPTED BUILD STOPS BEING `running`, IN WALL-CLOCK TIME. Set the moment a
@@ -1493,6 +1454,10 @@ export function createMockServer(options: MockOptions = {}): Server {
       })
 
       const key = request.headers['idempotency-key']
+      // The reason is part of the request, as on the platform: another reason under one key is
+      // another request. Only when one was sent, so every other hash is what it always was.
+      const reason = adminReasonOf(request.headers['manifest-admin-reason'])
+      const hash = JSON.stringify(body ?? null) + (reason === null ? '' : `\0${reason}`)
       if (operation.needsIdempotencyKey) {
         if (typeof key !== 'string' || key.length < 8)
           throw new MockRefusal(
@@ -1502,10 +1467,6 @@ export function createMockServer(options: MockOptions = {}): Server {
             'Generate a UUID per user action and reuse it across retries of that action.',
           )
         const stored = seen.get(`${key}|${operation.method} ${operation.path}`)
-        // The reason is part of the request, as on the platform: another reason under one key is
-        // another request. Only when one was sent, so every other hash is what it always was.
-        const reason = adminReasonOf(request.headers['manifest-admin-reason'])
-        const hash = JSON.stringify(body ?? null) + (reason === null ? '' : `\0${reason}`)
         if (stored !== undefined) {
           if (stored.hash !== hash)
             throw new MockRefusal(
@@ -1559,12 +1520,19 @@ export function createMockServer(options: MockOptions = {}): Server {
         }
       }
 
-      // FE-27: an id the mock does not hold is the platform's 404, before any answer is built.
-      assertHeld(params, holding)
+      // FE-27: an id the mock does not hold is the platform's 404, before any answer is built. Read per
+      // request: the demo fleet holds a preview from the moment it is taken.
+      assertHeld(params, heldFor(fleet))
       // Task 10: an administrator who is not a member, when scripted — a person's session only; a token
-      // is never asked (its minter was, at the mint).
-      if (resolved.adminReason && operation.asksAdminReason && credential === 'session')
-        assertAdminReason(request.headers['manifest-admin-reason'])
+      // is never asked (its minter was, at the mint). A fleet project asks it itself, after the body is
+      // read, which is the platform's order (P11's Task 4).
+      if (
+        resolved.adminReason &&
+        operation.asksAdminReason &&
+        credential === 'session' &&
+        fleet?.holds(params) !== true
+      )
+        assertAdminReason(reason)
 
       const now = Date.now()
       const steppedUp = cookiesOf(request)[STEP_UP_COOKIE] === '1'
@@ -1579,7 +1547,8 @@ export function createMockServer(options: MockOptions = {}): Server {
         steppedUp,
         stepUpRequired: resolved.stepUp,
         actor: f.OPERATOR_ME,
-        adminReason: adminReasonOf(request.headers['manifest-admin-reason']),
+        adminReason: reason,
+        validate,
       }) ??
       answer({
         params,
@@ -1617,7 +1586,9 @@ export function createMockServer(options: MockOptions = {}): Server {
       const text = JSON.stringify(answered)
       if (operation.needsIdempotencyKey && typeof key === 'string')
         seen.set(`${key}|${operation.method} ${operation.path}`, {
-          hash: JSON.stringify(body ?? null),
+          // THE HASH THE CHECK ABOVE COMPUTES, the reason in it (P11's I7): stored without it, a retry
+          // carrying the same reason under its key was `409`, where the platform replays it.
+          hash,
           status,
           // The platform keeps a mint's token WITHOUT its secret, and a session WITHOUT its key;
           // so does the mock.

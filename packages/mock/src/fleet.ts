@@ -1,8 +1,9 @@
 import type { Schemas } from '@manifest/contract'
 import * as f from './fixtures.js'
-import { vancouverDay, vancouverNoon } from './launch.js'
-import { MockRefusal } from './refusal.js'
+import { notWithTeam, sentDay, vancouverDay, vancouverNoon } from './launch.js'
+import { assertAdminReason, MockRefusal, stepUpRefusal } from './refusal.js'
 import { READY } from './script.js'
+import type { Validate } from './validate.js'
 
 /**
  * THE DEMO FLEET (P11's Tasks 3–4; the plan's Decision 2, Rich's of 2026-10-15): thirteen projects an
@@ -24,6 +25,13 @@ import { READY } from './script.js'
  *   ids, names, times, states and the story's own fields, so each inherits the shape the document
  *   checks; and every answer still passes the server's validator on its way out, so a fleet object that
  *   drifts is a `500` naming the schema, not a plausible lie.
+ *
+ * **AN ADMINISTRATOR'S DECISIONS ARE KEPT** (Task 4): a release signed off on a stored preview, a
+ * record submitted, handed back or answered as UBC answered it, an agent's question refused — each body
+ * validated against its operation's request schema first (C1), each refused in the platform's order and
+ * words, each written as the platform writes it, and each announced on the project's stream. The queue,
+ * the checklist and the fleet row are derived from what is kept, so a decision moves them as it does on
+ * the platform.
  *
  * Its state lives in the object `createFleet` returns — one per server, never a module global — and a
  * restart is the reset. Every time is `t0 − age`, t0 being the server's creation, except what the
@@ -637,6 +645,8 @@ export interface FleetContext {
   stepUpRequired: boolean
   actor: { id: string; displayName: string }
   adminReason: string | null
+  /** The server's validator — every request body the fleet acts on is held to its operation's schema. */
+  validate: Validate
 }
 
 export interface FleetAnswer {
@@ -660,6 +670,8 @@ export interface Fleet {
   >
   fleetRows(): Schemas['Fleet']
   queueItems(): QueueItem[]
+  /** Whether a request names a fleet id — and is so the fleet's to answer, §26's reason included. */
+  holds(params: Record<string, string>): boolean
   /** An answer for a fleet id, or undefined when the request names none (the fixtures answer it). */
   answer(
     operationId: string,
@@ -705,6 +717,12 @@ interface ProjectState {
   pendingActions: Schemas['PendingActionList']
   /** Oldest first. */
   events: EventFrame[]
+  /** Every decision on its releases, oldest first — the history's, then an administrator's here. */
+  approvals: Schemas['Approval'][]
+  /** Every preview taken, the history's included. */
+  previews: Schemas['ApprovalPreview'][]
+  /** The last `k` of each id a decision mints, so the next is unique. */
+  counters: { event: number; approval: number; preview: number }
 }
 
 export function createFleet(t0: number): Fleet {
@@ -732,6 +750,30 @@ export function createFleet(t0: number): Fleet {
     for (const t of p.tokens) owners.tokenId.set(t.id, p)
   }
   const listeners = new Map<string, Set<(frame: EventFrame) => void>>()
+
+  // THE HISTORY'S DECISIONS: each launched project's launch release, approved by Operator One on a
+  // preview taken five minutes before — a first launch's, with nothing to compare. Their events are in
+  // the history already; these are the rows `getApproval` and `getApprovalPreview` read.
+  for (const p of projects) {
+    const production = p.row.production
+    if (production === undefined) continue
+    const release = p.releases[production.release - 1]!
+    const preview = takePreview(
+      p,
+      release,
+      t0 - production.approved - 5 * MINUTE,
+      OPERATOR,
+    )
+    keepDecision(
+      p,
+      release,
+      preview,
+      'approved',
+      null,
+      t0 - production.approved,
+      OPERATOR,
+    )
+  }
 
   /** The project a request names, by any id it carries — or undefined: not the fleet's. */
   function named(params: Record<string, string>): ProjectState | undefined {
@@ -1309,7 +1351,6 @@ export function createFleet(t0: number): Fleet {
     }
 
     // ─── The first launch, and what production has been through since ───
-    const decisions: { releaseId: string; asked: number; approved: number }[] = []
     if (row.rehearsal !== undefined) {
       const release = releaseOf(row.rehearsal.release)
       event(
@@ -1329,7 +1370,6 @@ export function createFleet(t0: number): Fleet {
     if (row.production !== undefined) {
       const { launched, asked, approved } = row.production
       const release = releaseOf(row.production.release)
-      decisions.push({ releaseId: release.id, asked, approved })
       event(
         asked,
         'approval.requested',
@@ -1599,7 +1639,10 @@ export function createFleet(t0: number): Fleet {
           userId: OPERATOR.id,
           tokenId: null,
         },
-        `${OPERATOR.displayName} renamed the project from “${row.renamed.from}” to “${row.name}”.`,
+        asAdministrator(
+          `${OPERATOR.displayName} renamed the project from “${row.renamed.from}” to “${row.name}”.`,
+          row.renamed.reason,
+        ),
         // §26: AN ADMINISTRATOR ACTING WITH AN OWNER'S CAPABILITY, as no member — and why.
         {
           name: OPERATOR.displayName,
@@ -1642,7 +1685,181 @@ export function createFleet(t0: number): Fleet {
       tokens,
       pendingActions,
       events,
+      approvals: [],
+      previews: [],
+      counters: { event: counters.event, approval: 0, preview: 0 },
     }
+  }
+
+  // ─── A release's sign-off (`releases/approval.ts`, `releases/preview.ts`) ───
+
+  /** Newest first by `decidedAt`, then id — `latestApprovalFor`'s order. (Hoisted: the history uses it.) */
+  function newestFirst(a: Schemas['Approval'], b: Schemas['Approval']): number {
+    return Date.parse(b.decidedAt) - Date.parse(a.decidedAt) || b.id.localeCompare(a.id)
+  }
+
+  /** The newest decision on a release, or undefined (`latestApprovalFor`). */
+  function latestApproval(
+    p: ProjectState,
+    releaseId: string,
+  ): Schemas['Approval'] | undefined {
+    return p.approvals.filter((a) => a.releaseId === releaseId).sort(newestFirst)[0]
+  }
+
+  /**
+   * THE LAST APPROVED RELEASE, THE ONE IN HAND EXCLUDED (`lastApprovedReleaseFor`): each release's latest
+   * decision, newest first — so a release an administrator withdrew is no longer anyone's baseline.
+   */
+  function lastApproved(p: ProjectState, exclude: string | null): Release | undefined {
+    const seen = new Set<string>()
+    for (const a of [...p.approvals].sort(newestFirst)) {
+      if (seen.has(a.releaseId)) continue
+      seen.add(a.releaseId)
+      if (a.releaseId !== exclude && a.decision === 'approved')
+        return p.releases.find((r) => r.id === a.releaseId)
+    }
+    return undefined
+  }
+
+  /** `diffFactsFor`: what a preview shows and a decision recomputes — never the summary or the verdict. */
+  function factsOf(p: ProjectState, release: Release): Facts {
+    const baseline = lastApproved(p, release.id)
+    const now = release.config.production
+    const fields =
+      baseline === undefined ? [] : sensitiveBetween(baseline.config.production, now)
+    return {
+      imageDigest: release.imageDigest,
+      changes:
+        baseline === undefined ? [] : changesBetween(baseline.config.production, now),
+      services: now.services.map((x) => `${x.type}@${x.version}`).sort(),
+      attributes: [...now.auth.attributes].sort(),
+      resources: {
+        cpu: now.resources.cpu ?? null,
+        memory: now.resources.memory ?? null,
+        disk: now.resources.disk ?? null,
+        pids: now.resources.pids ?? null,
+      },
+      baselineReleaseId: baseline?.id ?? null,
+      sensitiveFields: fields,
+      security: fields.map((field) => ({ field, note: SECURITY_NOTES[field] })),
+      coverage: f.APPROVAL.diff.coverage,
+    }
+  }
+
+  /** `buildDiffSnapshot`: the facts, then the written half — the reviewer's verdict and the model's summary. */
+  function diffOf(p: ProjectState, release: Release): Schemas['ApprovalDiff'] {
+    const facts = factsOf(p, release)
+    const written = {
+      summaryWithheldBecause: null,
+      summaryExposures: null,
+      review: f.APPROVAL.diff.review,
+    }
+    if (facts.baselineReleaseId === null)
+      return { ...facts, ...written, summary: null, summarySource: 'no-previous-release' }
+    if (facts.changes.length === 0)
+      return { ...facts, ...written, summary: NO_CHANGES, summarySource: 'no-changes' }
+    // THE MODEL IS NEVER ASKED ABOUT `auth.attributes` (`summary.ts`'s NOT_MODELLED).
+    const modelled = facts.changes.filter((c) => c.path !== 'auth.attributes')
+    if (modelled.length === 0)
+      return { ...facts, ...written, summary: null, summarySource: 'not-modelled' }
+    const exposures = modelled.map((c) => ({ path: c.path, sentence: exposureOf(c) }))
+    return {
+      ...facts,
+      ...written,
+      summary: exposures.map((e) => e.sentence).join(' '),
+      summarySource: 'llm',
+      summaryExposures: exposures,
+    }
+  }
+
+  /** `recordPreview`: stored at `at`, for thirty minutes, by whoever took it. */
+  function takePreview(
+    p: ProjectState,
+    release: Release,
+    at: number,
+    by: { id: string; displayName: string },
+  ): Schemas['ApprovalPreview'] {
+    const preview: Schemas['ApprovalPreview'] = {
+      id: fleetId(KIND.preview, p.row.n, ++p.counters.preview),
+      releaseId: release.id,
+      projectId: p.project.id,
+      createdBy: by.id,
+      createdByName: by.displayName,
+      createdAt: iso(at),
+      expiresAt: iso(at + PREVIEW_TTL_MS),
+      imageDigest: release.imageDigest,
+      diff: diffOf(p, release),
+    }
+    p.previews.push(preview)
+    owners.previewId.set(preview.id, p)
+    return preview
+  }
+
+  /** `recordApproval`'s row: what was shown — the preview's diff, never a second one. */
+  function keepDecision(
+    p: ProjectState,
+    release: Release,
+    preview: Schemas['ApprovalPreview'],
+    decision: 'approved' | 'rejected',
+    reason: string | null,
+    at: number,
+    by: { id: string; displayName: string },
+  ): Schemas['Approval'] {
+    const approval: Schemas['Approval'] = {
+      id: fleetId(KIND.approval, p.row.n, ++p.counters.approval),
+      releaseId: release.id,
+      projectId: p.project.id,
+      decision,
+      decidedBy: by.id,
+      decidedByName: by.displayName,
+      decidedAt: iso(at),
+      imageDigest: release.imageDigest,
+      reason,
+      diff: preview.diff,
+      previewId: preview.id,
+    }
+    p.approvals.push(approval)
+    return approval
+  }
+
+  /**
+   * THE OPEN SIGN-OFF REQUEST (`openRequestFor`): for the release serving staging now, with no decision
+   * recorded on it since it was asked — an approval or a rejection closes it.
+   */
+  function openRequest(p: ProjectState): Request | null {
+    const request = p.request
+    if (request === null || request.releaseId !== candidateOf(p)?.id) return null
+    const decided = p.approvals.some(
+      (a) =>
+        a.releaseId === request.releaseId &&
+        Date.parse(a.decidedAt) >= Date.parse(request.createdAt),
+    )
+    return decided ? null : request
+  }
+
+  /** An event the platform publishes now, on the project's stream as it happens. */
+  function announce(
+    p: ProjectState,
+    now: number,
+    type: EventFrame['type'],
+    subject: string,
+    machineDetail: Record<string, unknown>,
+    humanMessage: string,
+    actor: EventFrame['actor'],
+  ): void {
+    const frame = {
+      kind: 'event',
+      id: fleetId(KIND.event, p.row.n, ++p.counters.event),
+      projectId: p.project.id,
+      subject,
+      type,
+      humanMessage,
+      machineDetail,
+      createdAt: iso(now),
+      actor,
+    } as EventFrame
+    p.events.push(frame)
+    for (const listener of listeners.get(p.project.id) ?? []) listener(frame)
   }
 
   // ─── The reads ───
@@ -1741,26 +1958,31 @@ export function createFleet(t0: number): Fleet {
     const launched = p.project.launchedAt !== null
     const nothingServing = (what: string): string =>
       `Nothing is serving in staging yet, so there is no ${what}. Production runs exactly what staging ran.`
+    // THE OPEN REQUEST ONLY (`askedFor`): a decision on the candidate since it was asked closes it.
+    const request = openRequest(p)
     const asked =
-      p.request === null || p.request.releaseId !== candidate?.id
+      request === null
         ? null
         : {
-            sentence: ` ${p.request.viaToken === null ? p.request.requestedBy.displayName : `An agent on ${p.request.requestedBy.displayName}’s token`} asked an administrator to approve it on ${dayInWords(p.request.createdAt)}.`,
-            since: p.request.createdAt,
+            sentence: ` ${request.viaToken === null ? request.requestedBy.displayName : `An agent on ${request.requestedBy.displayName}’s token`} asked an administrator to approve it on ${dayInWords(request.createdAt)}.`,
+            since: request.createdAt,
           }
 
-    // WHAT THE CANDIDATE CHANGES SINCE THE RELEASE PRODUCTION RUNS — the sensitive fields §13 names.
-    const baseline = launched ? setOf(p.environments.production)[0]?.releaseId : undefined
-    const baselineRelease = p.releases.find((r) => r.id === baseline)
-    const sensitive: Schemas['LaunchReadiness']['sensitiveFields'] = []
-    if (candidate !== undefined && baselineRelease !== undefined) {
-      const was = baselineRelease.config.production
-      const now = candidate.config.production
-      if (was.egressAllow.join() !== now.egressAllow.join())
-        sensitive.push('egress.allow')
-      if (was.classification !== now.classification) sensitive.push('data.classification')
-      if (was.ai.models.join() !== now.ai.models.join()) sensitive.push('ai.models')
-    }
+    // A LAUNCHED APP'S RULE (`approvalRequirementFor`): what the candidate changes since the LAST APPROVED
+    // release, itself excluded — none approved is a requirement of its own.
+    const baselineRelease =
+      launched && candidate !== undefined ? lastApproved(p, candidate.id) : undefined
+    const baseline = baselineRelease?.id
+    const sensitive =
+      candidate !== undefined && baselineRelease !== undefined
+        ? sensitiveBetween(baselineRelease.config.production, candidate.config.production)
+        : []
+    const latest = candidate === undefined ? undefined : latestApproval(p, candidate.id)
+    const required = baselineRelease === undefined || sensitive.length > 0
+    const rejected = latest?.decision === 'rejected'
+    // `approvalCoversDigest`: approved, and this digest.
+    const covered =
+      latest?.decision === 'approved' && latest.imageDigest === candidate?.imageDigest
 
     const scans = ((): Item => {
       const base = fixture('scans')
@@ -1792,7 +2014,15 @@ export function createFleet(t0: number): Fleet {
             state: 'unmet',
             why: nothingServing('release to promote'),
           }
-        if (sensitive.length === 0)
+        if (rejected)
+          return {
+            ...base,
+            title,
+            state: 'unmet',
+            why: `An administrator did not approve this release: ${latest!.reason}. A rejection is final for this release; build and release again.`,
+            since: null,
+          }
+        if (!required)
           return {
             ...base,
             title,
@@ -1800,21 +2030,53 @@ export function createFleet(t0: number): Fleet {
             why: 'No sensitive field changed since the last approved release, so this release goes to production self-serve. Its code is not reviewed: that is an accepted risk, and containment is its control.',
             since: null,
           }
+        if (covered) {
+          const on = `on ${latest!.decidedAt.slice(0, 10)}, bound to ${latest!.imageDigest.slice(0, 19)}…`
+          return {
+            ...base,
+            title,
+            state: 'met',
+            why:
+              sensitive.length > 0
+                ? `This release changes ${sensitive.join(', ')} since the last approved release, and an administrator approved it ${on}`
+                : `An administrator approved this release itself ${on} No other approved release exists to compare it with, so its own approval is what covers it.`,
+            since: null,
+          }
+        }
         return {
           ...base,
           title,
           state: 'unmet',
-          why: `This release changes ${sensitive.join(', ')} since the last approved release, so an administrator must approve it before it goes to production.${asked?.sentence ?? ''}`,
+          why:
+            (baselineRelease === undefined
+              ? 'This app has launched, but no approved release exists to compare this one with — so it needs an administrator’s approval, and so will every release until one is approved.'
+              : `This release changes ${sensitive.join(', ')} since the last approved release, so an administrator must approve it before it goes to production.`) +
+            (asked?.sentence ?? ''),
           since: asked?.since ?? null,
         }
       }
       if (candidate === undefined)
         return { ...base, state: 'unmet', why: nothingServing('release to approve') }
+      if (latest === undefined)
+        return {
+          ...base,
+          state: 'unmet',
+          why: `An administrator approves the exact image digest, with step-up re-authentication. This release has not been reviewed yet.${asked?.sentence ?? ' Ask an administrator to sign it off (requestApproval).'}`,
+          since: asked?.since ?? null,
+        }
+      if (rejected)
+        return {
+          ...base,
+          state: 'unmet',
+          why: `An administrator did not approve this release: ${latest.reason}`,
+          since: null,
+        }
+      // A fleet release is never rebuilt, so an approval of it always covers its digest.
       return {
         ...base,
-        state: 'unmet',
-        why: `An administrator approves the exact image digest, with step-up re-authentication. This release has not been reviewed yet.${asked?.sentence ?? ' Ask an administrator to sign it off (requestApproval).'}`,
-        since: asked?.since ?? null,
+        state: 'met',
+        why: `Approved by an administrator on ${latest.decidedAt.slice(0, 10)}, bound to image digest ${latest.imageDigest.slice(0, 19)}…`,
+        since: null,
       }
     })()
 
@@ -1862,7 +2124,8 @@ export function createFleet(t0: number): Fleet {
       candidateReleaseId: candidate?.id ?? null,
       baselineReleaseId: baseline ?? null,
       sensitiveFields: sensitive,
-      reescalated: launched && sensitive.length > 0,
+      reescalated:
+        launched && candidate !== undefined && required && !covered && !rejected,
       items: list,
     }
   }
@@ -1963,8 +2226,8 @@ export function createFleet(t0: number): Fleet {
       const project = { id: p.project.id, slug: p.project.slug, name: p.project.name }
       const person = (u: { id: string; displayName: string } | null) =>
         u === null ? null : { id: u.id, displayName: u.displayName }
-      const request = p.request
-      if (request !== null && request.releaseId === candidateOf(p)?.id) {
+      const request = openRequest(p)
+      if (request !== null) {
         const name = request.requestedBy.displayName
         const who = request.viaToken === null ? name : `An agent on ${name}’s token`
         items.push({
@@ -2065,7 +2328,7 @@ export function createFleet(t0: number): Fleet {
   function answer(
     operationId: string,
     params: Record<string, string>,
-    _body: unknown,
+    body: unknown,
     ctx: FleetContext,
   ): FleetAnswer | undefined {
     const p = named(params)
@@ -2141,6 +2404,63 @@ export function createFleet(t0: number): Fleet {
       }
       case 'listAgentSessions':
         return ok('AgentSessionList', { sessions: [], truncated: false })
+
+      // ─── An administrator's decisions (Task 4) ───
+      case 'createApprovalPreview':
+        return {
+          status: 201,
+          schema: 'ApprovalPreview',
+          body: takePreview(p, releaseOf(p, params), ctx.now, ctx.actor),
+        }
+      case 'getApprovalPreview':
+        return ok('ApprovalPreview', previewNamed(p, params, params.previewId ?? ''))
+      case 'approveRelease':
+      case 'rejectRelease':
+        return {
+          status: 201,
+          schema: 'Approval',
+          body: decide(
+            p,
+            params,
+            operationId === 'approveRelease' ? 'approved' : 'rejected',
+            body,
+            ctx,
+          ),
+        }
+      case 'getApproval': {
+        const approval = latestApproval(p, params.releaseId ?? '')
+        if (approval === undefined)
+          throw new MockRefusal(
+            404,
+            'NOT_FOUND',
+            `nobody has approved or rejected release '${params.releaseId}'`,
+          )
+        return ok('Approval', approval)
+      }
+      case 'submitIamRegistration':
+        return ok('IamRegistration', submitRegistration(p, params, body, ctx))
+      case 'returnIamRegistration':
+        return ok('IamRegistration', returnRegistration(p, params, ctx))
+      case 'submitPrivacyAssessment':
+        return ok('PrivacyAssessment', submitAssessment(p, body, ctx))
+      case 'returnPrivacyAssessment':
+        return ok('PrivacyAssessment', returnAssessment(p, ctx))
+      case 'recordIamRegistration':
+        return ok('IamRegistration', recordRegistration(p, body, ctx))
+      case 'recordPrivacyAssessment':
+        return ok('PrivacyAssessment', recordAssessment(p, body, ctx))
+      case 'rejectPendingAction':
+      case 'confirmPendingAction':
+        return ok(
+          'PendingAction',
+          answerQuestion(
+            p,
+            params.pendingActionId ?? '',
+            operationId === 'rejectPendingAction' ? 'rejected' : 'confirmed',
+            body,
+            ctx,
+          ),
+        )
       default:
         // NEVER A FIXTURE'S ANSWER TO A FLEET ID: the default would answer `mock-app` for a project that
         // is not it — the plausible lie this mock exists not to tell.
@@ -2196,6 +2516,589 @@ export function createFleet(t0: number): Fleet {
     }
   }
 
+  // ─── An administrator's decisions, each in the platform's order and words ───
+
+  /** Who acted, as an administrator's own duty: no member's capability borrowed, so no reason. */
+  const byOperator = (actor: FleetContext['actor']): EventFrame['actor'] => ({
+    name: actor.displayName,
+    asAdministrator: false,
+    reason: null,
+    token: null,
+  })
+  const personOf = (actor: FleetContext['actor']) => ({
+    id: actor.id,
+    displayName: actor.displayName,
+  })
+
+  /**
+   * C1: THE BODY FIRST, against its operation's request schema — before anything is read or asked, as the
+   * platform's own schema refuses it (`api/errors.ts`'s `REQUEST_INVALID`, naming the field).
+   */
+  function bodyOf<T>(ctx: FleetContext, schema: string, body: unknown): T {
+    const { ok: valid, errors } = ctx.validate(schema, body ?? null)
+    if (!valid)
+      throw new MockRefusal(
+        400,
+        'REQUEST_INVALID',
+        errors
+          .split('; ')
+          .map((e) =>
+            e.replace(/^\/(\S*)/, (_all, path: string) =>
+              path === '' ? 'body:' : `body.${path.replaceAll('/', '.')}:`,
+            ),
+          )
+          .join('; '),
+        'Correct the listed fields and send the request again.',
+      )
+    return body as T
+  }
+
+  /** An archived project is read and restored, and nothing else (`projects/state.ts`'s `archivedRefusal`). */
+  function unlessArchived(p: ProjectState): void {
+    if (p.project.state === 'archived')
+      throw new MockRefusal(
+        409,
+        'PROJECT_ARCHIVED',
+        `project '${p.project.id}' is archived — switched off by its owner (§11) — so it can be read and restored, and nothing else`,
+      )
+  }
+
+  const releaseOf = (p: ProjectState, params: Record<string, string>): Release =>
+    p.releases.find((r) => r.id === params.releaseId)!
+
+  /** A preview OF THIS RELEASE — another release's is no preview at all (`previewFor`). */
+  function previewNamed(
+    p: ProjectState,
+    params: Record<string, string>,
+    previewId: string,
+  ): Schemas['ApprovalPreview'] {
+    const preview = p.previews.find(
+      (x) => x.id === previewId && x.releaseId === params.releaseId,
+    )
+    if (preview === undefined)
+      throw new MockRefusal(
+        404,
+        'NOT_FOUND',
+        `no preview '${previewId}' of release '${params.releaseId}'`,
+      )
+    return preview
+  }
+
+  /**
+   * `decide()` (`api/routes/releases.ts`): the body, the step-up (when the mock plays it), the preview
+   * named — this release's — then NOT EXPIRED, then NOT STALE, its facts recomputed now. A second decision
+   * on a release whose preview is still current is recorded, as the platform records it (a withdrawal).
+   */
+  function decide(
+    p: ProjectState,
+    params: Record<string, string>,
+    decision: 'approved' | 'rejected',
+    body: unknown,
+    ctx: FleetContext,
+  ): Schemas['Approval'] {
+    const asked = bodyOf<{ reason?: string; previewId?: string }>(
+      ctx,
+      decision === 'approved' ? 'ApproveReleaseRequest' : 'RejectReleaseRequest',
+      body,
+    )
+    if (ctx.stepUpRequired && !ctx.steppedUp) throw stepUpRefusal('release:approve')
+    const release = releaseOf(p, params)
+    if (asked.previewId === undefined)
+      throw new MockRefusal(
+        400,
+        'APPROVAL_PREVIEW_REQUIRED',
+        'an approval names the preview the administrator read',
+        'POST /v1/releases/{releaseId}/approval-preview, read it, then decide naming its id.',
+      )
+    const preview = previewNamed(p, params, asked.previewId)
+    if (ctx.now >= Date.parse(preview.expiresAt))
+      throw new MockRefusal(
+        409,
+        'APPROVAL_PREVIEW_EXPIRED',
+        `preview '${preview.id}' expired at ${preview.expiresAt} — take a new one and read it before deciding.`,
+      )
+    const shown = factsIn(preview.diff)
+    const current = factsOf(p, release)
+    const moved = (Object.keys({ ...shown, ...current }) as (keyof Facts)[]).filter(
+      (key) => stable(shown[key]) !== stable(current[key]),
+    )
+    if (moved.length > 0)
+      throw new MockRefusal(
+        409,
+        'APPROVAL_PREVIEW_STALE',
+        (moved.includes('baselineReleaseId')
+          ? 'the last approved release of this project changed since this preview was taken — take a new one.'
+          : 'what this release would be approved as changed since this preview was taken — take a new one.') +
+          ` Moved: ${moved.join(', ')}.`,
+      )
+    const approval = keepDecision(
+      p,
+      release,
+      preview,
+      decision,
+      asked.reason ?? null,
+      ctx.now,
+      ctx.actor,
+    )
+    announce(
+      p,
+      ctx.now,
+      decision === 'approved' ? 'release.approved' : 'release.approval_rejected',
+      `release:${release.id}`,
+      { releaseId: release.id, imageDigest: release.imageDigest.slice(0, 19), decision },
+      decision === 'approved'
+        ? `${ctx.actor.displayName} approved this release for production.`
+        : `${ctx.actor.displayName} did not approve this release: ${asked.reason}`,
+      byOperator(ctx.actor),
+    )
+    return approval
+  }
+
+  // ─── The Manifest team's step (`launch/records.ts`'s `recordIamSubmission` and its siblings) ───
+
+  function environmentIn(params: Record<string, string>): 'staging' | 'production' {
+    const environment = params.environment
+    if (environment === 'staging' || environment === 'production') return environment
+    throw new MockRefusal(
+      400,
+      'REQUEST_INVALID',
+      `environment must be 'staging' or 'production', not '${String(environment)}'`,
+    )
+  }
+  const registrationAt = (p: ProjectState, environment: 'staging' | 'production') =>
+    environment === 'staging' ? p.records.stagingRegistration : p.records.iamRegistration
+  function keepRegistration(p: ProjectState, row: Registration): Registration {
+    if (row.environment === 'staging') p.records.stagingRegistration = row
+    else p.records.iamRegistration = row
+    return row
+  }
+
+  /** `sent → submitted` on the day the team sent it (Vancouver noon) — or, a change, filed as one. */
+  function submitRegistration(
+    p: ProjectState,
+    params: Record<string, string>,
+    body: unknown,
+    ctx: FleetContext,
+  ): Registration {
+    const environment = environmentIn(params)
+    const asked = bodyOf<{ sentAt?: string; reference: string }>(
+      ctx,
+      'RecordSubmissionRequest',
+      body,
+    )
+    unlessArchived(p)
+    const held = registrationAt(p, environment)
+    if (held?.state !== 'sent' || held.sentAt === null)
+      throw notWithTeam(`this app's ${environment} registration`, held?.state)
+    const day = sentDay(asked.sentAt, held.sentAt, ctx.now)
+    const noon = vancouverNoon(day).toISOString()
+    const filesAChange = held.sentFrom === 'active'
+    const row = keepRegistration(p, {
+      ...held,
+      ...(filesAChange
+        ? { state: 'change_requested' as const, changeRequestedFrom: 'active' as const }
+        : { state: 'submitted' as const }),
+      sentFrom: null,
+      submittedAt: noon,
+      submittedBy: personOf(ctx.actor),
+      externalTicketRef: asked.reference,
+      updatedAt: iso(ctx.now),
+    })
+    announce(
+      p,
+      ctx.now,
+      'iam_registration.submitted',
+      `iam-registration:${row.id}`,
+      {
+        environment,
+        sentAt: day,
+        externalTicketRef: row.externalTicketRef,
+        changeRequest: filesAChange,
+        requestedAttributes: row.requestedAttributes,
+      },
+      filesAChange
+        ? `${ctx.actor.displayName} recorded that the Manifest team filed a change request for this app's ${environment} registration with UBC IAM on ${dayInWords(noon)} (ticket ${asked.reference}).`
+        : `${ctx.actor.displayName} recorded that the Manifest team submitted this app's ${environment} registration to UBC IAM on ${dayInWords(noon)} (ticket ${asked.reference}).`,
+      byOperator(ctx.actor),
+    )
+    return row
+  }
+
+  /** Handed back, unsubmitted, to the state it was sent from (`iamReturnTo`). Why travels outside the record. */
+  function returnRegistration(
+    p: ProjectState,
+    params: Record<string, string>,
+    ctx: FleetContext,
+  ): Registration {
+    const environment = environmentIn(params)
+    unlessArchived(p)
+    const held = registrationAt(p, environment)
+    if (held?.state !== 'sent' || held.sentFrom === null)
+      throw notWithTeam(`this app's ${environment} registration`, held?.state)
+    const to = held.sentFrom
+    const row = keepRegistration(p, {
+      ...held,
+      ...(to === 'change_requested'
+        ? {
+            state: 'change_requested' as const,
+            changeRequestedFrom: 'submitted' as const,
+          }
+        : { state: to, changeRequestedFrom: null }),
+      sentFrom: null,
+      // A CHANGE HANDED BACK: live again, as UBC registered it — nothing is asked of UBC any more.
+      ...(to === 'active' ? { requestedAttributes: null } : {}),
+      updatedAt: iso(ctx.now),
+    })
+    announce(
+      p,
+      ctx.now,
+      'iam_registration.returned',
+      `iam-registration:${row.id}`,
+      { environment, to },
+      `${ctx.actor.displayName} handed this app's ${environment} registration back to its owner, unsubmitted.`,
+      byOperator(ctx.actor),
+    )
+    return row
+  }
+
+  function submitAssessment(
+    p: ProjectState,
+    body: unknown,
+    ctx: FleetContext,
+  ): Assessment {
+    const asked = bodyOf<{ sentAt?: string; reference: string }>(
+      ctx,
+      'RecordSubmissionRequest',
+      body,
+    )
+    unlessArchived(p)
+    const held = p.records.privacyAssessment
+    if (held?.state !== 'sent' || held.sentAt === null)
+      throw notWithTeam("this app's privacy assessment", held?.state)
+    const day = sentDay(asked.sentAt, held.sentAt, ctx.now)
+    const noon = vancouverNoon(day).toISOString()
+    const row: Assessment = {
+      ...held,
+      state: 'submitted',
+      submittedAt: noon,
+      submittedBy: personOf(ctx.actor),
+      externalTicketRef: asked.reference,
+      updatedAt: iso(ctx.now),
+    }
+    p.records.privacyAssessment = row
+    announce(
+      p,
+      ctx.now,
+      'privacy_assessment.submitted',
+      `privacy-assessment:${row.id}`,
+      { sentAt: day, externalTicketRef: row.externalTicketRef },
+      `${ctx.actor.displayName} recorded that the Manifest team submitted this app's privacy assessment to the UBC Privacy Office on ${dayInWords(noon)} (ticket ${asked.reference}).`,
+      byOperator(ctx.actor),
+    )
+    return row
+  }
+
+  function returnAssessment(p: ProjectState, ctx: FleetContext): Assessment {
+    unlessArchived(p)
+    const held = p.records.privacyAssessment
+    if (held?.state !== 'sent')
+      throw notWithTeam("this app's privacy assessment", held?.state)
+    const row: Assessment = { ...held, state: 'draft', updatedAt: iso(ctx.now) }
+    p.records.privacyAssessment = row
+    announce(
+      p,
+      ctx.now,
+      'privacy_assessment.returned',
+      `privacy-assessment:${row.id}`,
+      { to: 'draft' },
+      `${ctx.actor.displayName} handed this app's privacy assessment back to its owner, unsubmitted.`,
+      byOperator(ctx.actor),
+    )
+    return row
+  }
+
+  // ─── UBC's answer (`launch/records.ts`'s `recordIamRegistration`, `recordPrivacyAssessment`) ───
+
+  /** THE PLATFORM'S WRITE, not only its arrow: refused in its order, then upserted from the body. */
+  function recordRegistration(
+    p: ProjectState,
+    body: unknown,
+    ctx: FleetContext,
+  ): Registration {
+    const asked = bodyOf<{
+      environment?: 'staging' | 'production'
+      entityId: string
+      acsUrl: string
+      sloUrl: string
+      registeredAttributes: string[]
+      requestedAttributes?: string[]
+      state: Registration['state']
+      externalTicketRef?: string
+      certFingerprint?: string
+      certExpiresAt?: string
+    }>(ctx, 'RecordIamRegistrationRequest', body)
+    // (An empty `registeredAttributes` never gets here: the schema's `minItems: 1` refused it above.)
+    unlessArchived(p)
+    const environment = asked.environment ?? 'production'
+    const existing = registrationAt(p, environment)
+    const from = existing?.state ?? 'draft'
+    refuseAroundTheTeam('the IAM registration', from, asked.state, {
+      send: 'sendIamRegistration',
+      submit: 'submitIamRegistration',
+      handBack: 'returnIamRegistration',
+    })
+    const state =
+      asked.state === from
+        ? from
+        : arrow(IAM_ARROWS, 'an IAM registration', from, asked.state)
+    const registeredValuesChange =
+      existing === null ||
+      !sameAttributeSet(asked.registeredAttributes, existing.registeredAttributes) ||
+      asked.acsUrl !== existing.acsUrl ||
+      asked.sloUrl !== existing.sloUrl
+    if (existing?.registeredAt != null) {
+      if (asked.entityId !== existing.entityId)
+        throw new MockRefusal(
+          400,
+          'LAUNCH_RECORD_INVALID',
+          'the entityID is fixed at registration (§9): a new one is a new registration, not a change',
+          'Record the entityID UBC IAM registered.',
+        )
+      if (state !== 'active' && registeredValuesChange)
+        throw new MockRefusal(
+          400,
+          'LAUNCH_RECORD_INVALID',
+          'what UBC IAM registered changes only when it registers it: record the registration ' +
+            "'active' with the new values. A change it has not registered yet is requestedAttributes",
+          'Keep registeredAttributes, acsUrl and sloUrl as UBC has them; put what you are asking for in requestedAttributes.',
+        )
+    }
+    if (
+      from === 'active' &&
+      state === 'change_requested' &&
+      (asked.requestedAttributes?.length ?? 0) === 0
+    )
+      throw new MockRefusal(
+        400,
+        'LAUNCH_RECORD_INVALID',
+        'a change request names what it asks for: requestedAttributes',
+        'List every attribute the app will ask for once UBC IAM agrees.',
+      )
+    // A RECORD THAT MOVES INTO `submitted` — or files a change from `active` — STAMPS NOW; nothing else does.
+    const sentNow =
+      state !== from &&
+      (state === 'submitted' || (state === 'change_requested' && from === 'active'))
+    const row = keepRegistration(p, {
+      ...(existing ?? newRegistration(p, environment, ctx.now)),
+      ...(sentNow ? { submittedAt: iso(ctx.now), submittedBy: personOf(ctx.actor) } : {}),
+      entityId: asked.entityId,
+      acsUrl: asked.acsUrl,
+      sloUrl: asked.sloUrl,
+      registeredAttributes: asked.registeredAttributes,
+      // Cleared on `active`: UBC has answered, and what it registered is now the registration.
+      requestedAttributes:
+        state === 'active'
+          ? null
+          : (asked.requestedAttributes ?? existing?.requestedAttributes ?? null),
+      // Moved by a record that REACHES `active` (or changes what an active one registered); cleared by a lapse.
+      registeredAt:
+        state === 'expired'
+          ? null
+          : state === 'active' && (from !== 'active' || registeredValuesChange)
+            ? iso(ctx.now)
+            : (existing?.registeredAt ?? null),
+      state,
+      changeRequestedFrom:
+        state !== 'change_requested'
+          ? null
+          : from === 'submitted' || from === 'active'
+            ? from
+            : (existing?.changeRequestedFrom ?? null),
+      externalTicketRef: asked.externalTicketRef ?? existing?.externalTicketRef ?? null,
+      certFingerprint: asked.certFingerprint ?? null,
+      certExpiresAt:
+        asked.certExpiresAt === undefined
+          ? null
+          : new Date(asked.certExpiresAt).toISOString(),
+      updatedAt: iso(ctx.now),
+    })
+    announce(
+      p,
+      ctx.now,
+      'iam_registration.recorded',
+      `iam-registration:${row.id}`,
+      {
+        state,
+        environment,
+        entityId: row.entityId,
+        externalTicketRef: row.externalTicketRef,
+        attributeCount: asked.registeredAttributes.length,
+        changeRequestedFrom: row.changeRequestedFrom,
+      },
+      `${ctx.actor.displayName} recorded this app's ${environment} UBC IAM registration as ${state}${ticket(row.externalTicketRef)}.`,
+      byOperator(ctx.actor),
+    )
+    return row
+  }
+
+  /** A registration nobody has drafted, as the upsert's insert writes it. */
+  function newRegistration(
+    p: ProjectState,
+    environment: 'staging' | 'production',
+    now: number,
+  ): Registration {
+    return {
+      ...(environment === 'staging' ? f.STAGING_REGISTRATION : f.IAM_REGISTRATION),
+      id: fleetId(KIND.registration, p.row.n, environment === 'staging' ? 1 : 2),
+      projectId: p.project.id,
+      environment,
+      certFingerprint: null,
+      certExpiresAt: null,
+      requestedAttributes: null,
+      registeredAt: null,
+      state: 'draft',
+      changeRequestedFrom: null,
+      externalTicketRef: null,
+      sentFrom: null,
+      sentAt: null,
+      sentBy: null,
+      submittedAt: null,
+      submittedBy: null,
+      package: null,
+      createdAt: iso(now),
+      updatedAt: iso(now),
+    }
+  }
+
+  function recordAssessment(
+    p: ProjectState,
+    body: unknown,
+    ctx: FleetContext,
+  ): Assessment {
+    const asked = bodyOf<{
+      state: Assessment['state']
+      reviewer?: string
+      externalTicketRef?: string
+    }>(ctx, 'RecordPrivacyAssessmentRequest', body)
+    unlessArchived(p)
+    const existing = p.records.privacyAssessment
+    const from = existing?.state ?? 'draft'
+    refuseAroundTheTeam('the privacy assessment', from, asked.state, {
+      send: 'sendPrivacyAssessment',
+      submit: 'submitPrivacyAssessment',
+      handBack: 'returnPrivacyAssessment',
+    })
+    const state =
+      asked.state === from
+        ? from
+        : arrow(PIA_ARROWS, 'a privacy assessment', from, asked.state)
+    const row: Assessment = {
+      ...(existing ?? newAssessment(p, ctx.now)),
+      state,
+      // Set when it REACHES `approved`, cleared when it leaves.
+      approvedAt: state === 'approved' ? (existing?.approvedAt ?? iso(ctx.now)) : null,
+      ...(state !== from && state === 'submitted'
+        ? { submittedAt: iso(ctx.now), submittedBy: personOf(ctx.actor) }
+        : {}),
+      // THE UPSERT WRITES THE REVIEWER AS SENT — none sent is none (`reviewer: input.reviewer ?? null`).
+      reviewer: asked.reviewer ?? null,
+      externalTicketRef: asked.externalTicketRef ?? existing?.externalTicketRef ?? null,
+      updatedAt: iso(ctx.now),
+    }
+    p.records.privacyAssessment = row
+    announce(
+      p,
+      ctx.now,
+      'privacy_assessment.recorded',
+      `privacy-assessment:${row.id}`,
+      { state: row.state, externalTicketRef: row.externalTicketRef },
+      `${ctx.actor.displayName} recorded this app's privacy assessment as ${row.state}${ticket(row.externalTicketRef)}.`,
+      byOperator(ctx.actor),
+    )
+    return row
+  }
+
+  /** An assessment nobody has drafted, as the upsert's insert writes it. */
+  function newAssessment(p: ProjectState, now: number): Assessment {
+    return {
+      ...f.PRIVACY_ASSESSMENT,
+      id: fleetId(KIND.assessment, p.row.n, 1),
+      projectId: p.project.id,
+      state: 'draft',
+      reviewer: null,
+      approvedAt: null,
+      externalTicketRef: null,
+      sentAt: null,
+      sentBy: null,
+      gapAnswers: null,
+      submittedAt: null,
+      submittedBy: null,
+      draft: null,
+      createdAt: iso(now),
+      updatedAt: iso(now),
+    }
+  }
+
+  // ─── An agent's question (`api/routes/pending-actions.ts`, `tokens/pending.ts`) ───
+
+  /**
+   * THE OPERATOR IS A MEMBER OF NO FLEET PROJECT, so answering a question borrows an owner's capability:
+   * §26's reason is asked — after the body, before anything else — and kept beside their name. A
+   * confirmation steps up (when the mock plays it); a rejection never does.
+   */
+  function answerQuestion(
+    p: ProjectState,
+    pendingActionId: string,
+    decision: 'confirmed' | 'rejected',
+    body: unknown,
+    ctx: FleetContext,
+  ): Schemas['PendingAction'] {
+    const asked = bodyOf<{ reason?: string }>(
+      ctx,
+      decision === 'rejected' ? 'RejectPendingActionRequest' : 'EmptyRequest',
+      body,
+    )
+    const reason = assertAdminReason(ctx.adminReason)
+    unlessArchived(p)
+    const index = p.pendingActions.findIndex((a) => a.id === pendingActionId)
+    const held = p.pendingActions[index]!
+    if (decision === 'confirmed' && ctx.stepUpRequired && !ctx.steppedUp)
+      throw stepUpRefusal(held.action)
+    if (held.state !== 'pending') throw alreadyAnswered(held.state)
+    if (Date.parse(held.expiresAt) <= ctx.now) throw alreadyAnswered('expired')
+    const answered: Schemas['PendingAction'] = {
+      ...held,
+      state: decision,
+      resolvedAt: iso(ctx.now),
+      waitingSeconds: Math.round((ctx.now - Date.parse(held.createdAt)) / 1000),
+      reason: decision === 'rejected' ? (asked.reason ?? null) : held.reason,
+    }
+    p.pendingActions[index] = answered
+    const what = whatIsAsked(held)
+    announce(
+      p,
+      ctx.now,
+      decision === 'rejected' ? 'pending_action.rejected' : 'pending_action.confirmed',
+      `pending-action:${held.id}`,
+      {
+        pendingActionId: held.id,
+        tokenId: held.tokenId,
+        action: held.action,
+        resolvedBy: ctx.actor.id,
+        ...(decision === 'rejected' ? { reason: asked.reason ?? '' } : {}),
+      },
+      asAdministrator(
+        decision === 'confirmed'
+          ? `${ctx.actor.displayName} confirmed an agent's request to ${what}. It may do it once.`
+          : `${ctx.actor.displayName} refused an agent's request to ${what}: ${asked.reason ?? ''}`,
+        reason,
+        ctx.actor.displayName,
+      ),
+      { name: ctx.actor.displayName, asAdministrator: true, reason, token: null },
+    )
+    return answered
+  }
+
   return {
     t0,
     ids: {
@@ -2203,12 +3106,16 @@ export function createFleet(t0: number): Fleet {
       environmentId: [...owners.environmentId.keys()],
       instanceId: [...owners.instanceId.keys()],
       releaseId: [...owners.releaseId.keys()],
-      previewId: [...owners.previewId.keys()],
+      // LIVE: a preview is held from the moment it is taken.
+      get previewId() {
+        return [...owners.previewId.keys()]
+      },
       pendingActionId: [...owners.pendingActionId.keys()],
       tokenId: [...owners.tokenId.keys()],
     },
     fleetRows: () => projects.map(fleetRow),
     queueItems,
+    holds: (params) => named(params) !== undefined,
     answer,
     events: (projectId) => [...(byProject.get(projectId)?.events ?? [])],
     onEvent(projectId, listener) {
@@ -2330,3 +3237,277 @@ const QUEUE_KINDS: readonly QueueItem['kind'][] = [
   'iam-change-request',
   'privacy-assessment',
 ]
+
+// ─── A sign-off's facts (`releases/approval.ts`, `releases/preview.ts`, `spec/diff.ts`) ───
+
+/** How long a preview may stretch "shown at decision time" (`PREVIEW_TTL_MS`). */
+const PREVIEW_TTL_MS = 30 * MINUTE
+
+type Sensitive = Schemas['ApprovalDiff']['sensitiveFields'][number]
+type Change = Schemas['ApprovalDiff']['changes'][number]
+type Config = Release['config']['production']
+/** `DiffFacts`: the snapshot without what is written — the summary, its source and the verdict. */
+type Facts = Omit<
+  Schemas['ApprovalDiff'],
+  'summary' | 'summarySource' | 'summaryWithheldBecause' | 'summaryExposures' | 'review'
+>
+
+/** What each sensitive field means when it changes — `spec/diff.ts`'s `SECURITY_NOTES`, verbatim. */
+const SECURITY_NOTES: Record<Sensitive, string> = {
+  services:
+    'A service stores data somewhere new — the PIA’s “where it is stored” may no longer be accurate.',
+  'auth.attributes':
+    'The app receives different personal information about every person who signs in. In production it must stay within what UBC IAM registered, and it is an input to the PIA.',
+  'egress.allow':
+    'The app may send data to a host it could not reach before. Default-deny egress is the containment for unreviewed code, and this widens it. An input to the PIA’s “where it flows”.',
+  resources:
+    'More CPU, memory, processes or disk: cost and blast radius rather than data.',
+  'data.classification':
+    'The app now claims a different class of data, which bounds the models it may use and is an input to the PIA.',
+  'ai.models':
+    'A model change can move personal information to a different jurisdiction, which invalidates an approved PIA — the administrator decides whether the PIA must be reviewed again.',
+  blueprint:
+    'The blueprint is the build definition: a change replaces the Dockerfile, base image and knowledge pack beneath the app.',
+}
+
+/** `summary.ts`'s answer to an empty diff, which needs no model. */
+const NO_CHANGES = 'Nothing in manifest.yaml changed since the last approved release.'
+
+const sortedOf = (xs: readonly string[]): string[] => [...xs].sort()
+const sameAttributeSet = (a: readonly string[], b: readonly string[]): boolean =>
+  sortedOf([...new Set(a)]).join('\u0000') === sortedOf([...new Set(b)]).join('\u0000')
+const listOrNone = (xs: readonly string[]): string =>
+  xs.length === 0 ? 'none' : xs.join(', ')
+const servicesOf = (c: Config): string[] =>
+  c.services.map((x) => `${x.type}@${x.version}`)
+
+/** A key-order-insensitive serialisation (`spec/diff.ts`'s `stable`). */
+const stable = (value: unknown): string =>
+  JSON.stringify(value ?? null, (_key, v: unknown) =>
+    v !== null && typeof v === 'object' && !Array.isArray(v)
+      ? Object.fromEntries(
+          Object.entries(v as Record<string, unknown>).sort(([a], [b]) =>
+            a < b ? -1 : a > b ? 1 : 0,
+          ),
+        )
+      : v,
+  )
+
+/**
+ * A stored snapshot's facts — the WRITTEN keys taken out by name (`factsOf`), so a key the document adds
+ * later is a fact by default and compared: the conservative direction.
+ */
+function factsIn(diff: Schemas['ApprovalDiff']): Facts {
+  const facts: Record<string, unknown> = { ...diff }
+  for (const key of [
+    'summary',
+    'summarySource',
+    'summaryWithheldBecause',
+    'summaryExposures',
+    'review',
+  ])
+    delete facts[key]
+  return facts as Facts
+}
+
+/** `isSensitiveDiff`'s fields that changed, in `SENSITIVE_FIELDS` order (a fleet project's blueprint never does). */
+function sensitiveBetween(was: Config, now: Config): Sensitive[] {
+  const fields: Sensitive[] = []
+  if (!sameAttributeSet(servicesOf(was), servicesOf(now))) fields.push('services')
+  if (!sameAttributeSet(was.auth.attributes, now.auth.attributes))
+    fields.push('auth.attributes')
+  if (!sameAttributeSet(was.egressAllow, now.egressAllow)) fields.push('egress.allow')
+  if (stable(was.resources) !== stable(now.resources)) fields.push('resources')
+  if (was.classification !== now.classification) fields.push('data.classification')
+  if (!sameAttributeSet(was.ai.models, now.ai.models)) fields.push('ai.models')
+  return fields
+}
+
+/** `setChange`: what was added, then what was removed, in the file's own vocabulary. */
+function setChange(
+  path: string,
+  before: readonly string[],
+  after: readonly string[],
+  added: (item: string) => string,
+  removed: (item: string) => string,
+): Change | undefined {
+  if (sameAttributeSet(before, after)) return undefined
+  const parts = [
+    ...sortedOf(after.filter((x) => !before.includes(x))).map(added),
+    ...sortedOf(before.filter((x) => !after.includes(x))).map(removed),
+  ]
+  return {
+    path,
+    from: listOrNone(sortedOf(before)),
+    to: listOrNone(sortedOf(after)),
+    summary: parts.length === 0 ? `changed ${path}` : parts.join('; '),
+  }
+}
+
+/**
+ * `describeDiff`, over what a fleet project's releases differ in — egress, the level, the sign-in's
+ * attributes and the models — in its order (every other field is the fixture's, the same in each).
+ */
+function changesBetween(was: Config, now: Config): Change[] {
+  return [
+    setChange(
+      'egress.allow',
+      was.egressAllow,
+      now.egressAllow,
+      (host) => `now allows ${host}`,
+      (host) => `no longer allows ${host}`,
+    ),
+    was.classification === now.classification
+      ? undefined
+      : {
+          path: 'data.classification',
+          from: was.classification,
+          to: now.classification,
+          summary: `now declares ${now.classification} data instead of ${was.classification}`,
+        },
+    setChange(
+      'auth.attributes',
+      was.auth.attributes,
+      now.auth.attributes,
+      (attribute) => `now requests the ${attribute} attribute`,
+      (attribute) => `no longer requests the ${attribute} attribute`,
+    ),
+    setChange(
+      'ai.models',
+      was.ai.models,
+      now.ai.models,
+      (model) => `now uses ${model}`,
+      (model) => `no longer uses ${model}`,
+    ),
+  ].filter((c): c is Change => c !== undefined)
+}
+
+/** The model's sentence for a change — what it could expose. The mock's, standing in for a model's. */
+function exposureOf(change: Change): string {
+  switch (change.path) {
+    case 'egress.allow':
+      return `What people type into the app can now reach ${change.to}, which it could not reach before.`
+    case 'ai.models':
+      return `Answers may now be written by ${change.to}, so what people type can reach a model it did not reach before.`
+    case 'data.classification':
+      return `The app now says it holds ${change.to} data, which narrows the models it may use and what its privacy assessment covers.`
+    default:
+      return `The app’s ${change.path} changed from ${change.from} to ${change.to}.`
+  }
+}
+
+// ─── The records' arrows (`launch/transitions.ts`) ───
+
+type IamState = Registration['state']
+type PiaState = Assessment['state']
+
+const IAM_ARROWS: Record<IamState, readonly IamState[]> = {
+  draft: ['submitted'],
+  sent: [],
+  submitted: ['active', 'change_requested'],
+  active: ['change_requested', 'expired'],
+  change_requested: ['submitted', 'expired'],
+  expired: ['submitted'],
+}
+const PIA_ARROWS: Record<PiaState, readonly PiaState[]> = {
+  draft: ['submitted'],
+  sent: [],
+  submitted: ['approved', 'draft'],
+  approved: ['draft'],
+}
+
+/** `iamTransition` / `piaTransition`: an arrow that exists, or the machines' refusal. */
+function arrow<S extends string>(
+  arrows: Record<S, readonly S[]>,
+  what: string,
+  from: S,
+  to: S,
+): S {
+  const allowed = arrows[from]
+  if (allowed.includes(to)) return to
+  throw new MockRefusal(
+    409,
+    'LAUNCH_TRANSITION_INVALID',
+    `${what} cannot go from '${from}' to '${to}' — from '${from}' it can only become ` +
+      `${allowed.length === 0 ? 'nothing' : allowed.map((s) => `'${s}'`).join(' or ')}`,
+  )
+}
+
+/** WITH THE MANIFEST TEAM, NO RECORD MOVES IT (`refuseRecordAroundTheTeam`) — naming who does. */
+function refuseAroundTheTeam(
+  what: 'the IAM registration' | 'the privacy assessment',
+  from: string,
+  to: string,
+  ops: { send: string; submit: string; handBack: string },
+): void {
+  if (from === 'sent')
+    throw new MockRefusal(
+      409,
+      'LAUNCH_TRANSITION_INVALID',
+      `${what} is with the Manifest team ('sent'): record that the team submitted it (${ops.submit}), or hand it back to its owner (${ops.handBack}) — it is not recorded here`,
+    )
+  if (to === 'sent')
+    throw new MockRefusal(
+      409,
+      'LAUNCH_TRANSITION_INVALID',
+      `${what} goes to the Manifest team ('sent') only when its owner sends it (${ops.send}) — it is not recorded here`,
+    )
+}
+
+// ─── An agent's question, answered (`tokens/pending.ts`) ───
+
+/** `PendingActionResolvedError`, as the platform's envelope writes it. */
+const alreadyAnswered = (state: string): MockRefusal =>
+  new MockRefusal(
+    409,
+    'PENDING_ACTION_RESOLVED',
+    `this pending action was already ${state}`,
+    'Reload the queue: somebody has already answered this one.',
+  )
+
+/** `whatIsAsked`: what the retry would do, in words — a person by name, or as the request named them. */
+function whatIsAsked(action: Schemas['PendingAction']): string {
+  const object = action.object
+  if (object === null)
+    return `${action.summary.charAt(0).toLowerCase()}${action.summary.slice(1)}`
+  const person = (p: {
+    namedBy: string
+    value: string
+    member: { displayName: string } | null
+  }): string =>
+    p.member !== null
+      ? p.member.displayName
+      : p.namedBy === 'cwlLogin'
+        ? `the person whose CWL login is ${p.value}`
+        : p.namedBy === 'email'
+          ? `the person whose email is ${p.value}`
+          : p.namedBy === 'puid'
+            ? 'the person the request named by their PUID'
+            : `the person with user id ${p.value}`
+  switch (object.kind) {
+    case 'member':
+      return `make ${person(object.person)} ${object.role === 'owner' ? 'an owner' : 'a collaborator'} of this project`
+    case 'member-removal':
+      return `remove ${person(object.person)} from this project`
+    case 'deploy':
+      return (
+        `deploy release ${object.release.id.slice(0, 8)}` +
+        (object.release.commitSha === null
+          ? ''
+          : ` (commit ${object.release.commitSha.slice(0, 12)})`) +
+        ` to ${object.environment.kind}`
+      )
+  }
+}
+
+/**
+ * §26: AN ADMINISTRATOR ACTING WITH AN OWNER'S CAPABILITY, AS NO MEMBER — every sentence published while
+ * they do says so, with the reason (`observability/events.ts`'s `publishEvent`).
+ */
+function asAdministrator(
+  sentence: string,
+  reason: string,
+  name: string = OPERATOR.displayName,
+): string {
+  return `${sentence} ${name} acted as a platform administrator — reason: '${reason}'.`
+}
