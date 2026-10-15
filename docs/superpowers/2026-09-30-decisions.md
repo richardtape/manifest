@@ -2092,3 +2092,24 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
     manifest worktree) and a fresh review session (manifest-p11-review), beside everything; HE APPROVES the plan; its build sittings then
     run as a parallel lane beside B, taking 7100 windows from the coordinator. P11 thus enters his order as a parallel lane, not ahead of
     GT, B, FE-32 or BYOA. Rejected: "Plan and build straight through" (the coordinator approving under the delegation); "Not now".
+
+# Rich's decisions — 2026-10-15, ~08:54 PDT (to manifest-coord5: the third coordinated run, on his return)
+
+    Before 19:13 PDT 2026-10-14, in chat to manifest-coord5 (the same words reached W5B's tab): "Standing permission for this session:
+    when the coordinator sends your GO, you may create one app on app.manifest.internal as instructor, let our building agent build it,
+    put it on trying-out, and take it through launch to production on this laptop (one new private repo in Manifest-local-dev, kept)."
+    — W5B's walk (manifest-app-walk2); its repository is Manifest-local-dev/muddiest-point. Its Node-driven make was still refused
+    [Modify Shared Resources] at 02:43 in W5B's own session (d5b0eb2's allow line names Chrome): the allow is his to type in that tab.
+
+    At ~08:52 PDT, in chat: "can you please give me a summary of what I need to do. If I need to do something in a particular tab,
+    please ask that tab to ping me." So manifest-gt-s3 (GT3) and manifest-app-walk2 (W5B) each send him a PushNotification and put their
+    ask in their own tab; GT3 runs first (it needs him at the machine), W5B's walk after it.
+
+    At ~08:54 PDT, through manifest-coord5's question tool: P11 — THE ADMINISTRATOR'S CONSOLE PLAN
+    (docs/superpowers/plans/2026-10-14-p11-admin-console.md at 3d05fc8; its fresh review 14cffdc + 8e77dd1, every finding taken and
+    confirmed closed by the reviewer): "Approve as revised (Recommended)" — with both decisions it flags as the plan and review recommend:
+    (2) the mock's demo fleet keeps state (an approval leaves the queue), behind MANIFEST_MOCK_FLEET=demo, every request body validated and
+    only states the platform can reach; (3) serving the console through the edge waits for a later plan, P11b, with make doctor's 7101/7113
+    ownership check built now. Nine sittings, nine tabs (manifest-p11-s1 … -s9), built in a manifest worktree beside B, taking 7100 windows
+    from the coordinator for its three landings. Rejected: "Approve, but serve via the edge now" (a tenth sitting, an infra/ change and a
+    Docker tier beside B's); "Approve with the mock stateless"; "Not now".
