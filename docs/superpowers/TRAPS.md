@@ -2866,3 +2866,10 @@ shell — or inherited by a script started from a test — it makes every later 
 scale of its own (Vitest's 5 s unless `MANIFEST_TEST_TIMEOUT_SCALE` is set) and no load line; `make ci-acceptance` then records `no load
 line — did pnpm test run through scripts/test-gently.sh?`. `env | grep MANIFEST_TEST_` before a run. **A test of the wrapper must scrub
 it** — the suite runs inside the wrapper, so every `MANIFEST_TEST_*` is in every test's environment (`test-gently.test.ts`'s `cleanEnv()`).
+
+**`MANIFEST_TEST_FORCE=1` ON A SATURATED MACHINE STARVES THE RUN — A GENTLE RUN CANNOT FINISH WHERE EVERY CORE IS BUSY** (the gentler test
+tiers plan's sitting 2, F2, 2026-10-14). Under twelve normal-priority `yes` burners (a 1-minute load of 26–330), the forced wrapped run at
+utility priority got ~1 % of one core (`ps`: 0.22 s of CPU in 21 s, each burner ~86 %) and finished 4 of 220 files in 30 minutes, 58 red at
+15 s. That is the priority doing what Rich asked — his work wins outright — and no timeout scale reaches it; the gate (12) is what keeps a
+run out. **Below the gate it is green**: ten burners (11.61–11.88 at the start) at utility scale 5, six at background scale 7. If the load is
+above 12, wait for it (`Monitor` on `sysctl -n vm.loadavg`); a forced run there says `forced yes` on its line, and its reds are the load's.

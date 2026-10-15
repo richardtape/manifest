@@ -333,8 +333,13 @@ red() { printf '\033[31m%s\033[0m' "$1"; }
 # through `scaled()`) and Task 3's new `test-gently.test.ts` (12: the wrapper's priority, scale, gate, summary, status and leftovers).
 # Measured 3673/222, 0 failed, twice on the final tree through `scripts/test-gently.sh` — utility priority, timeout scale 3
 # (18:32:55-18:50:50, 1072.6 s, and 18:51:24-19:09:22, 1074.7 s), 7100 running beside them.
-EXPECT_TESTS=3673
-EXPECT_FILES=222
+# EXPECT_TESTS 3673 -> 3680 and EXPECT_FILES 222 -> 223 (2026-10-14, the gentler test tiers plan's sitting 2, `manifest-gt-s2`):
+# Task 4's new `db/truncate.test.ts` (6: the TRUNCATE retried on 40P01 and 55P03 under a lock budget, and resetDatabase's own budget)
+# and the whole-branch review's fix wave's one case in `test-gently.test.ts` (a SIGKILLed wrapper's sampler ends itself).
+# Measured 3680/223, 0 failed, by Task 6's background run under six burners (21:34:52, 2511 s, on `07c4601`'s tree) — and on the
+# final tree by this sitting's `make ci-acceptance` and its closing `pnpm test` (its record has both).
+EXPECT_TESTS=3680
+EXPECT_FILES=223
 # EXPECT_DOCTOR 21 -> 22 (2026-10-03, the UBC AI Gateway plan's sitting 2, Task 2): the gateway key's expiry, a
 # check_warn — counted, never failing — from 14 days ahead (its Decision 11). Measured: 22 checks, 0 failed, 0 warnings.
 EXPECT_DOCTOR=22

@@ -1789,7 +1789,9 @@ usable while they run, and a run does not fail because it is in use:
 - **The load gate.** Above a 1-minute load of **12** (`MANIFEST_TEST_MAX_LOAD`; by default `sysctl -n hw.ncpu`) the
   wrapper **exits 75 before any test**, and says so on one line. **Exit 75 is the gate, not a red**: wait for the
   load to fall — with `Monitor` on `sysctl -n vm.loadavg`, never a `sleep` loop — or run with `MANIFEST_TEST_FORCE=1`,
-  and say in the record that it was forced (the summary line does).
+  and say in the record that it was forced (the summary line does). **Forcing it onto a SATURATED machine does not work**: under
+  twelve CPU burners a forced utility run got ~1 % of a core and finished 4 files in 30 minutes (the gentler test tiers plan's
+  *Sitting 2*, F2) — the priority doing its job. Below the gate (ten burners, a load of ~12) it is green at scale 5.
 - **The line at the end.** Every run ends with `test-gently: load (1-min) min … / median … / max … over N samples
   30 s apart; QoS …, timeout scale …, gate …, forced …; exit …` — **read it before believing a red** (ORIENTATION §4's
   trap 4). `make ci-acceptance` puts it on its `pnpm test` line, PASS or FAIL.

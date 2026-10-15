@@ -48,8 +48,8 @@ describes the test harness's timing** (grepped at `abdd01e` for `testTimeout`, `
 | Sitting | Tasks | What it delivers | `pnpm test:docker` owed? | Where it stops | Status |
 |---|---|---|---|---|---|
 | 1 | 1, 2, 3 | **The measurements on today's tree** — every fact re-read, versions, the QoS priorities, the whole unit suite quiet at normal, utility and background priority and once under imitated load, each with every test's duration — **the timeout scale** (`test-timeouts.ts`, the two projects, `slowTestThreshold`, the 58 explicit timeouts) **and the wrapper** (`scripts/test-gently.sh`, `package.json`) | No — no Docker-tier path changes until Task 4 | After Task 3's commit, with `pnpm test` running through the wrapper twice, green | **DONE 2026-10-14** (`manifest-gt-s1`) — `adf9127`, `44b4e49`, `a2060ce`; scales **utility 3, background 7**; *What executing this plan found*, *Sitting 1* |
-| 2 | 4, 5, 6 | **`resetDatabase` survives a deadlock**; ci-acceptance's line, the RUNBOOK, ORIENTATION and TRAPS; **the after-measurements** (the same imitated load, wrapped) and every control; the plan's one whole-branch review; `make ci-acceptance`; **the Docker tier at 12 CPUs** — owed, and the "before" of Rich's step | **Yes — once, at the end, beside the reviewer** | After the Docker tier and the review's one fix wave | ← **next** — read *Sitting 1*'s *What it left sitting 2* first |
-| 3 | 7 | **Rich's Docker Desktop step** — 6 CPUs, after A1's click — **the Docker tier at 6 CPUs**, the comparison, and the plan's close | Yes — it is the measurement | After the comparison is recorded and Rich has said keep or change | |
+| 2 | 4, 5, 6 | **`resetDatabase` survives a deadlock**; ci-acceptance's line, the RUNBOOK, ORIENTATION and TRAPS; **the after-measurements** (the same imitated load, wrapped) and every control; the plan's one whole-branch review; `make ci-acceptance`; **the Docker tier at 12 CPUs** — owed, and the "before" of Rich's step | **Yes — once, at the end, beside the reviewer** | After the Docker tier and the review's one fix wave | **DONE 2026-10-14/15** (`manifest-gt-s2`) — `09f2f0b`, `977b1e7`, `07c4601`, `f43f894`; **utility scale 3 → 5** (measured at the gate's edge); the Docker tier at 12 CPUs 305/305 in 1977 s; *What executing this plan found*, *Sitting 2* |
+| 3 | 7 | **Rich's Docker Desktop step** — 6 CPUs, after A1's click — **the Docker tier at 6 CPUs**, the comparison, and the plan's close | Yes — it is the measurement | After the comparison is recorded and Rich has said keep or change | ← **next** — when Rich is at the machine; read *Sitting 2*'s *What it left sitting 3* |
 
 **EVERY SITTING ENDS THE SAME WAY** — the four gates (`pnpm test` twice, alone, on the final tree — through the wrapper from Task 3 on),
 the Docker tier when owed, **`EXPECT_TESTS` / `EXPECT_FILES` in `scripts/ci-acceptance.sh` set from the run with a dated comment in the
@@ -1739,6 +1739,10 @@ git commit -m "docs(tests): the gentler test tiers plan's Task 6 — 0 red under
 
 ## Task 7: Rich's Docker Desktop step, and the Docker tier at 6 CPUs
 
+> **SITTING 2 MEASURED (2026-10-14/15, *What executing this plan found*, *Sitting 2*):** the Docker tier at 12 CPUs — Step 3's
+> comparison — read **305/305 in 1977.1 s** through the wrapper (utility, scale 5; load median 5.46), NOT the older unwrapped 1322–1538 s (F9). The scales are **utility 5, background 7** (`f43f894`; Task 6 measured them where the gate admits), the gate 12.
+> **Stop 7100 first** (its set watcher; ORIENTATION §4's trap 7), count `docker network ls -q`, warm the chat model; afterwards G4.
+
 **Files:**
 - Modify: `docs/superpowers/spikes/gentler-tiers-baseline/README.md`, ORIENTATION §2's `pnpm test:docker` row and §4's *Numbers*
 
@@ -1930,3 +1934,123 @@ bare — no dead network, volume or image of a dead app; 16 orphan mirrors, name
 truncated their rows, as `manifest-coord4` knew); LiteLLM's two unheld budgets (a person's agent budget, the platform's intake) and three
 dead app images removed by `--apply`, every held user and used image left. 7100 restored from `.env` (G4) at 19:10 — `gateway-controls.sh
 start real`: `capableModel` `unchanged` on `.env`'s `ubc-ai-gateway/gpt-6.1-sol`, PID 22185 — and handed back to `manifest-coord4`.
+
+### Sitting 2 — 2026-10-14/15, 19:17–00:55 PDT (`manifest-gt-s2`, the third coordinated run's job GT2): Tasks 4–6 — the reset's retry, the documents, the after-measurements, the review and the Docker tier at 12 CPUs
+
+**Opened** by `manifest-coord5`'s GO (19:17), which relayed Rich's decisions recorded in
+[`../2026-09-30-decisions.md`](../2026-09-30-decisions.md), the entry of ~18:34 and its words appended: `6c9949a` (the jobs; his delegation
+continues; the imitated-load runs *"Any time, incl. while I'm out"*, lid open and on AC), `3ba424a`, `d5b0eb2`, `bdfc6f2`, `3011e11`. HEAD
+`dbd2ec2`; other sessions committed documents during the sitting (P11's plan and review, …), nothing of theirs staged here. **Inline**
+(`superpowers:executing-plans`), the ledger `.superpowers/sdd/2026-10-14-gentler-test-tiers/progress.md`.
+
+**At the open, the orphans `manifest-coord4` handed over** (no rows — 7100 had 0 projects): `launch-app` ×7, `office-hour-slots` ×3,
+`topic-choice` ×3 and `vote-for-lectures` ×3 containers removed by name (`docker rm -f -v`), **and five stale edge routes no cleanup script
+sees** (`curl -X DELETE` on 7119 — four on `srv0`, `launch-app`'s production route on `srv1`); then the three scripts' `--apply`: 5
+networks, 11 volumes, 4 images, 3 LiteLLM users (5 keys) — each read back to zero. Every step allowed.
+
+**How the time went.** Task 4 and Task 5 single files and documents (19:20–19:27); the knock-on pair and the review dispatched (~19:27); run A
+on `manifest-coord5`'s HOLD 19:40–20:14 (its forced half STOPPED, F2); the review's fix wave in the FREE window (20:16–20:30); one HOLD
+20:43–00:16 for the N measurement, the two gate-admitted runs, the scale-5 commit and its rerun, `make ci-acceptance` and the closing
+`pnpm test`; then 7100 stopped for the Docker tier (00:16–00:50), G4 and the cleanup.
+
+**Task 4** (`09f2f0b`): `db/truncate.ts`'s `truncateWithRetry` — three attempts on `40P01`/`55P03`, 100/200 ms apart, a `console.error` line
+each, anything else thrown at once, never ending another connection; `resetDatabase`'s admin pool and the global setup's under `lock_timeout`
+= `resetLockTimeoutMs()`. RED (`Failed to load url ./truncate.js`), GREEN 6/6 (the reset's own case 5 263 ms = 3 × 1 250 + 1 500 at scale 1).
+**Its controls:** one attempt → the deadlock case red (`deadlock detected`) and — after F1 — the give-up case red (`expected [ Array(1) ] to
+have a length of 3 but got 1`); no `lock_timeout` on the admin pool → the reset's own case red (`expected undefined to match object { code:
+'55P03' }`); `40P01` not retryable → the deadlock case red. **The knock-on pair** (Task 6 Step 3, unwrapped, alone): with the retry, test 1
+red (`Test timed out in 500ms`), test 2 GREEN, one `… 40P01 (deadlock detected), attempt 1 of 3 — retrying in 100 ms` line; with one attempt,
+**test 2 red** (`deadlock detected`, in its `beforeEach`) — the knock-on, back.
+
+**Task 5** (`977b1e7`): ci-acceptance's `pnpm test` line carries the wrapper's line (`MANIFEST_TEST_LOAD_REPORT`) — driven with a stub `pnpm`
+through the real wrapper: PASS `… — load (1-min) …; exit 0`, FAIL `exit 3 — load …`, FAIL `exit 75 — REFUSED to start: …`, and a
+pass-through's `no load line — did pnpm test run through scripts/test-gently.sh?`. RUNBOOK *Running the test tiers gently*; ORIENTATION §2's
+row, §4's trap 4, §6 rule 3 (the slow list); three TRAPS entries.
+
+**Task 6** — the after-measurements, every run on AC in **clamshell mode** (lid closed on an external display, `AppleClamshellCausesSleep`
+No — `manifest-coord5` ruled Rich's *"lid open and on AC"* met in substance: it cannot sleep), no Sleep or Wake in `pmset -g log` over any
+of them; the full table is the baseline README's *After* section ([`../spikes/gentler-tiers-baseline/README.md`](../spikes/gentler-tiers-baseline/README.md)):
+
+| Run | Burners | 1-min load at the gate · median / max | Wall | Result |
+|---|---|---|---|---|
+| A1 — the gate's live control, unforced | 12 | **26.08** — REFUSED, `exit 75` | — | as designed |
+| A2 — utility, scale 3, FORCED | 12 | 30.29 · 51.52 / 113.57 | stopped at 30 min | **starved** — 4 files, 58 red (F2) |
+| N — the load the gate admits (no tests) | 8 | 8.42 at 120 s (base 2.30) | — | ~1 per burner below saturation |
+| U — utility, scale 3, unforced | 10 | **11.61** · 14.67 / 26.55 | 2579.6 s | **4 red** (F3) |
+| B — background, scale 7, unforced | 6 | **7.99** · 8.99 / 15.13 | 2511 s | **green** 3680/3680 |
+| U5 — utility, **scale 5**, unforced | 10 | **11.88** · 14.42 / 22.00 | 2523 s | **green** 3680/3680 |
+
+**The plan's criterion — 0 red where the gate admits — is met at utility 5, background 7, gate 12** (`f43f894`). Both of `manifest-coord5`'s
+calls on the way (each under Rich's delegation, `6c9949a`, recorded for his review): **the gate's edge, not twelve burners, is what the
+scale must survive** (20:17 — Step 1's forced run replaced by N burners holding the load at the gate, unforced; B at the plan's six once
+stage N showed six are admitted, 21:06), and **utility 3 → 5** (21:35 — Decision 3's own formula at the edge's ratio). The gate's default
+stays 12 (`hw.ncpu`): it refused twelve burners at once and admitted ten at 11.61 and 11.88.
+
+**The review** (the plan's one whole-branch review — a fresh read-only session on the most capable model, dispatched beside run A, ~14.5
+min): *With fixes* — no Critical; three Important (F5–F7), nine Minor; every Review Focus line held on the paths a person takes. **Its fix
+wave, `07c4601`**: F5–F7 each red first, and three of the Minor re-graded Important by effect (F8). The rest are deferred, below.
+
+**The final tree's gates:** `pnpm lint`, `pnpm typecheck`, `pnpm format:check` clean; **`make ci-acceptance` on driver 1 — 0 failed, 0 moved,
+1 not run** (`make demo-github`, driver 2's), ~23:04–23:57: doctor 22, verify 67, its `pnpm test` line `PASS 3680 tests in 223 files — load
+(1-min) min 1.65 / median 2.33 / max 4.93 over 36 samples 30 s apart; QoS utility, timeout scale 5, gate 12, forced no; exit 0` (1047.5 s),
+the three builds and every demo through `make demo-capacity`; **`pnpm test` once more**, 3680/3680 in 223 files, 1042.3 s, load median 3.71 (23:58–00:15). **The slow list**, read with the
+corrected grep (4 lines; the old one read 227): `document.test.ts` 26.2 s, **`truncate.test.ts`'s reset case 20.3 s — new, by design** (a
+lock held past three budgets: 3 × 6 250 + 1 500 at scale 5, inside its `scaled(20_000)`), and the FE-36 pair, 7.2 and 7.1 s; sitting 1's
+fourth, *PROJECT_ARCHIVED*, read under 5 s. `EXPECT_TESTS` 3673 → **3680**, `EXPECT_FILES` 222 → **223** (Task 4's file, six; the fix
+wave's one case). **The Docker tier at 12 CPUs**: **305/305 in 44 files, 0 failed** — `pnpm test:docker` through the wrapper (utility, scale 5 exported; the `docker` project's own limits stay 120 s), 00:16:40–00:49:4x, **Vitest 1977.1 s**, load min 2.20 / median 5.46 / max 10.64; 7100 stopped (its set watcher), 12 networks at its start and 19 at its end, the chat model warmed, `docker info` NCPU 12 (F9). After it: G4 — `gateway-controls.sh start real` (`source` `github`, `capableModel` `registered`, `capableFallback` `set`, `ubc-qwen-27b` registered) and ONE call through LiteLLM to `default-chat-large`: `200`, `llm_provider-x-litellm-model-name: gpt-6.1-sol`, `x-litellm-attempted-fallbacks: 0`, the api base UBC's gateway; the three cleanup scripts (7 networks, 1 volume, 14 images, 2 LiteLLM users — 0 left); `make verify` 67 checks, 0 failed, 0 warnings. **The machine:** 0 `mf-` containers, networks 12, 0 projects, 7100 on real GitHub (PID 29581), no `yes`, no Vitest.
+
+**Findings:**
+
+1. **F1 — THE PLAN'S OWN CONTROL FOR THE RETRY COUNT COULD NOT REDDEN ITS GIVE-UP CASE** (Task 4 Step 6). `TRUNCATE_ATTEMPTS = 1` was
+   predicted to turn *gives up after three lock budgets* red on its line count; it stayed GREEN, because the case asserted
+   `toHaveLength(TRUNCATE_ATTEMPTS)` — the constant the control changes. The count is load-bearing (the lock budget is a quarter of a test's
+   limit so that THREE attempts and their pauses fit inside it), so the case now pins 3 by value; the control then read red.
+2. **F2 — TWELVE BURNERS STARVE A UTILITY RUN, SO NO TIMEOUT SCALE CAN MAKE IT GREEN — THE GATE IS WHAT KEEPS A RUN OUT OF THAT**
+   (Task 6 Step 1). The forced run under twelve normal-priority burners finished four of 220 files in 30 minutes — 1 281 s against 130.8 s
+   quiet and 273.8 s at NORMAL priority under the same burners (sitting 1) — 58 red, every one `Test timed out in 15000ms`; at its end the
+   suite's worker got ~1 % of one core (0.22 s of CPU in 21 s) while each burner got ~86 %. Utility priority does exactly what Rich asked —
+   his work wins outright. Stopped by SIGINT to its process group; the plan's *"raise the scale by 1 and run once more"* skipped (no scale
+   reaches ~1 % of a core). **Decision 5's premise** (*"12 because it is the load Task 6 proves the scaled run green at — twelve burners"*) is
+   restated by `manifest-coord5` under Rich's delegation: the gate's edge is the heaviest load it ADMITS, and burners holding the load there
+   prove it. *(A1 refused at 26.08, not sitting 1's ~60: the 1-minute load 120 s after twelve burners start depends on the base.)*
+3. **F3 — THE UTILITY SCALE WAS SET FROM A QUIET RATIO; AT THE GATE'S EDGE IT READ 4 RED** (Task 6, run U). Ten burners, admitted unforced at
+   11.61: 2.21× the quiet run, three `Test timed out in 15000ms` (agents FE-36 *a production deploy narrows the sessions …*, github/driver
+   *pages the history …* and *resolves a branch …* — 1.4–2.8 s quiet, not slow tests) and one follow-on `INTERNAL 500`; per test median
+   1.85×, p90 2.73×, **p99 8.08×, max 19.51×** — with ~2 cores free, the suite's own processes lose to the burners in bursts. Decision 3's
+   formula, max(2, ⌈2 × s⌉), at the edge's s = 2.21 is **5** (`manifest-coord5`, 21:35); `f43f894`, red at 3 in the wrapper's test, and the
+   rerun at the same edge (11.88) GREEN, p99 4.92×, max 7.45×. A hang now reports in 25 s (Rich's accepted trade, item 2).
+4. **F4 — BELOW SATURATION EACH BURNER ADDS ABOUT ONE TO THE LOAD** (Task 6, stage N): eight read 8.42 at the gate's moment and 8.96 at
+   3.5 min, from 2.30 — so the gate admits up to ~10, and **the plan's own Step 2 (six burners) was never going to be refused**, as
+   `manifest-coord5`'s first decision had assumed from F5's twelve-burner numbers; corrected to it and withdrawn (21:06). Sitting 1's F5
+   holds only AT saturation: there the load jumps (twelve → 26–330).
+5. **F5 — THE PLAN'S SLOW-LIST GREP LISTED EVERY FILE** (the review's I1; Task 5 Step 3's text, copied into ORIENTATION §6 rule 3).
+   `grep -E '^ +✓ .* [0-9]+ms$'` matches each file's own line (` ✓ |unit| <file> (N tests) <n>ms`, one space) as well as the slow tests
+   (three spaces — Vitest 2.1.9's `printTask`, `index.DsZFoqi9.js:3461`, `:3470-3472`): **227 lines against 4** on ci-acceptance's log.
+   Now `'^   ✓ …'`, with the reason.
+6. **F6 — THE BARE-TIMEOUT SCANNER PROVED ITS REGEX, NOT ITS WALK** (the review's I2): nothing asserted the walk found any file, so a walk
+   that found none was green — measured: `recursive: false` on the old test, 7/7. It now asserts a nested file, a second package's file and
+   the count; `recursive: false` and a `.spec.ts` filter each read red.
+7. **F7 — A `kill -9` OF THE WRAPPER LEFT ITS SAMPLER LOOPING FOR EVER** (the review's I3): the sampler's command line is the wrapper's,
+   `vitest` and all, so every `pgrep -f vitest` check would read a run in progress. The loop now ends itself at its next interval when the
+   wrapper is gone (`kill -0 "$$" || exit 0`); the new case SIGKILLs the wrapper and reads red before (`expected [ '16405' ] to deeply equal
+   []`) — its first draft timed out at 5 s BEFORE asserting (its own polling), red for the wrong reason, and now runs on deadlines under
+   `scaled(15_000)`.
+8. **F8 — THREE FALSE OR MISSING LINES IN THIS SITTING'S OWN DOCUMENTS** (the review's M3, M5, M6, re-graded Important by effect — the next
+   agent trusts them): the RUNBOOK's *"retry … three times"* (three ATTEMPTS); trap 4's *"both run through the wrapper"* naming `make
+   ci-acceptance` (only its `pnpm test` does); §2's Docker-tier row silent on the wrapper and exit 75. Fixed in `07c4601`.
+
+9. **F9 — THROUGH THE WRAPPER THE DOCKER TIER TOOK ~1.3–1.5× ITS UNWRAPPED RECORD** (Task 6 Step 6): 1977.1 s for 305/305, against
+   1322–1538 s for the same 44 files at normal priority (ORIENTATION §2's row: the FE-46/47/5 plan's and A1's sittings) — on a machine at a
+   median load of 5.46, nothing forced, nothing timed out (its limits are 120 s, unscaled). Utility priority slows the tier's Node side
+   (its control planes, builds' clients, git) while the Docker VM is not clamped. Not a red, and Rich's trade (item 1); **but Task 7's
+   comparison must be made against this run, wrapped**, not the unwrapped record — or Docker Desktop's 6 CPUs would be blamed for the priority's
+   cost. A tier run now costs ~33 minutes.
+
+**Deferred** (the review's Minor, each in the ledger): a TERM or INT to the wrapper ALONE (not its process group) is deferred by bash until
+Vitest ends, then reads `exit 143` — Ctrl-C, the RUNBOOK's word, works; the global setup rethrows `40P01`/`55P03` raw after three lines
+prefixed `resetDatabase:`; the summary's median is the lower-middle of an even count; `MANIFEST_TEST_MAX_LOAD=abc` refuses every run, naming
+itself; the scanner misses one-line `it('…', fn, 30_000)` and `beforeAll(fn, 30_000)` (none exist); the four blueprints' `execFile`
+`timeout: 30_000` stay unscaled (none red in any run here — F9's watch item closed).
+
+**What it left sitting 3** (Task 7, Rich's Docker Desktop step): the Docker tier at 12 CPUs above is its *before*; **the scales are utility 5,
+background 7, gate 12** — the README's *After* has every number; nothing else is owed before Rich's step.
