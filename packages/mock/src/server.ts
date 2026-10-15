@@ -12,6 +12,13 @@ import { READY, REPLAY, scripted, SCAN_SILENCE_MS } from './script.js'
 import { createValidator, type Validate } from './validate.js'
 import { MockRefusal } from './refusal.js'
 import {
+  createFleet,
+  readyFor,
+  withFleetItems,
+  withFleetRows,
+  type Fleet,
+} from './fleet.js'
+import {
   approvalOf,
   draftAssessment,
   draftRegistration,
@@ -174,6 +181,12 @@ export interface MockOptions {
    * what `mock-app`'s stage leaves with UBC are on projects this mock does not hold.
    */
   queue?: 'default' | 'full'
+  /**
+   * `MANIFEST_MOCK_FLEET=demo` (P11's Task 3): thirteen more projects, for the administrator's console —
+   * read by their own ids, in the fleet and the queue beside `mock-app`, their events replayed (`fleet.ts`).
+   * Off, nothing answers differently.
+   */
+  fleet?: 'off' | 'demo'
   /** §12's silent scan window; shortened by a test that must not wait ten seconds. */
   scanSilenceMs?: number
 }
@@ -195,6 +208,8 @@ interface Context {
   credential: 'session' | 'token'
   /** The session visited `/auth/step-up` in the last ten minutes (FE-40 (2)). */
   steppedUp: boolean
+  /** The demo fleet, when `MANIFEST_MOCK_FLEET=demo` — its rows and items join `listFleet`'s and `listQueue`'s. */
+  fleet: Fleet | undefined
 }
 
 interface Answer {
@@ -253,9 +268,23 @@ const HELD: Record<string, { what: string; ids: readonly string[] }> = {
   blueprintRef: { what: 'blueprint', ids: f.BLUEPRINTS.map((b) => b.ref) },
 }
 
-function assertHeld(params: Record<string, string>): void {
+/** What a server holds: the fixtures' ids — and, with the demo fleet, its ids beside them. */
+function heldFor(fleet: Fleet | undefined): typeof HELD {
+  if (fleet === undefined) return HELD
+  return Object.fromEntries(
+    Object.entries(HELD).map(([name, held]) => [
+      name,
+      {
+        what: held.what,
+        ids: [...held.ids, ...(fleet.ids[name as keyof Fleet['ids']] ?? [])],
+      },
+    ]),
+  )
+}
+
+function assertHeld(params: Record<string, string>, holding: typeof HELD): void {
   for (const [name, value] of Object.entries(params)) {
-    const held = HELD[name]
+    const held = holding[name]
     if (held !== undefined && !held.ids.includes(value))
       throw new MockRefusal(
         404,
@@ -522,13 +551,17 @@ const ANSWERS: Record<string, Answerer> = {
         'the fleet is for platform administrators',
         'Start the mock with MANIFEST_MOCK_ROLE=admin to see this screen.',
       )
-    return ok('Fleet', f.FLEET)
+    return ok(
+      'Fleet',
+      ctx.fleet === undefined ? f.FLEET : withFleetRows(f.FLEET, ctx.fleet.fleetRows()),
+    )
   },
   getMe: (ctx) =>
     ok(
       'Me',
-      // Task 10's scenario signs in an administrator who is not a member of `mock-app`.
-      ctx.options.adminReason
+      // Task 10's scenario signs in an administrator who is not a member of `mock-app` — and so does the
+      // demo fleet's (P11): Operator One, a member of none of its projects.
+      ctx.options.adminReason || (ctx.fleet !== undefined && ctx.options.role === 'admin')
         ? f.OPERATOR_ME
         : ctx.options.role === 'admin'
           ? f.ADMIN_ME
@@ -704,7 +737,13 @@ const ANSWERS: Record<string, Answerer> = {
   requestApproval: (ctx) =>
     ok('ApprovalRequest', requestApproval(launchOf(ctx), ctx.credential, ctx.now)),
   // §26's queue (Task 12): an administrator's read, what the stage leaves with UBC, oldest first.
-  listQueue: (ctx) => ok('Queue', queueOf(launchOf(ctx), ctx.options.role, ctx.now)),
+  listQueue: (ctx) => {
+    const queue = queueOf(launchOf(ctx), ctx.options.role, ctx.now)
+    return ok(
+      'Queue',
+      ctx.fleet === undefined ? queue : withFleetItems(queue, ctx.fleet.queueItems()),
+    )
+  },
   // P6b Task 9: the stored preview. Taking one and re-reading it answer the SAME fixture, which
   // is the platform's property (a re-read never recomputes) and also all a stateless mock can do.
   createApprovalPreview: () => created('ApprovalPreview', f.APPROVAL_PREVIEW),
@@ -1301,6 +1340,7 @@ export function createMockServer(options: MockOptions = {}): Server {
       process.env.MANIFEST_MOCK_INTAKE === 'budget-spent'
         ? process.env.MANIFEST_MOCK_INTAKE
         : 'open'),
+    fleet: options.fleet ?? (process.env.MANIFEST_MOCK_FLEET === 'demo' ? 'demo' : 'off'),
     scanSilenceMs:
       options.scanSilenceMs ??
       (process.env.MANIFEST_MOCK_SCAN_MS === undefined
@@ -1325,6 +1365,13 @@ export function createMockServer(options: MockOptions = {}): Server {
   ready.catch(() => undefined)
 
   const seen = new Map<string, Stored>()
+  // ONE PER SERVER, NEVER A MODULE GLOBAL (P11's Decision 2): two servers in one process share nothing,
+  // and a restart is the reset. Its times count from a whole second.
+  const fleet =
+    resolved.fleet === 'demo'
+      ? createFleet(Math.floor(Date.now() / 1000) * 1000)
+      : undefined
+  const holding = heldFor(fleet)
 
   /**
    * WHEN THE SCRIPTED BUILD STOPS BEING `running`, IN WALL-CLOCK TIME. Set the moment a
@@ -1513,17 +1560,28 @@ export function createMockServer(options: MockOptions = {}): Server {
       }
 
       // FE-27: an id the mock does not hold is the platform's 404, before any answer is built.
-      assertHeld(params)
+      assertHeld(params, holding)
       // Task 10: an administrator who is not a member, when scripted — a person's session only; a token
       // is never asked (its minter was, at the mint).
       if (resolved.adminReason && operation.asksAdminReason && credential === 'session')
         assertAdminReason(request.headers['manifest-admin-reason'])
 
+      const now = Date.now()
+      const steppedUp = cookiesOf(request)[STEP_UP_COOKIE] === '1'
+      // A FLEET ID IS THE FLEET'S TO ANSWER, never a fixture's (P11's Task 3); anything else, as ever.
       const {
         status,
         schema,
         body: answered,
-      } = answer({
+      } = fleet?.answer(operation.operationId, params, body, {
+        now,
+        query: url.searchParams,
+        steppedUp,
+        stepUpRequired: resolved.stepUp,
+        actor: f.OPERATOR_ME,
+        adminReason: adminReasonOf(request.headers['manifest-admin-reason']),
+      }) ??
+      answer({
         params,
         query: url.searchParams,
         body,
@@ -1531,9 +1589,10 @@ export function createMockServer(options: MockOptions = {}): Server {
         buildIsRunning: buildSucceedsAt !== undefined && Date.now() < buildSucceedsAt,
         example,
         document,
-        now: Date.now(),
+        now,
         credential,
-        steppedUp: cookiesOf(request)[STEP_UP_COOKIE] === '1',
+        steppedUp,
+        fleet,
       })
 
       // EVERY BODY IS VALIDATED ON ITS WAY OUT, in-process. A mock that lies is worse than
@@ -1641,11 +1700,35 @@ export function createMockServer(options: MockOptions = {}): Server {
       socket.end('HTTP/1.1 401 Unauthorized\r\nconnection: close\r\n\r\n')
       return
     }
+    const projectId = decodeURIComponent(url.pathname.split('/')[3] ?? '')
     sockets.handleUpgrade(request, socket, head, (ws) => {
-      void play(ws)
+      void (fleet?.ids.projectId.includes(projectId) === true
+        ? playFleet(ws, fleet, projectId)
+        : play(ws))
     })
   })
   server.on('close', () => sockets.close())
+
+  /**
+   * A FLEET PROJECT'S STREAM (P11's Task 3): its own events as the replay, the control frame, then live —
+   * whatever the fleet appends for it — until the socket closes. Every frame validated, as the script's.
+   */
+  async function playFleet(ws: WebSocket, of: Fleet, projectId: string): Promise<void> {
+    const { validate } = await ready
+    const write = (frame: unknown): void => {
+      if (ws.readyState !== ws.OPEN) return
+      const { ok: valid, errors } = validate('StreamFrame', frame)
+      if (!valid) {
+        ws.close(1011, `manifest-mock built an invalid frame: ${errors}`.slice(0, 120))
+        return
+      }
+      ws.send(JSON.stringify(frame))
+    }
+    for (const frame of of.events(projectId)) write(frame)
+    write(readyFor(projectId))
+    const stop = of.onEvent(projectId, write)
+    ws.on('close', stop)
+  }
 
   async function play(ws: WebSocket): Promise<void> {
     const { validate } = await ready

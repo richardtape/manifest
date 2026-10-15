@@ -9,3 +9,6 @@ export * as fixtures from './fixtures.js'
 export { REPLAY, READY, scripted, SCAN_SILENCE_MS } from './script.js'
 export { createValidator } from './validate.js'
 export type { Validate, Validation } from './validate.js'
+// P11's demo fleet (`MANIFEST_MOCK_FLEET=demo`): its builder and its ids, for the administrator's console's tests.
+export { createFleet, FLEET_PROJECTS, fleetId, KIND } from './fleet.js'
+export type { Fleet, FleetAnswer, FleetContext } from './fleet.js'
