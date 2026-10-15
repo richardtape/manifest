@@ -1,8 +1,18 @@
+import { execFile } from 'node:child_process'
 import { join } from 'node:path'
-import { expect, it } from 'vitest'
+import { promisify } from 'node:util'
+import { afterAll, beforeAll, expect, it } from 'vitest'
+import {
+  appHealthPolicy,
+  applyRoute,
+  createCaddyClient,
+  removeRoute,
+} from '../routing/index.js'
+import { stubAppArgs } from '../routing/testing.js'
 import {
   createEngineClient,
   describeDocker,
+  dockerDriverForTests,
   REPO_ROOT,
   resolveSocketPath,
 } from '../runtime/testing.js'
@@ -129,3 +139,106 @@ describeDocker('the load generator — vegeta through the real edge', () => {
     expect(await generatorContainers(id)).toEqual([])
   })
 })
+
+/**
+ * TASKS 2 AND 3 TOGETHER, AS TASK 4'S RUN WILL CALL THEM (the sitting's stop: one generator run through the real edge): a
+ * real route on the edge — its per-IP limit 600 a minute — to a stub app, and the generator loading it at 30 a second for
+ * 25 s (750 requests). EXEMPTED through the Docker driver's own `setRateLimitExemption`, every request is answered; NOT
+ * exempted, the same run meets the limiter — 600 answered, 150 `429` — and the report counts those as not answered
+ * (Review Focus 2: a pass that measured the limiter is impossible).
+ */
+const ROUTE_HOST = 'loadgen-route.staging.manifest.internal'
+const ROUTE_APP = 'mf-loadgen-route-staging-app'
+const ROUTE_ID = '99999999-9999-4999-8999-999999999999'
+const run = promisify(execFile)
+const routing = {
+  caddy: createCaddyClient('http://127.0.0.1:7119'),
+  servers: { internal: 'srv0', public: 'srv0' },
+}
+
+describeDocker(
+  'the load generator through a real route, exempted by the driver (Tasks 2 and 3)',
+  () => {
+    beforeAll(async () => {
+      await removeRoute(routing, ROUTE_HOST, 'staging').catch(() => undefined)
+      await run('docker', ['rm', '-f', ROUTE_APP]).catch(() => undefined)
+      await run(
+        'docker',
+        stubAppArgs(ROUTE_APP, 'ok', {}, { aliases: [`mf-i-${ROUTE_ID}`] }),
+      )
+      await new Promise((r) => setTimeout(r, 1500))
+      await applyRoute(routing, {
+        hostname: ROUTE_HOST,
+        kind: 'staging',
+        upstreams: [{ dial: `mf-i-${ROUTE_ID}:8080`, instanceId: ROUTE_ID }],
+        health: appHealthPolicy('/healthz'),
+      })
+    }, 120_000)
+
+    afterAll(async () => {
+      await removeRoute(routing, ROUTE_HOST, 'staging').catch(() => undefined)
+      // Explicit names (P4b finding 192).
+      await run('docker', ['rm', '-f', ROUTE_APP]).catch(() => undefined)
+    })
+
+    const target: LoadTarget = { ...TARGET, origin: `https://${ROUTE_HOST}` }
+    const phases: LoadPhase[] = [{ name: 'arrive', rps: 30, seconds: 25 }]
+
+    it('exempted, 750 requests in 25 s through a route limited to 600 a minute are every one answered', async () => {
+      const driver = await dockerDriverForTests({ routing })
+      const id = `docker-test-${Date.now()}-exempt`
+      const handle = await createLoadGenerator({
+        engine,
+        caCertPath: CA,
+        dnsServer: DNS,
+      }).start(target, phases, {
+        loadRehearsalId: id,
+      })
+      await driver.setRateLimitExemption(ROUTE_HOST, handle.address)
+      try {
+        await handle.go()
+        const report = await handle.done
+        expect(report.requests).toBe(750)
+        expect(report.answered).toBe(750)
+        expect(report.byPath).toEqual({
+          '/': { '200': 250 },
+          '/healthz': { '200': 250 },
+          '/login': { '200': 250 },
+        })
+        expect(report.phases[0]!.achieved).toBeGreaterThan(29)
+        console.log(
+          `[load.docker] exempted: ${report.requests} requests, ${report.answered} answered, ` +
+            `achieved ${report.achievedRps.toFixed(2)}/s, p50 ${report.p50Ms.toFixed(1)} ms, p95 ${report.p95Ms.toFixed(1)} ms, ` +
+            `p99 ${report.p99Ms.toFixed(1)} ms, from ${handle.address}`,
+        )
+      } finally {
+        await driver.setRateLimitExemption(ROUTE_HOST, null)
+      }
+      expect(await generatorContainers(id)).toEqual([])
+    }, 120_000)
+
+    it('NOT exempted, the same run meets the limiter — 600 answered, 150 refused 429, and the report does not count them', async () => {
+      const id = `docker-test-${Date.now()}-limited`
+      const handle = await createLoadGenerator({
+        engine,
+        caCertPath: CA,
+        dnsServer: DNS,
+      }).start(target, phases, {
+        loadRehearsalId: id,
+      })
+      await handle.go()
+      const report = await handle.done
+      const codes: Record<string, number> = {}
+      for (const byStatus of Object.values(report.byPath))
+        for (const [code, n] of Object.entries(byStatus))
+          codes[code] = (codes[code] ?? 0) + n
+      expect(codes).toEqual({ '200': 600, '429': 150 })
+      expect(report.answered).toBe(600)
+      expect(report.answeredRatio).toBe(0.8)
+      console.log(
+        `[load.docker] not exempted: ${report.requests} requests, ${report.answered} answered, ` +
+          `${JSON.stringify(codes)}, from ${handle.address}`,
+      )
+    }, 120_000)
+  },
+)
