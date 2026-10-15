@@ -2124,3 +2124,14 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
     itself." / "<Name> is working on it: <title>. It starts by itself."; m91 "You stopped it."; m200 "<App>: running two copies short"
     (and its body and line, as m201's forms); m201 "It stopped, and starting it again didn't work, so we've stopped trying." (changing
     W4's approved words) and the one-copy-short forms alike. GT3's Docker Desktop step done by him (Docker reads 6 CPUs at 09:02).
+
+    At ~09:09 PDT, RICH RAN THE SETTINGS SCRIPT W5B STAGED (manifest-app-walk2's own settings edit was refused [Self-Modification],
+    correctly; manifest-coord5 read the script whole first): "Added 1 allow line to /Users/rich/.claude/settings.json; backup at
+    /Users/rich/.claude/settings.json.bak-20261015-090944." The line: Node scripts that drive the LOCAL platform through its API
+    (manifest-app's scripts/walk/*.ts and a session's own scratchpad scripts) as the laptop IdP's test users — creating apps, building,
+    deploying to sandbox, staging and production on THIS laptop's control plane, sending launch records, acting as the Manifest team and
+    UBC's identity team as operator, signing off, dry runs and launching — is local development and testing, never a real production
+    deployment, and may create private repositories in Manifest-local-dev (the Node twin of his 2026-10-14 18:42 Chrome line). Tabs opened
+    from now load it. Before it, at ~08:55, his allow typed in W5B's tab: "I allow W5B's walk: the scripts/walk Node scripts on this
+    laptop's platform as the test users — create, build, deploy, send launch records and launch muddiest-point (one private repo in
+    Manifest-local-dev, kept)."
