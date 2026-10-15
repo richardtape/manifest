@@ -52,8 +52,11 @@ export async function validateManifestText(
  * **NEVER THE COMMIT'S OWN ROW.** `commitSha` is the commit being judged, and the baseline is the
  * newest valid spec of a DIFFERENT commit: on driver 2 a push's webhook can record the commit
  * before the commit route validates it, and that row — the newest valid — compared the commit with
- * itself, so a sensitive change answered none (A1 sitting 8, `frontend-github`). So a commit's
- * second validation answers what its first did. `null` for a commit not yet made (a dry run).
+ * itself, so a sensitive change answered none (A1 sitting 8, `frontend-github`). A commit validated
+ * again is compared, as at its first validation, with the newest valid row of ANOTHER commit — the
+ * same answer unless another commit was validated in between: the baseline is the newest by TIME,
+ * not the commit's parent, so an OLDER commit validated after a newer one is compared with its
+ * descendant, as it always was. `null` for a commit not yet made (a dry run).
  */
 export async function sensitiveAgainstNewestValid(
   db: Db,
