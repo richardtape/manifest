@@ -2070,7 +2070,7 @@ no route answers `INSTANCE_NOT_FOUND`; `outOfMemory` is sticky and may be true o
 same resources unless the manifest says otherwise (F4), so the take-down's memory check needs an app that sets them apart. **The Docker
 tier IS owed** (`launch/`, `releases/`, `db/`) — 7100 STOPPED for it, then G4. **The vulnerability database goes stale 2026-10-15 23:32**:
 a Docker tier or demo after that refreshes it first (`make refresh-vulndb`, the network on — standing yes) and watches the next build
-(FE-57). **7100 as B2 left it** (15:50): real GitHub from `.env`, G4 proved on `gpt-6.1-sol` (0 fallbacks), **0 projects** (the close’s two `pnpm test` runs and the tier truncated them); 12 networks; `manifest/vegeta:12.13.0` in the daemon; the vulnerability database built 2026-10-09T06:32:32Z. **`Manifest-local-dev/muddiest-point`** (W5B's walk app's repository) is
+(FE-57). **7100 as B2 left it** (15:46, G4): real GitHub from `.env`, G4 proved on `gpt-6.1-sol` (0 fallbacks), **0 projects** (the close’s two `pnpm test` runs and the tier truncated them); 12 networks; `manifest/vegeta:12.13.0` in the daemon; the vulnerability database built 2026-10-09T06:32:32Z. **`Manifest-local-dev/muddiest-point`** (W5B's walk app's repository) is
 Rich's; its containers, routes, networks, volumes and images were cleared at B2's open.
 
 **P11, THE ADMINISTRATOR'S CONSOLE, IS A PARALLEL LANE BESIDE B** — [`plans/2026-10-14-p11-admin-console.md`](plans/2026-10-14-p11-admin-console.md),

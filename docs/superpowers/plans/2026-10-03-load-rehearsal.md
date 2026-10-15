@@ -1371,7 +1371,7 @@ the ledger has it). The Docker tier not owed (nothing under `packages/` or `infr
 refusing itself (four app containers, no AI key among them: `muddiest-point`'s), 17 orphaned mirrors named (`muddiest-point.git` new).
 `muddiest-point`'s containers, rows truncated, left for the coordinator. **Fourteen findings.**
 
-### Sitting 2 — 2026-10-15, 12:47–15:50 PDT (`manifest-b-s2`, the third coordinated run's job B2): Spec actions C and D, vegeta, Tasks 2 and 3
+### Sitting 2 — 2026-10-15, 12:47–15:48 PDT (`manifest-b-s2`, the third coordinated run's job B2): Spec actions C and D, vegeta, Tasks 2 and 3
 
 **Opened** by `manifest-coord5`'s GO (12:47), relaying Rich's decisions — `3ba424a` (A–D approved as drafted; vegeta's download a
 standing yes, checksum-verified, a mismatch stopping the sitting), `d5b0eb2` (his allow line for committing an approved spec action),
