@@ -2,7 +2,9 @@ import { mkdir, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import pg from 'pg'
+import { truncateWithRetry } from './src/db/truncate.js'
 import { realGithubRefusal } from './src/test-tier-guard.js'
+import { resetLockTimeoutMs } from './src/test-timeouts.js'
 import { ensureDatabaseUrls } from './vitest.env.js'
 
 /** Must match TEST_REPOS_ROOT in src/api/testing.ts — different process, same path. */
@@ -71,9 +73,9 @@ export async function setup(): Promise<() => Promise<void>> {
   // so the harness's own reset cannot go through the connection under test.
   const connectionString = ensureDatabaseUrls() && process.env.MANIFEST_ADMIN_DATABASE_URL
   if (connectionString) {
-    const pool = new pg.Pool({ connectionString })
+    const pool = new pg.Pool({ connectionString, lock_timeout: resetLockTimeoutMs() })
     try {
-      await pool.query(`TRUNCATE TABLE ${TABLES.join(', ')} RESTART IDENTITY CASCADE`)
+      await truncateWithRetry(pool, TABLES)
     } catch (error) {
       // `42P01 undefined_table` means the schema is not there — almost always
       // because `make reset` has just dropped `manifest-pgdata`, which is what it

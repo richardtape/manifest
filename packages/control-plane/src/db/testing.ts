@@ -1,8 +1,10 @@
 import { randomUUID } from 'node:crypto'
 import pg from 'pg'
+import { resetLockTimeoutMs } from '../test-timeouts.js'
 import { db } from './client.js'
 import type { Db } from './client.js'
 import { projects, users } from './schema.js'
+import { truncateWithRetry } from './truncate.js'
 
 class Rollback extends Error {}
 
@@ -64,9 +66,10 @@ export async function withProject(
  *
  * TRUNCATE rather than DELETE so identity sequences reset too, and CASCADE because
  * the §6 tables reference each other. `vitest.config.ts` disables file parallelism
- * so this cannot run while another file holds a transaction open.
+ * so this cannot run while another file holds a transaction open — but work a
+ * timed-out test left running can; `db/truncate.ts` retries for that.
  */
-const TABLES = [
+export const RESET_TABLES: readonly string[] = [
   // P4b Task 13, for the reason `audit.build_logs` is named below: `instances` refuses
   // a delete while an Incident references it (ON DELETE restrict), and manifest_app
   // cannot truncate it either.
@@ -133,6 +136,11 @@ const TABLES = [
  *
  * Lazily created: the pure test files never call `resetDatabase`, and opening a
  * pool at import time would make every one of them need a database.
+ *
+ * With a `lock_timeout` (the gentler test tiers plan): a reset that cannot get its
+ * locks within a quarter of a test's limit gives up and retries (`db/truncate.ts`),
+ * rather than waiting on the server after its hook has timed out, holding every lock
+ * it has taken.
  */
 let adminPool: pg.Pool | undefined
 function admin(): pg.Pool {
@@ -144,7 +152,7 @@ function admin(): pg.Pool {
         'touch audit.events. vitest.env.ts derives it from `.env`.',
     )
   }
-  adminPool ??= new pg.Pool({ connectionString })
+  adminPool ??= new pg.Pool({ connectionString, lock_timeout: resetLockTimeoutMs() })
   return adminPool
 }
 
@@ -184,5 +192,5 @@ export async function drainBackgroundWork(): Promise<void> {
 
 export async function resetDatabase(): Promise<void> {
   await drainBackgroundWork()
-  await admin().query(`TRUNCATE TABLE ${TABLES.join(', ')} RESTART IDENTITY CASCADE`)
+  await truncateWithRetry(admin(), RESET_TABLES)
 }
