@@ -58,7 +58,7 @@ vulnerability database in the console, and FE-45 (Rich, 2026-10-03, 15:28; A2 aw
   repositories on GitHub. **Rich, 2026-10-13 ~18:14 (*"go with the recommendations"*, `40c0f82`): the six unowned ones — `a8-clocks-1`,
   `f5b-measure-1`, `f6-watch`, `f6b-measure-1`, `keep-walk-1002` and `reading-updates` — WERE DELETED BY HIM** (~18:20, his terminal)
   with `bash scripts/github-real-repos.sh --delete <name>`, and their `.manifest/repos/<slug>.git` mirrors removed; the listing then read
-  ONE repository, **`ask-my-notes` NONE — KEPT** (his own). Re-measure with `bash scripts/github-real-repos.sh` rather than trusting this line. **The two apps' LEFTOVERS ARE GONE** (his answer 2,
+  ONE repository, **`ask-my-notes` NONE — KEPT** (his own). Re-measure with `bash scripts/github-real-repos.sh` rather than trusting this line. **2026-10-14, three more from Rich's demo day** — `office-hour-slots` (W5's demo prep, W8's proof), `topic-choice` (his sol/luna rehearsal) and `vote-for-lectures` (built live at his 12:00 demo) — unowned since the gentler test tiers' suites emptied 7100 (their containers ran on until the third run's GT2 cleans them); deleting the repositories is his. **The two apps' LEFTOVERS ARE GONE** (his answer 2,
   the same entry): A1's sitting 2 removed `reading-updates`' and `a8-clocks-1`'s 18 containers (`docker rm -f -v` by name), 6 networks, 12
   volumes, 4 images and 6 LiteLLM users, read back to zero (2026-10-13, ~18:30). The other orphaned mirrors in `.manifest/repos`
   (`dead-app-resources.sh` names them) are left as they are; a new project with one of those slugs is refused `SOURCE_REPOSITORY_EXISTS`;
