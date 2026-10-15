@@ -3,6 +3,14 @@ import { createMockServer, fixtures, FLEET_PROJECTS } from '@manifest/mock'
 import { describe, expect, it } from 'vitest'
 import { createApi } from './api.js'
 import { BAND, headlineOf } from './queue-state.js'
+import { vancouverToday } from './time.js'
+import {
+  createKeys,
+  grantedChange,
+  iamAnswerBody,
+  prefilledAttributes,
+  submissionBody,
+} from './transitions.js'
 
 /**
  * THE CONSOLE'S CALLS, AGAINST `manifest-mock`, IN NODE — the reference console's pattern
@@ -171,5 +179,169 @@ describe('a release approved on the demo fleet', () => {
       },
       { ...fleet, stepUp: true },
     )
+  })
+})
+
+/**
+ * THE TEAM'S STEP AND UBC'S ANSWER, ON THE DEMO FLEET (Task 8) — every body built by the pane's own
+ * functions (`transitions.ts`), and the fleet VALIDATES EACH AGAINST ITS OPERATION'S REQUEST SCHEMA and
+ * writes it as `launch/records.ts` does, so a wrong body fails here: refused, or written to the wrong
+ * record and read back so (C1, Review Focus 1).
+ */
+describe('the team’s step and UBC’s answer on the demo fleet', () => {
+  const fleet = { role: 'admin', fleet: 'demo' } as const
+  type Client = ReturnType<typeof api>
+  const itemOf = async (client: Client, slug: string, kind: string) => {
+    const found = (await client.listQueue()).items.find(
+      (i) => i.project.slug === slug && i.kind === kind,
+    )
+    expect(found, `${slug}'s ${kind}`).toBeDefined()
+    return found!
+  }
+  const itemsOf = async (client: Client, slug: string) =>
+    (await client.listQueue()).items
+      .filter((i) => i.project.slug === slug)
+      .map((i) => [i.kind, i.subjectId])
+
+  it('submits phys-101-labs’ production registration to UBC IAM — the item is now iam-registration, waiting on UBC', async () => {
+    await withMock(async (o) => {
+      const client = api(o)
+      const phys = await itemOf(client, 'phys-101-labs', 'iam-registration-to-submit')
+      expect(phys.environment).toBe('production')
+      const record = await client.submitIamRegistration(
+        phys.project.id,
+        'production',
+        submissionBody({ ticket: 'IAM-2026-0631', sentOn: vancouverToday(new Date()) }),
+        client.newKey(),
+      )
+      expect([record.id, record.state, record.externalTicketRef]).toEqual([
+        phys.subjectId,
+        'submitted',
+        'IAM-2026-0631',
+      ])
+      expect(await itemsOf(client, 'phys-101-labs')).toEqual([
+        ['iam-registration', phys.subjectId],
+      ])
+    }, fleet)
+  })
+
+  it('records stats-sim’s answer active with iamAnswerBody’s body — gone; STAGING active, production untouched', async () => {
+    await withMock(async (o) => {
+      const client = api(o)
+      const stats = await itemOf(client, 'stats-sim', 'iam-registration')
+      expect(stats.environment).toBe('staging')
+      const before = await client.getLaunchRecords(stats.project.id)
+      const staging = before.stagingRegistration!
+      expect(staging.id).toBe(stats.subjectId)
+      const attributes = prefilledAttributes(staging)
+      await client.recordIamRegistration(
+        stats.project.id,
+        iamAnswerBody(staging, stats, {
+          state: 'active',
+          ticket: 'IAM-2026-0511',
+          registeredAttributes: attributes,
+        }),
+        client.newKey(),
+      )
+      expect(await itemsOf(client, 'stats-sim')).toEqual([])
+      const after = await client.getLaunchRecords(stats.project.id)
+      expect(after.stagingRegistration).toMatchObject({
+        id: staging.id,
+        state: 'active',
+        entityId: staging.entityId,
+        registeredAttributes: attributes,
+        externalTicketRef: 'IAM-2026-0511',
+        certFingerprint: staging.package!.certificate.fingerprint,
+      })
+      expect(after.stagingRegistration!.registeredAt).not.toBeNull()
+      expect(after.iamRegistration).toEqual(before.iamRegistration)
+    }, fleet)
+  })
+
+  it('grants lang-202-journal’s change in grantedChange’s two writes — with UBC since now between them, then gone, active at the granted set', async () => {
+    await withMock(async (o) => {
+      const client = api(o)
+      const lang = await itemOf(client, 'lang-202-journal', 'iam-change-request')
+      const live = (await client.getLaunchRecords(lang.project.id)).iamRegistration!
+      expect([live.id, live.state, live.changeRequestedFrom]).toEqual([
+        lang.subjectId,
+        'change_requested',
+        'active',
+      ])
+      const granted = prefilledAttributes(live)
+      expect(granted).toContain('sn')
+      const [first, second] = grantedChange(live, lang, live.externalTicketRef!, granted)
+      const t = Date.now()
+      await client.recordIamRegistration(lang.project.id, first, client.newKey())
+      // Sitting 3's F2: an administrator's record stamps NOW — the item is UBC's, waiting since this minute.
+      const between = await itemOf(client, 'lang-202-journal', 'iam-registration')
+      expect(Math.abs(Date.parse(between.since) - t)).toBeLessThan(60_000)
+      await client.recordIamRegistration(lang.project.id, second, client.newKey())
+      expect(await itemsOf(client, 'lang-202-journal')).toEqual([])
+      const after = (await client.getLaunchRecords(lang.project.id)).iamRegistration!
+      expect(after).toMatchObject({
+        state: 'active',
+        registeredAttributes: granted,
+        requestedAttributes: null,
+        entityId: live.entityId,
+        certFingerprint: live.certFingerprint,
+        certExpiresAt: live.certExpiresAt,
+      })
+    }, fleet)
+  })
+
+  it('hands rubric-helper’s assessment back — gone, a draft again', async () => {
+    await withMock(async (o) => {
+      const client = api(o)
+      const rubric = await itemOf(client, 'rubric-helper', 'privacy-assessment-to-submit')
+      const back = await client.returnPrivacyAssessment(
+        rubric.project.id,
+        client.newKey(),
+      )
+      expect([back.id, back.state]).toEqual([rubric.subjectId, 'draft'])
+      expect(await itemsOf(client, 'rubric-helper')).toEqual([])
+    }, fleet)
+  })
+
+  it('a second Submit after a lost answer sends the SAME key — the fleet replays the first answer, one submission', async () => {
+    await withMock(async (o) => {
+      const client = api(o)
+      const keys = createKeys(client.newKey)
+      const phys = await itemOf(client, 'phys-101-labs', 'iam-registration-to-submit')
+      const body = submissionBody({
+        ticket: 'IAM-2026-0631',
+        sentOn: vancouverToday(new Date()),
+      })
+      const key = keys.keyFor('submit')
+      const first = await client.submitIamRegistration(
+        phys.project.id,
+        'production',
+        body,
+        key,
+      )
+      // The network dropped the answer: no answer arrived, so the key is held.
+      keys.answered('submit', new TypeError('fetch failed'))
+      expect(keys.keyFor('submit')).toBe(key)
+      const again = await client.submitIamRegistration(
+        phys.project.id,
+        'production',
+        body,
+        keys.keyFor('submit'),
+      )
+      expect(again).toEqual(first)
+      expect(await itemsOf(client, 'phys-101-labs')).toEqual([
+        ['iam-registration', phys.subjectId],
+      ])
+      // A NEW key on the same submission is a second act — refused, the record no longer with the team.
+      const twice = await refusal(
+        client.submitIamRegistration(
+          phys.project.id,
+          'production',
+          body,
+          client.newKey(),
+        ),
+      )
+      expect([twice.status, twice.code]).toEqual([409, 'LAUNCH_TRANSITION_INVALID'])
+    }, fleet)
   })
 })

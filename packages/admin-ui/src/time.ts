@@ -72,3 +72,23 @@ const VANCOUVER_CLOCK = new Intl.DateTimeFormat('en-CA', {
 export function clockInWords(iso: string): string {
   return VANCOUVER_CLOCK.format(new Date(iso))
 }
+
+const VANCOUVER_DATE = new Intl.DateTimeFormat('en-CA', {
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+  timeZone: 'America/Vancouver',
+})
+
+/** *"2026-10-15"* — today in Vancouver, as a submission's `sentAt` names a day (`en-CA` writes it so). */
+export function vancouverToday(now: Date): string {
+  return VANCOUVER_DATE.format(now)
+}
+
+/**
+ * *"October 15, 2026"* for `2026-10-15` — the day itself, read at 20:00 UTC (noon in Vancouver in
+ * winter, 1 p.m. in summer), so no offset moves it to the day before.
+ */
+export function dayOfDate(ymd: string): string {
+  return dayInWords(`${ymd}T20:00:00Z`)
+}

@@ -25,7 +25,7 @@ import { navigate, type Route } from '../router'
 import { FilterBar, QueueRow, WaitHeadline, type QueueRowMeta } from '../system'
 import { ageShort, ageWords, dayInWords } from '../time'
 import { ApprovalPane } from './approval-pane'
-import { ItemHead } from './item-head'
+import { RecordPane } from './record-pane'
 
 const READ_EVERY_MS = 60_000
 
@@ -213,7 +213,8 @@ function FilterBarFor(props: {
 
 /**
  * The selected item's pane, by kind: a release's sign-off is the approval pane — opened by its queue
- * URL or by `/releases/<id>/approval`, in the queue or no longer — and Task 8 builds the records'.
+ * URL or by `/releases/<id>/approval`, in the queue or no longer — and every other kind is a launch
+ * record's: the team's step, or UBC's answer (`record-pane.tsx`).
  */
 function ItemPane(props: {
   api: Api
@@ -223,6 +224,7 @@ function ItemPane(props: {
   left: boolean
   preview: string | undefined
   now: Date
+  onDecided: () => void
 }) {
   const { item, left, now } = props
   const release = 'release-approval:'
@@ -245,14 +247,14 @@ function ItemPane(props: {
       </section>
     )
   return (
-    <>
-      <ItemHead item={item} now={now} />
-      <section className="mfa-sec">
-        <p className="mfa-sec__body">
-          {left ? 'This is no longer waiting on us.' : item.summary}
-        </p>
-      </section>
-    </>
+    <RecordPane
+      api={props.api}
+      me={props.me}
+      item={item}
+      now={now}
+      left={left}
+      onDecided={props.onDecided}
+    />
   )
 }
 
@@ -417,6 +419,7 @@ export function QueueScreen({
                 left={left}
                 preview={route.screen === 'release' ? route.preview : undefined}
                 now={now}
+                onDecided={read}
               />
             ),
           })}

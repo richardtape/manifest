@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import { ageShort, ageWords, clockInWords, dayInWords } from './time.js'
+import {
+  ageShort,
+  ageWords,
+  clockInWords,
+  dayInWords,
+  dayOfDate,
+  vancouverToday,
+} from './time.js'
 
 // 09:00 in Vancouver (PDT, UTC-7) — before the noon a team's submission is stamped at.
 const NOW = new Date('2026-10-15T16:00:00Z')
@@ -51,5 +58,22 @@ describe('a time of day', () => {
     expect(clockInWords('2026-10-15T16:05:00Z')).toBe('9:05 a.m.')
     // 00:30 in Vancouver is 07:30 in UTC — never the UTC hour.
     expect(clockInWords('2026-10-15T07:30:00Z')).toBe('12:30 a.m.')
+  })
+})
+
+/**
+ * THE DAY THE TEAM SENT IT: a submission names a day, `YYYY-MM-DD`, *"today or earlier"* in Vancouver
+ * (`RecordSubmissionRequest.sentAt`) — so the form's today is Vancouver's, never UTC's.
+ */
+describe('a day as the team’s submission names it', () => {
+  it('today is Vancouver’s — at 17:30 in Vancouver it is already tomorrow in UTC', () => {
+    expect(vancouverToday(NOW)).toBe('2026-10-15')
+    expect(vancouverToday(new Date('2026-10-16T00:30:00Z'))).toBe('2026-10-15')
+    expect(vancouverToday(new Date('2026-10-16T07:30:00Z'))).toBe('2026-10-16')
+  })
+
+  it('a YYYY-MM-DD in words is that day, whatever the offset', () => {
+    expect(dayOfDate('2026-10-15')).toBe('October 15, 2026')
+    expect(dayOfDate('2026-01-05')).toBe('January 5, 2026')
   })
 })

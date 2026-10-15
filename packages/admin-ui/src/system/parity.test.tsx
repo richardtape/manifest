@@ -238,6 +238,21 @@ const CASES: Record<
           { value: 'b', title: 'B' },
         ],
       },
+      // The record pane's (Task 8): UBC's answer, a labelled radio group, every option with a note.
+      {
+        name: 'move-1',
+        label: 'UBC IAM’s answer',
+        value: 'submitted',
+        onChange: () => undefined,
+        options: [
+          {
+            value: 'submitted',
+            title: 'Active — UBC IAM answered the change',
+            note: 'Recorded in two steps: with UBC IAM, then active.',
+          },
+          { value: 'expired', title: 'Expired', note: 'The registration lapsed.' },
+        ],
+      },
     ],
   },
   MachineValue: {
@@ -587,6 +602,44 @@ const CASES: Record<
           },
         ],
         previewIndex: 7,
+      },
+      // The team's pane (Task 8): no reason kept, two previews, its fields between, Submit disabled.
+      {
+        id: 'team-1',
+        owner: 'Jordan Lee',
+        canRecord: false,
+        admissionLead: 'Manifest doesn’t keep a reason for a hand-back. ',
+        admission: 'Tell Jordan Lee why yourself.',
+        previews: [
+          {
+            label: 'If you submit it',
+            type: 'iam_registration.submitted',
+            lead: "Operator One recorded that the Manifest team submitted this app's production registration to UBC IAM on October 15, 2026 (ticket …).",
+          },
+          {
+            label: 'If you hand it back',
+            type: 'iam_registration.returned',
+            lead: "Operator One handed this app's production registration back to its owner, unsubmitted.",
+          },
+        ],
+        previewIndex: 1,
+        onPreviewIndex: () => undefined,
+        actions: [
+          {
+            label: 'Submit to UBC IAM',
+            kind: 'primary',
+            disabled: true,
+            onClick: () => undefined,
+          },
+          {
+            label: 'Hand it back',
+            kind: 'secondary',
+            disabled: false,
+            onClick: () => undefined,
+          },
+        ],
+        note: 'Submitting needs UBC IAM’s ticket, pasted in.',
+        children: 'the ticket and the day',
       },
       {
         id: 'r5',
