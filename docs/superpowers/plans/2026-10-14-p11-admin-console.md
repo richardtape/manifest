@@ -108,8 +108,8 @@ records and UBC's order), **§20** (step-up). **Design:** the refreshed [`2026-0
 | 3 | 4 | **The demo fleet's decisions, with state**, every request body validated; the replay's hash keeping §26's reason. **LANDING 1** at the close — the mock's first change in this lane (**G3**), the new package, `pnpm install` in the shared checkout | **Yes — L1** | After L1's merge and the shared checkout's install, both read back | ✅ **DONE 2026-10-15** (`manifest-p11-s3`, 10:17–12:20 PDT): Task 4 `979b10f` on the branch; **LANDING 1 — `main` at `355f612`**, `pnpm test` 231 / 3756 twice; *What executing this plan found*, *Sitting 3* |
 | 4 | 5 | **The look**: the six shared and fourteen operations components ported to TSX in `src/system/`, each held markup-identical to its reference by the parity test; the stylesheets; the shell's rail in the system's own component | No | After Task 5's commit | ✅ **DONE 2026-10-15** (`manifest-p11-s4`, 12:15–12:40 PDT): Task 5 `74e02bd8` on `p11-admin-ui` — twenty ports held by 103 parity cases, the rail as `<ConsoleRail>`, its *Sign out* working; *What executing this plan found*, *Sitting 4* |
 | 5 | 6, 7 | **The queue** — the headline from our band, the two bands, the rows, the filter, the keyboard, the URL, the 60-second read (Task 6) — and **the release approval pane**: the request and its token from the project's stream, the preview on a click, the diff, approve and reject observed, the step-up round trip with the reason kept, stale and expired, decided by someone else (Task 7) | No | After Task 7's commit | ✅ **DONE 2026-10-15** (`manifest-p11-s5`, 12:41–13:17 PDT): the queue `dc111c61` and the release approval pane `df332286` on `p11-admin-ui` — walked on the demo fleet, `reading-responses` approved through the step-up and back; seven findings, one a defect only the walk could see (F2); *What executing this plan found*, *Sitting 5* |
-| 6 | 8, 9 | **The team's step and UBC's answer** — submit, file, hand back, record, every body exactly what the operation requires, a granted change in its two writes (Task 8) — and **the fleet**: the table, its filters in the URL, the instance count, archived rows (Task 9). **LANDING 2** at the close | **Yes — L2** | After L2's merge, read back. **If it overflows, L2 moves to sitting 7's open** | ← **next** (a fresh session, `manifest-p11-s6`; it opens with `git -C /Users/rich/Developer/manifest-p11 rebase main` — the branch is three commits ahead of `ddbf6965`, and `main` has moved since by B's sittings, `packages/control-plane` among them, so read `git diff --name-only` for a `packages/contract` change before deciding on a `dist/` rebuild — then reads *Sitting 5*'s *What Tasks 8–12 inherit*) |
-| 7 | 10, 11 | **The project's page** — environments and their sets, incidents by cause, releases, the launch, people and agents, events live with the administrator's reason; reject an agent's question (Task 10) — and **Health and Settings** (Task 11) | No (L2, if it moved here) | After Task 11's commit | |
+| 6 | 8, 9 | **The team's step and UBC's answer** — submit, file, hand back, record, every body exactly what the operation requires, a granted change in its two writes (Task 8) — and **the fleet**: the table, its filters in the URL, the instance count, archived rows (Task 9). **LANDING 2** at the close | **Yes — L2** | After L2's merge, read back. **If it overflows, L2 moves to sitting 7's open** | ✅ **DONE 2026-10-15** (`manifest-p11-s6`, 13:17–16:50 PDT, HOLD 13:20–15:47): Task 8 `6cad9bc0` (+ `dbf18178`), the mock's `lastSeenAt` fix `bf980116`, Task 9 `800f3f18`; **LANDING 2 — `main` at `6c66944e`**, `pnpm test` 244 / 4076 twice; seven findings, F7 a peer's uncommitted file keeping 7100 down at G4; *What executing this plan found*, *Sitting 6* |
+| 7 | 10, 11 | **The project's page** — environments and their sets, incidents by cause, releases, the launch, people and agents, events live with the administrator's reason; reject an agent's question (Task 10) — and **Health and Settings** (Task 11) | No (L2 landed at sitting 6) | After Task 11's commit | ← **next** (a fresh session, `manifest-p11-s7`; it opens with `git -C /Users/rich/Developer/manifest-p11 rebase main` — the branch IS `main` at `6c66944e`, so only what lands after it moves — then reads *Sitting 6*'s *What Tasks 10–12 inherit*) |
 | 8 | 12 | **The acceptance's headless half**: `make demo-admin` (the walk) and its step in both acceptances, its negative controls, **the plan's one whole-branch review and its one fix wave**. **LANDING 3** at the close; then RUNBOOK and WALKTHROUGH in the shared checkout | **Yes — L3** | After L3's merge and the two documents, read back | |
 | 9 | 13 | **Rich clicks it** (G9 — he is at the machine); his words recorded; the close-out: EXECUTED, the roadmap, ORIENTATION, CLAUDE.md's *State*; the worktree removed; the machine as found | Documents only (in the shared checkout) | After the close-out commit | |
 
@@ -2362,3 +2362,138 @@ bare: `dead-app-resources.sh` *"Nothing was changed. 0 network(s) and 0 volume(s
 coordinator); `app-images.sh` *"Nothing was changed. 0 app image(s) are dead"*. **No `--apply` owed.** **The worktree stays** for sitting
 6, on `p11-admin-ui` at `df332286` (three commits ahead of `main` `ddbf6965` — `main` has moved since, by B's sittings), clean, no `.env`
 symlink.
+
+### Sitting 6 — Tasks 8 and 9, and LANDING 2: the team's step and UBC's answer, the fleet, and the second landing (2026-10-15, `manifest-p11-s6`)
+
+**Who and when.** `manifest-p11-s6`, the third coordinated run's P11 build, sitting 6, GOed by `manifest-coord5` at 13:18 PDT; inline
+(`superpowers:executing-plans`). The worktree rebased onto `main` `fff41f8c` first — B2's `infra/`, `packages/control-plane` and `scripts/`
+since `ddbf6965`, no `packages/contract` or `packages/mock`, so the contract's `dist/` was not rebuilt; Tasks 5–7 are `2cd0b346`, `88bd35db`,
+`0fe3eb17` on the branch since. **HOLD from 13:20 to 15:47** (B2's close: `pnpm test` twice and the Docker tier at background QoS, Rich on
+calls): Tasks 8 and 9 written then, none run, and checkpointed at the coordinator's word as one WIP commit (a background session ends after
+~60 minutes idle); **FREE from 15:47:18**: RED, the walk, the controls, the checkpoint split into the plan's commits, the gates. The ledger is
+`.superpowers/sdd/2026-10-14-p11-admin-console/progress.md` (every ruling with its cost).
+
+**Task 8 — the team's step and UBC's answer** (`6cad9bc0` on `main` since L2, and `dbf18178`). **`src/transitions.ts`**: `IAM_MOVES` and
+`PIA_MOVES` (`sent` with none), held to the published `state` sentences by `movesFromSentence` — its own cases first, including the three
+shapes it must not misread (M7); **`iamAnswerBody`**, the exact body per move (C1): `environment` from the queue item, always named; the
+record's own entity, ACS and SLO; `registeredAttributes` as the form holds them for `active`, the record's own for any other move (or, while
+UBC has registered nothing, what was asked for — the schema's `minItems: 1`); `requestedAttributes` for `active → change_requested` only;
+**the certificate always** (F1); `grantedChange` — A20's two bodies; `piaAnswerBody`; `submissionBody` (the day always named); and
+`createKeys` — one `Idempotency-Key` per operator action, held until an answer arrives (a success or a refusal below `500`), so a retry after
+no answer or a `5xx` sends the same key (Review Focus 2). **`src/screens/record-pane.tsx`**: `RecordPaneView` (drawn, every state) and
+`RecordPane` (reads and acts) — **the team's pane** for a record its owner sent: the package (every attribute's name, OID, purpose, where it is
+read, an unread one marked), the certificate whole with its expiry, the warnings; a change shows what UBC registered beside what it asks for
+and is *filed*; an assessment shows its six sections and every gap with the owner's answer by its id; Submit needs UBC's reference and the day
+(today in Vancouver at first, a day after it refused in the form); Hand it back with no reason collected (*"Manifest doesn’t keep a reason for
+a hand-back. Tell Jordan Lee why yourself."*); the platform's own sentences as what the owner will read — **UBC's answer** for a record with
+UBC: what is on record, then exactly the platform's moves (`answerOptions`, held to the tables), the attributes and certificate editable only
+where the answer reaches `active`, *"A change UBC IAM granted is recorded in two steps: with UBC IAM, then active."*, the grant run as its two
+writes (a failed second leaves the record at `submitted` with the answer offered again, the first never repeated); every act disabled while one
+is in flight; a refusal shown and the record re-read; the record re-read when the queue drops the item (Review Focus 4); an act recorded reads
+the queue again, so the item moves band at once. **`/projects/<id>/records`** (the team's emailed link) is `RecordsScreen`: each record
+waiting on an administrator in its pane, the others as their facts. **`src/time.ts`**: `vancouverToday`, `dayOfDate`. **RED first**, at FREE
+with the new code set aside: the new files failed to load, `time.test`'s two new cases red.
+
+**Task 9 — the fleet** (`800f3f18` on `main` since L2, and the mock's `bf980116`). **`src/fleet-state.ts`**: `FleetFilter` ⇄ the query
+(`q`, `prod`, `failed`, `older`, `archived`, `scale` — and the sort, `sort`/`dir`, omitted at the default), `rowsOf` (filtered — archived
+apps hidden unless asked for — and sorted by any column, not-deployed last both ways, ties by slug; the most recent deploy first by default),
+`incidentAfterDeploy`, `envCellOf` (the state, **the set's count as the Fleet answers it**, the last deploy's age, an Incident after it).
+**`src/screens/fleet.tsx`**: `FleetView` — the striped `DataTable` (decision 17), each app a plain link to its page, *"14 apps · 1 archived,
+hidden"*, the gaps said (*"The fleet doesn’t carry an app’s data level, department, domains or this month’s AI spend yet."*) — and
+`FleetScreen`, read on entry, every 60 seconds and on focus, the filter and sort in the URL by `replaceState`, `/` to the filter. **RED first**:
+both files failed to load.
+
+**Findings:**
+
+**F1 A RECORD WRITE WITHOUT THE CERTIFICATE ERASES IT.** The platform's upsert writes `certFingerprint` and `certExpiresAt` *as sent*
+(`launch/records.ts`'s update set: `input.certFingerprint ?? null`), so any `recordIamRegistration` body that omits them — an `expired`, UBC's
+questions, a grant's first write — clears a live registration's certificate. The plan's *Interfaces* named the two fields only on the answer;
+`iamAnswerBody` sends them on every move (the form's, else the record's, else — for a first `active` — the drafted package's).
+
+**F2 SITTING 2'S F5 WAS THE MOCK'S, NOT THE PLATFORM'S: `Fleet.lastDeployAt` IS THE LAST DEPLOY.** `lastSeenAt` has one writer on the
+platform — the deploy that starts an instance (`releases/release.ts:1040`; `db/schema.ts:363`: *"the newest DEPLOY"*); no probe, retire pass
+or set watcher writes it. So `max(lastSeenAt)` (`projects/fleet.ts:82`) is the newest deploy's, a replacement's included, and the plan's
+marker rule (an Incident after the last deploy) is the right one. **The demo fleet** stamped every serving member *"one minute ago"*, every
+retired member at its retirement, every exited member at its exit — states the platform cannot reach (I3). **Fixed in the mock** (`bf980116`,
+demo fleet only, no default answer moved), held by `fleet.test.ts` (econ's newest Incident after its last replacement, cpsc's before its,
+reading-responses' production last deployed at its launch) — red on the old mock. **G3 again at L2.**
+
+**F3 THE BOUNDARY TEST READ MY OWN JSX TEXT AS AN IMPORT** — `{'Only the moves the platform allows from '}` then `<code className=…` matched
+its `from '<specifier>'` (a comment-stripping regex over the source). Found by the whole `admin-ui` project's run, which my targeted GREEN runs
+had not included; the markup reworded, the words unchanged (`dbf18178`).
+
+**F4 My own pane drew *"Reading the record…"* for ever** when the records came back without the item's record (the form was filled only when
+it was found); found on re-reading under HOLD and fixed before any run, with two view cases. **And my own date-input case** asserted my JSX's
+attribute order — React writes an input's `value` last.
+
+**F5 At 1440 the fleet's table runs past its wrap** (`overflow-x: auto`): the Blueprint and Last deploy columns need a sideways scroll. **The
+drawing's own fleet does the same** (measured: its table 1501 px in a 1134 px wrap; the console's 1365 px). For Rich's click and Task 12.
+
+**F6 `scripts/test-gently.sh` needs `vitest` on PATH** — run outside `pnpm test` it exits 66 (*"taskpolicy: posix_spawn: No such file or
+directory"*); `pnpm exec bash scripts/test-gently.sh vitest run …` works. And a run straight under `taskpolicy -b` has no timeout scale:
+github-fake's conformance timed out at 5 s twice — load 3–4, not a defect.
+
+**Rulings beside them** (the ledger has each with its cost): the grant is the `submitted` arrow out of a change with UBC IAM, titled *"Active —
+UBC IAM answered the change"*, carried on to `active` at what UBC registered (pre-filled with what was asked — the same two writes record a
+change UBC declined); the fleet's incident facet says *"Incident since its deploy"*, not the drawing's *"Last attempt failed"*; *Archived*
+narrows to archived apps (the drawing's facets all narrow); the instance count is the Fleet's, and *"1 of 2 serving"* the project page's; the
+sort in the URL beside the filters; the app cell a plain link, not `onRow`; words beyond the plan's, none citing a spec section; three parity
+cases for the prop shapes the panes and the fleet pass (sitting 4's rule).
+
+**The negative controls (Step 5), all seen:** Task 8 — (a) `'expired'` in `IAM_MOVES.submitted` → the document case red alone; (b) `environment`
+dropped from `iamAnswerBody` → the exact-body cases red AND `api.test.ts`'s stats-sim case red (the fleet answered production's — no record —
+`409` for `draft → active`); (c) the grant's first write sent as `active` → the fleet's `409 LAUNCH_TRANSITION_INVALID` (*"cannot go from
+'change_requested' to 'active'"*), the A20 cases red. Task 9 — `NO_FILTER.archived` true → **13 red, not the plan's one**: *Archived* narrows,
+so every case reading the default rows goes red. The mock's fix — the RED above. Each restored by `git checkout --` of the one file.
+
+**The walk (Step 4)** — `bash scripts/admin-ui.sh`, headless Chrome on a port the system picks (Decision 17), raw CDP, every check passed:
+phys-101-labs submitted (Submit disabled without a ticket; `sn` marked unread) and seen in UBC's band at *3h 50m* (Vancouver noon);
+math-oh-queue's emailed `/projects/<id>/records` → *"Launch records · math-oh-queue"*, its change filed from there, the other records as
+facts; rubric-helper's assessment handed back; stats-sim recorded `active` — staging `active`, production untouched; lang-202-journal's
+change granted in its two writes; field-notes approved; the rail to the fleet in-app; *"14 apps · 1 archived, hidden"*; econ's production
+*"healthy · 2 42m ago failed 40m ago"*; *In production* → `?prod=1`, *6 of 14*; the App sort in the URL; a pasted filtered URL survived a
+load; an app link opened its page in-app. Console: sitting 4's F2 three only.
+
+**The gates, on the final branch tree `c96c1016` (`dbf18178` once L2 rebased it), at background QoS through the wrapper:** `pnpm exec vitest run --project admin-ui
+--project packages` **twice, identical — 50 files, 646 passed** (sitting 5's 46 / 572 plus four files and 74 tests: `transitions` 18,
+`record-pane` 25, `fleet-state` 13, `fleet` 8, `api` +5, `time` +2, `parity` +3), 146 s and 145 s, load median 3.09 / 3.53; `pnpm lint`,
+`pnpm typecheck` (seven packages) and `pnpm format:check` clean. The `unit` project not run (the plan's rule). **For L2:** since L1 the lane
+adds 11 files and 276 tests.
+
+**LANDING 2 — `main` at `6c66944e`** (16:05–16:45 PDT, the coordinator's window after B2's close; *"7100 is yours"* + HOLD at 16:05:46).
+The branch rebased onto `main` `9ebd087b` (TESTED; no `packages/contract` change since the last rebase, so no `dist/` rebuild), the shared
+`.env` symlinked (`ln` exit 0 — allowed, as at L1 — never read). Rich's calls had ended: both runs at utility QoS, each started under the
+load gate (run 1 waited out a Spotlight spike — `mds`/`mdworker` indexing the rebase, a 1-minute load of 15.8). **`pnpm test` twice,
+identical — 244 files, 4076 tests, exit 0** — the counts predicted at *"ready for L2"* (`main`'s 3800 / 233 plus the lane's 276 / 11
+since L1): 1058 s (load median 3.93, max 9.13) and 1101 s (median 3.57, max 7.09); the slowest files the `unit` project's, the `admin-ui`
+files milliseconds. `pnpm lint`, `pnpm typecheck` (seven packages) and `pnpm format:check` clean. **The landing commit** moved
+`EXPECT_TESTS` 3800 → 4076 and `EXPECT_FILES` 233 → 244 (`EXPECT_DOCTOR` 23 and `EXPECT_VERIFY` 67 unchanged). **G3:** the mock's
+`bf980116` (F2) changes demo-fleet answers only; no app worker was live, so the coordinator answered *"land it"* and carries the notice
+into 1100's GO. `main` had not moved since TESTED; the branch's paths (`packages/admin-ui`, `packages/mock`, `scripts/ci-acceptance.sh`)
+overlapped none of the shared checkout's uncommitted ones (B3's `packages/control-plane` work and this record). `git merge --ff-only
+p11-admin-ui` → **`6c66944e`** (Task 8 `6cad9bc0`, the mock's fix `bf980116`, Task 9 `800f3f18`, the boundary fix `dbf18178`, the counts
+`6c66944e` — shas moved at the opening rebase and again at L2's); **`pnpm install --offline --frozen-lockfile` exit 0**; the symlink
+removed. **`pnpm typecheck` in the shared checkout exited 2 on ONE file not this landing's** — B3's untracked
+`packages/control-plane/src/launch/load-run.test.ts` (`TS2554`, its work in progress); `admin-ui`, `mock`, `console` and `contract` each
+typechecked clean there, and the same committed tree did in the worktree.
+
+**F7 7100 COULD NOT BE RESTARTED AFTER THE LANDING (G4) — BY A PEER'S UNCOMMITTED FILE.** `bash scripts/gateway-controls.sh start real`
+stopped 7100 and then could not start it: the control plane's start runs `pnpm run build` (`tsc`) in the shared checkout, and B3's untracked
+test file fails that build (*"7100 printed no ready line in 180 s"*). The shared checkout's working tree IS what 7100 serves, so a peer's
+half-written file there can keep the platform down. Told to the coordinator at once (16:48); B3's file left untouched.
+**Handed to B3** by the coordinator (16:49): B3 makes its file compile and starts 7100 itself as its step (1); **no G4 is owed by this
+sitting**. FREE written 16:49. *For the next lane that lands:* read the shared checkout's untracked and modified `packages/control-plane`
+files before a G4 restart — a red `tsc` there is the restart's failure, whoever wrote it.
+
+**The machine:** 7101 and 7113 free at the close (`scripts/admin-ui.sh` stopped with TERM, exit 143); no headless Chrome or profile left
+running; no Docker resource made; 7100 truncated by L2's two runs, then stopped by the G4 attempt and handed to B3 (F7). The three cleanup
+scripts bare: `dead-app-resources.sh` *"Nothing was changed. 0 network(s) and 0 volume(s) are dead"*; `litellm-orphans.sh` refused itself —
+*"/user/list answered no users at all, which is not a state this machine reaches"* (7100's lane's state, as at sittings 1 and 5);
+`app-images.sh` *"Nothing was changed. 0 app image(s) are dead"*. **No `--apply` owed.** **The worktree stays** for sitting 7, on
+`p11-admin-ui` at `6c66944e` — `main` itself — clean, no `.env` symlink.
+
+**What Tasks 10–12 inherit:** `RecordPane` and `RecordsScreen` are Task 10's to place on the project's page (the records section); the
+`/projects/<id>` route still draws a heading; `fleet-state.ts`'s `incidentAfterDeploy` is Task 11's health panel rule too, and `envCellOf`
+its cell; **F5's sideways scroll** is for Task 12's walk to expect (or Rich to judge); `createKeys` serves Task 10's rejection of an agent's
+question; Task 12's walk can take this sitting's (`walk.mjs`, scratch) as its pattern — every text read by `textContent`, since the drawing
+uppercases overlines and `innerText` returns them so.

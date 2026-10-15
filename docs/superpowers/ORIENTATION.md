@@ -2093,8 +2093,15 @@ from our own band, never `oldestSince`, two bands by who holds the wait, the fil
 (`dc111c61`) — and Task 7, the release approval pane — the token it was asked through read from the project's stream, a stored preview on
 a click, the step-up round trip back to the same preview with the reason kept, stale and expired said, decided elsewhere read from
 `getApproval` and the stream and never decided again (`df332286`), both on the branch, walked on the demo fleet; its F2 is a StrictMode
-defect only a walk can see (Task 12's walk inherits a check for it). **Its sitting 6 (Tasks 8 and 9, the team's step and UBC's answer, and
-the fleet — and LANDING 2) is next**, and its sittings table says where each stops. It takes a 7100 window only to land (L2 closes its sitting 6, L3 its sitting 8). Two of its traps are in TRAPS.md: a
+defect only a walk can see (Task 12's walk inherits a check for it). **so is sitting 6** (2026-10-15, `manifest-p11-s6`): Task 8, the
+team's step and UBC's answer — submit, file, hand back, record, every body exactly what the operation requires (the certificate on every
+write: the platform's upsert erases one left out), a granted change in its two writes, the team's emailed `/projects/<id>/records`
+(`6cad9bc0`) — and Task 9, the fleet — filters and sort in the URL, the set's count, an Incident after the last deploy (`800f3f18`); the
+demo fleet's `lastSeenAt` made the platform's (`bf980116`: only a deploy writes it, so `Fleet.lastDeployAt` IS the last deploy); **and
+LANDING 2: `main` at `6c66944e`**, `pnpm test` 244 files / 4076 tests twice (the `EXPECT_` lines). **Its F7: after the landing, 7100 could not
+be restarted — a peer's uncommitted file in the shared checkout failed the control plane's `tsc` build — and was handed to B3.** **Its sitting 7
+(Tasks 10 and 11, the project's page, and Health and Settings) is next**, and its sittings table says where each stops. It takes a 7100
+window only to land (L3 closes its sitting 8). Two of its traps are in TRAPS.md: a
 backgrounded `scripts/admin-ui.sh` ignores SIGINT (stop it with TERM), and `make doctor` in the worktree reads three fails for git-ignored
 files.
 
