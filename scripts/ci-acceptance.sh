@@ -353,8 +353,8 @@ red() { printf '\033[31m%s\033[0m' "$1"; }
 # and +13 in files that existed: `routing/caddy.test.ts` +5 (a rate limit that skips one address), `runtime/fake-driver.test.ts` +4
 # (the driver contract's three exemption cases and the fake's out-of-memory crash), `runtime/docker/instances.test.ts` +4
 # (`OOMKilled` read into `outOfMemory`). Measured 3800/233 twice on the sitting's final tree (background QoS, Rich on a call).
-EXPECT_TESTS=3800
-EXPECT_FILES=233
+EXPECT_TESTS=4076
+EXPECT_FILES=244
 # EXPECT_DOCTOR 21 -> 22 (2026-10-03, the UBC AI Gateway plan's sitting 2, Task 2): the gateway key's expiry, a
 # check_warn — counted, never failing — from 14 days ahead (its Decision 11). Measured: 22 checks, 0 failed, 0 warnings.
 # EXPECT_DOCTOR 22 -> 23 (2026-10-15, the load rehearsal plan's sitting 2, Task 2): the load generator's image,
