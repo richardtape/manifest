@@ -2074,3 +2074,10 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
     launching apps — is local development and testing, never a real production deployment, and may create private repositories in
     Manifest-local-dev (his standing yes); and committing, alone and by pathspec, a spec action he has approved, with its shared pages'
     sweep. Sessions read settings at their start: manifest-app-walk2 and manifest-b-s2/-s3/-s4 are reopened to load them.
+
+    And at ~18:45 PDT, through manifest-coord4's question tool: THE SECOND RUN'S STANDING YESES CARRY TO THE THIRD — "Yes, all four
+    carry over (Recommended)": (a) `make refresh-vulndb` with the network on whenever a build or launch would meet a stale database (it
+    goes stale 2026-10-15 23:32), the next build after any refresh watched (FE-57); (b) the .env swap to driver 2 on the GitHub fake (a
+    0600 copy, the seven lines commented, restored byte-identical by cmp, 7100 back on real GitHub at the close); (c) `make reset` where
+    a plan's runs are "from make reset"; (d) inline execution, one sitting per session. Rejected: "All but the vulndb refresh"; "Ask me
+    each time". He reopened manifest-app-walk2 and manifest-b-s2/-s3/-s4 after his settings change (~18:43).
