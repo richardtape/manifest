@@ -343,8 +343,12 @@ red() { printf '\033[31m%s\033[0m' "$1"; }
 # getApproval read by status AND code; launchTrace's reads throwing rather than reading "nothing approved") — and
 # `api/source-commit.test.ts` +1 (a commit's sensitive diff with the push webhook's row recorded FIRST); P5a sitting 6's
 # `api/projects.test.ts` case was rewritten across two commits, not added. Measured 3691/224 on the final tree — the roadmap's FIX record.
-EXPECT_TESTS=3691
-EXPECT_FILES=224
+# EXPECT_TESTS 3691 -> 3756 and EXPECT_FILES 224 -> 231 (2026-10-15, P11's LANDING 1, `manifest-p11-s3`): `pnpm test` gains the
+# `admin-ui` project — six files, 42 tests (the administrator's console's skeleton, sitting 1) — and `packages/mock/src/fleet.test.ts`
+# (22: the demo fleet's reads, sitting 2, and its decisions, sitting 3), and `packages/mock/src/server.test.ts` +1 (a retry carrying
+# §26's reason is replayed, I7). Measured 3756/231 twice on the landing's tree — the plan's *Sitting 3*.
+EXPECT_TESTS=3756
+EXPECT_FILES=231
 # EXPECT_DOCTOR 21 -> 22 (2026-10-03, the UBC AI Gateway plan's sitting 2, Task 2): the gateway key's expiry, a
 # check_warn — counted, never failing — from 14 days ahead (its Decision 11). Measured: 22 checks, 0 failed, 0 warnings.
 EXPECT_DOCTOR=22
