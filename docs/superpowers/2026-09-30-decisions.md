@@ -2142,3 +2142,17 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
     29.7.2) — 0.76×, ~430 s of the saving in four files whose slow tests wait, the other 40 files 0.95×, CPU-bound builds a little slower;
     the plan's rule (keep 6 unless more than ~1.5× slower or a new red) met; the version change recorded as a confound that does not
     change the answer. Rejected: 8; back to 12. His Docker Desktop step itself was done ~08:57 (NCPU 6 read at 09:02).
+
+    At ~11:45 PDT, in chat to manifest-coord5 (asked to answer both open questions in one line): "yes I am happy to go with your
+    recommendation" — so:
+      SPEC ACTION D (B, the load rehearsal; approved as drafted 3ba424a) IS RE-WORDED, option (a): B's sitting 1 (manifest-b-s1, Task 1
+      [M1]) found, and manifest-coord5 verified, that `make seed` already builds FIVE images (infra/seed/seed.sh:17 `--profile github
+      build`; infra/compose.yaml: dnsmasq, caddy, egress, idp, github-fake), so spec §20 l.2089 ("the one image that is built rather than
+      pulled") is already false and the drafted "one of two images built rather than pulled" would be too. D's words become: "…built
+      during `make seed` — the platform builds its own images rather than pulling them where it must (this one, its resolver, egress proxy
+      and IdP), and builds §24's load generator there too, from its release binary, checksum-verified." Applied at B's sitting 2's open
+      with the shared pages' sweep, as A–D are. Rejected: (b) apply D as drafted, its count wrong; (c) drop D and correct the count later.
+      m187 (the front end; W5B's walk on sol): option (a) — when a change asked is already true, the planner says so on the plan card,
+      "It already does this: nothing needs to change." with [Not now]; nothing built, nothing claimed. Rejected: (b) the round ends with
+      nothing committed, "It already did this, so nothing changed."; (c) close m187 as fixed by W8 and accept a small related change.
+      New words of ours, approved; built in a later front-end round.
