@@ -1,53 +1,36 @@
 /*
- * THE ADMINISTRATOR'S CONSOLE'S OWN LAYOUT — the shell's two columns and nothing else. The look is
- * the design system's and arrives with Task 5, which @imports docs/superpowers/design/'s three
- * stylesheets here (Decision 5) and ports the rail. No web fonts (Decision 6): the system's.
+ * THE LOOK IS THE DRAWING'S (Decision 5): its three stylesheets, imported from docs/superpowers/design/
+ * as they are — never copied, so the console and the mockup are one look and the parity test holds the
+ * markup they style. Vite inlines an @import from outside its root in dev, build and preview (P11
+ * Task 1's [M3]). No web fonts (Decision 6): the tokens' families fall back to the system's.
+ */
+@import '../../../docs/superpowers/design/system/tokens.css';
+@import '../../../docs/superpowers/design/system/components/bundle.css';
+@import '../../../docs/superpowers/design/admin/components.css';
+
+/*
+ * The page, as the drawing's own page paints it (design/admin-console.html's <style>): light only,
+ * every colour from the tokens. The shell's columns are the drawing's (.mfa-shell, .mfa-content,
+ * .mfa-main in admin/components.css).
  */
 :root {
-  font-family:
-    system-ui,
-    -apple-system,
-    'Segoe UI',
-    sans-serif;
   color-scheme: light;
 }
 
 body {
   margin: 0;
+  background: var(--surface-page);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
 }
 
-.shell {
-  display: grid;
-  grid-template-columns: 220px 1fr;
-  min-height: 100vh;
+:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 3px;
 }
 
-.rail {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 16px;
-  border-right: 1px solid #ddd;
-}
-
-.rail ul {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-
-.rail__foot {
-  margin-top: auto;
-}
-
-.rail a[aria-current='page'] {
-  font-weight: 600;
-}
-
-.screen {
-  padding: 24px 32px;
-}
-
+/* The gate's pages — signing in, not an administrator, a refusal — before there is a shell. */
 .not-admin,
 .signing-in,
 .refusal {
@@ -58,5 +41,5 @@ body {
 
 .refusal__code,
 .refusal__request code {
-  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+  font-family: var(--font-mono);
 }

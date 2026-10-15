@@ -1,8 +1,7 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { App } from './app'
-// Layout only until Task 5, which imports the design system's stylesheets here
-// (docs/superpowers/design/, by CSS @import — Decision 5).
+// The drawing's three stylesheets (docs/superpowers/design/, by CSS @import — Decision 5) and the page.
 import './styles.css'
 
 const root = document.getElementById('root')

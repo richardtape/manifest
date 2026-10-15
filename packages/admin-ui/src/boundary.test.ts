@@ -140,7 +140,8 @@ describe('the administrator’s console’s imports (§26, D22, D31)', () => {
     expect(offenders).toEqual([])
     // The positive control: auth.ts must still name the sign-in round trip, or this test asserts
     // nothing and would stay green if the whole rule were deleted. (The reference console's reads
-    // `> 1`: it owns three. This one owns sign-in until the approval pane adds step-up.)
+    // `> 1`: it owns three. This one owns sign-in and the rail's sign-out until the approval pane
+    // adds step-up.)
     expect(
       authSaw,
       'auth.ts names no /auth/ path — did the scanner read it?',

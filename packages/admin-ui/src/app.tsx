@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, type MouseEvent } from 'react'
 import { ManifestApiError, type Schemas } from '@manifest/contract'
 import { createApi } from './api'
-import { signIn } from './auth'
+import { signIn, signOut } from './auth'
 import { Refusal } from './refusal'
 import {
   canonicalPath,
@@ -9,9 +9,11 @@ import {
   navigate,
   routePath,
   useRoute,
+  type LinkClick,
   type Route,
 } from './router'
 import { NotAdmin } from './screens/not-admin'
+import { ConsoleRail, type ConsoleRailProps, type RailItem } from './system'
 
 /**
  * THE ADMINISTRATOR'S GATE, decided from `getMe`'s answer or its refusal: an administrator is let
@@ -64,50 +66,85 @@ export function App() {
   return <Shell me={signed.me} />
 }
 
-const RAIL: { label: string; route: Route }[] = [
-  { label: 'Queue', route: { screen: 'queue' } },
-  { label: 'Fleet', route: { screen: 'fleet', query: '' } },
-  { label: 'Health', route: { screen: 'health' } },
-]
-const RAIL_FOOT: { label: string; route: Route }[] = [
-  { label: 'Settings', route: { screen: 'settings' } },
-]
+/** Which rail item a route sits under: a release pane is the queue's, a project's page the fleet's. */
+const RAIL_OF: Record<Route['screen'], RailItem['icon']> = {
+  queue: 'queue',
+  release: 'queue',
+  fleet: 'fleet',
+  project: 'fleet',
+  health: 'health',
+  settings: 'settings',
+}
 
 /**
- * THE SHELL: the rail and the route's screen. Its ONE click listener (M5) keeps a plain click on one
- * of this console's own links in the app — the rail and, from Task 5, the ported table render plain
- * `<a href>`s — so an open pane and the reason typed into it survive a move. The rail is plain
- * markup until Task 5 ports `ConsoleRail`.
+ * THE RAIL'S PROPS FOR A ROUTE AND A PERSON — Queue, Fleet and Health, Settings above the person, the
+ * item the route sits under marked `on`. Its links are this console's own paths, so the shell's one
+ * click listener keeps them in the app.
+ */
+export function railOf(route: Route, me: Schemas['Me']): ConsoleRailProps {
+  const on = RAIL_OF[route.screen]
+  const item = (label: string, icon: RailItem['icon'], to: Route): RailItem => ({
+    label,
+    icon,
+    href: routePath(to),
+    on: icon === on,
+  })
+  return {
+    items: [
+      item('Queue', 'queue', { screen: 'queue' }),
+      item('Fleet', 'fleet', { screen: 'fleet', query: '' }),
+      item('Health', 'health', { screen: 'health' }),
+    ],
+    footItems: [item('Settings', 'settings', { screen: 'settings' })],
+    user: me.displayName,
+    homeHref: routePath({ screen: 'queue' }),
+  }
+}
+
+/**
+ * A plain left click on the rail's *Sign out*. The drawing's rail draws it as a link, and a port adds
+ * no handler its reference lacks (M5), so the shell's listener reads it: signing out is a `POST`
+ * (`auth.ts`), never a link the browser follows.
+ */
+export function isSignOut(event: LinkClick): boolean {
+  if (event.defaultPrevented || event.button !== 0) return false
+  if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return false
+  const node = event.target as unknown as {
+    closest?: (selector: string) => unknown
+  } | null
+  return typeof node?.closest === 'function' && node.closest('a.mf-rail__out') !== null
+}
+
+/**
+ * THE SHELL: the drawing's rail (`<ConsoleRail>`) and the route's screen, in the drawing's columns. Its
+ * ONE click listener (M5) keeps a plain click on one of this console's own links in the app — the rail
+ * and the ported table render plain `<a href>`s — so an open pane and the reason typed into it survive
+ * a move; and it signs out from the rail. A refused sign-out is shown, never swallowed: the person
+ * would otherwise still be signed in with nothing saying so.
  */
 function Shell({ me }: { me: Schemas['Me'] }) {
   const route = useRoute()
+  const [signOutError, setSignOutError] = useState<unknown>(undefined)
   const onClick = (event: MouseEvent<HTMLDivElement>) => {
+    if (isSignOut(event.nativeEvent)) {
+      event.preventDefault()
+      signOut().catch((error: unknown) => setSignOutError(error))
+      return
+    }
     const to = linkTarget(event.nativeEvent, window.location.origin)
     if (to === null) return
     event.preventDefault()
     navigate(to)
   }
-  const link = ({ label, route: to }: { label: string; route: Route }) => (
-    <li key={label}>
-      <a
-        href={routePath(to)}
-        aria-current={to.screen === route.screen ? 'page' : undefined}
-      >
-        {label}
-      </a>
-    </li>
-  )
   return (
-    <div className="shell" onClick={onClick}>
-      <nav className="rail" aria-label="Manifest operations">
-        <p className="rail__name">Manifest operations</p>
-        <ul>{RAIL.map(link)}</ul>
-        <ul className="rail__foot">{RAIL_FOOT.map(link)}</ul>
-        <p className="rail__who">{me.displayName}</p>
-      </nav>
-      <main className="screen">
-        <Screen route={route} />
-      </main>
+    <div className="mfa-shell" onClick={onClick}>
+      <ConsoleRail {...railOf(route, me)} />
+      <div className="mfa-content">
+        <main className="mfa-main">
+          <Refusal error={signOutError} />
+          <Screen route={route} />
+        </main>
+      </div>
     </div>
   )
 }
@@ -116,16 +153,16 @@ function Shell({ me }: { me: Schemas['Me'] }) {
 function Screen({ route }: { route: Route }) {
   switch (route.screen) {
     case 'queue':
-      return <h1>Queue</h1>
+      return <h1 className="mfa-h1">Queue</h1>
     case 'release':
-      return <h1>Release approval</h1>
+      return <h1 className="mfa-h1">Release approval</h1>
     case 'fleet':
-      return <h1>Fleet</h1>
+      return <h1 className="mfa-h1">Fleet</h1>
     case 'project':
-      return <h1>Project</h1>
+      return <h1 className="mfa-h1">Project</h1>
     case 'health':
-      return <h1>Health</h1>
+      return <h1 className="mfa-h1">Health</h1>
     case 'settings':
-      return <h1>Settings</h1>
+      return <h1 className="mfa-h1">Settings</h1>
   }
 }
