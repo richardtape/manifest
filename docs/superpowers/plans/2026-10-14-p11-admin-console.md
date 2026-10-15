@@ -19,8 +19,13 @@
 > **`make doctor` asks 7101 and 7113 who they are** from the first sitting (I2); the approval pane opens the project's stream (I4);
 > landings **skip the re-run when `main` moved by documents alone**, and RUNBOOK and WALKTHROUGH are written in the shared checkout after
 > L3 (I5); **NINE SITTINGS** (I6); the mock's replay keeps §26's reason in its hash (I7); a granted change request is two writes (I8, A20).
-> **NOT YET APPROVED — next, Rich approves** (G8 of the third run's brief — not the coordinator under the delegation: *"HE APPROVES the
-> plan"*). **Its build runs as a parallel lane beside B**, in its own git worktree, taking 7100 windows from the coordinator only to land.
+> **APPROVED BY RICH, 2026-10-15, ~08:54 PDT** — *"Approve as revised (Recommended)"*, through `manifest-coord5`'s question tool, at
+> `3d05fc8` with its fresh review (`14cffdc`, `8e77dd1`) — **with both decisions it flags as recommended**: (2) the mock's demo fleet keeps
+> state, behind `MANIFEST_MOCK_FLEET=demo`, every request body validated and only states the platform can reach; (3) serving the console
+> through the edge waits for P11b, with `make doctor`'s 7101/7113 ownership check built now. Recorded in `docs/superpowers/2026-09-30-decisions.md`,
+> the entry *"Rich's decisions — 2026-10-15, ~08:54 PDT"* (`ab6c7b7a`). *Rejected:* "Approve, but serve via the edge now"; "Approve with the
+> mock stateless"; "Not now". **Nine sittings, nine tabs (`manifest-p11-s1` … `-s9`), which Rich opens and `manifest-coord5` GOes.** **Its
+> build runs as a parallel lane beside B**, in its own git worktree, taking 7100 windows from the coordinator only to land.
 >
 > **The design it builds** is [`../2026-09-27-admin-console-design.md`](../2026-09-27-admin-console-design.md), **refreshed the same evening
 > against `1.9.0`** (its §0 says what moved; §10 gives every finding its status; §11 decisions 12 and 13 are revised and 21–25 added) — and

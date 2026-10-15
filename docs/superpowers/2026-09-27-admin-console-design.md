@@ -13,7 +13,7 @@ rejected and what changing course would cost.*
 > in it, `517b8a9`). **§0 is what moved**; every section after it is updated in place where the API moved under it, and each finding in
 > §10 now carries its status. The 2026-09-27 reading is at `e1712d8`. **The plan is written**:
 > [`plans/2026-10-14-p11-admin-console.md`](./plans/2026-10-14-p11-admin-console.md) — `packages/admin-ui`, against the mock, built in a
-> git worktree — **awaiting its fresh review and Rich's approval**.
+> git worktree — **freshly reviewed (`14cffdc`), revised (`3d05fc8`) and APPROVED BY RICH 2026-10-15 ~08:54 PDT (`ab6c7b7a`)**.
 
 **What this is.** The written design for **P11** (the roadmap's *Admin console*): the console's
 design, the design-system components it needs, and what the API cannot yet answer. **It is drawn as a
