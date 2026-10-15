@@ -288,13 +288,19 @@ request.
   so beside the button: *"Tell Instructor One why — Manifest doesn't keep a reason for a hand-back."* (§4).
 - **With UBC (`iam-registration`, `iam-change-request`, `privacy-assessment`)** — what was submitted and when, the reference, and the
   form that records UBC's answer, offering only the moves the record's state allows — the platform's table
-  (`launch/transitions.ts:40-57`), which the published document states in words on `recordIamRegistration`'s and
+  (`launch/transitions.ts:38-58`; `sent` has no arrow — only the team's submission or hand-back moves it), which the published document
+  states in words on `recordIamRegistration`'s and
   `recordPrivacyAssessment`'s `state`: a registration `submitted` → `active` (the registered attributes, the certificate and the ticket)
   or `change_requested` (UBC's questions, for the owner); `active` → `change_requested` or `expired`; `change_requested` → `submitted` or
   `expired`; `expired` → `submitted`; an assessment `submitted` → `approved` (its reviewer) or back to `draft` when the Privacy Office
   refuses it; `approved` → `draft`. The console restates the table, and a test holds it to the document's sentence, so a rule changed
   on the platform turns the console's test red rather than its form wrong. A move the platform refuses still arrives as `409
-  LAUNCH_TRANSITION_INVALID`, naming the moves allowed, and the pane re-reads the record.
+  LAUNCH_TRANSITION_INVALID`, naming the moves allowed, and the pane re-reads the record. **The form sends what the operation requires**
+  (the fresh review's C1, 2026-10-14): `recordIamRegistration` requires `entityId`, `acsUrl`, `sloUrl`, `registeredAttributes` and `state`,
+  takes production's registration when `environment` is absent, and upserts the four facts from the body — so the pane always sends
+  `environment` from the queue item and the record's own facts, and the attributes are editable only for `active`. **A change UBC granted is
+  two writes** (A20): there is no arrow from `change_requested` to `active`, so it is recorded `submitted`, then `active` — one decision,
+  two keys, and the pane resumes a failed second write rather than repeating the first.
 
 **An agent's question is no longer a queue pane** (§3.4) — it is the project page's (§6), still **reject only**: the API now lets an
 administrator confirm one with §26's reason (A6 resolved), and the console still offers only the safe direction (§11 decision 7).
@@ -592,7 +598,8 @@ those documents would otherwise do; writing them is a design session's job when 
 console today and the shape that would close it.
 
 **THEIR STATUS AT 1.9.0 (refreshed 2026-10-14)** — the findings below are kept as they were written on 2026-09-27, and this table says
-what has happened to each since. **A14–A19 are new.** None is built by P11, which changes no contract.
+what has happened to each since. **A14–A21 are new** (A20 and A21 added by the plan's revision to its fresh review, `14cffdc`). None is
+built by P11, which changes no contract.
 
 | # | Status at 1.9.0 | What closed it, or what is left |
 |---|---|---|
@@ -615,6 +622,8 @@ what has happened to each since. **A14–A19 are new.** None is built by P11, wh
 | **A17** | **NEW** | **The fleet carries no data level.** `Fleet` has no `classification` and neither does `Project`; the level is per release, in `Release.config.<environment>.classification`. Which apps hold U1 `high` or `very-high` data is the first thing an operator filters by, and costs a read per project. *Worth considering:* the serving release's level on each fleet environment |
 | **A18** | **NEW, at 1.10.0 (drafted)** | **Nothing says which project holds the one load rehearsal slot.** B's `LOAD_REHEARSAL_BUSY` deliberately names no other project to an owner — right for an owner — and no administrator's read says which run holds it. *Worth considering:* the running row on `listFleet` or a Health read |
 | **A19** | **NEW, minor** | **A hand-back keeps no reason.** `returnIamRegistration` and `returnPrivacyAssessment` take no body; *"why it came back travels outside the record"*. The console says so beside the button (§4). Filed for the team to decide whether it wants one kept, not as a defect |
+| **A20** | **NEW** (found after the plan's first draft; confirmed by its fresh review) | **Recording that UBC GRANTED a change request takes two writes.** `IAM_ARROWS.change_requested` is `['submitted', 'expired']` (`launch/transitions.ts:47`): there is no arrow to `active`. So a granted change is `change_requested → submitted → active`. The first write **re-stamps `submittedAt`** (`launch/records.ts:263-269`), so the queue item turns from `iam-change-request` into `iam-registration` with its `since` reset to that day (`queue.ts:290`) — if the second write never lands, the weeks UBC held it vanish from the queue and it reads as freshly submitted. `registeredAt` is kept (`records.ts:249-253`), so the registration stays in force and production is not interrupted between the writes (`readiness.ts:552`). Its event reads *"… recorded this app's production UBC IAM registration as submitted"* for what was UBC's answer. *Worth considering:* an arrow `change_requested → active` for a change filed from `active` (`changeRequestedFrom: 'active'`), which is UBC's answer to that change |
+| **A21** | **NEW** (the plan's fresh review, I4) | **Nothing reads through which token a sign-off was asked.** `QueueItem` carries no token; no operation reads an `ApprovalRequest` (`requestApproval` is POST only; `getApproval` reads the decision); `approval.requested`'s `machineDetail.viaToken` is a boolean. The token's name is only the event's `actor.token`, on the project's stream. The console opens the stream to show it. *Worth considering:* `viaToken: { id, name } \| null` on `QueueItem` (or on a read of the open request) |
 
 **And found on the way, not about the API (refreshed):** **T2 still stands** — the mock is one project, scripted by options, and keeps
 no state but its idempotency record; `MANIFEST_MOCK_QUEUE=full`'s four extra items sit on projects it does not hold. The plan's first
