@@ -1,0 +1,217 @@
+# B baseline — Task 1's raw output (2026-10-15, manifest-b-s1). HEAD d2e2cf0d at the start.
+# Each block is the probe's own output, unedited; the probes are in probes/.
+
+################ snapshot-before
+Thu 15 Oct 2026 11:29:19 PDT
+## snapshot before Task 1's throwaways
+containers (all):       31
+containers running:       23
+networks:       15
+volumes:       49
+images (docker images -q, deduped):       54
+manifest-caddy
+manifest-dns-containers
+manifest-dns-host
+manifest-egress
+manifest-idp
+manifest-litellm
+manifest-mailpit
+manifest-postgres
+manifest-registry
+manifest-verdaccio
+mf-muddiest-point-production-b6dc9c93-0171b643-app
+mf-muddiest-point-production-b6dc9c93-abaa1c9a-app
+mf-muddiest-point-production-db
+mf-muddiest-point-production-egress
+mf-muddiest-point-sandbox-d5148008-5f24d4ae-app
+mf-muddiest-point-sandbox-db
+mf-muddiest-point-sandbox-egress
+mf-muddiest-point-staging-b6dc9c93-97d7ecec-app
+mf-muddiest-point-staging-db
+mf-muddiest-point-staging-egress
+mongo-express
+mongodb
+qdrant-local-dev
+
+################ m3-headroom
+Thu 15 Oct 2026 11:32:41 PDT
+11:32  up 10 days, 14:51, 28 users, load averages: 5.72 4.49 4.60
+
+System-wide memory free percentage: 56%
+Mach Virtual Memory Statistics: (page size of 16384 bytes)
+Pages free:                                    19197.
+Pages active:                                 640191.
+Pages inactive:                               637225.
+Pages speculative:                              1531.
+Pages throttled:                                   0.
+total = 8192.00M  used = 6472.44M  free = 1719.56M  (encrypted)
+
+NAME                                                 CPU %     MEM USAGE / LIMIT     MEM %     PIDS
+mf-muddiest-point-sandbox-d5148008-5f24d4ae-app      1.18%     47.74MiB / 512MiB     9.32%     12
+mf-muddiest-point-production-b6dc9c93-abaa1c9a-app   0.00%     44.76MiB / 512MiB     8.74%     12
+mf-muddiest-point-production-b6dc9c93-0171b643-app   1.25%     46.18MiB / 512MiB     9.02%     12
+mf-muddiest-point-production-egress                  0.00%     1.91MiB / 64MiB       2.98%     1
+mf-muddiest-point-production-db                      0.83%     104.6MiB / 512MiB     20.44%    44
+mf-muddiest-point-staging-b6dc9c93-97d7ecec-app      1.40%     46.15MiB / 512MiB     9.01%     12
+mf-muddiest-point-staging-egress                     0.00%     1.906MiB / 64MiB      2.98%     1
+mf-muddiest-point-staging-db                         0.54%     123.2MiB / 512MiB     24.07%    39
+mf-muddiest-point-sandbox-egress                     0.00%     1.91MiB / 64MiB       2.98%     1
+mf-muddiest-point-sandbox-db                         0.57%     250.2MiB / 512MiB     48.86%    39
+manifest-litellm                                     0.14%     556.2MiB / 7.749GiB   7.01%     19
+manifest-idp                                         0.00%     70.27MiB / 7.749GiB   0.89%     8
+manifest-caddy                                       0.23%     41.91MiB / 7.749GiB   0.53%     14
+manifest-postgres                                    1.80%     124.4MiB / 7.749GiB   1.57%     11
+manifest-verdaccio                                   0.02%     139.9MiB / 7.749GiB   1.76%     13
+manifest-dns-containers                              0.00%     764KiB / 7.749GiB     0.01%     1
+manifest-mailpit                                     0.03%     31.23MiB / 7.749GiB   0.39%     12
+manifest-dns-host                                    0.00%     656KiB / 7.749GiB     0.01%     1
+manifest-egress                                      0.00%     1.988MiB / 7.749GiB   0.03%     1
+manifest-registry                                    0.00%     34.26MiB / 7.749GiB   0.43%     13
+qdrant-local-dev                                     0.14%     1.015GiB / 7.749GiB   13.09%    34
+mongo-express                                        0.01%     33.18MiB / 7.749GiB   0.42%     12
+mongodb                                              1.48%     221.9MiB / 7.749GiB   2.80%     36
+
+MemTotal:        8125028 kB
+MemFree:         1631276 kB
+MemAvailable:    5300380 kB
+Buffers:          236112 kB
+Cached:          3462088 kB
+SwapCached:        98296 kB
+SwapTotal:       2097148 kB
+0.94 0.73 0.60 6/864 9
+
+[4 process lines of P11's running pnpm test removed here: `pgrep -fl` printed their environment, a session token included]
+ %CPU COMM
+108.4 /System/Library/Frameworks/Virtualization.framework/Versions/A/XPCServices/com.apple.Virtualization.VirtualMachine.xpc/Contents/MacOS/com.apple.Virtualization.VirtualMachine
+ 46.6 /Applications/zoom.us.app/Contents/MacOS/zoom.us
+ 21.5 /System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer
+ 18.2 node (vitest)
+ 14.4 /System/Library/PrivateFrameworks/XprotectFramework.framework/Versions/A/XPCServices/XprotectService.xpc/Contents/MacOS/XprotectService
+ 12.8 node (vitest 1)
+ 11.9 /Applications/Docker.app/Contents/MacOS/com.docker.backend
+
+################ m7-oom
+== (a) init (as every app container, hardening.ts:40) + node as its child, allocating past 64 MiB; MemorySwap unset, as the driver leaves it
+137
+b-s1-m7-a: Status=exited Running=false ExitCode=137 OOMKilled=true Error='' HostConfig.Memory=67108864 MemorySwap=134217728 Init=true
+MiB 104
+== (b) no init, node as PID 1
+137
+b-s1-m7-b: Status=exited Running=false ExitCode=137 OOMKilled=true Error='' HostConfig.Memory=67108864 MemorySwap=134217728 Init=<nil>
+MiB 112
+== (c) init + a shell whose node CHILD is OOM-killed while the shell lives on (the container still running)
+-- while running:
+b-s1-m7-c: Status=running Running=true ExitCode=0 OOMKilled=true Error='' HostConfig.Memory=67108864 MemorySwap=134217728 Init=true
+0
+-- after exit:
+b-s1-m7-c: Status=exited Running=false ExitCode=0 OOMKilled=true Error='' HostConfig.Memory=67108864 MemorySwap=134217728 Init=true
+child-exit=137
+== (d) init + a plain SIGKILL from outside (docker kill -s KILL), well under the ceiling
+137
+b-s1-m7-d: Status=exited Running=false ExitCode=137 OOMKilled=false Error='' HostConfig.Memory=67108864 MemorySwap=134217728 Init=true
+== (e) init + docker stop (SIGTERM)
+143
+b-s1-m7-e: Status=exited Running=false ExitCode=143 OOMKilled=false Error='' HostConfig.Memory=67108864 MemorySwap=134217728 Init=true
+== (f) init + MemorySwap = Memory (no swap) — for contrast with (a)
+137
+b-s1-m7-f: Status=exited Running=false ExitCode=137 OOMKilled=true Error='' HostConfig.Memory=67108864 MemorySwap=67108864 Init=true
+MiB 48
+
+################ m4-ratelimit
+edge image: sha256:128a37e05fe6922df754ee825dcbf0f68149705f5e90e238e01f7d8c65356594 (v2.11.4)
+== T1 today's route (zone match every address): client .22 sends 700 in a minute
+ 600 200  100 429 
+== T2 the zone's match excluding 10.99.4.21/32 (PATCH /id/m4-route)
+PATCH 200 
+-- the exempt client 10.99.4.21 sends 1300:
+1300 200 
+-- another client .23 sends 700:
+ 600 200  100 429 
+-- the zone as Caddy now holds it:
+[{"not":[{"remote_ip":{"ranges":["10.99.4.21/32"]}}],"remote_ip":{"ranges":["0.0.0.0/0","::/0"]}}]
+
+== T3 counters across a PATCH of an IDENTICAL route: client .24 sends 400, PATCH (same), sends 400
+ 400 200 
+PATCH 200 
+ 200 200  200 429 
+== T4 counters across a PATCH that CHANGES the zone (exemption cleared): client .25 sends 400, PATCH (cleared), sends 400
+ 400 200 
+PATCH 200 
+ 200 200  200 429 
+-- after the clear, the formerly exempt client 10.99.4.21 sends 700 (limited again?):
+ 600 200  100 429 
+== T5 the exemption given as a bare address (no /32): accepted?
+PATCH 200 
+-- 10.99.4.21 (already 700 in this window) sends 100 more:
+ 100 200 
+== T6 Task 3's negative control: the exemption set to 0.0.0.0/0
+PATCH 200 
+-- client .26 sends 700:
+ 700 200 
+-- client .22 (limited in T1, same window) sends 100:
+ 100 200 
+== T7 an invalid exemption (not an address): what the admin API answers
+{"error":"loading new config: loading http app module: provision http: server srv0: setting up route handlers: route 0: loading handler modules: position 1: loading module 'rate_limit': provision http.handlers.rate_limit: setting up rate limit m4-route: module name 'not': provision http.matchers.not: loading matcher sets: module name 'remote_ip': provision http.matchers.remote_ip: invalid IP address: 'not-an-address': ParseAddr(\"not-an-address\"): unable to parse IP"} PATCH 500 
+-- still serving? client .27 sends 5:
+   5 200 
+== caddy's error lines:
+1
+
+################ m2-edge
+container address(es): 10.89.0.13
+b-s1-m2.staging.manifest.internal resolves to 10.89.0.10
+  TLS TLSv1.3 authorized=true subject.CN=undefined issuer.CN=Caddy Local Authority - ECC Intermediate SAN=DNS:*.staging.manifest.internal valid_to=Oct 16 02:39:29 2026 GMT
+  GET / -> 200 "manifest OK host=b-s1-m2.staging.manifest.internal scheme=https remote=10.89.0.13 listener=internal" 40ms
+edge.manifest.internal resolves to 10.89.0.10
+  TLS TLSv1.3 authorized=true subject.CN=undefined issuer.CN=Caddy Local Authority - ECC Intermediate SAN=DNS:*.manifest.internal valid_to=Oct 16 02:39:29 2026 GMT
+  GET / -> 200 "manifest OK host=edge.manifest.internal scheme=https remote=10.89.0.13 listener=internal" 3ms
+  the same name on :8443 (the public listener, srv1) -> 200 ""
+
+################ m2-app
+app container: mf-muddiest-point-staging-b6dc9c93-97d7ecec-app — image sha256:de9e19196a5601ca3a837f6ec1b0f153caa2871e99b049fbe1466ca1d4eef275, created 2026-10-15T17:44:07Z, started 2026-10-15T17:45:10.628477222Z
+image ENV NODE_ENV: NODE_ENV=production
+errors.js in the image: /app/errors.js
+BEFORE: muddiest_point.saml_requests=0 ttl=28800
+GET /        200 298ms x-manifest-instance=97d7ecec-fe32-4890-964c-3270ecacc81a set-cookie=no body 2252 B
+GET /healthz 200 16ms x-manifest-instance=97d7ecec-fe32-4890-964c-3270ecacc81a set-cookie=no body 28 B "{\"status\":\"ok\",\"mongo\":true}"
+GET /login   302 56ms x-manifest-instance=97d7ecec-fe32-4890-964c-3270ecacc81a set-cookie=no body 0 B "" → https://idp.manifest.internal/module.php/saml/idp/singleSignOnService (query keys: SAMLRequest,SigAlg,Signature)
+AFTER: muddiest_point.saml_requests=1 ttl=28800
+
+################ m6 — pnpm test once (12:14–12:32), the wrapper's first line and the summary
+test-gently: QoS utility, timeout scale 5, 1-minute load 2.93 (gate 12, forced no)
+ Test Files  231 passed (231)
+      Tests  3756 passed (3756)
+   Start at  12:14:29
+   Duration  1093.97s (transform 2.23s, setup 277ms, collect 51.01s, tests 1015.89s, environment 19ms, prepare 6.30s)
+test-gently: load (1-min) min 2.25 / median 3.40 / max 5.69 over 37 samples 30 s apart; QoS utility, timeout scale 5, gate 12, forced no; exit 0
+
+################ m5-set (12:37–12:38; the third run — the first two had the probe's two defects the README names)
+VM before: MemTotal: 8125028 kB;MemAvailable: 5024572 kB;SwapFree: 1875388 kB;
+build (fixture-node skeleton, with its scan): 20.8 s → 127.0.0.1:7107/local/bs1-m5@sha256:7dd880f7ed4b
+0. staging's own shape, one instance: 1.9 s; serving = [ 'mf-bs1-m5-staging-b51f5555-b51a0000-app' ]
+1. GRANT, three at production's resources, route moved: 3.6 s; serving = [
+  'mf-bs1-m5-staging-b51f5555-b51b0001-app',
+  'mf-bs1-m5-staging-b51f5555-b51c0002-app',
+  'mf-bs1-m5-staging-b51f5555-b51d0003-app'
+]
+   the one before retired: 0.1 s
+   limits mf-bs1-m5-staging-b51f5555-b51b0001-app 536870912 1073741824 500000000 256
+   limits mf-bs1-m5-staging-b51f5555-b51c0002-app 536870912 1073741824 500000000 256
+   limits mf-bs1-m5-staging-b51f5555-b51d0003-app 536870912 1073741824 500000000 256
+   VM with three serving: MemTotal: 8125028 kB;MemAvailable: 5041684 kB;SwapFree: 1819860 kB;
+   each member, idle:
+mf-bs1-m5-staging-b51f5555-b51b0001-app 0.01% 25.12MiB / 512MiB
+mf-bs1-m5-staging-b51f5555-b51c0002-app 1.94% 26.36MiB / 512MiB
+mf-bs1-m5-staging-b51f5555-b51d0003-app 1.61% 26.68MiB / 512MiB
+2. TAKE-DOWN, one at staging's resources, route moved: 1.4 s; serving = [ 'mf-bs1-m5-staging-b51f5555-b51e0004-app' ]
+   the three retired: 0.3 s; listInstances = [ 'mf-bs1-m5-staging-b51f5555-b51e0004-app' ]
+VM after: MemTotal: 8125028 kB;MemAvailable: 5032612 kB;SwapFree: 1819864 kB;
+images left by the build (removed next): 127.0.0.1:7107/local/bs1-m5:<none>@7dd880f7ed4b
+left after cleanup: 0 containers; 0 networks; 0 volumes; 0 routes naming the host
+env MANIFEST_DATABASE_URL='postgres://b-s1-m5-no-db@127.0.0.1:1/none' node $S  1.82s user 1.41s system 9% cpu 33.397 total
+
+################ close (12:40): 7100 and Docker
+projects=0 instances=0 routes=0 (psql, manifest_control)
+networks: 15; mf- containers: 10; all containers: 31 (running 23); volumes: 49; images (docker images -q | sort -u): 52
+G4: 7100 up (real, start): {"source":"github","capableModel":"unchanged","capableFallback":"unchanged","gatewayModels":[{"name":"ubc-qwen-27b","state":"unchanged"}],"secretsScrubbed":16}
+G4 call 12:39: HTTP/1.1 200 OK; llm_provider-x-litellm-model-name: gpt-6.1-sol; x-litellm-attempted-fallbacks: 0; x-litellm-model-api-base: https://ai-gateway.apps.ltic.ubc.ca/v1; body model default-chat-large, answer "ok", 13+4 tokens
