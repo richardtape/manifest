@@ -13,6 +13,13 @@
 > **Placed as THE NEXT PLATFORM JOB: after A1 closes, before B** (the load rehearsal). B measures load on the Docker VM, so it starts
 > only after this plan's sitting 3 — Rich's Docker Desktop step — has set the VM's CPUs it will measure on.
 
+> **EXECUTED 2026-10-15 — ALL SEVEN TASKS IN THREE SITTINGS** (`manifest-gt-s1`, `-s2`, `-s3`, inline, in the second and third coordinated
+> runs). `pnpm test` and `pnpm test:docker` run through `scripts/test-gently.sh` — utility priority, timeout scale **5** (background **7**),
+> the load gate at **12** — and `resetDatabase` retries a deadlock. **Docker Desktop runs 6 CPUs** (Rich's step
+> 2026-10-15 ~08:57; his *"keep 6"* after the comparison, ~09:33, `d2e2d77`), and **its restart also updated Docker Desktop 4.87.0 → 4.95.0**
+> (Engine 29.7.2 → 29.8.2 — *Sitting 3*, F1). The Docker tier at 6 CPUs: 305/305 in 1502.7 s, against 1977.1 s at 12 (F2). What executing
+> this plan found, *Sitting 1* to *Sitting 3*, is the record; the next plan is B.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to
 > implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -49,7 +56,7 @@ describes the test harness's timing** (grepped at `abdd01e` for `testTimeout`, `
 |---|---|---|---|---|---|
 | 1 | 1, 2, 3 | **The measurements on today's tree** — every fact re-read, versions, the QoS priorities, the whole unit suite quiet at normal, utility and background priority and once under imitated load, each with every test's duration — **the timeout scale** (`test-timeouts.ts`, the two projects, `slowTestThreshold`, the 58 explicit timeouts) **and the wrapper** (`scripts/test-gently.sh`, `package.json`) | No — no Docker-tier path changes until Task 4 | After Task 3's commit, with `pnpm test` running through the wrapper twice, green | **DONE 2026-10-14** (`manifest-gt-s1`) — `adf9127`, `44b4e49`, `a2060ce`; scales **utility 3, background 7**; *What executing this plan found*, *Sitting 1* |
 | 2 | 4, 5, 6 | **`resetDatabase` survives a deadlock**; ci-acceptance's line, the RUNBOOK, ORIENTATION and TRAPS; **the after-measurements** (the same imitated load, wrapped) and every control; the plan's one whole-branch review; `make ci-acceptance`; **the Docker tier at 12 CPUs** — owed, and the "before" of Rich's step | **Yes — once, at the end, beside the reviewer** | After the Docker tier and the review's one fix wave | **DONE 2026-10-14/15** (`manifest-gt-s2`) — `09f2f0b`, `977b1e7`, `07c4601`, `f43f894`; **utility scale 3 → 5** (measured at the gate's edge); the Docker tier at 12 CPUs 305/305 in 1977 s; *What executing this plan found*, *Sitting 2* |
-| 3 | 7 | **Rich's Docker Desktop step** — 6 CPUs, after A1's click — **the Docker tier at 6 CPUs**, the comparison, and the plan's close | Yes — it is the measurement | After the comparison is recorded and Rich has said keep or change | ← **next** — when Rich is at the machine; read *Sitting 2*'s *What it left sitting 3* |
+| 3 | 7 | **Rich's Docker Desktop step** — 6 CPUs, after A1's click — **the Docker tier at 6 CPUs**, the comparison, and the plan's close | Yes — it is the measurement | After the comparison is recorded and Rich has said keep or change | **DONE 2026-10-15** (`manifest-gt-s3`) — Rich's step ~08:57 (it also updated Docker Desktop 4.87.0 → 4.95.0, F1); **the Docker tier at 6 CPUs 305/305 in 1502.7 s**, 0.76× the 12-CPU run (F2); **Docker Desktop at 6 CPUs — Rich's *"keep 6"*** (`d2e2d77`); *What executing this plan found*, *Sitting 3* — **THE PLAN IS EXECUTED** |
 
 **EVERY SITTING ENDS THE SAME WAY** — the four gates (`pnpm test` twice, alone, on the final tree — through the wrapper from Task 3 on),
 the Docker tier when owed, **`EXPECT_TESTS` / `EXPECT_FILES` in `scripts/ci-acceptance.sh` set from the run with a dated comment in the
@@ -2054,3 +2061,90 @@ itself; the scanner misses one-line `it('…', fn, 30_000)` and `beforeAll(fn, 3
 
 **What it left sitting 3** (Task 7, Rich's Docker Desktop step): the Docker tier at 12 CPUs above is its *before*; **the scales are utility 5,
 background 7, gate 12** — the README's *After* has every number; nothing else is owed before Rich's step.
+
+### Sitting 3 — 2026-10-15, 08:52–09:41 PDT (`manifest-gt-s3`, the third coordinated run's job GT3): Task 7 — Rich's Docker Desktop step, the Docker tier at 6 CPUs and the plan's close
+
+**Opened** by `manifest-coord5`'s GO (~08:4x, Rich at the machine), which relayed Rich's decisions recorded in
+[`../2026-09-30-decisions.md`](../2026-09-30-decisions.md): the entry of 2026-10-14 ~18:34 (`6c9949a`: *"Gentler tiers 3 (your Docker
+step)"*; his delegation continues) and its words appended (`3ba424a`, `d5b0eb2`, `bdfc6f2`, `3011e11`), and the plan's own approval
+(`b492e31`, his *"yes to 1–4"* `abdd01e`). HEAD `fdf9f36` at the open; other sessions committed documents during the sitting (`ab6c7b7`,
+`4fc8b12`, `2f59765` — P11's approval and Rich's review of `manifest-coord5`'s decisions), nothing of theirs staged here; **the code the tier
+ran was `fdf9f36`'s**. Inline (`superpowers:executing-plans`). 7100 held from the GO; 7105 (W5B's edge-mode server) left alone.
+
+**Step 1 — before Rich's step** (08:53–08:54). A1's clicked half was done (A1 EXECUTED 2026-10-14). The machine, read: on AC (100 %, charged),
+no call assertion, no Vitest, no `yes`, the flag FREE, load 3.97; **Docker Desktop 4.87.0** (`Info.plist`), Engine 29.7.2, `NCPU 12`,
+`MemTotal 8319238144`, `settings-store.json` with no `Cpus` key; the 10 `manifest-*` containers Up (`unless-stopped`), `qdrant-local-dev`,
+`mongodb`, `mongo-express` Up (`always`), `docker-simple-saml-saml-idp-1` Exited 10 days (policy `no` — as found); 12 networks, 0 `mf-`
+containers. **7100 stopped** (pid 82431) before the restart; Rich pinged (`PushNotification`, 08:54) with the clicks in the tab.
+
+**Step 2 — read back** (Rich's step ~08:57 — the containers read *Up 5 minutes* at 09:03 — and his *"done"* ~09:02 in `manifest-coord5`'s tab; read here 09:03:04): **`NCPU 6`**, **`"Cpus": 6`**, `MemTotal
+8320028672` (7.75 GiB, unchanged); the same container set, every platform container Up 5 minutes (healthy where it has a check), the three
+that must run Up, the IdP exited as found; 12 networks. **And Docker Desktop 4.95.0** (build 242831), **Engine 29.8.2**, API 1.56 (minimum
+1.40 — P3's `v1.44` pin still inside), Compose v5.6.0, buildx v0.37.2 (F1). 7100 restarted from `.env` (`gateway-controls.sh start real`:
+`source` `github`, `capableModel` `unchanged`, `ubc-qwen-27b` `unchanged`); **`make verify` 67 checks, 0 failed, 0 warnings** — no
+`docker restart manifest-caddy` needed.
+
+**Step 3 — the Docker tier at 6 CPUs** (on `manifest-coord5`'s HOLD, 09:04:21): 7100 stopped (its set watcher; pid 10214), 12 networks, the
+chat model warmed (`qwen3.5:4b`, 0.15 s), no driver-2 variables in the shell, then `pnpm test:docker` in the background:
+`test-gently: QoS utility, timeout scale 5, 1-minute load 4.78 (gate 12, forced no)` → **305/305 in 44 files, 0 failed**, 09:04:45–09:29:48,
+**Vitest 1502.69 s** (tests 1478.47 s), `load (1-min) min 3.17 / median 5.97 / max 11.01 over 51 samples 30 s apart; QoS utility, timeout
+scale 5, gate 12, forced no; exit 0`; **12 networks at its start and 19 at its end**. No file red, so nothing re-run alone. Rich, who found the
+machine slow at ~09:23 and had a meeting at ~09:32, chose through `manifest-coord5` to let it finish; a 30-s logger of `pmset -g assertions`
+and the load beside it read no call assertion from 09:23:49 to the tier's end, and **`zoom.us`'s assertion began 09:30:31** (1:35 old at
+09:32:06) — **43 s after the tier ended: no overlap**. No Sleep or Wake in `pmset -g log` today.
+
+| | 12 CPUs (sitting 2, 00:16, Docker Desktop 4.87.0) | 6 CPUs (this sitting, 09:04, 4.95.0) | 6 ÷ 12 |
+|---|---|---|---|
+| Result | 305/305, 44 files | 305/305, 44 files | — |
+| Vitest wall | **1977.1 s** | **1502.7 s** | **0.76** |
+| Sum of file times | 1948.8 s | 1478.5 s | 0.76 |
+| The four files that moved most — `runtime/docker/driver`, `runtime/docker/roundtrip`, `releases/redeploy`, `runtime/docker/services` | 600.9 + 174.4 + 226.0 + 79.3 = 1080.6 s | 444.2 + 44.3 + 123.7 + 37.9 = 650.1 s | 0.60 |
+| The other 40 files | 868.2 s | 828.4 s | **0.95** |
+| Load (1-min) min / median / max | 2.20 / 5.46 / 10.64 (66 samples) | 3.17 / 5.97 / 11.01 (51 samples) | — |
+| Networks at start → end | 12 → 19 | 12 → 19 | — |
+
+**After it** (09:30–09:32): **G4** — `gateway-controls.sh start real` (`source` `github`, `capableModel` `registered`, `capableFallback`
+`set`, `ubc-qwen-27b` `registered`; 7100 pid 71453) and ONE call through LiteLLM to `default-chat-large`, the master key read from `.env`
+into curl's config on stdin, never printed: `200` in 4.8 s, **`llm_provider-x-litellm-model-name: gpt-6.1-sol`**, **`x-litellm-attempted-fallbacks:
+0`**, `x-litellm-model-api-base` UBC's gateway, the answer `"ok"`; the three cleanup scripts bare, then `--apply` (7 networks and 1 volume,
+2 LiteLLM users — `mf-platform-intake`, `p4b-probe-user` — and 14 app images; each re-measured at 0); networks 12, 0 `mf-` containers;
+**`make verify` 67 checks, 0 failed, 0 warnings**.
+
+**Step 4 — Rich decides** (through `manifest-coord5`, 09:31): the two wall times, the per-file split, the load lines, no red — *keep 6; try 8;
+or back to 12* — recommending **keep 6** (the plan's rule: keep 6 unless the tier is more than ~1.5× slower or a file reds at 6 that never did
+at 12 — it is 0.76× and nothing reds; and 6 of the host's 12 cores stay his whatever the VM does). **His answer, ~09:33, in chat to `manifest-coord5`:
+*"keep 6"*** — Docker Desktop stays at 6 CPUs; rejected: 8, back to 12 (recorded `d2e2d77`).
+
+**The gates.** This sitting changed no code — the tree's code is `fdf9f36`'s, whose four gates and `pnpm test` twice the FIX session ran —
+and the documents are outside Prettier's scope (`.prettierignore`: `docs/`, `**/*.md`), so **no unit-tier run was owed or made** (an open run
+on an unchanged tree measures nothing); the Docker tier above is the sitting's one run. `EXPECT_TESTS` / `EXPECT_FILES` unchanged (3691 /
+224, `fdf9f36`); §2's Docker-tier count unmoved, 305 in 44 files.
+
+**Findings:**
+
+1. **F1 — DOCKER DESKTOP'S *APPLY & RESTART* ALSO APPLIED A PENDING UPDATE: 4.87.0 → 4.95.0, ENGINE 29.7.2 → 29.8.2** (Step 2). Read 4.87.0
+   from `Info.plist` at 08:53, 4.95.0 at 09:03 with nothing else between; the plan's step named only the CPU limit, and nothing in Docker
+   Desktop's Resources page says a restart will update. **So the comparison changed two variables, not one**, and every later measurement on
+   this machine is on 4.95.0 (B's Task 1 records it). Nothing broke: the same containers returned by their restart policies, `make verify`
+   67/0/0, the API window still holds P3's `v1.44` pin (1.56, minimum 1.40). Every document that states the engine is swept (ORIENTATION §4's
+   *Numbers*); the dated machine baselines are evidence and are not edited. A TRAPS entry: before a Docker Desktop restart that a measurement
+   brackets, read its version, and after, read it again.
+2. **F2 — AT 6 CPUs THE TIER WAS NOT SLOWER (0.76×), BUT ONE RUN A SIDE CANNOT CREDIT THE CAP WITH THE GAIN** (Step 3). 430 of the 470 s saved
+   are in four files whose slow tests WAIT rather than compute — `roundtrip`'s *builds an app the platform did not write* 116.2 → 22.7 s,
+   `releases/redeploy`'s *two deploys of one environment at once* 139.0 → 39.9 s, `driver`'s *a set's route carries the app's health
+   policy, and restoreRoute rebuilds it* 116.5 → 21.9 s, *destroyInstance REJECTS … when the edge refuses the route change* 92.8 → 20.9 s and
+   *removes the route when the instance is destroyed* 64.9 → 23.9 s, `services`' *hands a service over only once it enforces the credentials*
+   36.3 → 24.3 s — long in sitting 2's run for a reason neither run's log names (that run followed `make ci-acceptance` and a whole `pnpm
+   test`; this one a Docker restart). **The other 40 files read 0.95×**, and the CPU-bound build tests are slower at 6, as they should be:
+   *builds the same source to the same digest* 27.3 → 40.3 s, *reports the scan of what it built* 60.7 → 67.8 s, `releases/delete` 49.2 →
+   56.3 s. The run-to-run spread on record is 1322–1538 s unwrapped (§2's row). **What the comparison does settle is the plan's criterion**:
+   not more than ~1.5× slower, no file red at 6 — met with room, whatever F1 contributed.
+3. **F3 — THE CAP DID NOT LOWER THE HOST'S LOAD DURING A TIER RUN** (Step 3): median 5.97 at 6 CPUs against 5.46 at 12, max 11.01 against
+   10.64 — the same work in less time — and Rich found the machine slow at ~09:23. The tier's load is mostly its host side (the control
+   planes, builds' clients, git, all at utility priority) plus a VM that rarely wants six cores at once; **what the cap bounds is the VM's
+   share when the VM saturates** (an image build, B's load generator), not a tier run's load line. The wrapper's priority is what keeps a tier
+   run gentle on the host; the gate (12, `hw.ncpu`, the host's CPUs) is unchanged by the VM's count.
+
+**What it left B** (the load rehearsal, `manifest-b-s1`): **Docker Desktop at 6 CPUs (Rich's *"keep 6"*, `d2e2d77`), 4.95.0, Engine 29.8.2** — B's
+Task 1 reads `docker info --format '{{.NCPU}}'` and records the version; the Docker tier's wall at that count in ORIENTATION §2's row; 7100 on
+real GitHub from `.env`, 0 projects, `gpt-6.1-sol` proved by a call (G4); networks 12; nothing else owed.

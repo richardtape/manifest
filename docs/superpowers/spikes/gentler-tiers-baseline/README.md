@@ -235,3 +235,35 @@ With `TRUNCATE_ATTEMPTS = 1`: test 1 red, **test 2 red** — `deadlock detected`
 120 s), 00:16:40, 7100 stopped, the chat model warm, NCPU 12: **305/305 in 44 files, Vitest 1977.1 s**, load min 2.20 / median 5.46 / max
 10.64 over 66 samples; 12 networks at its start, 19 at its end. **Against the unwrapped record (1322–1538 s) it is ~1.3–1.5× slower** —
 utility priority slows the tier's Node side; the Docker VM is not clamped — so Task 7's 6-CPU run is compared with THIS run.
+
+## Task 7 — the Docker tier at 6 CPUs (sitting 3)
+
+*Measured 2026-10-15, 08:53–09:32 PDT, by `manifest-gt-s3` (the third coordinated run's job GT3, coordinated by `manifest-coord5`, every
+other session's Vitest held), on AC, no call over the run (Rich's Zoom began 09:30:31, 43 s after it ended), no Sleep or Wake; on the code of
+`fdf9f36`. The plan's *Sitting 3* is the record; **Rich's choice: keep 6** (~09:33, `d2e2d77`).*
+
+| | Before Rich's step (08:53) | After it (09:03) |
+|---|---|---|
+| Docker Desktop | 4.87.0 | **4.95.0** (build 242831) — *Apply & restart* applied a pending update (F1) |
+| Engine / API | 29.7.2 / 1.55 | **29.8.2 / 1.56** (minimum 1.40 both) |
+| `docker info` | `NCPU 12`, `MemTotal 8319238144` | **`NCPU 6`**, `MemTotal 8320028672` (7.75 GiB) |
+| `settings-store.json` | no `Cpus` key | **`"Cpus": 6`** |
+| Containers | 10 `manifest-*` Up; `qdrant-local-dev`, `mongodb`, `mongo-express` Up; the SAML IdP exited | the same set, returned by their restart policies |
+| `make verify` | — | 67 checks, 0 failed, 0 warnings |
+
+**The Docker tier, both wrapped (utility, scale 5 exported; the `docker` project's own limits 120 s), 7100 stopped, the chat model warm:**
+
+| | 12 CPUs — sitting 2, 2026-10-15 00:16 | **6 CPUs — sitting 3, 09:04** | 6 ÷ 12 |
+|---|---|---|---|
+| Result | 305/305, 44 files | **305/305, 44 files** | — |
+| Vitest wall | 1977.1 s | **1502.7 s** | **0.76** |
+| `runtime/docker/driver` · `roundtrip` · `releases/redeploy` · `runtime/docker/services` | 600.9 · 174.4 · 226.0 · 79.3 s | 444.2 · 44.3 · 123.7 · 37.9 s | 0.60 |
+| The other 40 files | 868.2 s | 828.4 s | **0.95** |
+| Load (1-min) min / median / max | 2.20 / 5.46 / 10.64 | 3.17 / 5.97 / 11.01 | — |
+| Networks | 12 → 19 | 12 → 19 | — |
+
+The four files' saving is in tests that wait on the edge or a build (`roundtrip`'s build 116.2 → 22.7 s; *two deploys of one environment at
+once* 139.0 → 39.9 s; `driver`'s health-policy route 116.5 → 21.9 s, its refused route change 92.8 → 20.9 s, its route removal 64.9 →
+23.9 s), not in computing; the CPU-bound builds are slower at 6 (*builds the same source to the same digest* 27.3 → 40.3 s, *reports the
+scan* 60.7 → 67.8 s). So 6 CPUs is **not slower** — the plan's criterion — and one run a side does not show it faster (F2). The cap did not
+lower the host's load during the run (F3).

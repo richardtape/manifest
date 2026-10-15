@@ -2876,3 +2876,11 @@ utility priority got ~1 % of one core (`ps`: 0.22 s of CPU in 21 s, each burner 
 15 s. That is the priority doing what Rich asked — his work wins outright — and no timeout scale reaches it; the gate (12) is what keeps a
 run out. **Below the gate it is green**: ten burners (11.61–11.88 at the start) at utility scale 5, six at background scale 7. If the load is
 above 12, wait for it (`Monitor` on `sysctl -n vm.loadavg`); a forced run there says `forced yes` on its line, and its reds are the load's.
+
+**DOCKER DESKTOP'S *APPLY & RESTART* CAN ALSO APPLY A PENDING UPDATE — READ THE VERSION ON BOTH SIDES OF A RESTART A MEASUREMENT BRACKETS**
+(the gentler test tiers plan's sitting 3, F1, 2026-10-15). Rich's CPU-limit change (Settings → Resources → Advanced → 12 → 6 → *Apply &
+restart*) came back as **Docker Desktop 4.95.0, Engine 29.8.2, API 1.56** — it was 4.87.0 / 29.7.2 / 1.55 five minutes earlier, and nothing
+on the Resources page says a restart will update. So a before/after comparison across that restart changed two variables. Nothing broke: the
+same containers returned by their restart policies, `make verify` 67/0/0, P3's `v1.44` pin still inside the API window (minimum 1.40).
+Read `defaults read /Applications/Docker.app/Contents/Info.plist CFBundleShortVersionString` and `docker version --format '{{.Server.Version}}
+{{.Server.APIVersion}}'` before and after, and record both.
