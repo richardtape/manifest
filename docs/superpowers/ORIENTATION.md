@@ -2058,8 +2058,11 @@ approved by Rich 2026-10-15 ~08:54 (`ab6c7b7a`), nine sittings, one tab each (`m
 built in the git worktree `/Users/rich/Developer/manifest-p11` on branch `p11-admin-ui`** (Rich's word, `3011e11`) and changes this checkout
 only by its three fast-forward landings and its sittings' documents. **Sitting 1 is done** (2026-10-15: the baseline
 [`spikes/p11-baseline/`](spikes/p11-baseline/README.md), `7fd25e4`; the skeleton `c2cb418` on the branch — `packages/admin-ui` on 7101,
-its own mock on 7113 by `make admin-ui` from the worktree); **its sitting 2 (Task 3, the demo fleet's reads) is next**, and its sittings
-table says where each stops. It takes a 7100 window only to land (L1 closes its sitting 3). Two of its traps are in TRAPS.md: a
+its own mock on 7113 by `make admin-ui` from the worktree — `8f9038f` since sitting 2's rebase: **a branch sha moves at every sitting's
+opening rebase; find a commit by its subject**); **so is sitting 2** (2026-10-15: the demo fleet `b289297` on the branch,
+`MANIFEST_MOCK_FLEET=demo` — its record names four planned states the platform cannot reach, built as it answers, and what Tasks 9–12
+inherit); **its sitting 3 (Task 4, the fleet's decisions, then LANDING 1 — the mock's first change on `main`, G3) is next**, and its
+sittings table says where each stops. It takes a 7100 window only to land (L1 closes its sitting 3). Two of its traps are in TRAPS.md: a
 backgrounded `scripts/admin-ui.sh` ignores SIGINT (stop it with TERM), and `make doctor` in the worktree reads three fails for git-ignored
 files.
 

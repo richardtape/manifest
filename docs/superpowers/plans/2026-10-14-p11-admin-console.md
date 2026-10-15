@@ -104,8 +104,8 @@ records and UBC's order), **§20** (step-up). **Design:** the refreshed [`2026-0
 | Sitting | Tasks | What it delivers | Lands on `main`? (a 7100 window) | Where it stops | Status |
 |---|---|---|---|---|---|
 | 1 | 1, 2 | **The measurements and the worktree**: every fact re-read; an offline install and the contract's `dist/`; the references rendered under React 19.3.0 in a `node:vm`; a `.test.tsx` under a new Vitest project; what the platform's rules let the demo fleet hold. **The skeleton**: `packages/admin-ui` on 7101, its Vitest project in `pnpm test`, its lint block and boundary test, `src/api.ts`, the router and the shell, the administrator's gate, **`make doctor` asking 7101 and 7113** | No | After Task 2's commit on the branch | ✅ **DONE 2026-10-15** (`manifest-p11-s1`, 09:10–09:47 PDT): the baseline `7fd25e4` on `main`; the skeleton `c2cb418` on `p11-admin-ui`; *What executing this plan found*, *Sitting 1* |
-| 2 | 3 | **The mock's demo fleet, read**: thirteen projects, each object spread from a validated fixture, their reads by id, the queue across them, their event streams; every state one the platform can reach | No | After Task 3's commit | ← **next** (a fresh session, `manifest-p11-s2`; it opens with `git -C /Users/rich/Developer/manifest-p11 rebase main`) |
-| 3 | 4 | **The demo fleet's decisions, with state**, every request body validated; the replay's hash keeping §26's reason. **LANDING 1** at the close — the mock's first change in this lane (**G3**), the new package, `pnpm install` in the shared checkout | **Yes — L1** | After L1's merge and the shared checkout's install, both read back | |
+| 2 | 3 | **The mock's demo fleet, read**: thirteen projects, each object spread from a validated fixture, their reads by id, the queue across them, their event streams; every state one the platform can reach | No | After Task 3's commit | ✅ **DONE 2026-10-15** (`manifest-p11-s2`, 09:49–10:18 PDT): the demo fleet `b289297` on `p11-admin-ui`; *What executing this plan found*, *Sitting 2* |
+| 3 | 4 | **The demo fleet's decisions, with state**, every request body validated; the replay's hash keeping §26's reason. **LANDING 1** at the close — the mock's first change in this lane (**G3**), the new package, `pnpm install` in the shared checkout | **Yes — L1** | After L1's merge and the shared checkout's install, both read back | ← **next** (a fresh session, `manifest-p11-s3`; it opens with `git -C /Users/rich/Developer/manifest-p11 rebase main`, then reads *Sitting 2*'s findings) |
 | 4 | 5 | **The look**: the six shared and fourteen operations components ported to TSX in `src/system/`, each held markup-identical to its reference by the parity test; the stylesheets; the shell's rail in the system's own component | No | After Task 5's commit | |
 | 5 | 6, 7 | **The queue** — the headline from our band, the two bands, the rows, the filter, the keyboard, the URL, the 60-second read (Task 6) — and **the release approval pane**: the request and its token from the project's stream, the preview on a click, the diff, approve and reject observed, the step-up round trip with the reason kept, stale and expired, decided by someone else (Task 7) | No | After Task 7's commit | |
 | 6 | 8, 9 | **The team's step and UBC's answer** — submit, file, hand back, record, every body exactly what the operation requires, a granted change in its two writes (Task 8) — and **the fleet**: the table, its filters in the URL, the instance count, archived rows (Task 9). **LANDING 2** at the close | **Yes — L2** | After L2's merge, read back. **If it overflows, L2 moves to sitting 7's open** | |
@@ -1623,7 +1623,10 @@ Modify `src/screens/queue.tsx`, `src/router.ts` (`/projects/<id>/records`), `src
 - [ ] **Step 1: The failing tests** — `filterFromQuery(queryFromFilter(f))` round-trips every field; archived rows hidden by default and shown
   by the filter; *older blueprint* from `listBlueprints`' majors (`rubric-helper`'s `@0`); sort by every column, default the most recent
   deploy first; `envCellOf` for `econ-101-polls`' production → *healthy · 1* and the incident marker (one of its two stopped, not
-  replaced); the screen: `DataTable` `striped` (decision 17), a row is a link to `/projects/<id>` (followed in-app by the shell's delegated
+  replaced); **[Sitting 2, F1, F3, F5: no `@0` exists — `rubric-helper` is on `@1` and the fleet has no older-blueprint row, so test that
+  filter on a synthetic row; the Fleet answers econ's production `instances: 2` (the stopped member stays in the set) — *"1 of 2"* needs
+  `listInstances`' `serving`; and the Fleet's `lastDeployAt` is the newest `lastSeenAt`, so *"an incident after the last deploy"* never
+  fires on a live set — decide the marker's rule here]** the screen: `DataTable` `striped` (decision 17), a row is a link to `/projects/<id>` (followed in-app by the shell's delegated
   listener, M5), *"14 apps · 1 archived, hidden"*. **And the gaps said**: the header's sentence *"The
   fleet doesn't carry an app's data level, department, domains or this month's AI spend yet."*
 - [ ] **Step 2–4.** **Step 5: Commit on the branch, then the negative control:** default `archived: true` → the default case red; restore.
@@ -1659,7 +1662,9 @@ otherwise not built (named in the sitting's record).
   it."*); `api.test.ts`: the rejection without the header → `400 ADMIN_REASON_REQUIRED` (the api function given no `adminReason`), with it →
   `rejected`; **Review Focus 2 (I7)**: the same rejection retried with the same key and reason → the replayed `rejected` answer, never `409`;
   the button disabled in flight.
-- [ ] **Step 2–4.** Walk `cpsc-110-help` (three instances, one failed and replaced) and `econ-101-polls` (`exit_stopped`).
+- [ ] **Step 2–4.** Walk `cpsc-110-help` (three instances, one failed and replaced) and `econ-101-polls` (`exit_stopped`). **[Sitting 2, F2:
+  `cpsc-110-help` lists FOUR — the replacement retired the whole set it replaced: one `failed`, one `gone`, two serving; `econ-101-polls`
+  lists eight, one serving, and four Incidents, `exit_stopped` newest]**
 - [ ] **Step 5: Commit on the branch, then the negative control:** read the level from **the newest release instead of the serving one** →
   the level case red on `bio-201-scheduler` (M2: reading `Release.config.sandbox` could not fail — one `data.classification` feeds all three
   environments, `fixtures.ts:486-499`); restore.
@@ -1681,7 +1686,8 @@ otherwise not built (named in the sitting's record).
     each environment whose `latestIncidentAt` is within 14 days, `exit_stopped` first in `attention`, then `exit`, then `deploy`;
     **certificates** from `getLaunchRecords` (both registrations), amber within 90 days, red within 14 (decision 14) — `math-oh-queue` red,
     `bio-201-scheduler` amber; **scans** of each serving release, `stale` or fixable — `stats-sim`'s staging release `stale` (I3 (b): a
-    fixable finding never sits beside a met launch); **superseded blueprints**; and *"Read just now from N
+    fixable finding never sits beside a met launch); **superseded blueprints** (**[Sitting 2, F3: none exists at `1.9.0` — the panel's
+    empty state is the one the demo fleet shows]**); and *"Read just now from N
     reads"* with N counted, not estimated. Each panel's *"cannot see"* sentence present.
   - `settings.test.ts` — **decision 12**: every `key` in `SETTINGS` that names an environment variable appears in
     `packages/control-plane/src/config.ts` or `.env.example` (read as text — test files are outside the boundary); the blueprints row reads
@@ -1719,7 +1725,8 @@ D5's sitting 8). **After L3, in the shared checkout:** `docs/superpowers/RUNBOOK
   5. `phys-101-labs`: *Submit* with `IAM-2026-0612` → the row moves to *Waiting on UBC*.
   6. `stats-sim`: record `active` → the row gone; **then the walk reads the records back through the API** (C1): STAGING's registration
      `active` with the entity ID and attributes it had, production's untouched (absent, as before).
-  7. `/fleet?inProduction=1` → only the launched apps; `econ-101-polls`' production cell *healthy · 1* with the incident marker.
+  7. `/fleet?inProduction=1` → only the launched apps; `econ-101-polls`' production cell *healthy · 1* with the incident marker. **[Sitting
+     2, F1, F5: the Fleet answers it *healthy · 2*; what Task 9 decides for the count and the marker is what this check asserts]**
   8. `/projects/<bio-201-scheduler>` → the administrator's event with its reason; reject the agent's question with a reason → *rejected*.
   9. `/health` → `math-oh-queue`'s certificate red; `econ-101-polls`' `exit_stopped` first. `/settings` → the blueprints listed, every other
      value an admission.
@@ -1971,3 +1978,88 @@ cleanup scripts bare: `dead-app-resources.sh` and `app-images.sh` *"Nothing was 
 **The worktree stays** (node_modules, the contract's `dist/`), for sitting 2, on `p11-admin-ui` at `c2cb418` — **behind `main` by
 documents only**: GT3's close (`d2e2d77`, `2dc2024`), this sitting's baseline (`7fd25e4`) and its close-out. Sitting 2 opens with the
 rebase (*The worktree*).
+
+### Sitting 2 — Task 3: the mock's demo fleet, read (2026-10-15, `manifest-p11-s2`)
+
+**Who and when.** `manifest-p11-s2`, the third coordinated run's P11 build, sitting 2, GOed by `manifest-coord5` at 09:49 PDT; inline.
+**FREE throughout**, beside W5B's walk on 7100 (nothing of 7100's touched); load 4.4–6.3, on AC. The worktree rebased onto `main`
+`1119078` first — `main` had moved by documents alone (`CLAUDE.md`, `docs/superpowers/`), so the contract's `dist/` was not rebuilt;
+the skeleton is now `8f9038f` on the branch. **A branch sha moves at every sitting's opening rebase** (`c2cb418` is
+`8f9038f` now, and `b289297` will move at sitting 3's): find a commit by its subject.
+
+**Task 3** (`b289297` on `p11-admin-ui`). **`packages/mock/src/fleet.ts`** builds the thirteen from one compact row each (`ROWS`): every
+object spread from its validated fixture, every sentence the platform's — copied from `launch/queue.ts`, `launch/records.ts`,
+`launch/readiness.ts`, `launch/rehearsal.ts`, `releases/watch.ts`, `releases/release.ts`, `observability/incidents.ts`,
+`api/routes/projects.ts` and `tokens/pending.ts` — and every time `t0 − age` (t0 the server's creation, to the second) but a
+submission's, stamped at Vancouver noon. **The queue, the checklist and the fleet row are DERIVED from the records, the releases and the
+open request** (as the platform derives them), so Task 4's decisions move them without a second statement. **`server.ts`**:
+`MockOptions.fleet` (`MANIFEST_MOCK_FLEET=demo`); `heldFor(fleet)`; a fleet id answered by the fleet and never by a fixture (a fleet id
+on an operation the fleet does not answer is `501` naming the demo fleet — Task 4 adds the decisions); `listFleet` and `listQueue`
+append the fleet's rows and items in the platform's orders (newest first; since, then kind, then subject); `getMe` answers Operator One
+with the fleet on and `role: admin`; a fleet project's stream replays its own events, the control frame, then whatever the fleet
+appends. **`index.ts`** exports `createFleet`, `FLEET_PROJECTS`, `fleetId`, `KIND` and the types. **`fleet.test.ts`**, 10 cases: every
+read of every fleet project (`getProject` with environments, `listEnvironments`, `getEnvironment`, `listInstances`, `getInstanceOutput`
+by its own code, `listIncidents`, `listReleases`, `getRelease`, `getLaunchReadiness`, `getLaunchRecords`, `listMembers`, `listTokens`,
+`listPendingActions`, `listAgentSessions`); the fleet; **every state reachable, read back through the API** — including each project's
+HISTORY from its own stream (a sign-off asked and a rehearsal run only for a release already serving staging; a launch after its
+approval; production registered before the launch) and every UBC item at a Vancouver noon; the queue's eight items to the second, with
+`mock-app`'s own, the A15 trap in the data (our band's oldest is `reading-responses`', `oldestSince` is `mock-app`'s with the Privacy
+Office); by id; the streams; `mock-app` untouched with the fleet on (M1); no fixture id reused (T4); and, the fleet off, every default
+answer `toStrictEqual` its fixture and a fleet id `404 NOT_FOUND` naming the mock. **RED first** — but the whole file, not the
+predicted half: it imports `fleet.js`, so it failed to load and the defaults' cases could not be shown green before the module existed.
+
+**Findings** (F1–F4 are states the table named that the platform cannot reach; each was built as the platform answers, per I3):
+
+**F1 `econ-101-polls`' Fleet row reads `instances: 2`, not 1.** When replacing stops, the stopped member STAYS in the set — the route
+rows are never removed (`releases/watch.ts` deletes none) and `Fleet.instances` is the set's length (`projects/fleet.ts`; its own
+description: *"a production instance that stopped stays among them until its replacement serves"*). *"1 of 2"* is `listInstances`'
+`serving` (`api/routes/instances.ts:176`: in the route set AND healthy). The test asserts 2, and the set's states `failed`, `healthy`.
+
+**F2 `cpsc-110-help` lists FOUR instances, not three.** A replacement deploys the whole set again and *"the deploy scheduled the retire
+pass for the old one"* (`releases/watch.ts:500`): the stopped member stays `failed`, its partner becomes `gone`. Two serve. Likewise
+`econ-101-polls` lists eight (four sets of two; one serving) with four Incidents, `exit_stopped` newest — the watcher's back-off read
+as built: at once, a minute, four minutes, then the fourth exit in the hour stops replacing, its `failedCheck` naming the three starts
+and three exits in `HH:MM:SS UTC` (`watch.ts`'s `list`).
+
+**F3 `node-ts-mongo@0` never existed.** `blueprints/` holds one blueprint, major 1, and `listBlueprints` answers `@1` alone — so a project
+on `@0` is a state no platform reaches. `rubric-helper` is on `@1`; **the fleet has no superseded-blueprint row at `1.9.0`**, so Task 9's
+*older blueprint* filter is tested on a synthetic row and Task 11's panel shows its empty state (both annotated in place).
+
+**F4 `rubric-helper`'s *"staging failed · 1"* needs its FIRST staging deploy to have failed.** A failed later deploy leaves the previous
+release serving (`healthy`); only with no route ever written does `servingInstancesOf` fall back to the newest instance — `failed`, with
+`lastSeenAt` null. Built so: its sandbox serves, its staging never has, so its checklist reads *"Nothing is serving in staging yet"* on
+`rehearsal`, `scans` and `admin-approval` — the platform's candidate is the release serving staging, healthy.
+
+**F5 The Fleet's `lastDeployAt` is the newest `lastSeenAt`** (`projects/fleet.ts`: `max(instances.lastSeenAt)`), which a serving member's
+probes keep recent — so Task 9's incident marker (*"`latestIncidentAt` after `lastDeployAt`"*) never fires on a set that still serves,
+`econ-101-polls`' included. For Task 9 to decide; annotated there and on Task 12's check 7.
+
+**F6 The planned I3 test could not see an ORDER the platform forbids** — it read states, not history — and this sitting's own first
+table asked `econ-101-polls`' sign-off a day before its release served staging. The history check (above) was added; with the row put
+back it goes red naming `econ-101-polls approval.requested` (control (e)).
+
+**F7 The plan's `FleetContext` had no query**, and two reads need one (`getProject`'s `expand=environments`, `getInstanceOutput`'s
+`lines`): `query: URLSearchParams` added. Every other member of *Interfaces* is as written.
+
+**F8 The default fixture `f.FLEET` lists `mock-app`'s staging alone; the platform lists every project's three environments**, by kind
+(`projects/fleet.ts`: production, sandbox, staging). The fleet's rows follow the platform; `f.FLEET` is a default answer the faculty
+front-end reads, so it is left as it is — a finding for the mock's next owner. (*"`mus-100-listening` with no production"* therefore
+reads as its production environment with `state: null`, `instances: 0`.)
+
+**The negative controls (Step 5), all seen:** (a) `reading-responses` given `mock-app`'s id → the T4 case and the *fleet on, `mock-app`
+untouched* case red, as predicted, with four more following (every case that finds the project by its fleet id), the fleet-off cases
+green; (b) econ's production `instances: 'two'` → `/v1/fleet` `500` *"manifest-mock built a body that is not a Fleet:
+/7/environments/0/instances must be integer"*, the fleet and I3 cases red; (c) the fleet's rows answered with the fleet off → the
+defaults' case red, alone; (d) `mus-100-listening` launched → the fleet case and the I3 case red, naming it; (e) — this sitting's own,
+F6 — econ's sign-off asked before its staging deploy → the I3 case red, naming it. Each restored from the commit (`git checkout --` of the
+one file).
+
+**The gates, on the final branch tree `b289297`:** `pnpm exec vitest run --project admin-ui --project packages` **twice, identical — 39
+files, 357 passed** (sitting 1's 38 / 347 plus `fleet.test.ts`, 1 / 10), 39.2 s and 38.3 s, load 5.5–6.3; the mock's suite alone 5
+files / 81; `pnpm lint`, `pnpm typecheck` (seven packages) and `pnpm format:check` clean. **For L1's `EXPECT_` lines:** `pnpm test`
+gains the `admin-ui` project (6 / 42) and `fleet.test.ts` (1 / 10) so far.
+
+**The machine:** the demo-fleet mock this sitting started on 7113 to read its answers by hand stopped with TERM; 7101 and 7113 free; no
+Docker resource made; 7100 untouched. The three cleanup scripts bare: *"Nothing was changed. 0 network(s) and 0 volume(s) are dead"*,
+*"Nothing to delete"* (0 app containers read), *"Nothing was changed. 0 app image(s) are dead"* — no `--apply` owed. **The worktree
+stays** for sitting 3, on `p11-admin-ui` at `b289297`, clean; `packages/mock` reaches `main` only at L1 (G3).
