@@ -13,6 +13,7 @@ import {
   type Route,
 } from './router'
 import { NotAdmin } from './screens/not-admin'
+import { FleetScreen } from './screens/fleet'
 import { QueueScreen } from './screens/queue'
 import { RecordsScreen } from './screens/record-pane'
 import { ConsoleRail, type ConsoleRailProps, type RailItem } from './system'
@@ -162,7 +163,7 @@ function Screen({ route, api, me }: { route: Route; api: Api; me: Schemas['Me'] 
     case 'release':
       return <QueueScreen api={api} me={me} route={route} />
     case 'fleet':
-      return <h1 className="mfa-h1">Fleet</h1>
+      return <FleetScreen api={api} query={route.query} />
     case 'project':
       return route.section === 'records' ? (
         <RecordsScreen api={api} me={me} projectId={route.projectId} />

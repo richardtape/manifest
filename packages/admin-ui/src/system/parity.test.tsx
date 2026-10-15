@@ -785,6 +785,8 @@ const CASES: Record<
       { env: { state: 'healthy', age: '9d', instances: 3 } },
       { env: { state: 'healthy', instances: 1 } },
       { env: { state: null, instances: 0 } },
+      // The fleet's (Task 9): a set of two serving, its last deploy's age, and an Incident after it.
+      { env: { state: 'healthy', instances: 2, age: '41m ago', incident: '39m ago' } },
     ],
   },
 }
