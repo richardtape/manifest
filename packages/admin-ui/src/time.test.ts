@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { ageShort, ageWords, dayInWords } from './time.js'
+import { ageShort, ageWords, clockInWords, dayInWords } from './time.js'
 
 // 09:00 in Vancouver (PDT, UTC-7) — before the noon a team's submission is stamped at.
 const NOW = new Date('2026-10-15T16:00:00Z')
@@ -42,5 +42,14 @@ describe('a day in words', () => {
   it('is Vancouver’s day, as the platform writes it — not UTC’s', () => {
     expect(dayInWords('2026-10-14T06:30:00Z')).toBe('October 13, 2026')
     expect(dayInWords('2026-10-14T07:30:00Z')).toBe('October 14, 2026')
+  })
+})
+
+describe('a time of day', () => {
+  it('is Vancouver’s, as an operator reads a preview’s clock', () => {
+    expect(clockInWords('2026-10-15T19:00:00Z')).toBe('12:00 p.m.')
+    expect(clockInWords('2026-10-15T16:05:00Z')).toBe('9:05 a.m.')
+    // 00:30 in Vancouver is 07:30 in UTC — never the UTC hour.
+    expect(clockInWords('2026-10-15T07:30:00Z')).toBe('12:30 a.m.')
   })
 })

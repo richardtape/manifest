@@ -122,3 +122,54 @@ describe('the queue on the demo fleet', () => {
     expect(queue.oldestSince).not.toBe(rr?.since)
   })
 })
+
+/**
+ * A RELEASE SIGNED OFF FROM A STORED PREVIEW, ON THE DEMO FLEET (Task 7): the decision takes — the item
+ * leaves the queue — and the same action retried with the same key is the same decision, replayed.
+ */
+describe('a release approved on the demo fleet', () => {
+  const fleet = { role: 'admin', fleet: 'demo' } as const
+  const rrOf = (queue: Awaited<ReturnType<ReturnType<typeof api>['listQueue']>>) =>
+    queue.items.find(
+      (i) => i.kind === 'release-approval' && i.project.slug === 'reading-responses',
+    )
+
+  it('preview → approve → the queue no longer lists reading-responses; the same key replays the same Approval', async () => {
+    await withMock(async (o) => {
+      const client = api(o)
+      const rr = rrOf(await client.listQueue())!
+      const preview = await client.createApprovalPreview(rr.subjectId, client.newKey())
+      const key = client.newKey()
+      const body = { previewId: preview.id, reason: 'The egress change is in the PIA.' }
+      const approval = await client.approveRelease(rr.subjectId, body, key)
+      expect(approval).toMatchObject({
+        releaseId: rr.subjectId,
+        decision: 'approved',
+        decidedByName: 'Operator One',
+        previewId: preview.id,
+        reason: 'The egress change is in the PIA.',
+      })
+      expect(rrOf(await client.listQueue())).toBeUndefined()
+      // A retry after a lost answer: the same key, the same body — one decision, replayed.
+      const again = await client.approveRelease(rr.subjectId, body, key)
+      expect(again).toEqual(approval)
+      expect(await client.getApproval(rr.subjectId)).toEqual(approval)
+    }, fleet)
+  })
+
+  it('refuses a decision without a recent step-up first — 403 STEP_UP_REQUIRED, the item still queued', async () => {
+    await withMock(
+      async (o) => {
+        const client = api(o)
+        const rr = rrOf(await client.listQueue())!
+        const preview = await client.createApprovalPreview(rr.subjectId, client.newKey())
+        const error = await refusal(
+          client.approveRelease(rr.subjectId, { previewId: preview.id }, client.newKey()),
+        )
+        expect([error.status, error.code]).toEqual([403, 'STEP_UP_REQUIRED'])
+        expect(rrOf(await client.listQueue())).toBeDefined()
+      },
+      { ...fleet, stepUp: true },
+    )
+  })
+})

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { signOut } from './auth'
+import { signOut, stepUpUrl } from './auth'
 
 /**
  * THE RAIL'S *SIGN OUT* ASSERTS THE SHAPE OF THE ANSWER — the reference console's `auth.test.ts`,
@@ -86,5 +86,25 @@ describe('signOut asserts the shape of the answer', () => {
     answering(status, body)
     await expect(signOut()).rejects.toThrow()
     expect(went).toBe('unchanged')
+  })
+})
+
+/**
+ * THE STEP-UP ROUND TRIP COMES BACK TO THE SAME PREVIEW (Review Focus 3): the pane's own URL, the
+ * preview's id in it, as `returnTo` — ENCODED, as the reference console encodes it
+ * (`packages/console/src/auth.ts`), so the `?` and `=` of the return path are not read as the
+ * step-up's own query.
+ */
+describe('stepUpUrl', () => {
+  it('returns to the release’s pane and its preview, encoded', () => {
+    const release = '6f1c2a40-3b2d-4c5e-9f10-1a2b3c4d5e6f'
+    const preview = '7a6b5c4d-3e2f-4a1b-8c9d-0e1f2a3b4c5d'
+    expect(stepUpUrl(release, preview)).toBe(
+      '/auth/step-up?returnTo=' +
+        encodeURIComponent('/releases/' + release + '/approval?preview=' + preview),
+    )
+    expect(stepUpUrl(release, preview)).toBe(
+      `/auth/step-up?returnTo=%2Freleases%2F${release}%2Fapproval%3Fpreview%3D${preview}`,
+    )
   })
 })

@@ -93,6 +93,33 @@ const RAIL = {
   footItems: [{ label: 'Settings', icon: 'settings', href: '/settings' }],
 }
 
+const PANE_DECISION = {
+  id: 'reason-f1ee7004-0001-4003-8000-000000000000',
+  owner: 'Instructor One',
+  onReason: () => undefined,
+  placeholder: 'Why, in words Instructor One can act on.',
+  hint: 'Approving: a reason is optional, and kept on the approval record. Rejecting: required, and Instructor One reads it.',
+  seeLabel: 'What Instructor One will see',
+  previews: [
+    {
+      label: 'If you approve',
+      type: 'release.approved',
+      lead: 'Operator One approved this release for production.',
+      reasonIn: 'record',
+    },
+    {
+      label: 'If you reject',
+      type: 'release.approval_rejected',
+      lead: 'Operator One did not approve this release:',
+      reasonIn: 'sentence',
+      after:
+        'A rejection is final for this release. Instructor One also reads it on the launch checklist.',
+    },
+  ],
+  onPreviewIndex: () => undefined,
+  note: 'Deciding asks you to sign in again when your last sign-in is not recent. You come back to this preview, your reason kept.',
+}
+
 /**
  * Every prop set the console renders each component with, and the edges (empty, long, every state
  * and kind) — plus every prop SHAPE the mockup's own `console.js` passes that the plan's list lacked
@@ -125,6 +152,14 @@ const CASES: Record<
         children: 'Approve',
       })),
       { kind: 'primary', disabled: true, children: 'Approve' },
+      // The approval pane's (Task 7): Take the preview, disabled while one is taken.
+      {
+        kind: 'secondary',
+        size: 'sm',
+        disabled: true,
+        onClick: () => undefined,
+        children: 'Taking the preview…',
+      },
       { kind: 'secondary', href: '/fleet', children: 'Fleet' },
       {
         children: 'Default',
@@ -435,6 +470,47 @@ const CASES: Record<
   ObservedAction: {
     from: 'admin',
     props: [
+      // The approval pane's (Task 7): offered, and then in flight — both buttons disabled.
+      {
+        ...PANE_DECISION,
+        reason: '',
+        previewIndex: 0,
+        actions: [
+          {
+            label: 'Approve for production',
+            kind: 'primary',
+            disabled: false,
+            onClick: () => undefined,
+          },
+          {
+            label: 'Reject',
+            kind: 'ghostDanger',
+            needsReason: true,
+            disabled: false,
+            onClick: () => undefined,
+          },
+        ],
+      },
+      {
+        ...PANE_DECISION,
+        reason: 'Not in the PIA.',
+        previewIndex: 1,
+        actions: [
+          {
+            label: 'Approve for production',
+            kind: 'primary',
+            disabled: true,
+            onClick: () => undefined,
+          },
+          {
+            label: 'Reject',
+            kind: 'ghostDanger',
+            needsReason: true,
+            disabled: true,
+            onClick: () => undefined,
+          },
+        ],
+      },
       {
         id: 'r1',
         owner: 'Instructor One',
@@ -542,6 +618,15 @@ const CASES: Record<
         text: 'Instructor One asked for sign-off.',
         type: 'approval.requested',
         who: 'Instructor One',
+      },
+      // The approval pane's (Task 7): an actor as the stream answers one — no administrator, no reason.
+      {
+        when: '3d 4h ago',
+        text: 'An agent on Instructor One’s token asked an administrator to approve this release for production.',
+        type: 'approval.requested',
+        who: 'Instructor One',
+        asAdmin: false,
+        reason: null,
       },
     ],
   },

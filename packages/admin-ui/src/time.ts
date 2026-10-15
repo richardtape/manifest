@@ -61,3 +61,14 @@ const VANCOUVER_DAY = new Intl.DateTimeFormat('en-CA', {
 export function dayInWords(iso: string): string {
   return VANCOUVER_DAY.format(new Date(iso))
 }
+
+const VANCOUVER_CLOCK = new Intl.DateTimeFormat('en-CA', {
+  hour: 'numeric',
+  minute: '2-digit',
+  timeZone: 'America/Vancouver',
+})
+
+/** *"9:05 a.m."* — the time of day it was in Vancouver: when a preview was taken, until when it holds. */
+export function clockInWords(iso: string): string {
+  return VANCOUVER_CLOCK.format(new Date(iso))
+}

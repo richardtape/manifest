@@ -143,7 +143,7 @@ function Shell({ me, api }: { me: Schemas['Me']; api: Api }) {
       <div className="mfa-content">
         <main className="mfa-main">
           <Refusal error={signOutError} />
-          <Screen route={route} api={api} />
+          <Screen route={route} api={api} me={me} />
         </main>
       </div>
     </div>
@@ -155,11 +155,11 @@ function Shell({ me, api }: { me: Schemas['Me']; api: Api }) {
  * item selected — the same element in the same place, so moving between the two keeps the queue
  * read and the pane's state.
  */
-function Screen({ route, api }: { route: Route; api: Api }) {
+function Screen({ route, api, me }: { route: Route; api: Api; me: Schemas['Me'] }) {
   switch (route.screen) {
     case 'queue':
     case 'release':
-      return <QueueScreen api={api} route={route} />
+      return <QueueScreen api={api} me={me} route={route} />
     case 'fleet':
       return <h1 className="mfa-h1">Fleet</h1>
     case 'project':

@@ -22,14 +22,10 @@ import {
 } from '../queue-state'
 import { Refusal } from '../refusal'
 import { navigate, type Route } from '../router'
-import {
-  FilterBar,
-  QueueRow,
-  StateChip,
-  WaitHeadline,
-  type QueueRowMeta,
-} from '../system'
+import { FilterBar, QueueRow, WaitHeadline, type QueueRowMeta } from '../system'
 import { ageShort, ageWords, dayInWords } from '../time'
+import { ApprovalPane } from './approval-pane'
+import { ItemHead } from './item-head'
 
 const READ_EVERY_MS = 60_000
 
@@ -216,29 +212,32 @@ function FilterBarFor(props: {
 }
 
 /**
- * The pane's head: the kind, who holds the wait, the platform's sentence, the project and how long
- * it has waited — the drawing's `.mfa-pane__head`.
+ * The selected item's pane, by kind: a release's sign-off is the approval pane — opened by its queue
+ * URL or by `/releases/<id>/approval`, in the queue or no longer — and Task 8 builds the records'.
  */
-export function ItemHead({ item, now }: { item: QueueItem; now: Date }) {
-  return (
-    <header className="mfa-pane__head">
-      <div className="mfa-pane__top">
-        <span className="mfa-over">{kindWords(item.kind)}</span>
-        <StateChip state="waiting" pulse={false} label={holderWords(item)} />
-      </div>
-      <h2 className="mfa-pane__ask">{item.summary}</h2>
-      <p className="mfa-pane__meta">
-        <span className="mfa-mono">{item.project.slug}</span>
-        <span>{item.project.name}</span>
-        <span>{`waiting ${ageWords(item.since, now)}`}</span>
-      </p>
-    </header>
-  )
-}
-
-/** The selected item's pane, by kind. Tasks 7 and 8 build the panes that decide. */
-function ItemPane(props: { item: QueueItem | null; left: boolean; now: Date }) {
+function ItemPane(props: {
+  api: Api
+  me: Schemas['Me']
+  selected: string
+  item: QueueItem | null
+  left: boolean
+  preview: string | undefined
+  now: Date
+}) {
   const { item, left, now } = props
+  const release = 'release-approval:'
+  if (props.selected.startsWith(release))
+    return (
+      <ApprovalPane
+        api={props.api}
+        me={props.me}
+        releaseId={props.selected.slice(release.length)}
+        item={item}
+        left={left}
+        preview={props.preview}
+        now={now}
+      />
+    )
   if (item === null)
     return (
       <section className="mfa-sec">
@@ -290,7 +289,15 @@ function routeOf(key: string | null, filter: QueueFilter): Route {
  * keyboard. A failed re-read leaves the last queue on screen with the refusal above it; an ended
  * session goes round the sign-in trip back to this URL.
  */
-export function QueueScreen({ api, route }: { api: Api; route: Route }) {
+export function QueueScreen({
+  api,
+  me,
+  route,
+}: {
+  api: Api
+  me: Schemas['Me']
+  route: Route
+}) {
   const [queue, setQueue] = useState<Schemas['Queue'] | null>(null)
   const [readAt, setReadAt] = useState(() => new Date())
   const [now, setNow] = useState(() => new Date())
@@ -399,7 +406,20 @@ export function QueueScreen({ api, route }: { api: Api; route: Route }) {
       onSelect={(i) => navigate(routeOf(itemKey(i), filter))}
       {...(selected === null
         ? {}
-        : { pane: <ItemPane key={selected} item={item} left={left} now={now} /> })}
+        : {
+            pane: (
+              <ItemPane
+                key={selected}
+                api={api}
+                me={me}
+                selected={selected}
+                item={item}
+                left={left}
+                preview={route.screen === 'release' ? route.preview : undefined}
+                now={now}
+              />
+            ),
+          })}
     />
   )
 }

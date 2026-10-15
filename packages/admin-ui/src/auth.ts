@@ -3,7 +3,8 @@
  * asserts both halves). Signing in is the browser's and the IdP's business, not the versioned
  * API's — D23.8 lists `/auth/login`, `/auth/step-up` and `POST /auth/logout` outside `/v1` — so, as
  * in the reference console (`packages/console/src/auth.ts`), the round trips live here and everything
- * else goes through `api.ts`. The approval pane's step-up joins this file when it is built.
+ * else goes through `api.ts`. Three round trips live here: sign-in, sign-out and the approval
+ * pane's step-up.
  */
 
 /**
@@ -47,4 +48,18 @@ export async function signOut(): Promise<void> {
     )
   }
   window.location.assign(redirectTo)
+}
+
+/**
+ * WHERE A DECISION ANSWERED `403 STEP_UP_REQUIRED` SENDS THE OPERATOR (§20; Review Focus 3): a fresh
+ * CWL sign-in that comes back to THIS pane and THIS preview — its id in the return path, which the
+ * router keeps (`Route`'s `preview`) — so the operator lands where they were, the preview restored
+ * by `getApprovalPreview` and their reason by `sessionStorage`. The return path is encoded whole, as
+ * the reference console encodes it, so its `?` and `=` are never read as the step-up's own query.
+ */
+export function stepUpUrl(releaseId: string, previewId: string): string {
+  return (
+    '/auth/step-up?returnTo=' +
+    encodeURIComponent('/releases/' + releaseId + '/approval?preview=' + previewId)
+  )
 }
