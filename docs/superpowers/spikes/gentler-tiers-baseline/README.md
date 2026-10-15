@@ -7,8 +7,7 @@ Task 1. These are the "before" of every comparison its Task 6 makes.*
 
 **What is here:** `burn.sh` (a command beside N `yes` burners, the 1-minute load sampled every 30 s) and `durations.mjs` (a Vitest
 JSON report's wall time, reds, slowest tests and slow list; given a second report, the ratios). The JSON reports stayed in the
-session's scratchpad (copied to the plan's git-ignored workspace, `.superpowers/sdd/2026-10-14-gentler-test-tiers/runs/`); their
-numbers are below.
+session's scratchpad, which does not outlive it; their numbers are below.
 
 ## The machine and the versions
 

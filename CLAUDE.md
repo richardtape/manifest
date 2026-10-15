@@ -14,8 +14,9 @@ names the next job** and the current plan's sittings table says how far it has g
 
 **The design is approved and complete, five spikes are done, and twenty plans are executed** — each with an acceptance that
 passes; the newest is **A1 — production instances by audience** (`docs/superpowers/plans/2026-10-03-production-instances.md`),
-EXECUTED 2026-10-13/14, inline, eight sittings in the second coordinated run — contract `1.9.0`. **The next plan is the gentler test
-tiers** (`docs/superpowers/plans/2026-10-14-gentler-test-tiers.md`, approved `b492e31`); then B (the load rehearsal, FE-44), FE-32 with §12's package allowlist (approved), BYOA on the laptop (approved 2026-10-13, `2b3dd6d`), Phase 3 (sandboxes), A2 (hibernation), the
+EXECUTED 2026-10-13/14, inline, eight sittings in the second coordinated run — contract `1.9.0`. **The gentler test tiers plan is
+executing** (`docs/superpowers/plans/2026-10-14-gentler-test-tiers.md`, approved `b492e31`; since its first sitting `pnpm test` runs through
+`scripts/test-gently.sh` — ORIENTATION §7e); then B (the load rehearsal, FE-44), FE-32 with §12's package allowlist (approved), BYOA on the laptop (approved 2026-10-13, `2b3dd6d`), Phase 3 (sandboxes), A2 (hibernation), the
 vulnerability database in the console, and FE-45 (Rich, 2026-10-03, 15:28; A2 awaits a second review; B's is done, `6f99611`, revised `b25d7e3`, approved `0e9db93`). Rich's decisions since 2026-09-30 are in `docs/superpowers/2026-09-30-decisions.md`. Each plan's *What executing this plan found* is its record; this file keeps none of it.
 
 | Plan | Executed | What it made true | Acceptance |

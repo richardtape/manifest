@@ -47,8 +47,8 @@ describes the test harness's timing** (grepped at `abdd01e` for `testTimeout`, `
 
 | Sitting | Tasks | What it delivers | `pnpm test:docker` owed? | Where it stops | Status |
 |---|---|---|---|---|---|
-| 1 | 1, 2, 3 | **The measurements on today's tree** — every fact re-read, versions, the QoS priorities, the whole unit suite quiet at normal, utility and background priority and once under imitated load, each with every test's duration — **the timeout scale** (`test-timeouts.ts`, the two projects, `slowTestThreshold`, the 58 explicit timeouts) **and the wrapper** (`scripts/test-gently.sh`, `package.json`) | No — no Docker-tier path changes until Task 4 | After Task 3's commit, with `pnpm test` running through the wrapper twice, green | ← **next** |
-| 2 | 4, 5, 6 | **`resetDatabase` survives a deadlock**; ci-acceptance's line, the RUNBOOK, ORIENTATION and TRAPS; **the after-measurements** (the same imitated load, wrapped) and every control; the plan's one whole-branch review; `make ci-acceptance`; **the Docker tier at 12 CPUs** — owed, and the "before" of Rich's step | **Yes — once, at the end, beside the reviewer** | After the Docker tier and the review's one fix wave | |
+| 1 | 1, 2, 3 | **The measurements on today's tree** — every fact re-read, versions, the QoS priorities, the whole unit suite quiet at normal, utility and background priority and once under imitated load, each with every test's duration — **the timeout scale** (`test-timeouts.ts`, the two projects, `slowTestThreshold`, the 58 explicit timeouts) **and the wrapper** (`scripts/test-gently.sh`, `package.json`) | No — no Docker-tier path changes until Task 4 | After Task 3's commit, with `pnpm test` running through the wrapper twice, green | **DONE 2026-10-14** (`manifest-gt-s1`) — `adf9127`, `44b4e49`, `a2060ce`; scales **utility 3, background 7**; *What executing this plan found*, *Sitting 1* |
+| 2 | 4, 5, 6 | **`resetDatabase` survives a deadlock**; ci-acceptance's line, the RUNBOOK, ORIENTATION and TRAPS; **the after-measurements** (the same imitated load, wrapped) and every control; the plan's one whole-branch review; `make ci-acceptance`; **the Docker tier at 12 CPUs** — owed, and the "before" of Rich's step | **Yes — once, at the end, beside the reviewer** | After the Docker tier and the review's one fix wave | ← **next** — read *Sitting 1*'s *What it left sitting 2* first |
 | 3 | 7 | **Rich's Docker Desktop step** — 6 CPUs, after A1's click — **the Docker tier at 6 CPUs**, the comparison, and the plan's close | Yes — it is the measurement | After the comparison is recorded and Rich has said keep or change | |
 
 **EVERY SITTING ENDS THE SAME WAY** — the four gates (`pnpm test` twice, alone, on the final tree — through the wrapper from Task 3 on),
@@ -1235,6 +1235,11 @@ git commit -m "feat(tests): scripts/test-gently.sh — pnpm test and test:docker
 
 ## Task 4: `resetDatabase` survives a deadlock
 
+> **SITTING 1 MEASURED (2026-10-14, *What executing this plan found*, *Sitting 1*):** the scales are **utility 3, background 7** — so
+> `resetLockTimeoutMs()` is **3 750 ms** an attempt under `pnpm test`, 8 750 ms at background and 1 250 ms in an unwrapped single-file run.
+> A case that holds a lock *past three budgets* computes the hold from `resetLockTimeoutMs()` at the scale it runs at, or it passes under
+> one and fails under the other.
+
 **Files:**
 - Create: `packages/control-plane/src/db/truncate.ts`
 - Test: `packages/control-plane/src/db/truncate.test.ts`
@@ -1525,6 +1530,10 @@ git commit -m "fix(tests): resetDatabase survives a deadlock — a TRUNCATE retr
 
 ## Task 5: The load on ci-acceptance's line, and the documents
 
+> **SITTING 1 MOVED THE LINES:** its `EXPECT_` comment added five, so at Task 3's commit the temp files are **`:362-363`** and the test
+> step **`:424-436`** (`bold "=== pnpm test ==="` to the `MOVED` record). And `pnpm test` already runs through the wrapper (Task 3), so
+> §2's row was given one sentence by sitting 1's close-out; Step 3 replaces it with the full one.
+
 **Files:**
 - Modify: `scripts/ci-acceptance.sh:357-358`, `:419-431` (Task 1's Step 1 re-read the lines)
 - Modify: `docs/superpowers/RUNBOOK.md`, `docs/superpowers/ORIENTATION.md` (§2's `pnpm test` row, §4's trap 4, §6), `docs/superpowers/TRAPS.md`
@@ -1606,6 +1615,11 @@ git commit -m "docs(tests): the load on ci-acceptance's test line; RUNBOOK, ORIE
 ---
 
 ## Task 6: The after-measurements, the controls, the review and the Docker tier at 12 CPUs
+
+> **SITTING 1 MEASURED:** twelve `yes` burners read a 1-minute load of **60.02 at the start, 53–333 over the run** — not ~12 (F5) — so
+> Step 1's refusal names a load near 60, not `1x.xx`, and the forced run there is the evidence for keeping or moving the gate's default.
+> For Step 2: `lifecycle.test.ts`'s in-test budgets are scaled now (F3); `source/github/driver.test.ts`'s lag cases and the unscaled
+> in-test limits F9 names are what may still read red at background. Task 1's `load-today`: **78 red, 76 timed out.**
 
 **Files:**
 - Modify: `docs/superpowers/spikes/gentler-tiers-baseline/README.md` (the after section)
@@ -1815,5 +1829,104 @@ None. The spec does not describe the test harness's timing (*Spec*, above).
 
 ## What executing this plan found
 
-*(Empty until sitting 1. Each sitting adds its dated section here: what it measured, with versions; every finding as **F*n***; the controls
-and how each went red; what it left the next.)*
+*Each sitting adds its dated section here: what it measured, with versions; every finding as **F*n***; the controls and how each went
+red; what it left the next.*
+
+### Sitting 1 — 2026-10-14, 13:28–19:15 PDT (`manifest-gt-s1`, the second coordinated run's job GT1): Tasks 1–3 — the measurements, the scale and the wrapper
+
+**Opened** by `manifest-coord4`'s GO (~13:27), which relayed Rich's decisions recorded in
+[`../2026-09-30-decisions.md`](../2026-09-30-decisions.md): ~08:12 (`abdd01e`, *"yes to 1–4"*), ~08:48 (`b492e31`, this plan approved
+under his delegation), ~13:25 (`5fad350`, the queue after his demo: this sitting's reading and code at once, its first whole suite only
+after W8's proof on 7100) and ~13:28 (`7627517`: the imitated-load run *"Whenever it's ready today"*, warned ~5 min before). HEAD
+`7627517`; other sessions committed documents during the sitting (`6fa660a`, `ccb500f`, …), nothing of theirs staged here. **Inline**
+(`superpowers:executing-plans`), the workspace's ledger `.superpowers/sdd/2026-10-14-gentler-test-tiers/progress.md`.
+
+**How the time went.** The reading, Task 1's re-reads, and Tasks 2–3 DRAFTED test-first in the scratchpad (a Vitest config with no global
+setup — nothing truncated) while W8 proved its fix on 7100; kept OUT of the repository because the plan's rule is *Task 1 first, on the
+unchanged tree* (all four of Task 1's runs had to see `7627517`'s code). `manifest-coord4`'s *"7100 is yours"* and HOLD at 14:20; the three
+quiet runs 14:19–15:58; a FREE window for F7; Rich closed the laptop (~16:05, everything held, state written to the ledger); it woke at
+17:23:51; HOLD and *go* at 17:29 (Rich warned at 17:26, on AC, no call); the burner run 17:32–18:15; F7's window; HOLD at 18:18; Tasks 2–3
+landed; `pnpm test` twice through the wrapper 18:32–19:09; G4 at 19:10.
+
+**Task 1** (`7e264f0` the plan's two moved numbers; `adf9127` the record): [`../spikes/gentler-tiers-baseline/README.md`](../spikes/gentler-tiers-baseline/README.md)
+— versions, priorities (31 / 20 / 4), the four runs, the scales and their arithmetic, the quiet slow list, the 78 burner reds by name.
+
+| Run (`7627517`'s code) | 1-min load at start · median / max | Wall | ÷ normal | Result |
+|---|---|---|---|---|
+| normal, quiet | 2.86 · 4.86 / 10.42 | 1119.6 s | 1.00 | green 3654/3654 |
+| utility, quiet | 5.11 · 4.81 / 6.25 | 1166.8 s | 1.04 | green 3654/3654 |
+| background, quiet | 4.17 · 5.16 / 7.38 | 3541.7 s | 3.16 (a lower bound) | **red 192** — 186 `Test timed out in 5000ms` |
+| normal, twelve burners | 60.02 · 128.17 / 332.82 | 2588.1 s | 2.31 | **red 78** — 76 `Test timed out in 5000ms` |
+
+No run read `deadlock detected`. **The scales: utility 3 (⌈2 × 1.04⌉), background 7 (⌈2 × 3.16⌉)** — the plan's provisional 2 and 4 replaced.
+
+**Task 2** (`44b4e49`): `test-timeouts.ts`, the two projects' limits, `slowTestThreshold: 5000`, **61** explicit limits through `scaled()`
+(F2), `lifecycle.test.ts`'s budgets (F3); the scanner with its planted positive control. **Task 3** (`a2060ce`): `scripts/test-gently.sh`
+(utility 3, background 7, gate 12), its twelve-case test (F1), `package.json`, `EXPECT_` moved.
+
+**The controls, each seen red then restored:** the scale — an unset scale times a six-second test out at 5 s, `MANIFEST_TEST_TIMEOUT_SCALE=2`
+passes it in the unit AND the packages project, `abc` stops the run before any test naming the variable and the value; the threshold — without
+it the one-second test is listed too (`1005ms`); the scanner — `lifecycle.test.ts:338` and `authz-contract.ts:3020` each reverted to a bare
+number, each red naming its `file:line`; `lifecycle.test.ts`'s budgets — red ×3 under `taskpolicy -b` at scale 7 with 400 ms (571.0, 474.7,
+586.2 ms), green ×3 scaled; the wrapper, run UNWRAPPED (this shell at `pri` 31) — no `taskpolicy` → `expected 31 to be 20` and `31 to be 4`;
+`exit 0` → `expected +0 to be 3`; no pass-through → `expected 75 to be 5`; no sampler kill (F1's corrected form) → `expected '17227' to be ''`
+and seven `spawnSync bash ETIMEDOUT` at 10 s, never a hang.
+
+**Findings:**
+
+1. **F1 — THE PLAN'S OWN CONTROL 3 HUNG INSTEAD OF GOING RED** (Task 3, Step 5). Removing the `pkill -P` and `kill` lines left `wait
+   "$SAMPLER"` waiting on a loop nobody ends — and with `wait` removed too, `spawnSync` still waits for EOF on the pipe the surviving sampler
+   holds (measured: a backgrounded grandchild held `spawnSync` 3 s; with `timeout` it returns status **0** and error `ETIMEDOUT`). No Vitest
+   limit can end a synchronous `spawnSync`, so a sampler leak would have HUNG the suite rather than reddened it. **Fixed in the test:**
+   `gently()` passes `timeout: scaled(10_000)` and throws `run.error`; the leak case runs with output ignored (so its own `pgrep` assertion
+   is what reads red) and `pkill`s its marker in `finally`; the control removes `pkill`, `kill` AND `wait` — red as above, never a hang.
+2. **F2 — THE PLAN'S COUNT OF EXPLICIT LIMITS MISSED A SUITE MODULE**: `api/authz-contract.ts` (not a `*.test.ts`, run only by
+   `authz-contract.test.ts` in the unit tier) passes `}, 60_000)` three times (`:3019`, `:3070`, `:3170` at `7627517`). Converted (61 sites
+   in 14 files), and the scanner reads it by name. `runtime/driver-contract.ts`'s 23 (120–900 s) are deliberately left: the Docker tier runs
+   that suite too, and its limits are never below a scaled default.
+3. **F3 — AN IN-TEST BUDGET THE SCALE DID NOT REACH WAS RED AT BACKGROUND PRIORITY ON A QUIET MACHINE**: `lifecycle.test.ts:198`'s
+   `controlPlaneWork < 400` (`performance.now()`) read 531.9 ms in the background quiet run, and 571.0 / 474.7 / 586.2 ms in three single-file
+   runs under `taskpolicy -b` at scale 7 — so every run Rich asks for on a call would have been red there. Both budgets (400 ms, 5 s) now
+   go through `scaled()`: green ×3 at background, scale 7; unchanged at scale 1. *Outside the plan's letter (its* does not build *names
+   in-test limits); inside Rich's item 2 — ruled, for the review.*
+4. **F4 — PRETTIER RE-LAYS-OUT EVERY CONVERTED TEST** (+2067/−1789 in 14 files): its test-call layout (`it(name, fn, 30_000)`, hugged)
+   holds only when the third argument is a numeric LITERAL, so `scaled(30_000)` puts each test's arguments on their own lines. Accepted
+   (`format:check` is a gate; 61 `// prettier-ignore`s or a patched `it` are worse). **Proved layout-only**: every file's `HEAD` text and
+   its new text, with `scaled(N)` → `N`, the import dropped, whitespace and trailing commas stripped, are identical — 13 of 14 exactly;
+   `api/lifecycle.test.ts` by one type literal's `;` (`semi: false`); `src/lifecycle.test.ts` by F3's intended edit.
+5. **F5 — TWELVE BURNERS DO NOT MAKE A LOAD OF 12**: twelve `yes` at ~90 % of a core each read a 1-minute load of **60.02 at the start,
+   53–333 over the run (median 128)**; the scheduler also decayed ten of them to `pri` 17 while the suite's worker stayed 31. The plan's
+   Decision 5 chose the gate's default (12, `hw.ncpu`) as *"the load … twelve burners"* make — that premise does not hold. **The default
+   stays 12** (it still refuses a Zoom share's 50–90, TRAPS, and passes this machine's ordinary 4–10); **Task 6's forced run under twelve
+   burners is the evidence for any other number**, and its Step 1's expected refusal will read ~60, not `1x.xx`.
+6. **F6 — THE SUITE'S SLOWEST TEST CANNOT TIME OUT**: `api/contract/document.test.ts`'s *is exactly what the route definitions generate*
+   — 28 s quiet, 98 s at background, 48 s under burners — is synchronous: `generated.split('\n')` is re-run inside `findIndex` for every
+   line (O(n²)), even when the documents match, so no Vitest timer fires before it returns. ~2.5 % of every run. **Not this plan's**; a
+   two-line fix (split once; compare only when unequal) for whoever owns the contract tests.
+7. **F7 — *Read this first* had moved** at `7627517`: ci-acceptance's test step `:419-431` (not `:419-430`), `resetDatabase` named in 49
+   test files, 143 lines (not 50, 147) — corrected in `7e264f0`; and Task 1 Step 6's expected wall *"737–900 s"* is older than A1: the quiet
+   normal run took **1119.6 s**.
+8. **F8 — THE ROADMAP'S DEFECT-RATE TABLE HAD NO ROWS FOR A1'S SITTINGS 7 AND 8, NOR A1'S EXECUTED TOTAL** — found sweeping this sitting;
+   added, derived with ORIENTATION §6's command over A1's record (sitting 7: 11, sitting 8: 13; 104 in all over its twelve rows of tasks).
+9. **F9 — TWO NON-TIMEOUT REDS RECUR UNDER LOAD, AND OTHER IN-TEST LIMITS NO SCALE REACHES** (named for Task 6, not changed):
+   `source/github/driver.test.ts`'s lag cases (*absorbs GitHub's lag …*) read `expected [] to have a length of N` in BOTH the background
+   and the burner run (their file also timed out 43 and 10 tests, so possibly a follow-on); still unscaled in-test limits:
+   `api/events.test.ts`'s `closeOf(socket, 4_000)` (its two FE-33 cases take ~3.1 s quiet at normal), `api/agents.test.ts`'s
+   `lite.slow(…, 6_000)`, the four blueprints' child-process `timeout: 30_000` (`execFile`, not Vitest), and `driver-contract.ts`'s drain
+   bounds (the plan's *does not build*).
+
+**What it left sitting 2** (Tasks 4–6): the scales are **3 and 7** — so `resetLockTimeoutMs()` is **3 750 ms** under `pnpm test`
+(utility) and 8 750 ms at background, 1 250 ms in a single-file run; Task 4's tests must hold their lock past three budgets of whatever
+scale they run at. `scripts/ci-acceptance.sh`'s lines moved by this sitting's `EXPECT_` comment: the temp files are **`:362-363`**, the test
+step **`:424-436`**. F5 for Task 6's gate control and its expected line; F3 and F9 for its background run under six burners; the quiet slow
+list (the README's) is the one the close-out review compares against — run 1's and run 2's matched it.
+
+**The four gates on the final tree:** `pnpm lint`, `pnpm typecheck`, `pnpm format:check` clean; **`pnpm test` twice through the wrapper**,
+each beginning `test-gently: QoS utility, timeout scale 3, 1-minute load …` and ending with its load line, **3673/3673 in 222 files, 0
+failed**: 18:32:55–18:50:50 (1072.6 s, load 6.46 at the start, median 4.08 / max 7.53) and 18:51:24–19:09:22 (1074.7 s, load 3.82 at the start, median 3.79 / max 7.58) — against Task 1's quiet utility run,
+1166.8 s. The slow list, both runs: the quiet baseline's four. `EXPECT_TESTS` 3654 → **3673**, `EXPECT_FILES` 220 → **222**. No Docker
+tier owed (no Docker-tier path changed; Task 6 runs it). **The machine:** no `yes` left after the burner run; the three cleanup scripts
+bare — no dead network, volume or image of a dead app; 16 orphan mirrors, named, not removed (the demo's apps' among them: every whole run
+truncated their rows, as `manifest-coord4` knew); LiteLLM's two unheld budgets (a person's agent budget, the platform's intake) and three
+dead app images removed by `--apply`, every held user and used image left. 7100 restored from `.env` (G4) at 19:10 — `gateway-controls.sh
+start real`: `capableModel` `unchanged` on `.env`'s `ubc-ai-gateway/gpt-6.1-sol`, PID 22185 — and handed back to `manifest-coord4`.
