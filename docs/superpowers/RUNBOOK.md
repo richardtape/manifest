@@ -1821,8 +1821,8 @@ Exit codes: the command's own; **75** refused by the gate; **64** a usage error 
 
 **The reset survives a lock it did not cause** (Task 4): `resetDatabase` and the global setup truncate through
 `src/db/truncate.ts`, on an admin pool with `lock_timeout` = a quarter of a test's limit (3 750 ms at utility), and
-retry `40P01` (deadlock) and `55P03` (lock budget spent) three times, each a `[test harness] resetDatabase: …` line on
-stderr. **The test that timed out stays red** — the retry spares only the next one. It never ends another connection:
+retry `40P01` (deadlock) and `55P03` (lock budget spent) — three attempts in all, each failed one a `[test harness]
+resetDatabase: …` line on stderr. **The test that timed out stays red** — the retry spares only the next one. It never ends another connection:
 7100 shares the database.
 
 ## `make ci-acceptance` and `make demo-console` — 1c's acceptance, in two halves

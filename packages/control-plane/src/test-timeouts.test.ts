@@ -108,6 +108,11 @@ describe('every explicit timeout in the unit and packages tiers is scaled', () =
         }
       }
     }
+    // And the walk found the files — or `offenders` below is empty for the wrong reason (the whole-branch
+    // review's I2, sitting 2): a nested file, a file of a second package, and the count (222 in 2026-10).
+    expect(files).toContain('packages/control-plane/src/api/lifecycle.test.ts')
+    expect(files).toContain('packages/journey/src/examples.test.ts')
+    expect(files.length).toBeGreaterThan(200)
     const offenders: string[] = []
     for (const file of files) {
       readFileSync(join(ROOT, file), 'utf8')

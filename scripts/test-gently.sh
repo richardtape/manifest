@@ -92,6 +92,9 @@ SAMPLES="$(mktemp -t manifest-load)"
 echo "$NOW" > "$SAMPLES"
 (
   while sleep "$INTERVAL"; do
+    # Killed outright (SIGKILL runs no trap), the wrapper cannot end this loop, whose command line is
+    # ours — so it ends itself at its next interval. `$$` in a subshell is still the wrapper's PID.
+    kill -0 "$$" 2> /dev/null || exit 0
     load1 >> "$SAMPLES"
   done
 ) &

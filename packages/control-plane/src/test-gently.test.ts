@@ -1,4 +1,4 @@
-import { spawnSync } from 'node:child_process'
+import { spawn, spawnSync } from 'node:child_process'
 import { randomUUID } from 'node:crypto'
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -176,6 +176,42 @@ describe('scripts/test-gently.sh', () => {
       spawnSync('pkill', ['-f', marker])
     }
   })
+
+  it(
+    'ends its sampler by itself when the wrapper is killed outright — SIGKILL runs no trap',
+    async () => {
+      // The whole-branch review's I3 (sitting 2). The sampler's command line is the wrapper's, `vitest` and
+      // all, so a sampler that outlives a `kill -9` reads as a run in progress for ever. The wrapper and its
+      // sampler carry the script's path; the command (exec'd by taskpolicy) carries only the marker.
+      const marker = `gently-marker-${randomUUID()}`
+      const ours = () =>
+        spawnSync('pgrep', ['-f', `test-gently\\.sh .*${marker}`], { encoding: 'utf8' })
+          .stdout.split('\n')
+          .filter((line) => line.trim() !== '')
+      const pause = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
+      const wrapper = spawn('bash', [SCRIPT, 'sh', '-c', 'sleep 3', marker], {
+        cwd: ROOT,
+        env: cleanEnv({ MANIFEST_TEST_SAMPLE_SECONDS: '0.1' }),
+        stdio: 'ignore',
+      })
+      const exited = new Promise((resolve) => wrapper.once('exit', resolve))
+      try {
+        let deadline = Date.now() + 2_000
+        while (ours().length < 2 && Date.now() < deadline) await pause(20)
+        expect(ours()).toHaveLength(2) // the wrapper, and its sampler
+        wrapper.kill('SIGKILL')
+        await exited
+        // Ten of the sampler's intervals: it ends at its next one.
+        deadline = Date.now() + 1_000
+        while (ours().length > 0 && Date.now() < deadline) await pause(50)
+        expect(ours()).toEqual([])
+      } finally {
+        // Red, the sampler loops every 0.1 s, and the command runs on: end both.
+        spawnSync('pkill', ['-f', marker])
+      }
+    },
+    scaled(15_000),
+  )
 
   it('passes straight through inside a gentle run — no second gate, sampler or summary', () => {
     const run = gently(['sh', '-c', 'echo INNER; exit 5'], {
