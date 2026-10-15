@@ -1170,6 +1170,7 @@ interface Driver {
   servingInstances(hostname: string): Promise<string[]>
   listInstances(hostname: string): Promise<string[]>
   restoreRoute(ids: string[]): Promise<void>     // re-point a hostname at running instances
+  setRateLimitExemption(hostname: string, address: string | null): Promise<void>   // one address past the route's rate limit; null clears
   stopInstance(id: string): Promise<void>       // hibernate — volumes survive
   destroyInstance(id: string): Promise<void>   // its upstream out of the route; the route only with the last
   destroyService(id: string, opts: { deleteData: boolean }): Promise<void>
@@ -2084,9 +2085,15 @@ remove them. Caddy applies, on every route:
 - per-app and per-IP rate limits; request body size caps
 - optionally Coraza / OWASP CRS on public production routes
 
+For the length of one load rehearsal (§24), the staging route of the app being
+rehearsed does not limit the load generator's own address; every other client keeps
+its limit, and the exemption is cleared when the rehearsal ends, and at boot.
+
 **These are not stock Caddy.** Rate limiting and Coraza are third-party modules
 requiring an `xcaddy` build, so §21's inventory carries a **pinned custom Caddy
-image**, built during `make seed` — the one image that is built rather than pulled.
+image**, built during `make seed` — the platform builds its own images rather than
+pulling them where it must (this one, its resolver, egress proxy and IdP), and builds
+§24's load generator there too, from its release binary, checksum-verified.
 S7 built it successfully and recorded two constraints that belong in §12's
 supply-chain review: **Coraza pins the Caddy version** (`coraza-caddy/v2@v2.6.0`
 requires `caddy/v2@v2.11.4` and xcaddy refuses any other, so upgrading Caddy is
