@@ -1267,7 +1267,7 @@ row stops blocking staging rather than the boot retrying it (a person's next dep
 
 *(One dated section per sitting.)*
 
-### Sitting 1 — 2026-10-15, 11:27–12:55 PDT (`manifest-b-s1`, the third coordinated run's job B1): Task 1 — the measurements
+### Sitting 1 — 2026-10-15, 11:27–12:46 PDT (`manifest-b-s1`, the third coordinated run's job B1): Task 1 — the measurements
 
 **Opened** by `manifest-coord5`'s GO (11:27), which relayed Rich's decisions — the decisions file's *2026-10-14, ~18:34* entry and its
 appended words (`6c9949a`: *"B, the load rehearsal, 7 sittings"*, his delegation continuing; `3ba424a`: Spec actions A–D approved as
