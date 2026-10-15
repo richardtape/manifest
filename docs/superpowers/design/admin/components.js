@@ -290,7 +290,7 @@
       h('div', { className: 'mfa-obs__write' },
         props.canRecord === false
           ? h('div', { className: 'mfa-admit', 'data-gap': props.admissionGap },
-            h('strong', null, 'Manifest can’t record a reason here yet. '), props.admission)
+            h('strong', null, props.admissionLead || 'Manifest can’t record a reason here yet. '), props.admission)
           : h(React.Fragment, null,
             h('label', { className: 'mfa-obs__label', htmlFor: props.id }, 'Your reason'),
             h('textarea', {
@@ -325,12 +325,21 @@
         p.after ? h('p', { className: 'mfa-obs__after', 'data-gap': p.afterGap }, p.after) : null) : null);
   }
 
-  /** One event: when · the sentence · its type. The faculty product needs this too. */
+  /**
+   * One event: when · who acted · the sentence · the administrator's reason · its type. `who` is the
+   * event's actor (contract 1.9.0's EventActor.name); `asAdmin` is its asAdministrator — a platform
+   * administrator using an owner's capability their place on the project does not give them — and then
+   * `reason` is quoted with the system's left rule, as the project's people read it. The faculty
+   * product needs this too.
+   */
   function EventLine(props) {
     return h('li', { className: 'mfa-ev' },
       h('span', { className: 'mfa-ev__when' }, props.when),
       h('span', { className: 'mfa-ev__body' },
+        props.who ? h('span', { className: cx('mfa-ev__who', props.asAdmin && 'mfa-ev__who--admin') },
+          props.who + (props.asAdmin ? ' · as a platform administrator' : '')) : null,
         h('span', { className: 'mfa-ev__text' }, props.text),
+        props.reason ? h('blockquote', { className: 'mfa-quote mfa-ev__reason' }, props.reason) : null,
         h('span', { className: 'mfa-ev__type' }, props.type)));
   }
 
@@ -387,13 +396,18 @@
       h('span', { className: 'mfa-filters__count', 'aria-live': 'polite' }, props.count));
   }
 
-  /** One environment in a fleet row: the serving state, its raw enum, the deploy's age, and an incident after it. */
+  /**
+   * One environment in a fleet row: the serving state, how many instances the hostname reaches
+   * (contract 1.9.0's Fleet.environments[].instances — A1's sets: class 2, large_course and public 3),
+   * the deploy's age, and an incident after it.
+   */
   function EnvCell(props) {
     var e = props.env;
     if (!e || !e.state) return h('span', { className: 'mfa-env mfa-env--none' }, h('span', { className: 'mfa-env__dot' }), 'not deployed');
     return h('span', { className: 'mfa-env mfa-env--' + stateOf(e.state) },
       h('span', { className: 'mfa-env__dot', 'aria-hidden': 'true' }),
       e.state,
+      e.instances ? h('span', { className: 'mfa-env__n', title: e.instances + (e.instances === 1 ? ' instance' : ' instances') }, '· ' + e.instances) : null,
       e.age ? h('span', { className: 'mfa-env__age' }, e.age) : null,
       e.incident ? h('span', { className: 'mfa-env__inc' }, 'failed ' + e.incident) : null);
   }

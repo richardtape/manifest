@@ -1,6 +1,9 @@
 /* The administrator's console — a clickable mockup. Composes window.Manifest (the shared
  * design system) and window.ManifestAdmin (its proposed additions) over window.ADMIN_DATA.
- * Nothing here calls an API: see the design document, §10, for what each screen needs. */
+ * Nothing here calls an API: see the design document, §10, for what each screen needs.
+ * Refreshed 2026-10-14 against contract 1.9.0: the queue is listQueue's kinds with recorded ages, the
+ * Manifest team's step is a pane of its own, production runs sets of instances, incidents carry a cause,
+ * and an event names who acted — and, for an administrator acting beyond their place, why. */
 (function () {
   'use strict';
 
@@ -70,10 +73,24 @@
 
   var KINDS = [
     { key: 'approval', label: 'Release approvals', kinds: ['approval'] },
-    { key: 'records', label: 'IAM and privacy', kinds: ['iam', 'pia'] },
-    { key: 'agent', label: 'Agents’ questions', kinds: ['agent'] },
+    { key: 'team', label: 'The team’s step', kinds: ['team'] },
+    { key: 'ubc', label: 'With UBC', kinds: ['iam', 'pia'] },
     { key: 'requests', label: 'Domains, audiences, overrides', kinds: ['domain', 'audience', 'override'] }
   ];
+
+  // A record the team submits leaves "Waiting on us" for "Waiting on UBC", from the moment it was
+  // submitted — as listQueue answers it next (the team's kinds become iam-registration,
+  // iam-change-request or privacy-assessment).
+  function placed(it, ui) {
+    var o = ui && ui.outcome;
+    if (it.kind === 'team' && o && o.submitted) {
+      return Object.assign({}, it, it.afterSubmit, {
+        band: 'else', kind: it.recordKind === 'pia' ? 'pia' : 'iam', askedAt: o.at, moved: true,
+        meta: [{ text: 'With ' + it.afterSubmit.holder, holder: true }, { text: 'submitted', mono: true }, { text: o.ticket, mono: true }]
+      });
+    }
+    return it;
+  }
 
   function Queue(props) {
     var now = props.now;
@@ -101,13 +118,13 @@
       return [it.project, it.owner, it.ask, it.holder || '', it.kindLabel].join(' ').toLowerCase().indexOf(s) >= 0;
     }
 
-    var all = D.queue.slice().sort(byAsked);
+    var all = D.queue.map(function (i) { return placed(i, ui[i.id]); }).sort(byAsked);
     var us = all.filter(function (i) { return i.band === 'us'; });
     var others = all.filter(function (i) { return i.band === 'else'; });
     var usV = us.filter(visible), othersV = others.filter(visible);
     var order = usV.concat(othersV).map(function (i) { return i.id; });
     var oldest = us[0];
-    var item = D.queue.filter(function (i) { return i.id === selected; })[0];
+    var item = all.filter(function (i) { return i.id === selected; })[0];
 
     function select(id) {
       sel[1](id);
@@ -164,15 +181,11 @@
 
     return h(React.Fragment, null,
       h(A.WaitHeadline, {
-        oldest: oldest ? {
-          text: ageLong(now - oldest.askedAt), bound: !!oldest.bound, gap: oldest.bound ? 'A3' : null,
-          note: oldest.bound ? 'A release approval. Nothing records when production was asked for, so this is the longest it can have waited.' : null
-        } : null,
+        // From OUR band's own ages: the queue's oldestSince counts what UBC holds too (A15).
+        oldest: oldest ? { text: ageLong(now - oldest.askedAt), note: oldest.kindLabel + ', ' + oldest.project + '. Its age is when it was asked for.' } : null,
         people: unique(us.map(function (i) { return i.owner; })).length,
-        items: all.length, itemsLabel: 'items · ' + us.length + ' on us, ' + others.length + ' elsewhere',
-        assembled: 'Assembled ' + (sinceRefresh < 15000 ? 'just now' : Math.round(sinceRefresh / 1000) + ' seconds ago') +
-          ' from ' + D.reads + ' reads · again every 60 seconds',
-        assembledGap: 'A2'
+        items: all.length, itemsLabel: 'items · ' + us.length + ' on us, ' + others.length + ' with UBC',
+        assembled: 'Read ' + (sinceRefresh < 15000 ? 'just now' : Math.round(sinceRefresh / 1000) + ' seconds ago') + ' · again every 60 seconds'
       }),
       h(A.FilterBar, {
         id: 'queue-search', label: 'Filter the queue', query: query[0], placeholder: 'Filter by app, person or ask  ( / )',
@@ -189,17 +202,17 @@
       h('div', { className: 'mfa-queue' },
         h('div', null,
           band('Waiting on us', usV, 'The headline counts these.'),
-          band('Waiting on someone else', othersV, 'Shown, not headlined. Chasing them is still ours.')),
+          band('Waiting on UBC', othersV, 'Shown, not headlined. Chasing UBC, and recording its answer, is still ours.')),
         h('section', { className: 'mfa-pane', id: 'pane', 'aria-label': 'The selected item' },
           item
-            ? h(Pane, { key: item.id, item: item, now: now, ui: ui[item.id] || {}, patch: function (o) { patch(item.id, o); } })
+            ? h(Pane, { key: item.id + (item.moved ? ':moved' : ''), item: item, now: now, ui: item.moved ? {} : (ui[item.id] || {}), patch: function (o) { patch(item.id, o); } })
             : sec(null, para('Choose an item to see what it asks, and decide it.')))));
   }
 
   /* ---------- the decision pane ---------- */
 
   function holderChip(it) {
-    return h(M.StateChip, { state: 'waiting', pulse: false, label: it.band === 'us' ? 'Waiting on us' : 'Waiting on ' + it.holder });
+    return h(M.StateChip, { state: 'waiting', pulse: false, label: it.band === 'us' ? 'Waiting on us' : 'With ' + it.holder });
   }
 
   function Pane(p) {
@@ -212,12 +225,11 @@
       h('p', { className: 'mfa-pane__meta' },
         h('span', { className: 'mfa-mono' }, it.project),
         h('span', null, 'owned by ' + it.owner),
-        h('span', { 'data-gap': it.ageGap || (it.bound ? 'A3' : null) },
-          (it.bound ? 'waiting up to ' : 'waiting ') + ageLong(now - it.askedAt))));
+        h('span', null, 'waiting ' + ageLong(now - it.askedAt))));
     var body;
     if (it.kind === 'approval') body = PaneApproval(p);
-    else if (it.kind === 'agent') body = PaneAgent(p);
-    else if (it.kind === 'iam' || it.kind === 'pia') body = it.readOnly ? PaneOwnerHolds(p) : PaneRecord(p);
+    else if (it.kind === 'team') body = PaneTeam(p);
+    else if (it.kind === 'iam' || it.kind === 'pia') body = it.moved ? PaneMoved(p) : PaneRecord(p);
     else body = PaneRequest(p);
     return h(React.Fragment, null, head, body);
   }
@@ -274,7 +286,7 @@
       decide = h(A.ObservedAction, {
         id: 'reason-' + it.id, owner: it.owner, reason: ui.reason, onReason: function (v) { patch({ reason: v }); },
         placeholder: 'Why, in words ' + it.owner + ' can act on.',
-        hint: 'Required on someone else’s project (§26). ' + it.owner + ' reads it.',
+        hint: 'Approving: a reason is optional, and kept on the approval record. Rejecting: required, and ' + it.owner + ' reads it. Deciding a release is your own duty (§26), so it asks nothing more.',
         previews: [
           { label: 'If you approve', type: 'release.approved', lead: D.admin + ' approved this release for production.', reasonIn: 'record' },
           { label: 'If you reject', type: 'release.approval_rejected', lead: D.admin + ' did not approve this release:', reasonIn: 'sentence',
@@ -282,7 +294,7 @@
         ],
         previewIndex: ui.previewIdx || 0, onPreviewIndex: function (i) { patch({ previewIdx: i }); },
         actions: [
-          { label: 'Approve for production', kind: 'primary', needsReason: true, onClick: function () { patch({ stepUp: true }); } },
+          { label: 'Approve for production', kind: 'primary', onClick: function () { patch({ stepUp: true }); } },
           { label: 'Reject', kind: 'ghostDanger', needsReason: true, onClick: function () { patch({ outcome: { decision: 'rejected', at: Date.now() } }); } }
         ],
         note: 'Approving asks you to sign in again.'
@@ -290,6 +302,9 @@
     }
 
     return h(React.Fragment, null,
+      sec('The request', h(React.Fragment, null,
+        para(it.owner + ' asked ' + ageLong(now - it.askedAt) + ' ago for the release serving staging to be signed off for production.'),
+        it.note ? h('blockquote', { className: 'mfa-quote' }, it.note) : null)),
       sec('The release', h(A.FactList, {
         rows: [
           { label: 'Release', value: h(A.MachineValue, { value: r.id, label: 'release id' }) },
@@ -310,19 +325,19 @@
           h('div', null, h(M.Button, { kind: 'secondary', size: 'sm', onClick: function () { patch({ previewAt: Date.now() }); } }, 'Take the preview')))),
       sec('Decide', decide),
       sec('Recent events in ' + it.project, h('ul', { className: 'mfa-events' }, it.events.map(function (e, i) {
-        return h(A.EventLine, { key: i, when: ageShort(now - e.at) + ' ago', type: e.type, text: e.text });
-      })), 'A5'));
+        return h(A.EventLine, { key: i, when: ageShort(now - e.at) + ' ago', type: e.type, text: e.text, who: e.who, asAdmin: e.asAdmin, reason: e.reason });
+      }))));
   }
 
   function PaneAgent(p) {
     var it = p.item, ui = p.ui, patch = p.patch, now = p.now, a = it.action, t = it.token;
     var stop = ui.outcome
-      ? result('neutral', 'Rejected for them', ['The agent was told no, in your words. ' + it.owner + ' reads “' + D.admin + ' refused an agent’s request to ' + a.summary + ': ' + (ui.reason || '').trim() + '”'], patch)
+      ? result('neutral', 'Refused for them', ['The agent was told no, in your words. ' + it.owner + ' reads “' + it.lead + ' ' + (ui.reason || '').trim() + '”, signed as a platform administrator.'], patch)
       : h(A.ObservedAction, {
         id: 'reason-' + it.id, owner: it.owner, reason: ui.reason, onReason: function (v) { patch({ reason: v }); },
         placeholder: 'What the agent should be told.',
-        hint: 'Required. The agent receives it word for word, and so does ' + it.owner + '.',
-        previews: [{ label: 'reject', type: 'pending_action.rejected', lead: it.preview.lead, reasonIn: 'sentence', after: 'There is no Confirm here. Saying yes to someone else’s agent is theirs to do.' }],
+        hint: 'Required. The agent receives it word for word, and ' + it.owner + ' reads it with your name, as a platform administrator (§26).',
+        previews: [{ label: 'reject', type: 'pending_action.rejected', lead: it.lead, reasonIn: 'sentence', after: 'There is no Confirm here. Saying yes to someone else’s agent is theirs to do.' }],
         actions: [{ label: 'Reject for them', kind: 'ghostDanger', needsReason: true, onClick: function () { patch({ outcome: { at: Date.now() } }); } }]
       });
 
@@ -342,11 +357,11 @@
           { label: 'Rate limit', value: t.rateLimit + ' requests a minute' },
           { label: 'Last used', value: t.lastUsed },
           { label: 'Expires', value: t.expires },
-          { label: 'Minted by', value: 'Not recorded. A token has no minter field.', gap: 'A8' }
+          { label: 'Minted by', value: t.mintedBy + ' — named from the project’s members; the token records an id', gap: 'A8' }
         ]
       })),
-      sec('Who decides', para('The person who minted the token decides, in their own queue (§26). If it looks like a runaway agent, you can stop it here.')),
-      sec('Stop it instead', stop, 'A6'));
+      sec('Who decides', para(t.mintedBy + ', who minted the token, decides (§26). If it looks like a runaway agent, you can refuse it here; you cannot revoke someone else’s token.', 'A14')),
+      sec('Refuse it instead', stop));
   }
 
   function stateLabel(kind, state) {
@@ -372,7 +387,7 @@
         } : null,
         { label: it.kind === 'iam' ? 'UBC IAM ticket' : 'Reference', value: r.ticket || 'none yet', mono: !!r.ticket },
         r.reviewer !== undefined ? { label: 'Reviewer', value: r.reviewer || 'none yet' } : null,
-        { label: 'Last changed', value: ageLong(now - it.askedAt) + ' ago', gap: 'A3' }
+        { label: 'Submitted', value: ageLong(now - it.askedAt) + ' ago' + (r.submittedBy ? ', by ' + r.submittedBy : '') }
       ]
     });
   }
@@ -385,8 +400,8 @@
     var record = ui.outcome
       ? result('steady', 'Recorded as ' + next, [it.owner + ' reads “' + fill(it.preview.lead, { ticket: ticket, state: next }) + '”. Not why.'], patch)
       : h(A.ObservedAction, {
-        owner: it.owner, canRecord: false, admissionGap: 'A1',
-        admission: it.owner + ' will see that you recorded this, and not why.',
+        owner: it.owner, canRecord: false, admissionLead: 'No reason is asked. ',
+        admission: 'Recording UBC’s answer is an administrator’s own duty (§26), and the event names you.',
         previews: [{ label: 'record', type: it.preview.type, lead: fill(it.preview.lead, { ticket: ticket, state: next }) }],
         actions: [{ label: 'Record it', kind: 'primary', disabled: !ticket.trim(), onClick: function () { patch({ outcome: { at: Date.now() } }); } }],
         note: ticket.trim() ? null : 'A record needs the ticket reference, pasted in.'
@@ -395,7 +410,8 @@
     return h(React.Fragment, null,
       sec('What is recorded', recordFacts(it, now)),
       sec('Record the next state', h(React.Fragment, null,
-        para('Only the states §9’s arrows allow from ' + it.record.state + ' are offered, so an impossible transition cannot be asked for.'),
+        para('Only the moves the platform allows from ' + it.record.state + ' are offered (launch/transitions.ts), so an impossible one cannot be asked for.'),
+        it.next.some(function (n) { return n.gap; }) ? h('p', { className: 'mfa-sec__body', 'data-gap': 'A20' }, 'A change UBC granted is recorded in two moves: submitted, then active.') : null,
         h(M.Choice, {
           name: 'next-' + it.id, value: next, options: it.next,
           onChange: function (v) { patch({ next: v }); }
@@ -416,12 +432,91 @@
       sec('Record it', record));
   }
 
-  function PaneOwnerHolds(p) {
+  /** A record the team has just submitted, now in "Waiting on UBC" (the mockup moves it, as the next read would). */
+  function PaneMoved(p) {
     var it = p.item;
     return h(React.Fragment, null,
-      sec('What is recorded', recordFacts(it, p.now)),
-      sec('Who has it', para(it.holder + ' writes the assessment. There is nothing for us to do until it goes to the Privacy Office, and then it is recorded here.')),
-      sec(null, para('Its age is from the record’s last change. Nothing records when the owner started.', 'A3')));
+      sec('Where it is', para('Submitted to ' + it.holder + ' just now. It waits on UBC from today, and its answer is recorded here when it comes.')),
+      sec(null, para('In the console the platform would answer this as a ' + (it.kind === 'pia' ? 'privacy-assessment' : it.change ? 'iam-change-request' : 'iam-registration') + ' item on the next read.')));
+  }
+
+  function today() { var d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+  function dayWords(iso) { return new Date(iso + 'T12:00:00').toLocaleDateString('en-CA', { month: 'long', day: 'numeric', year: 'numeric' }); }
+
+  /**
+   * THE MANIFEST TEAM'S STEP (contract 1.8.0): a record its owner SENT to the team. Two decisions —
+   * submit it to UBC with UBC's reference and the day it went, or hand it back, unsubmitted, to the state
+   * it was sent from. A hand-back keeps no reason, so the console collects none (A19).
+   */
+  function PaneTeam(p) {
+    var it = p.item, ui = p.ui, patch = p.patch, now = p.now, r = it.record;
+    var ticket = ui.ticket || '';
+    var sentOn = ui.sentOn || today();
+    var future = sentOn > today();
+
+    var sent;
+    if (it.recordKind === 'pia') {
+      sent = h(React.Fragment, null, r.sections.map(function (sct, i) {
+        return h('div', { key: i, className: 'mfa-teamsec' },
+          h('h4', { className: 'mfa-teamsec__title' }, sct.title),
+          h(A.Tags, { items: sct.facts }),
+          sct.gaps.map(function (g) {
+            return h('div', { key: g.id, className: 'mfa-gap' },
+              h('p', { className: 'mfa-gap__q' }, h('code', { className: 'mfa-mono' }, g.id), ' ', g.text),
+              h('blockquote', { className: 'mfa-quote' }, g.answer));
+          }));
+      }));
+    } else {
+      sent = h(A.FactList, {
+        rows: [
+          { label: 'Entity ID', value: r.entityId, mono: true },
+          { label: 'ACS URL', value: r.acsUrl, mono: true },
+          r.cert ? { label: 'Certificate', value: h('span', null, h(A.MachineValue, { value: r.cert.fingerprint, label: 'certificate fingerprint', full: true }), ' · expires ' + day(r.cert.expires)) } : null,
+          r.attributes ? { label: 'Attributes', value: h('ul', { className: 'mfa-attrs' }, r.attributes.map(function (a) {
+            return h('li', { key: a.name },
+              h('code', { className: 'mfa-mono' }, a.name), ' — ', a.purpose,
+              a.used ? h('span', { className: 'mfa-attrs__used' }, ' · read at ' + a.used) : h('span', { className: 'mfa-flag' }, ' · never read by the code'));
+          })) } : null,
+          r.registered ? { label: 'Registered', value: h(A.Tags, { items: r.registered }) } : null,
+          r.requested ? { label: 'Asks for', value: h(A.Tags, { items: r.requested.map(function (x) { return r.registered.indexOf(x) < 0 ? { text: x, add: true } : x; }) }) } : null,
+          r.ticket ? { label: 'Live under', value: r.ticket, mono: true } : null
+        ]
+      });
+    }
+
+    var decide;
+    if (ui.outcome && ui.outcome.returned) {
+      decide = result('neutral', 'Handed back to ' + it.owner, ['It is back to ' + r.sentFrom + ', unsubmitted. ' + it.owner + ' reads “' + it.returnLead + '” — tell them why yourself.'], patch);
+    } else {
+      decide = h(A.ObservedAction, {
+        owner: it.owner, canRecord: false,
+        admissionLead: 'Manifest doesn’t keep a reason for a hand-back. ', admission: 'Tell ' + it.owner + ' why yourself.', admissionGap: 'A19',
+        previews: [
+          { label: it.change ? 'If you file it' : 'If you submit it', type: it.recordKind === 'pia' ? 'privacy_assessment.submitted' : 'iam_registration.submitted', lead: fill(it.submitLead, { ticket: ticket.trim(), day: dayWords(sentOn) }) },
+          { label: 'If you hand it back', type: it.recordKind === 'pia' ? 'privacy_assessment.returned' : 'iam_registration.returned', lead: it.returnLead }
+        ],
+        previewIndex: ui.previewIdx || 0, onPreviewIndex: function (i) { patch({ previewIdx: i }); },
+        actions: [
+          { label: it.change ? 'File the change request' : 'Submit to ' + (it.recordKind === 'pia' ? 'the Privacy Office' : 'UBC IAM'), kind: 'primary', disabled: !ticket.trim() || future,
+            onClick: function () { patch({ outcome: { submitted: true, at: Date.now(), ticket: ticket.trim() } }); } },
+          { label: 'Hand it back', kind: 'secondary', onClick: function () { patch({ outcome: { returned: true, at: Date.now() } }); } }
+        ],
+        note: future ? 'It cannot have gone after today.' : ticket.trim() ? null : 'Submitting needs ' + (it.recordKind === 'pia' ? 'the PRISM reference' : 'UBC IAM’s ticket') + ', pasted in.'
+      }, h('div', { className: 'mfa-row2' },
+        h('div', { className: 'mfa-field' },
+          h('label', { htmlFor: 'ticket-' + it.id }, it.ticketLabel),
+          h('input', { id: 'ticket-' + it.id, value: ticket, placeholder: it.ticketPlaceholder, onChange: function (e) { patch({ ticket: e.target.value }); } })),
+        h('div', { className: 'mfa-field' },
+          h('label', { htmlFor: 'sent-' + it.id }, 'Sent to ' + it.to + ' on'),
+          h('input', { id: 'sent-' + it.id, type: 'date', value: sentOn, max: today(), onChange: function (e) { patch({ sentOn: e.target.value }); } }))));
+    }
+
+    return h(React.Fragment, null,
+      sec(it.change ? 'The change ' + r.sentBy + ' asked for' : 'What ' + r.sentBy + ' sent', h(React.Fragment, null,
+        para('Sent to the Manifest team ' + ageLong(now - it.askedAt) + ' ago' + (it.change ? ', a change to the live registration. UBC’s registration stands until it answers.' : '.')),
+        sent,
+        r.warnings && r.warnings.length ? h('p', { className: 'mfa-flag' }, r.warnings.join(' ')) : null)),
+      sec(it.change ? 'File it, or hand it back' : 'Submit it, or hand it back', decide));
   }
 
   function PaneRequest(p) {
@@ -456,8 +551,9 @@
   function envCell(e, now) {
     return h(A.EnvCell, {
       env: e && e.state ? {
-        state: e.state, age: ageShort(now - e.deployAt),
-        incident: e.incidentAt && e.incidentAt > e.deployAt ? ageShort(now - e.incidentAt) + ' ago' : null
+        state: e.state, instances: e.instances, age: ageShort(now - e.deployAt),
+        incident: e.incidentAt && e.incidentAt > e.deployAt ? ageShort(now - e.incidentAt) + ' ago'
+          : e.exitStoppedAt ? ageShort(now - e.exitStoppedAt) + ' ago' : null
       } : null
     });
   }
@@ -469,10 +565,12 @@
     var FACETS = [
       { key: 'prod', label: 'In production', test: function (p) { return !!p.envs.production.state; } },
       { key: 'inc', label: 'Last attempt failed', test: function (p) { return ['sandbox', 'staging', 'production'].some(function (k) { var e = p.envs[k]; return e.incidentAt && e.incidentAt > e.deployAt; }); } },
-      { key: 'old', label: 'Older blueprint', test: function (p) { return !!p.superseded; } }
+      { key: 'old', label: 'Older blueprint', test: function (p) { return !!p.superseded; } },
+      { key: 'arch', label: 'Archived', test: function (p) { return !!p.archivedAt; } }
     ];
     var rows = D.projects.filter(function (p) {
       if (FACETS.some(function (f) { return facets[0][f.key] && !f.test(p); })) return false;
+      if (p.archivedAt && !facets[0].arch) return false;
       var s = query[0].trim().toLowerCase();
       return !s || (p.slug + ' ' + p.owner + ' ' + p.blueprint).toLowerCase().indexOf(s) >= 0;
     });
@@ -488,7 +586,7 @@
     return h(React.Fragment, null,
       h('div', { style: { marginBottom: 20 } },
         h('h1', { className: 'mfa-h1' }, 'Fleet'),
-        h('p', { className: 'mfa-lede', 'data-gap': 'A7' }, 'Every app on the platform. Department, custom domains and this month’s AI spend are not in the fleet yet.')),
+        h('p', { className: 'mfa-lede', 'data-gap': 'A17' }, 'Every app on the platform, and how many instances each environment runs. An app’s data level, department, custom domains and this month’s AI spend are not in the fleet yet.')),
       h(A.FilterBar, {
         id: 'fleet-search', label: 'Filter the fleet', query: query[0], placeholder: 'Filter by app, owner or blueprint',
         onQuery: query[1],
@@ -496,7 +594,7 @@
           return { label: f.label, on: !!facets[0][f.key], onToggle: function () { var n = Object.assign({}, facets[0]); n[f.key] = !n[f.key]; facets[1](n); } };
         }),
         onClear: function () { query[1](''); facets[1]({}); },
-        count: rows.length + ' of ' + D.projects.length + ' apps'
+        count: rows.length + ' of ' + D.projects.length + ' apps' + (facets[0].arch ? '' : ' · archived hidden')
       }),
       h(A.DataTable, {
         caption: 'Every app on the platform', rowKey: 'slug', rows: rows, striped: true,
@@ -540,6 +638,8 @@
 
     var inc = D.incidents.filter(function (i) { return i.project === pr.slug; });
     var items = D.queue.filter(function (q) { return q.project === pr.slug; });
+    var question = D.agentQuestions[pr.slug];
+    var qui = useState({});
 
     var envs = ['production', 'staging', 'sandbox'].map(function (k) {
       var e = pr.envs[k];
@@ -547,6 +647,14 @@
         h('span', { className: 'mfa-over', style: { width: 88 } }, k), h(A.EnvCell, { env: null }));
       var failed = e.incidentAt && e.incidentAt > e.deployAt;
       var incident = inc.filter(function (i) { return i.env === k; })[0];
+      if (incident && (incident.cause === 'exit' || incident.cause === 'exit_stopped')) {
+        return h('div', { key: k },
+          h(M.TwoFacts, {
+            serving: { overline: 'Serving · ' + k, title: e.state + ' · ' + incident.serving, note: A.shorten(pr.digest), tone: 'steady' },
+            attempt: { overline: (incident.cause === 'exit_stopped' ? 'Stopped, not replaced · ' : 'Stopped and replaced · ') + ageShort(now - incident.at) + ' ago', title: incident.exitReason, note: incident.sentence, tone: incident.cause === 'exit_stopped' ? 'attention' : 'neutral' },
+            foot: null
+          }));
+      }
       if (failed && incident) {
         return h('div', { key: k },
           h(M.TwoFacts, {
@@ -556,7 +664,7 @@
       }
       return h('div', { key: k, className: 'mfa-panel__line' },
         h('span', { className: 'mfa-over', style: { width: 88 } }, k),
-        h(A.EnvCell, { env: { state: e.state, age: 'since ' + ageShort(now - e.deployAt) + ' ago' } }));
+        h(A.EnvCell, { env: { state: e.state, instances: e.instances, age: 'since ' + ageShort(now - e.deployAt) + ' ago' } }));
     });
 
     var events = [
@@ -566,8 +674,12 @@
       { at: lastDeploy(pr) - 9 * MIN, type: 'build.succeeded', text: pr.slug + ' was built.' }
     ];
     inc.forEach(function (i) {
-      events.unshift({ at: i.at, type: 'instance.failed', text: pr.slug + ' failed to start in ' + i.env + '. The incident records what it printed and what changed since it last worked.' });
+      events.unshift(i.cause === 'deploy'
+        ? { at: i.at, type: 'instance.failed', text: pr.slug + ' failed to start in ' + i.env + '. The incident records what it printed and what changed since it last worked.' }
+        : { at: i.at, type: 'instance.exited', text: i.sentence });
     });
+    (D.adminEvents[pr.slug] || []).forEach(function (e) { events.push(e); });
+    events.sort(function (a, b) { return b.at - a.at; });
 
     return h(React.Fragment, null,
       h('div', { className: 'mfa-scrim', onClick: p.onClose }),
@@ -577,7 +689,10 @@
           h('span', { className: 'mfa-over' }, 'App'),
           h('h2', { className: 'mfa-pane__ask', id: 'drawer-title', style: { fontFamily: 'var(--font-mono)', fontSize: 20, letterSpacing: 0 } }, pr.slug),
           h('p', { className: 'mfa-pane__meta' },
-            h('span', null, 'owned by ' + pr.owner), h('span', { className: 'mfa-mono' }, pr.audience), h('span', null, 'created ' + day(pr.created)))),
+            h('span', null, 'owned by ' + pr.owner), h('span', { className: 'mfa-mono' }, pr.audience),
+            h('span', { 'data-gap': 'A17' }, h('span', { className: 'mfa-mono' }, pr.level), ' data'),
+            pr.archivedAt ? h('span', { className: 'mfa-mono' }, 'archived ' + day(pr.archivedAt)) : null,
+            h('span', null, 'created ' + day(pr.created)))),
         sec('Environments', h('div', { style: { display: 'flex', flexDirection: 'column', gap: 10 } }, envs)),
         items.length ? sec('In the queue', h('ul', { className: 'mfa-events' }, items.map(function (q) {
           return h('li', { key: q.id, className: 'mfa-ev' },
@@ -586,10 +701,13 @@
               h('a', { href: '#queue', className: 'mfa-ev__text', onClick: function () { wantItem = q.id; } }, q.ask),
               h('span', { className: 'mfa-ev__type' }, q.kindLabel + (q.band === 'us' ? ' · on us' : ' · ' + q.holder))));
         }))) : null,
+        question ? sec('An agent’s question', h(React.Fragment, null,
+          h('p', { className: 'mfa-sec__body' }, h('strong', null, 'An agent asked to ' + question.action.summary + '.'), ' Waiting ' + ageLong(now - question.askedAt) + '.'),
+          PaneAgent({ item: question, ui: qui[0], now: now, patch: function (o) { qui[1](Object.assign({}, qui[0], o)); } }))) : null,
         sec('Recent events', h('ul', { className: 'mfa-events' }, events.map(function (e, i) {
-          return h(A.EventLine, { key: i, when: ageShort(now - e.at) + ' ago', type: e.type, text: e.text });
-        })), 'A5'),
-        sec(null, para('An administrator can see everything here and changes nothing from this page. Deploying, adding a member, setting a secret or committing on someone else’s app waits for §26’s reason to exist.', 'A1'))));
+          return h(A.EventLine, { key: i, when: ageShort(now - e.at) + ' ago', type: e.type, text: e.text, who: e.who, asAdmin: e.asAdmin, reason: e.reason });
+        }))),
+        sec(null, para('An administrator sees everything here, and changes nothing from this page but an agent’s question. An owner’s action on someone else’s app — a deploy, a member, a secret, a commit — is taken in the reference console, with a reason the app’s people read.'))));
   }
 
   /* ---------- Health and risk ---------- */
@@ -632,15 +750,21 @@
         })),
 
         h(Panel, {
-          title: 'Deploys that never answered', count: D.incidents.length,
-          foot: 'The latest incident per environment, from the fleet. Nothing says whether one is still open.', footGap: 'A9'
-        }, D.incidents.map(function (i) {
+          title: 'Incidents, by cause', count: D.incidents.length,
+          foot: 'Each environment’s incidents, newest first, read where the fleet says one happened. Nothing says whether one is still open.', footGap: 'A9'
+        }, D.incidents.slice().sort(function (a, b) {
+          var rank = { exit_stopped: 0, exit: 1, deploy: 2 };
+          return rank[a.cause] - rank[b.cause] || b.at - a.at;
+        }).map(function (i) {
+          var stopped = i.cause === 'exit_stopped';
           return h('li', { key: i.project + i.env, className: 'mfa-panel__item' },
             h('div', { className: 'mfa-panel__line' },
               h('span', { className: 'mfa-mono', style: { fontWeight: 500 } }, i.project),
               h('span', { className: 'mfa-mono', style: { color: 'var(--ink-subtle)' } }, i.env),
               h('span', { style: { color: 'var(--ink-subtle)', fontSize: 12 } }, ageShort(now - i.at) + ' ago'),
-              h(M.StateChip, { state: 'steady', label: 'Still serving ' + i.serving, pulse: false })),
+              h(A.RawChip, { raw: i.cause, state: stopped ? 'attention' : i.cause === 'exit' ? 'waiting' : 'steady',
+                label: stopped ? 'Stopped, not replaced' : i.cause === 'exit' ? 'Stopped and replaced' : 'Still serving ' + i.serving, pulse: false })),
+            i.sentence ? h('span', { style: { fontSize: 13, color: stopped ? 'var(--attention-deep)' : 'var(--ink-muted)' } }, i.sentence) : null,
             h(A.FactList, {
               rows: [
                 { label: 'How it ended', value: i.exitReason },
@@ -694,7 +818,7 @@
   function GapSwitch(p) {
     return h('div', { className: 'mfa-gapswitch' },
       p.on ? h('div', { className: 'mfa-gaplist', role: 'region', 'aria-label': 'API gaps' },
-        h('p', null, 'Drawn against contract v1.3.0. A tag marks something the API cannot answer yet. The design document has each finding in full.'),
+        h('p', null, 'Drawn against contract v1.3.0 and refreshed against v1.9.0 (2026-10-14). A tag marks something the API cannot answer yet. The design document’s §10 has each finding in full.'),
         h('ol', null, D.gaps.map(function (g) { return h('li', { key: g[0] }, h('b', null, g[0]), h('span', null, g[1])); }))) : null,
       h('button', { type: 'button', className: 'mfa-gapswitch__btn', 'aria-pressed': p.on ? 'true' : 'false', onClick: p.onToggle },
         p.on ? 'Hide API gaps' : 'Show API gaps'));
@@ -844,7 +968,7 @@
           changed: changedNote(m.name),
           source: 'infra/litellm/config.yaml, read from LiteLLM', action: changeButton(m.name, vals[0][m.name]), editing: editing,
           editor: editing ? editor({
-            what: m.name + '’s clearance', show: function (v) { return v; }, options: ['public', 'internal', 'confidential'], type: 'catalogue.changed',
+            what: m.name + '’s clearance', show: function (v) { return v; }, options: ['low', 'medium', 'high', 'very-high'], type: 'catalogue.changed',
             after: 'An app that declares more than this and names ' + m.name + ' is refused at its next validation. Nothing that is running changes.'
           }) : null
         });

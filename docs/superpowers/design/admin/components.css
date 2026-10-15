@@ -231,6 +231,9 @@
 .mfa-ev__body { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
 .mfa-ev__text { font-size: 13px; line-height: 19px; color: var(--ink); }
 .mfa-ev__type { font-family: var(--font-mono); font-size: 11px; line-height: 15px; color: var(--ink-subtle); }
+.mfa-ev__who { font-size: 12px; line-height: 17px; font-weight: 600; color: var(--ink-secondary); }
+.mfa-ev__who--admin { color: var(--waiting); }
+.mfa-ev__reason { margin: 4px 0 2px; font-size: 13px; line-height: 19px; }
 
 /* ---------- DataTable ---------- */
 
@@ -260,6 +263,7 @@
 /* EnvCell */
 .mfa-env { display: inline-flex; align-items: center; gap: 6px; font-family: var(--font-mono); font-size: 12px; color: var(--ink-secondary); }
 .mfa-env__dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.mfa-env__n { font-variant-numeric: tabular-nums; color: var(--ink-secondary); }
 .mfa-env__age { font-family: var(--font-sans); font-size: 11.5px; color: var(--ink-subtle); }
 .mfa-env--steady .mfa-env__dot { background: var(--steady); }
 .mfa-env--attention .mfa-env__dot { background: var(--attention); }
@@ -392,3 +396,12 @@
 @media (prefers-reduced-motion: reduce) {
   * { animation: none !important; transition: none !important; }
 }
+
+/* ---------- refreshed 2026-10-14 (contract 1.9.0): the Manifest team's step ---------- */
+.mfa-teamsec { display: flex; flex-direction: column; gap: 8px; padding: 10px 0; border-top: 1px solid var(--border-subtle); }
+.mfa-teamsec:first-child { border-top: 0; padding-top: 0; }
+.mfa-teamsec__title { margin: 0; font-size: 13px; font-weight: 600; color: var(--ink); }
+.mfa-gap { display: flex; flex-direction: column; gap: 4px; }
+.mfa-gap__q { margin: 0; font-size: 13px; line-height: 19px; color: var(--ink-secondary); }
+.mfa-attrs { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; font-size: 13px; line-height: 19px; }
+.mfa-attrs__used { color: var(--ink-subtle); font-size: 12px; }

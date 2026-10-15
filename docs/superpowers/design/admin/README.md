@@ -33,7 +33,18 @@ JSX, stateless, tokens only — so each moves across unchanged once its design i
 README and preview every system component has. Until then they are a proposal, and the gallery does
 not show them.
 
-**The data is invented, the shapes and words are not.** Every field has the contract's (v1.3.0)
+> **REFRESHED 2026-10-14 against contract v1.9.0** (by `manifest-p11-plan`, the design's §0 and §10 refreshed the same evening; republished
+> to the same URL). What changed on screen: **the queue is `listQueue`'s** — every age a recorded instant (no *up to*), the second band
+> *Waiting on UBC*, and **the Manifest team's step as a pane of its own** (submit to UBC with its reference and day, or hand back — a
+> hand-back keeps no reason); an agent's question **moved off the queue to the app's page** (its minter decides it); **production's
+> instance count** in the fleet and the app's page (A1's sets: `class` 2, `large_course` and `public` 3) and an `exit_stopped` app serving
+> on 2 of 3; **incidents by cause** in Health; **an event names who acted**, and an administrator acting beyond their place is marked
+> *as a platform administrator* with their reason; the data's U1 level on the app's page; archived apps hidden by default. Two
+> components changed, in their own idiom — `EnvCell` (`env.instances`) and `EventLine` (`who`, `asAdmin`, `reason`) — and
+> `ObservedAction` takes `admissionLead`. **The P11 plan ports these files and holds the build to them by a parity test**
+> ([`../../plans/2026-10-14-p11-admin-console.md`](../../plans/2026-10-14-p11-admin-console.md), Task 5).
+
+**The data is invented, the shapes and words are not.** Every field has the contract's (v1.3.0, now v1.9.0)
 shape. The digest, the scan, the approval's review and coverage sentences, the security notes, the
 agent's question, the IAM and PIA records are `manifest-mock`'s fixtures or the control plane's own
 text, verbatim; every event sentence is a real publisher's. The ten projects, their people and their
@@ -45,16 +56,17 @@ The mockup carries no marking on screen by default — the faculty prototype's c
 gaps** (bottom right) tags every element the API cannot answer yet with its finding (A1–A13, the
 design document's §10). In short:
 
-| On screen | Backed today? |
+| On screen | Backed at v1.9.0? (2026-10-14) |
 |---|---|
-| **The queue itself** | **No** (A2) — it would be assembled by fan-out, 3N+1 reads |
-| Release approvals — the preview, the diff, approve, reject, step-up | **Yes**, per release. When it was asked for: **no** (A3) |
-| IAM registration and privacy assessment records | **Yes**, per project. When they entered their state: **no** (A3) |
-| An agent's question | **Yes**, per project. Who minted the token: **no** (A8) |
+| **The queue itself** | **Yes — one read, `listQueue`** (A2 closed); its headline is computed from our band, because `oldestSince` counts UBC's waits (A15) |
+| Release approvals — the request and its note, the preview, the diff, approve, reject, step-up | **Yes** — and when it was asked for (`requestApproval`; A3 closed). Who made the release: an id (A8) |
+| The Manifest team's step — submit to UBC, file a change, hand back | **Yes** (`submit…`, `return…`; FE-46/47). A hand-back keeps no reason (A19) |
+| UBC's answer recorded | **Yes**, along the platform's own moves — a granted change request is two of them (A20) |
+| An agent's question (the app's page) | **Yes**, per project; who minted the token is an id, named from the members (A8); not readable across projects (A16); its token cannot be revoked by an administrator (A14) |
 | Domain to attach, audience upgrade, launch override | **No** — not modelled at all (A4) |
-| A reason stored for every administrator's action, shown to the owner | **Only** a rejection's (A1) |
-| Fleet | **Yes**, `listFleet` — without department, domains, spend or `launchedAt` (A7) |
-| Health: certificates, scans, blueprints | By fan-out. Incidents: the latest only, never whether open (A9) |
+| An administrator's reason, shown to the owner | **Yes** where §26 asks one (`Manifest-Admin-Reason`; `EventActor`) — A1 closed but for a token's revoke |
+| Fleet | **Yes**, `listFleet`, with each environment's instance count — without a data level (A17), department, domains, spend or `launchedAt` (A7) |
+| Health: certificates, scans, blueprints | By fan-out. Incidents: **each one, with its cause** (`listIncidents`); never whether open (A9) |
 | Settings | **No** (A13). Blueprints alone are read, from `listBlueprints`; every other value was read from where the platform keeps it — a column default, a config file, the environment |
 | People, Spend, Audit | **No** — deliberately not drawn (§8 of the design) |
 
