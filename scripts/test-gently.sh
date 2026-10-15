@@ -10,9 +10,11 @@
 #      MANIFEST_TEST_QOS=normal runs as before, for measuring.
 #   2. THE TIMEOUT SCALE. A lower priority is a slower run, so this exports MANIFEST_TEST_TIMEOUT_SCALE
 #      for its priority unless it is already set, and packages/control-plane/src/test-timeouts.ts
-#      multiplies the unit and packages tiers' limits by it. Utility 3 and background 7 are measured
-#      (docs/superpowers/spikes/gentler-tiers-baseline/README.md: quiet, utility ran 1.04x normal's
-#      wall time and background at least 3.16x; scale = max(2, ceil(2 x that))).
+#      multiplies the unit and packages tiers' limits by it. Utility 5 and background 7 are measured
+#      (docs/superpowers/spikes/gentler-tiers-baseline/README.md; scale = max(2, ceil(2 x s)), s the wall
+#      ratio to a quiet normal run): utility from s = 2.21 under the heaviest load the gate admits (ten
+#      burners, 11.61 at the start — at 3, from the quiet 1.04, it read 4 red there), background from
+#      its quiet s >= 3.16, proven green under six burners.
 #   3. THE LOAD GATE. Above a 1-minute load of MANIFEST_TEST_MAX_LOAD (default: this machine's CPU
 #      count) it refuses to start, exit 75, unless MANIFEST_TEST_FORCE=1. It samples the load every
 #      MANIFEST_TEST_SAMPLE_SECONDS (30) and prints one line at the end — min, median, max, the
@@ -42,7 +44,7 @@ QOS="${MANIFEST_TEST_QOS:-utility}"
 case "$QOS" in
   utility)
     POLICY="-c utility"
-    DEFAULT_SCALE=3
+    DEFAULT_SCALE=5
     ;;
   background)
     POLICY="-b"

@@ -96,7 +96,7 @@ describe('scripts/test-gently.sh', () => {
 
   it('hands the command the scale for its priority, and keeps one already set', () => {
     const echo = ['sh', '-c', 'echo "$MANIFEST_TEST_TIMEOUT_SCALE"']
-    expect(printed(gently(echo).stdout)).toBe('3') // Task 1's utility scale
+    expect(printed(gently(echo).stdout)).toBe('5') // Task 6's utility scale, measured where the gate admits
     expect(printed(gently(echo, { MANIFEST_TEST_QOS: 'background' }).stdout)).toBe('7') // Task 1's background scale
     expect(printed(gently(echo, { MANIFEST_TEST_QOS: 'normal' }).stdout)).toBe('1')
     expect(printed(gently(echo, { MANIFEST_TEST_TIMEOUT_SCALE: '3' }).stdout)).toBe('3')
@@ -137,7 +137,7 @@ describe('scripts/test-gently.sh', () => {
     expect(run.status).toBe(0)
     const line = readFileSync(report, 'utf8').trim()
     const match = line.match(
-      /^load \(1-min\) min ([0-9.]+) \/ median ([0-9.]+) \/ max ([0-9.]+) over ([0-9]+) samples 0\.2 s apart; QoS utility, timeout scale 3, gate 100000, forced no; exit 0$/,
+      /^load \(1-min\) min ([0-9.]+) \/ median ([0-9.]+) \/ max ([0-9.]+) over ([0-9]+) samples 0\.2 s apart; QoS utility, timeout scale 5, gate 100000, forced no; exit 0$/,
     )
     expect(match).not.toBeNull()
     expect(Number(match![4])).toBeGreaterThanOrEqual(3)

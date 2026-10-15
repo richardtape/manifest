@@ -1780,9 +1780,10 @@ usable while they run, and a run does not fail because it is in use:
 - **Priority.** The tier runs under `taskpolicy -c utility` — the scheduler serves everything else first, and every
   child inherits it (`ps -o pri=` reads 31 normal, 20 utility, 4 background).
 - **The timeout scale.** A lower priority is a slower run, so the wrapper exports `MANIFEST_TEST_TIMEOUT_SCALE` —
-  **3** at utility, **7** at background, 1 at normal — and `packages/control-plane/src/test-timeouts.ts` multiplies
-  the `unit` and `packages` projects' limits by it (5 s → 15 s a test at utility), every explicit `scaled(…)` limit,
-  and the reset's lock budget. The values are measured: [`spikes/gentler-tiers-baseline/README.md`](spikes/gentler-tiers-baseline/README.md).
+  **5** at utility, **7** at background, 1 at normal — and `packages/control-plane/src/test-timeouts.ts` multiplies
+  the `unit` and `packages` projects' limits by it (5 s → 25 s a test at utility), every explicit `scaled(…)` limit,
+  and the reset's lock budget. The values are measured, each where the gate admits — utility under ten CPU burners (a
+  1-minute load of ~12), background under six: [`spikes/gentler-tiers-baseline/README.md`](spikes/gentler-tiers-baseline/README.md).
   The `docker` project keeps its 120 s. `slowTestThreshold` is 5 s (`vitest.config.ts`), so a piped run still names
   every test over the old limit, with its duration — the **slow list** each close-out reads (ORIENTATION §6).
 - **The load gate.** Above a 1-minute load of **12** (`MANIFEST_TEST_MAX_LOAD`; by default `sysctl -n hw.ncpu`) the
@@ -1809,7 +1810,7 @@ while it was stopped fires at once, and every test in flight times out. Stop it 
 | Variable | Default | What it does |
 |---|---|---|
 | `MANIFEST_TEST_QOS` | `utility` | `utility`, `background` or `normal` — anything else exits 64 |
-| `MANIFEST_TEST_TIMEOUT_SCALE` | 3 / 7 / 1 by QoS | 1–10; outside it the run stops before any test, naming the value |
+| `MANIFEST_TEST_TIMEOUT_SCALE` | 5 / 7 / 1 by QoS | 1–10; outside it the run stops before any test, naming the value |
 | `MANIFEST_TEST_MAX_LOAD` | `hw.ncpu` (12) | the gate |
 | `MANIFEST_TEST_FORCE` | unset | `1` runs above the gate, marked `forced yes` |
 | `MANIFEST_TEST_SAMPLE_SECONDS` | 30 | the sampler's interval |
@@ -1820,7 +1821,7 @@ Exit codes: the command's own; **75** refused by the gate; **64** a usage error 
 `taskpolicy` on `PATH`.
 
 **The reset survives a lock it did not cause** (Task 4): `resetDatabase` and the global setup truncate through
-`src/db/truncate.ts`, on an admin pool with `lock_timeout` = a quarter of a test's limit (3 750 ms at utility), and
+`src/db/truncate.ts`, on an admin pool with `lock_timeout` = a quarter of a test's limit (6 250 ms at utility), and
 retry `40P01` (deadlock) and `55P03` (lock budget spent) — three attempts in all, each failed one a `[test harness]
 resetDatabase: …` line on stderr. **The test that timed out stays red** — the retry spares only the next one. It never ends another connection:
 7100 shares the database.
