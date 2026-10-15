@@ -2082,9 +2082,13 @@ that reason (I7) — **and LANDING 1: `main` at `355f612`**, so `packages/admin-
 fleet (off unless asked) and the platform's replay of a reasoned retry; **so is sitting 4** (2026-10-15, `manifest-p11-s4`): Task 5, the look
 — the drawing's six shared and fourteen operations components ported to TSX in `packages/admin-ui/src/system/`, held markup-identical to
 it by 103 parity cases, its stylesheets `@import`ed, the shell's rail its `ConsoleRail` with a working *Sign out* (`74e02bd8` on the
-branch; its record's *What Tasks 6–12 inherit*). **Its sitting 5 (Tasks 6 and 7, the queue and the release approval pane) is next**, and
-its sittings table says where each stops; **sitting 3's F1 is Task 7's to build on** — the platform never refuses a second decision on a release whose preview
-is still current, so *decided elsewhere* is read from `getApproval` and the stream. It takes a 7100 window only to land (L2 closes its sitting 6, L3 its sitting 8). Two of its traps are in TRAPS.md: a
+branch; its record's *What Tasks 6–12 inherit*); **so is sitting 5** (2026-10-15, `manifest-p11-s5`): Task 6, the queue — the headline
+from our own band, never `oldestSince`, two bands by who holds the wait, the filter and the selection in the URL, `j`/`k`/`Esc`/`/`
+(`dc111c61`) — and Task 7, the release approval pane — the token it was asked through read from the project's stream, a stored preview on
+a click, the step-up round trip back to the same preview with the reason kept, stale and expired said, decided elsewhere read from
+`getApproval` and the stream and never decided again (`df332286`), both on the branch, walked on the demo fleet; its F2 is a StrictMode
+defect only a walk can see (Task 12's walk inherits a check for it). **Its sitting 6 (Tasks 8 and 9, the team's step and UBC's answer, and
+the fleet — and LANDING 2) is next**, and its sittings table says where each stops. It takes a 7100 window only to land (L2 closes its sitting 6, L3 its sitting 8). Two of its traps are in TRAPS.md: a
 backgrounded `scripts/admin-ui.sh` ignores SIGINT (stop it with TERM), and `make doctor` in the worktree reads three fails for git-ignored
 files.
 

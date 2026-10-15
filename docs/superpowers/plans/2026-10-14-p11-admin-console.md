@@ -107,8 +107,8 @@ records and UBC's order), **§20** (step-up). **Design:** the refreshed [`2026-0
 | 2 | 3 | **The mock's demo fleet, read**: thirteen projects, each object spread from a validated fixture, their reads by id, the queue across them, their event streams; every state one the platform can reach | No | After Task 3's commit | ✅ **DONE 2026-10-15** (`manifest-p11-s2`, 09:49–10:18 PDT): the demo fleet `b289297` on `p11-admin-ui`; *What executing this plan found*, *Sitting 2* |
 | 3 | 4 | **The demo fleet's decisions, with state**, every request body validated; the replay's hash keeping §26's reason. **LANDING 1** at the close — the mock's first change in this lane (**G3**), the new package, `pnpm install` in the shared checkout | **Yes — L1** | After L1's merge and the shared checkout's install, both read back | ✅ **DONE 2026-10-15** (`manifest-p11-s3`, 10:17–12:20 PDT): Task 4 `979b10f` on the branch; **LANDING 1 — `main` at `355f612`**, `pnpm test` 231 / 3756 twice; *What executing this plan found*, *Sitting 3* |
 | 4 | 5 | **The look**: the six shared and fourteen operations components ported to TSX in `src/system/`, each held markup-identical to its reference by the parity test; the stylesheets; the shell's rail in the system's own component | No | After Task 5's commit | ✅ **DONE 2026-10-15** (`manifest-p11-s4`, 12:15–12:40 PDT): Task 5 `74e02bd8` on `p11-admin-ui` — twenty ports held by 103 parity cases, the rail as `<ConsoleRail>`, its *Sign out* working; *What executing this plan found*, *Sitting 4* |
-| 5 | 6, 7 | **The queue** — the headline from our band, the two bands, the rows, the filter, the keyboard, the URL, the 60-second read (Task 6) — and **the release approval pane**: the request and its token from the project's stream, the preview on a click, the diff, approve and reject observed, the step-up round trip with the reason kept, stale and expired, decided by someone else (Task 7) | No | After Task 7's commit | ← **next** (a fresh session, `manifest-p11-s5`; it opens with `git -C /Users/rich/Developer/manifest-p11 rebase main` — the branch is one commit ahead of `main` `66352869` — then reads *Sitting 4*'s *What Tasks 6–12 inherit*) |
-| 6 | 8, 9 | **The team's step and UBC's answer** — submit, file, hand back, record, every body exactly what the operation requires, a granted change in its two writes (Task 8) — and **the fleet**: the table, its filters in the URL, the instance count, archived rows (Task 9). **LANDING 2** at the close | **Yes — L2** | After L2's merge, read back. **If it overflows, L2 moves to sitting 7's open** | |
+| 5 | 6, 7 | **The queue** — the headline from our band, the two bands, the rows, the filter, the keyboard, the URL, the 60-second read (Task 6) — and **the release approval pane**: the request and its token from the project's stream, the preview on a click, the diff, approve and reject observed, the step-up round trip with the reason kept, stale and expired, decided by someone else (Task 7) | No | After Task 7's commit | ✅ **DONE 2026-10-15** (`manifest-p11-s5`, 12:41–13:17 PDT): the queue `dc111c61` and the release approval pane `df332286` on `p11-admin-ui` — walked on the demo fleet, `reading-responses` approved through the step-up and back; seven findings, one a defect only the walk could see (F2); *What executing this plan found*, *Sitting 5* |
+| 6 | 8, 9 | **The team's step and UBC's answer** — submit, file, hand back, record, every body exactly what the operation requires, a granted change in its two writes (Task 8) — and **the fleet**: the table, its filters in the URL, the instance count, archived rows (Task 9). **LANDING 2** at the close | **Yes — L2** | After L2's merge, read back. **If it overflows, L2 moves to sitting 7's open** | ← **next** (a fresh session, `manifest-p11-s6`; it opens with `git -C /Users/rich/Developer/manifest-p11 rebase main` — the branch is three commits ahead of `ddbf6965`, and `main` has moved since by B's sittings, `packages/control-plane` among them, so read `git diff --name-only` for a `packages/contract` change before deciding on a `dist/` rebuild — then reads *Sitting 5*'s *What Tasks 8–12 inherit*) |
 | 7 | 10, 11 | **The project's page** — environments and their sets, incidents by cause, releases, the launch, people and agents, events live with the administrator's reason; reject an agent's question (Task 10) — and **Health and Settings** (Task 11) | No (L2, if it moved here) | After Task 11's commit | |
 | 8 | 12 | **The acceptance's headless half**: `make demo-admin` (the walk) and its step in both acceptances, its negative controls, **the plan's one whole-branch review and its one fix wave**. **LANDING 3** at the close; then RUNBOOK and WALKTHROUGH in the shared checkout | **Yes — L3** | After L3's merge and the two documents, read back | |
 | 9 | 13 | **Rich clicks it** (G9 — he is at the machine); his words recorded; the close-out: EXECUTED, the roadmap, ORIENTATION, CLAUDE.md's *State*; the worktree removed; the machine as found | Documents only (in the shared checkout) | After the close-out commit | |
@@ -2244,3 +2244,121 @@ was changed. 0 network(s) and 0 volume(s) are dead"*; `litellm-orphans.sh` refus
 yielded an LLM_API_KEY hash"* (`muddiest-point`'s, as at sitting 3); `app-images.sh` *"2 app image(s) are dead"*, both
 `muddiest-point`'s. **No `--apply` was tried**: every finding is W5B's app, which the coordinator keeps to record. **The worktree
 stays** for sitting 5, on `p11-admin-ui` at `74e02bd8` (one commit ahead of `main` `66352869`), clean, no `.env` symlink.
+
+### Sitting 5 — Tasks 6 and 7: the queue, and the release approval pane (2026-10-15, `manifest-p11-s5`)
+
+**Who and when.** `manifest-p11-s5`, the third coordinated run's P11 build, sitting 5, GOed by `manifest-coord5` at 12:41 PDT; inline
+(`superpowers:executing-plans`). **FREE** for Task 6 (load 2.8–4.7, on AC); **HOLD 12:56–13:00** (B2's vegeta ceiling — code only: Task 7's
+tests and most of its code written then, the console and its mock stopped); **FREE from 13:00**, during Rich's Zoom calls, so the
+sitting's whole-tree runs went at background QoS (`taskpolicy -b`). The worktree rebased onto `main` `ddbf6965` first — documents only
+since `66352869`, so the contract's `dist/` was not rebuilt; Task 5 is `29065d83` on the branch since. The ledger is
+`.superpowers/sdd/2026-10-14-p11-admin-console/progress.md` (every ruling with its cost).
+
+**Task 6 — the queue** (`dc111c61` on `p11-admin-ui`). **`src/queue-state.ts`**: `BAND` (held to the document's `QueueItem.kind` enum by a
+test that reads `openapi.json`), `kindWords` (the drawing's), `holderWords`, `itemKey`, `headlineOf` — **the oldest wait from OUR band's
+own `since`s, never `oldestSince`** (A15), distinct people with nobody-recorded as one, the counts and `truncated` — `bandsOf` (oldest
+first by instant, filtered, never regrouped; the text over slug, name and requester), `selectionAfterRead` (Review Focus 4: the key kept,
+`left` said), the filter ⇄ the URL's query (`queryOf`/`filterOf`: `q=…&kind=…`, an unknown kind dropped), the drawing's three facets as
+groups of kinds, and the keyboard's pure half (`queueKeyAction`: `j`, `k`, `Escape`, `/`, none in a text field or with a modifier;
+`moveSelection`: within the visible rows, stopping at the ends). **`src/screens/queue.tsx`**: `QueueView` — drawn, no reads — the
+`WaitHeadline` (*Oldest waiting on us*, the people, *items · N on us, M with UBC*, *Read just now · again every 60 seconds*, *Only the
+oldest 200 are shown…*), the `FilterBar`, the two bands (*Waiting on us — The headline counts these.*; *Waiting on UBC — Ours to chase and
+record.*), each row a `QueueRow` (age, kind, slug, the platform's sentence, who asked and the Vancouver day, the environment, *✎ a note*,
+the holder — every row amber, none red), the pane slot; and `QueueScreen` — `listQueue` on mount, every 60 s and on `visibilitychange`,
+the clock by the minute, every item read kept by key (an item that leaves keeps its facts), the selection and the filter in the URL, the
+keyboard (`j`/`k` select and open the next row as the drawing does, by `history.replaceState`; `Enter` presses the focused row's button;
+`Esc` closes; `/` focuses the filter). **`src/router.ts`**: the queue route carries `query`, the release route `preview`; `navigate` takes
+`replace`. **`app.tsx`**: `/queue…` and `/releases/<id>/approval` are the same `QueueScreen`, so moving between them keeps the read and the
+pane. **RED first, as predicted**: three files failed to load, the router's seven new cases red.
+
+**Task 7 — the release approval pane** (`df332286` on `p11-admin-ui`). **`src/approval-state.ts`**: the reducer `paneAfter` over `reading
+→ previewing → previewed → deciding → decided`, with `stepping-up` (a state the screen acts on: `window.location.assign(stepUpUrl(…))`),
+`gone-elsewhere` and `refused` (its `error` for `<Refusal>`, and `retry` set only when the decision MAY have been recorded — no answer or a
+`5xx` — then sent under the SAME key); `STALE`/`EXPIRED` refused in the plan's words and never re-taken or decided on again; a `gone` read
+never over the operator's own decision; `goneWords` (*"Operator Two approved this on October 14, 2026."* / *"This is no longer waiting on
+us."*); `draftReasonKey` (by release AND preview) and the reference console's `reasonDraft`, whole. **`src/stream.ts`**: the console's
+`useProjectStream` with its comments (now taking a `null` project until the release names it), `askedThrough` (the newest `approval.requested`
+for the release, by instant: its `actor.token.name`, `null` in a session, `null` itself with none — then no token is said), `decidedAfter`
+(another administrator's decision on the release after it was asked, live on the stream) and `eventsNewestFirst`. **`src/auth.ts`**:
+`stepUpUrl`, asserted exactly; the boundary test's positive control raised to `> 1`. **`src/time.ts`**: `clockInWords` (Vancouver's time
+of day). **`src/screens/approval-pane.tsx`**: `ApprovalPaneView` (drawn in every state) and `ApprovalPane` — the release, then its
+project's checklist and people; ONE socket on its project while open (Decision 18); the preview on a click, or read back by its id after
+the step-up with the reason from `sessionStorage`; the decision sent once per entry into `deciding` (StrictMode runs an effect twice);
+decided elsewhere read from `getApproval` when the queue's read drops it or the stream carries it. **`src/screens/item-head.tsx`**: the
+pane's head, out of `queue.tsx` (the queue imports the pane). **RED first, as predicted**, at FREE with the new code set aside: three files
+failed to load, `stepUpUrl` and `clockInWords` red; `api.test.ts`'s two new cases GREEN, as predicted (Task 2's client against Task 4's
+fleet, both built).
+
+**Rulings** (the ledger has each with its cost): the two routes' queries (F1); `QueueView` split from `QueueScreen` so the screen test
+draws it with a fixed `now`; `j`/`k` select AND open, as the drawing does, and every keyboard and filter move replaces the history entry;
+the facets are the drawing's three groups (its fourth, domains/audiences/overrides, is not modelled — A4); the pane's union gains
+`stepping-up` and `refused`'s `error` and `retry` (F7); `gone-elsewhere` offers no second decision (the platform would record one — sitting
+3's F1 — and the reference console's F11 refuses the same accident); the pane test reads its objects from the demo fleet through the
+console's own client; words beyond the plan's, none citing a spec section.
+
+**Findings:**
+
+**F1 THE SKELETON'S ROUTES STRIPPED BOTH QUERIES THESE TASKS NEED** (found at the pre-flight, before a line was written): the queue
+Route carried no query and the release Route none, so `canonicalPath()` on load would have dropped Task 6's filter from a pasted URL and
+Task 7's `?preview=` from the step-up's return — the operator back on the pane with no preview. Both routes now carry theirs
+(`router.test.ts`: four paths, and *"keeps a release pane's preview and nothing else of its query"*).
+
+**F2 THE WALK FOUND A DEFECT NO TEST HERE CAN SEE: a decided release opened by its URL drew nothing.** The pane's *decided elsewhere*
+effect guarded with a once-ref AND a `live` flag; React's StrictMode runs an effect, cleans it up and runs it again — the clean-up dropped
+the first run's `getApproval` answer, and the ref stopped the second run asking. Fixed before the commit (the clean-up gives the ref back);
+re-walked: the email's `/releases/<id>/approval` after the decision reads *"Operator One approved this on October 15, 2026."* with the
+reason, and offers no decision. **No unit test can hold it** — there is no DOM tier, and `renderToStaticMarkup` runs no effects — so
+**Task 12's walk should open an emailed link to a decided release** (the plan's *What Tasks 8–12 inherit*, below).
+
+**F3 The same walk read the *gone* state's body as false** for a pane opened by its URL — *"It left the queue while this was open. Nothing
+was recorded by you."* to the administrator who had recorded it. Now *"It is no longer waiting on us."* in every case.
+
+**F4 My own screen test asserted the whole page free of `reading-responses` under a filter** — but the headline names it, rightly (a
+filter never changes the headline). Narrowed to the rows' slugs, and the headline asserted unchanged under the filter.
+
+**F5 `pnpm typecheck` caught `KeyboardEvent` against the press's own target shape** after 197 green tests (Vitest strips types): the
+press's `target` is an `EventTarget`, read through a narrow cast — `router.ts`'s idiom.
+
+**F6 The plan quotes the design's *unavailable* summary — *"…The diff beside it is the control."* — where the port, held to the drawing by
+parity, reads *"…The diff above is the control, and it is complete."*** The test asserts the port's words; the drawing is the authority on
+markup (Decision 4).
+
+**F7 The plan's `ApprovalPane` union could not say the step-up or a retry**: no state for *"leaving for the step-up"*, and `refused`
+without the error `<Refusal>` renders or the key a retry must reuse. Added: `stepping-up { preview, to }`; `refused { …, error, retry }`.
+
+**The negative controls (Step 5), all seen:** Task 6 — the headline from `oldestSince` → **five cases red, every one a headline case**
+(the two predicted — the first headline case and `api.test.ts`'s demo-fleet case — plus null-when-empty and the screen's two headline
+lines), nothing else. Task 7 — (a) a new key on every press → *"reuses the key on a retry after no answer…"* red alone; (b) the preview
+re-taken by itself on `STALE` → *"…never takes a new one by itself"* red alone. Each restored by `git checkout --` of the one file.
+
+**The walks (Step 4)** — `bash scripts/admin-ui.sh`, headless Chrome on a port the system picks (Decision 17): **the queue** headlined
+*3 days, 4 hours* (not UBC's 23 days), *5 people*, *9 items · 5 on us, 4 with UBC*; `j`/`k` moved and focused the selection without
+adding history; `/` went to the filter, where `j` typed; the filter and a facet in the URL, and a pasted filtered URL survived the load;
+Esc closed the pane. **The pane, with `MANIFEST_MOCK_STEP_UP=1`**: `reading-responses` asked through *'the agent that builds this app'*,
+the note quoted, the facts, the six checklist ids, the events newest first; only *Take the preview* offered before it; Reject disabled
+until a reason; **Approve → `403 STEP_UP_REQUIRED` → the mock's step-up → back at `/releases/<id>/approval?preview=<id>` with the reason
+and the preview restored → Approve → *"Approved for production"*, the draft cleared, the queue without `reading-responses` and its headline
+*2 days, 7 hours***. Console errors: sitting 4's F2 three, the expected `403`, and StrictMode's first socket closed before it opened (the
+reference console's own).
+
+**The gates, on the final branch tree `df332286`, at background QoS:** `pnpm exec vitest run --project admin-ui --project packages`
+**twice, identical — 46 files, 572 passed** (sitting 4's 41 / 487 plus five files and 85 tests: `queue-state` 19, `queue` 11, `stream` 5,
+`approval-state` 12, `approval-pane` 19, and 3 in `api.test.ts`, 7 in `router.test.ts`, 1 each in `auth`/`time`, 7 parity cases), 122.5 s
+and 121.9 s, load 6.0–6.8; the `admin-ui` project alone 13 files / 244; `pnpm lint`, `pnpm typecheck` (seven packages) and `pnpm
+format:check` clean. The `unit` project not run (the plan's rule). **For L2's `EXPECT_` lines:** `pnpm test` gains 7 files and 202 tests
+since L1 so far (sitting 4's 2 / 117 and this sitting's 5 / 85).
+
+**What Tasks 8–12 inherit:** `queue.tsx`'s `ItemPane` is where Task 8's record panes go (the kinds other than `release-approval` draw
+the head and the platform's sentence until then); `QueueScreen` keeps every item it has read, so a record pane whose item left can still
+show its facts; `selectedOf`/`routeOf` give a record its URL (`/queue/<kind>/<id>?<filter>`), and `/projects/<id>/records` (the email's
+third link) is still Task 8's; `stream.ts`'s `useProjectStream` is Task 10's to reuse (one socket per open project); `reasonDraft` takes any
+key; **Task 12's walk** should open an emailed `/releases/<id>/approval` for a release already decided (F2), and expect StrictMode's closed
+first socket among the console's warnings.
+
+**The machine:** 7101 and 7113 free at the close (each `scripts/admin-ui.sh` stopped with TERM — the first time its zsh wrapper by
+mistake, then the script itself); no headless Chrome or profile left; no Docker resource made; 7100 untouched. The three cleanup scripts
+bare: `dead-app-resources.sh` *"Nothing was changed. 0 network(s) and 0 volume(s) are dead"*; `litellm-orphans.sh` refused itself —
+*"/user/list answered no users at all, which is not a state this machine reaches"* (7100's lane's state, as at sitting 1; told to the
+coordinator); `app-images.sh` *"Nothing was changed. 0 app image(s) are dead"*. **No `--apply` owed.** **The worktree stays** for sitting
+6, on `p11-admin-ui` at `df332286` (three commits ahead of `main` `ddbf6965` — `main` has moved since, by B's sittings), clean, no `.env`
+symlink.
