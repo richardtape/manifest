@@ -1503,7 +1503,9 @@ required); *What Instructor One will see*: the publisher's sentence (fact 3; the
     retry (the reducer reuses `key` when `deciding` is re-entered from `refused` by a network error, and makes a new one only for a new
     preview); `deciding` + `STEP_UP_REQUIRED` → a navigation to the step-up with the pane's own URL as `returnTo`, **encoded** — the
     function `stepUpUrl(releaseId, previewId)` asserted exactly as `'/auth/step-up?returnTo=' + encodeURIComponent('/releases/' + releaseId +
-    '/approval?preview=' + previewId)`, as the reference console encodes it (`packages/console/src/auth.ts:41-42`, M4); on return with `?preview=`, `getApprovalPreview` restores `previewed` and
+    '/approval?preview=' + previewId)`, as the reference console encodes it (`packages/console/src/auth.ts:41-42`, M4) — **and it lives in
+    `src/auth.ts`** (sitting 1's ruling: the copied boundary test lets only `auth.ts` name an `/auth/` path; raise its positive control to
+    `> 1` then, as the console's); on return with `?preview=`, `getApprovalPreview` restores `previewed` and
     the reason typed is read back from `sessionStorage[draftReasonKey]`; `APPROVAL_PREVIEW_STALE` and `APPROVAL_PREVIEW_EXPIRED` →
     `refused` with *"Something moved since you read the preview. Nothing was recorded, and the release is untouched. Take a new one."* /
     *"The preview is more than 30 minutes old. Nothing was recorded. Take a new one."* and **no automatic re-take**; a re-read while open
@@ -1724,7 +1726,9 @@ D5's sitting 8). **After L3, in the shared checkout:** `docs/superpowers/RUNBOOK
   Screenshots of each to `$DEMO_ADMIN_SHOTS` (default: the scratchpad). Exit 0 only when all nine pass; each failure names its check.
 - [ ] **Step 2: `scripts/demo-admin.sh`** — refuses if 7101 or 7113 listens; **builds the contract** (`pnpm --filter @manifest/contract
   build`, I1) and the console (`pnpm --filter @manifest/admin-ui build`), starts the mock (`MANIFEST_MOCK_PORT=7113 MANIFEST_MOCK_ROLE=admin MANIFEST_MOCK_FLEET=demo MANIFEST_MOCK_STEP_UP=1`) and `vite
-  preview` (`MANIFEST_MOCK=1 MANIFEST_MOCK_PORT=7113`), runs the walk, stops all three and deletes the profile in a `trap`; prints `every check
+  preview` (`MANIFEST_MOCK=1 MANIFEST_MOCK_PORT=7113`), runs the walk, stops all three and deletes the profile in a `trap` — **with TERM to
+  each process's whole tree** (sitting 1's F2: a job a non-interactive script backgrounds ignores SIGINT, and `pnpm` leaves its child
+  holding the port; `scripts/admin-ui.sh`'s `kill_tree` is the pattern); prints `every check
   passed` last. `DEMO_ADMIN_STOP_AFTER=<1–9>` for a control's short run. **No 7100, no Docker, no network.** `make demo-admin` runs it;
   **`scripts/ci-acceptance.sh` gains it as a step** (on either driver — it needs no control plane; it reads `PASS`/`FAIL` like its
   neighbours) **and `scripts/offline-acceptance.sh` as step 20** (M11).
