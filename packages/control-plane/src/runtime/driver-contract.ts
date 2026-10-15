@@ -120,6 +120,11 @@ export interface ContinuityFixtures {
    * after a call that must not change it, never for reading into.
    */
   readRoute: (hostname: string) => Promise<unknown>
+  /**
+   * The one address `hostname`'s route lets past its per-IP rate limit, or `null` for none (the load rehearsal plan's
+   * Task 3) — read off the driver's edge, as `readRoute` is, for the exemption block below.
+   */
+  rateLimitExemption: (hostname: string) => Promise<string | null>
 }
 
 /**
@@ -761,6 +766,76 @@ export function describeDriverContract(
           beside(hostname, 'release-cccccccc'),
         ])
         expect(await driver.servingInstances(hostname)).toEqual([next!.id])
+      }, 600_000)
+
+      /**
+       * §11's `setRateLimitExemption` (the load rehearsal plan's Task 3, Decision 5; Spec action C): for one load rehearsal,
+       * one address — the generator's — past the route's per-IP rate limit, and `null` to clear it. It changes that and
+       * NOTHING else: the set the name reaches, its health policy, its headers — and cleared, the route is the one it was.
+       */
+      it('setRateLimitExemption lets one address past the limit and clears it, the route otherwise exactly as it was', async () => {
+        const driver = await factory()
+        const hostname = host()
+        const set = await driver.ensureInstances(setOf(hostname, 'release-aaaaaaaa', 2))
+        const route = await continuity!.readRoute(hostname)
+        expect(await continuity!.rateLimitExemption(hostname)).toBeNull()
+
+        await driver.setRateLimitExemption(hostname, '10.89.0.77')
+        expect(await continuity!.rateLimitExemption(hostname)).toBe('10.89.0.77')
+        expect(await serving(driver, hostname)).toEqual(ids(set))
+        // Twice is once; a second address REPLACES the first — one generator, one address.
+        await driver.setRateLimitExemption(hostname, '10.89.0.77')
+        await driver.setRateLimitExemption(hostname, '10.89.0.78')
+        expect(await continuity!.rateLimitExemption(hostname)).toBe('10.89.0.78')
+
+        await driver.setRateLimitExemption(hostname, null)
+        expect(await continuity!.rateLimitExemption(hostname)).toBeNull()
+        expect(await serving(driver, hostname)).toEqual(ids(set))
+        expect(await continuity!.readRoute(hostname)).toEqual(route)
+      }, 600_000)
+
+      it('setRateLimitExemption refuses a name with no route, and an address that is not one, changing nothing', async () => {
+        const driver = await factory()
+        const nowhere = host()
+        await expect(
+          driver.setRateLimitExemption(nowhere, '10.89.0.77'),
+        ).rejects.toMatchObject({
+          code: 'INSTANCE_NOT_FOUND',
+          message: expect.stringContaining(nowhere),
+        })
+        await expect(driver.setRateLimitExemption(nowhere, null)).rejects.toMatchObject({
+          code: 'INSTANCE_NOT_FOUND',
+        })
+        const hostname = host()
+        await driver.ensureInstances([beside(hostname, 'release-aaaaaaaa')])
+        const route = await continuity!.readRoute(hostname)
+        for (const bad of ['not-an-address', '10.89.0.0/24', '0.0.0.0/0', ''])
+          await expect(driver.setRateLimitExemption(hostname, bad)).rejects.toMatchObject(
+            {
+              code: 'ADDRESS_INVALID',
+            },
+          )
+        expect(await continuity!.readRoute(hostname)).toEqual(route)
+        expect(await continuity!.rateLimitExemption(hostname)).toBeNull()
+      }, 600_000)
+
+      it('a switched-off name stays switched off whatever the exemption asked, and the next deploy is plain', async () => {
+        const driver = await factory()
+        const hostname = host()
+        await driver.ensureInstances([beside(hostname, 'release-aaaaaaaa')])
+        await driver.setRateLimitExemption(hostname, '10.89.0.77')
+        await driver.switchOff(hostname, 'staging')
+        const page = await continuity!.readRoute(hostname)
+        await driver.setRateLimitExemption(hostname, '10.89.0.77')
+        await driver.setRateLimitExemption(hostname, null)
+        expect(await continuity!.readRoute(hostname)).toEqual(page)
+        expect(await driver.servingInstances(hostname)).toEqual([])
+        // A route the driver writes afresh — a deploy — carries no exemption: only the verb sets one.
+        const [next] = await driver.ensureInstances([
+          beside(hostname, 'release-bbbbbbbb'),
+        ])
+        expect(await driver.servingInstances(hostname)).toEqual([next!.id])
+        expect(await continuity!.rateLimitExemption(hostname)).toBeNull()
       }, 600_000)
 
       it('listInstances names every instance of a hostname — serving or not — and nothing else', async () => {

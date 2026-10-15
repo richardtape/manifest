@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto'
+import { isIP } from 'node:net'
 import type {
   BuildOpts,
   BuiltImage,
@@ -31,6 +32,8 @@ interface FakeInstance {
   inFlight: number
   /** The process's exit code once it has ENDED (`crash`) — absent while it runs, as a real driver reports it. */
   exitCode?: number
+  /** Set by `crash(…, { outOfMemory: true })`, and STICKY as Docker's flag is ([M7]): a later `markHealthy` keeps it. */
+  outOfMemory?: boolean
 }
 interface FakeService {
   binding: ServiceBinding
@@ -55,7 +58,7 @@ export type FakeDriver = Driver & {
    * status reads `failed`, and the route is untouched: an edge routes around a dead member, it does
    * not forget one. On the fake alone.
    */
-  crash(id: string, exitCode?: number): void
+  crash(id: string, exitCode?: number, opts?: { outOfMemory?: boolean }): void
   /**
    * Test affordance (A1 Task 6): the container is removed behind the platform's back (`docker rm`) —
    * its status reads `gone`, and the route still names it. On the fake alone.
@@ -75,6 +78,8 @@ export type FakeDriver = Driver & {
   dropRoutes(): void
   /** Whether `hostname` answers the switched-off page (Task 11). On the fake alone. */
   isSwitchedOff(hostname: string): boolean
+  /** The one address `hostname`'s route lets past its rate limit, or `null` (the load rehearsal plan's Task 3). On the fake alone. */
+  rateLimitExemption(hostname: string): string | null
   /** Every `destroyEnvironment` call, in order (Task 11). On the fake alone. */
   destroyedEnvironments(): ReadonlyArray<{
     slug: string
@@ -124,7 +129,11 @@ export function createFakeDriver(options: FakeDriverOptions = {}): FakeDriver {
     if (ids.length === 0) routes.delete(hostname)
     else routes.set(hostname, [...ids])
     history.set(hostname, [...(history.get(hostname) ?? []), [...ids]])
+    // A route written afresh carries no exemption, as the Docker driver's `buildRoute` writes none.
+    exemptions.delete(hostname)
   }
+  /** hostname -> the one address its route lets past the rate limit (`setRateLimitExemption`). */
+  const exemptions = new Map<string, string>()
   const reaches = (hostname: string, id: string): boolean =>
     routes.get(hostname)?.includes(id) === true
   /** Names answering the switched-off page — a route to no instance (Task 11). */
@@ -355,6 +364,27 @@ export function createFakeDriver(options: FakeDriverOptions = {}): FakeDriver {
       switchedOff.delete(hostname)
     },
 
+    async setRateLimitExemption(hostname: string, address: string | null): Promise<void> {
+      if (address !== null && isIP(address) === 0) {
+        throw new DriverRefusalError(
+          'ADDRESS_INVALID',
+          `'${address}' is not one IP address`,
+          "The exemption is for one address — the load generator's own. Nothing was changed.",
+        )
+      }
+      if (!routes.has(hostname) && !switchedOff.has(hostname)) {
+        throw new DriverRefusalError(
+          'INSTANCE_NOT_FOUND',
+          `${hostname} has no route to exempt an address from`,
+          'Only a name the edge routes has a rate limit. Nothing was changed.',
+        )
+      }
+      // The switched-off page has no limit to skip: it stays exactly as it is.
+      if (switchedOff.has(hostname)) return
+      if (address === null) exemptions.delete(hostname)
+      else exemptions.set(hostname, address)
+    },
+
     async switchOff(hostname: string): Promise<void> {
       route(hostname, [])
       switchedOff.add(hostname)
@@ -415,6 +445,7 @@ export function createFakeDriver(options: FakeDriverOptions = {}): FakeDriver {
         state: instance.state,
         healthy: instance.state === 'healthy',
         ...(instance.exitCode === undefined ? {} : { exitCode: instance.exitCode }),
+        outOfMemory: instance.outOfMemory === true,
       }
     },
 
@@ -486,6 +517,7 @@ export function createFakeDriver(options: FakeDriverOptions = {}): FakeDriver {
       // Not through `route`: an edge that restarts forgets its routes, and moves nothing.
       routes.clear()
       switchedOff.clear()
+      exemptions.clear()
     },
 
     routeHistory: (hostname) => (history.get(hostname) ?? []).map((ids) => [...ids]),
@@ -501,6 +533,8 @@ export function createFakeDriver(options: FakeDriverOptions = {}): FakeDriver {
 
     isSwitchedOff: (hostname) => switchedOff.has(hostname),
 
+    rateLimitExemption: (hostname) => exemptions.get(hostname) ?? null,
+
     destroyedEnvironments: () => environmentsDestroyed,
 
     markHealthy(id: string) {
@@ -511,12 +545,13 @@ export function createFakeDriver(options: FakeDriverOptions = {}): FakeDriver {
       }
     },
 
-    crash(id: string, exitCode?: number) {
+    crash(id: string, exitCode?: number, opts: { outOfMemory?: boolean } = {}) {
       const instance = instances.get(id)
       if (!instance) throw new Error(`fake driver: no instance '${id}' to crash`)
       instance.state = 'failed'
       if (exitCode === undefined) delete instance.exitCode
       else instance.exitCode = exitCode
+      if (opts.outOfMemory === true) instance.outOfMemory = true
     },
 
     vanish(id: string) {

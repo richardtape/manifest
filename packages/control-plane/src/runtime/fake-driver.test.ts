@@ -43,6 +43,8 @@ describeDriverContract('fake', () => shared, {
       return { result, answers: held.flat() }
     },
     readRoute: async (hostname) => (shared as FakeDriver).routeOf(hostname),
+    rateLimitExemption: async (hostname) =>
+      (shared as FakeDriver).rateLimitExemption(hostname),
   },
 })
 
@@ -92,5 +94,36 @@ describe('the fake driver', () => {
       ]),
     ).rejects.toMatchObject({ code: 'INSTANCE_NOT_REACHABLE' })
     expect(driver.routeHistory(hostname)).toHaveLength(2)
+  })
+
+  // The load rehearsal plan's Task 3: what Docker's `OOMKilled` says, so a run's watch can be tested without Docker.
+  it('crash can say the instance ran out of memory — and, as Docker’s flag, it stays said', async () => {
+    const driver = createFakeDriver()
+    const hostname = 'fake-oom.staging.manifest.internal'
+    const [killed, oom] = await driver.ensureInstances([
+      specFor(hostname, 'release-aaaaaaaa'),
+      specFor(hostname, 'release-aaaaaaaa'),
+    ])
+    expect(await driver.status(oom!.id)).toMatchObject({
+      state: 'healthy',
+      outOfMemory: false,
+    })
+    driver.crash(killed!.id, 137)
+    driver.crash(oom!.id, 137, { outOfMemory: true })
+    expect(await driver.status(killed!.id)).toMatchObject({
+      state: 'failed',
+      exitCode: 137,
+      outOfMemory: false,
+    })
+    expect(await driver.status(oom!.id)).toMatchObject({
+      state: 'failed',
+      exitCode: 137,
+      outOfMemory: true,
+    })
+    driver.markHealthy(oom!.id)
+    expect(await driver.status(oom!.id)).toMatchObject({
+      state: 'healthy',
+      outOfMemory: true,
+    })
   })
 })

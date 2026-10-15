@@ -11,6 +11,7 @@ export {
   createCaddyClient,
   INSTANCE_HEADER,
   PROBE_HEADER,
+  rateLimitExemptRange,
 } from './caddy.js'
 export type { EnvironmentKind, Listener } from './hostnames.js'
 export { listenerFor, routeIdFor } from './hostnames.js'
@@ -23,6 +24,7 @@ export {
   removeRoute,
   restoreRouteTo,
   servingRoute,
+  setRouteRateLimitExemption,
   SWITCHED_OFF_PAGE,
   upstreamsOf,
   upstreamsInUse,

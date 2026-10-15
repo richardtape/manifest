@@ -1,5 +1,6 @@
 import { request as httpRequest } from 'node:http'
 import { request as httpsRequest } from 'node:https'
+import { isIP } from 'node:net'
 import { INSTANCE_ALIAS_PREFIX, instanceAlias } from '../runtime/index.js'
 
 export interface CaddyRoute {
@@ -99,6 +100,67 @@ export function appHealthPolicy(healthPath: string): HealthPolicy {
   }
 }
 
+/**
+ * WHO A ROUTE'S PER-IP RATE LIMIT COUNTS: every address — or, for the length of one load rehearsal, every address
+ * but the generator's own (§20; the load rehearsal plan's Decision 5). `[M4]` measured this shape in a throwaway Caddy
+ * from the edge's own image (B sitting 1): the zone's OWN `match` given a `not`, no new handler and no subroute — the
+ * exempt client sent 1,300 in a minute with no `429`, another was cut at 600. Caddy reads it back `not` first, so
+ * compare it parsed. Nobody can widen it with a header: the key is the connection's own address.
+ */
+function rateLimitMatch(exemptRange: string | null): unknown[] {
+  const everyone = { remote_ip: { ranges: ['0.0.0.0/0', '::/0'] } }
+  return exemptRange === null
+    ? [everyone]
+    : [{ ...everyone, not: [{ remote_ip: { ranges: [exemptRange] } }] }]
+}
+
+/**
+ * ONE ADDRESS AS ITS OWN RANGE — `/32` or `/128` — or `undefined` for anything that is not exactly one address: a
+ * range, a name, an empty string. Checked BEFORE anything is written, because Caddy answers a malformed one with its
+ * admin API's `500` and keeps the config it had (`[M4]` T7, B sitting 1's F6), which a caller would read as the edge
+ * failing rather than as its own mistake.
+ */
+export function rateLimitExemptRange(address: string): string | undefined {
+  const family = isIP(address)
+  if (family === 4) return `${address}/32`
+  if (family === 6) return `${address}/128`
+  return undefined
+}
+
+/**
+ * `route` with its rate limit skipping `address` — or, given `null`, skipping nobody — and NOTHING ELSE CHANGED: its set,
+ * its health policy, its headers, its limit and window are the route's own, as the edge holds it. A route with no
+ * `rate_limit` handler (the switched-off page) comes back exactly as it was. Cleared, it is byte for byte the route
+ * `buildRoute` writes.
+ *
+ * Its caller is `setRouteRateLimitExemption` (`routes.ts`), which the Docker driver's `setRateLimitExemption` calls.
+ */
+export function withRateLimitExemption(
+  route: CaddyRoute,
+  address: string | null,
+): CaddyRoute {
+  const range = address === null ? null : rateLimitExemptRange(address)
+  if (range === undefined) throw new Error(`'${address}' is not one IP address`)
+  return {
+    ...route,
+    handle: route.handle.map((handler) => {
+      const limiter = handler as {
+        handler?: string
+        rate_limits?: Record<string, Record<string, unknown>>
+      }
+      if (limiter.handler !== 'rate_limit' || limiter.rate_limits === undefined)
+        return handler
+      const zones: Record<string, Record<string, unknown>> = {}
+      for (const [name, zone] of Object.entries(limiter.rate_limits)) {
+        // `match` rewritten in its own place, so a cleared zone's keys are in buildRoute's order.
+        const { match: _was, ...rest } = zone
+        zones[name] = { match: rateLimitMatch(range), ...rest }
+      }
+      return { ...limiter, rate_limits: zones }
+    }),
+  }
+}
+
 /** One member of the set a route dials: the address, and the instance that address IS. */
 export interface RouteUpstream {
   /** `mf-i-<instanceId>:<port>` — the instance's own network alias (`instanceAlias`). */
@@ -157,7 +219,7 @@ export function buildRoute(input: {
         handler: 'rate_limit',
         rate_limits: {
           [input.routeId]: {
-            match: [{ remote_ip: { ranges: ['0.0.0.0/0', '::/0'] } }],
+            match: rateLimitMatch(null),
             key: '{http.request.remote.host}',
             window: '1m',
             max_events: input.rateLimit ?? 600,

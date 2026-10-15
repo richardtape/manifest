@@ -11,10 +11,20 @@ import {
   REPO_ROOT,
   resolveSocketPath,
 } from '../runtime/testing.js'
-import { appHealthPolicy, buildRoute, createCaddyClient } from './caddy.js'
+import {
+  appHealthPolicy,
+  buildRoute,
+  createCaddyClient,
+  withRateLimitExemption,
+} from './caddy.js'
 import { routeIdFor } from './hostnames.js'
 import { edgeIdentityProbe, waitForIdentities } from './readiness.js'
-import { applyRoute, removeRoute, servingRoute } from './routes.js'
+import {
+  applyRoute,
+  removeRoute,
+  servingRoute,
+  setRouteRateLimitExemption,
+} from './routes.js'
 import { stubAppArgs } from './testing.js'
 
 const run = promisify(execFile)
@@ -562,3 +572,138 @@ describeDocker('A1: one route, a set of instances, on the real edge (Task 2)', (
     )
   }, 120_000)
 })
+
+/**
+ * THE LOAD REHEARSAL'S EXEMPTION ON THE REAL EDGE (the load rehearsal plan's Task 3, Decision 5): for one run, the staging
+ * route's per-IP limit (600 a minute) skips the generator's own address and nobody else's. Two client containers on the
+ * platform network, each one keep-alive connection: the exempt one sends 1,200 with no `429`; another is cut at 600; and
+ * once the exemption is cleared the first is limited again.
+ *
+ * COUNTED FROM A FRESH ADDRESS: caddy-ratelimit's counters SURVIVE every PATCH (`[M4]` T3/T4, B sitting 1's F5), so the
+ * limited client is one that has sent nothing before — and the exempt address, never counted while exempt, starts at zero
+ * once cleared, which is why it gets exactly 600 then.
+ */
+const RL_HOST = 'ratelimit-exempt.staging.manifest.internal'
+const RL_APP = 'mf-ratelimit-exempt-staging-app'
+const RL_ID = '88888888-8888-4888-8888-888888888888'
+const RL_EXEMPT = 'mf-ratelimit-exempt-client-a'
+const RL_OTHER = 'mf-ratelimit-exempt-client-b'
+
+/** A long-lived client on the platform network, and its address there — the address the edge keys its limit on ([M2]). */
+const startClient = async (name: string): Promise<string> => {
+  await run('docker', ['rm', '-f', name]).catch(() => undefined)
+  await run('docker', [
+    'run',
+    '-d',
+    '--name',
+    name,
+    '--network',
+    'manifest-platform',
+    '--dns',
+    '10.89.0.53',
+    '-v',
+    `${CA}:/ca.crt:ro`,
+    '--entrypoint',
+    'sleep',
+    'curlimages/curl:8.11.1',
+    '600',
+  ])
+  const { stdout } = await run('docker', [
+    'inspect',
+    '-f',
+    '{{(index .NetworkSettings.Networks "manifest-platform").IPAddress}}',
+    name,
+  ])
+  return stdout.trim()
+}
+
+/** `count` requests over ONE connection (curl's URL glob), tallied by status. */
+const burst = async (client: string, count: number): Promise<Record<string, number>> => {
+  const { stdout } = await run(
+    'docker',
+    [
+      'exec',
+      client,
+      'curl',
+      '--cacert',
+      '/ca.crt',
+      '-s',
+      '-o',
+      '/dev/null',
+      '-w',
+      '%{http_code}\n',
+      `https://${RL_HOST}/p[1-${count}]`,
+    ],
+    { maxBuffer: 16 * 1024 * 1024 },
+  )
+  const tally: Record<string, number> = {}
+  // A glob's later bodies are written to stdout ahead of their code (`ok200`): the status is each line's last three digits.
+  for (const line of stdout.split('\n')) {
+    const code = /(\d{3})$/.exec(line)?.[1]
+    if (code !== undefined) tally[code] = (tally[code] ?? 0) + 1
+  }
+  return tally
+}
+
+describeDocker(
+  'the load rehearsal: a route’s rate limit skips one address (Task 3)',
+  () => {
+    let exemptAddress = ''
+    beforeAll(async () => {
+      await removeRoute(deps, RL_HOST, 'staging').catch(() => undefined)
+      await run('docker', ['rm', '-f', RL_APP]).catch(() => undefined)
+      await run('docker', stubAppArgs(RL_APP, 'ok', {}, { aliases: [`mf-i-${RL_ID}`] }))
+      exemptAddress = await startClient(RL_EXEMPT)
+      await new Promise((r) => setTimeout(r, 1500))
+    }, 120_000)
+
+    afterAll(async () => {
+      await removeRoute(deps, RL_HOST, 'staging').catch(() => undefined)
+      // Explicit names (P4b finding 192).
+      await run('docker', ['rm', '-f', RL_APP, RL_EXEMPT, RL_OTHER]).catch(
+        () => undefined,
+      )
+    })
+
+    it('the exempt address sends 1,200 with no 429, another is cut at 600 — and once cleared the first is limited again', async () => {
+      const plain = {
+        hostname: RL_HOST,
+        kind: 'staging' as const,
+        upstreams: [{ dial: `mf-i-${RL_ID}:8080`, instanceId: RL_ID }],
+        health: appHealthPolicy('/healthz'),
+      }
+      await applyRoute(deps, plain)
+      const before = await caddy.getRoute(routeIdFor(RL_HOST))
+      expect(exemptAddress).toMatch(/^10\.89\.0\.\d+$/)
+
+      expect(await setRouteRateLimitExemption(deps, RL_HOST, exemptAddress)).toBe('set')
+      // The edge holds exactly the route it held, its rate limit's match alone changed.
+      expect(await caddy.getRoute(routeIdFor(RL_HOST))).toEqual(
+        withRateLimitExemption(before!, exemptAddress),
+      )
+      expect(await burst(RL_EXEMPT, 1_200)).toEqual({ '200': 1_200 })
+
+      // ANOTHER client — fresh, so its count starts here — is limited as every client is.
+      await startClient(RL_OTHER)
+      expect(await burst(RL_OTHER, 700)).toEqual({ '200': 600, '429': 100 })
+
+      // The take-down's half: cleared, the route is the one it was, and the first client is limited again.
+      expect(await setRouteRateLimitExemption(deps, RL_HOST, null)).toBe('set')
+      expect(await caddy.getRoute(routeIdFor(RL_HOST))).toEqual(before)
+      expect(await burst(RL_EXEMPT, 700)).toEqual({ '200': 600, '429': 100 })
+    }, 180_000)
+
+    it('a name with no route is absent, and nothing is written', async () => {
+      expect(
+        await setRouteRateLimitExemption(
+          deps,
+          'ratelimit-nowhere.staging.manifest.internal',
+          '10.89.0.77',
+        ),
+      ).toBe('absent')
+      expect(
+        await caddy.getRoute(routeIdFor('ratelimit-nowhere.staging.manifest.internal')),
+      ).toBeUndefined()
+    })
+  },
+)

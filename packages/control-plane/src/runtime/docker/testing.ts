@@ -576,5 +576,27 @@ export function dockerContinuityFixtures(): ContinuityFixtures {
     },
     readRoute: (hostname: string) =>
       CONTRACT_ROUTING.caddy.getRoute(routeIdFor(hostname)),
+    /**
+     * Read off the edge's own route: the rate limit's zone `match`, its `not` — `[M4]`'s shape, which `buildRoute` and
+     * `withRateLimitExemption` write — and the one range in it, as the address it is for.
+     */
+    rateLimitExemption: async (hostname: string) => {
+      const route = await CONTRACT_ROUTING.caddy.getRoute(routeIdFor(hostname))
+      for (const handler of route?.handle ?? []) {
+        const limiter = handler as {
+          handler?: string
+          rate_limits?: Record<
+            string,
+            { match?: { not?: { remote_ip?: { ranges?: string[] } }[] }[] }
+          >
+        }
+        if (limiter.handler !== 'rate_limit') continue
+        for (const zone of Object.values(limiter.rate_limits ?? {})) {
+          const range = zone.match?.[0]?.not?.[0]?.remote_ip?.ranges?.[0]
+          if (range !== undefined) return range.replace(/\/(32|128)$/, '')
+        }
+      }
+      return null
+    },
   }
 }

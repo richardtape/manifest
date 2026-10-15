@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { dockerStateToInstanceState, environmentHash } from './instances.js'
+import type { EngineClient } from './engine.js'
+import {
+  dockerStateToInstanceState,
+  environmentHash,
+  instanceStatus,
+} from './instances.js'
 
 const state = (over: Partial<Parameters<typeof dockerStateToInstanceState>[0]> = {}) => ({
   Status: 'running',
@@ -78,5 +83,66 @@ describe('environmentHash — what decides reuse against replacement (P4b Task 9
     // And the hash is not the environment: a label is readable by anything that can
     // inspect the container.
     expect(hash).not.toContain('sk-first')
+  })
+})
+
+/**
+ * AN OUT-OF-MEMORY EXIT, AS DOCKER REPORTS IT (the load rehearsal plan's Task 3; the second review's I5). B sitting 1's `[M7]`
+ * measured three throwaways on Docker Desktop 4.95.0 (cgroup v2) — and these rows are exactly what it recorded: an
+ * out-of-memory exit is `exited` / `137` / `OOMKilled: true`; a plain `SIGKILL` is `exited` / `137` / `false`, so only the
+ * flag tells them apart; and under the init every app runs with, a process killed at the ceiling leaves the container
+ * RUNNING with the flag set — and it stays set.
+ */
+describe('instanceStatus — out of memory, read from Docker’s own flag', () => {
+  const engineFor = (state: Record<string, unknown>): EngineClient =>
+    ({
+      get: async (path: string) =>
+        path.startsWith('/containers/') ? { State: state } : undefined,
+    }) as unknown as EngineClient
+
+  it('an out-of-memory exit: failed, exit 137, outOfMemory true', async () => {
+    const status = await instanceStatus(
+      engineFor({ Status: 'exited', ExitCode: 137, OOMKilled: true }),
+      'mf-app',
+    )
+    expect(status).toMatchObject({ state: 'failed', exitCode: 137, outOfMemory: true })
+  })
+
+  it('a kill is not out of memory: exit 137 with OOMKilled false is outOfMemory false', async () => {
+    const status = await instanceStatus(
+      engineFor({ Status: 'exited', ExitCode: 137, OOMKilled: false }),
+      'mf-app',
+    )
+    expect(status).toMatchObject({ state: 'failed', exitCode: 137, outOfMemory: false })
+  })
+
+  it('a RUNNING instance that lost a process to its ceiling has run out of memory — whatever its state (F2)', async () => {
+    const status = await instanceStatus(
+      engineFor({
+        Status: 'running',
+        ExitCode: 0,
+        OOMKilled: true,
+        Health: { Status: 'healthy' },
+      }),
+      'mf-app',
+    )
+    expect(status).toMatchObject({ state: 'healthy', healthy: true, outOfMemory: true })
+    expect(status.exitCode).toBeUndefined()
+  })
+
+  it('a running instance with no such kill reads outOfMemory false, and a gone one says nothing', async () => {
+    expect(
+      (
+        await instanceStatus(
+          engineFor({ Status: 'running', ExitCode: 0, OOMKilled: false }),
+          'mf-app',
+        )
+      ).outOfMemory,
+    ).toBe(false)
+    const gone = await instanceStatus(
+      { get: async () => undefined } as unknown as EngineClient,
+      'mf-x',
+    )
+    expect(gone).toEqual({ id: 'mf-x', state: 'gone', healthy: false })
   })
 })

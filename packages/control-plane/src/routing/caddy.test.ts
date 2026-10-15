@@ -5,6 +5,9 @@ import {
   buildRoute,
   createCaddyClient,
   INSTANCE_HEADER,
+  rateLimitExemptRange,
+  withRateLimitExemption,
+  type CaddyRoute,
   type HealthPolicy,
 } from './caddy.js'
 
@@ -349,6 +352,85 @@ describe('the Caddy route across N instances (A1 Task 2)', () => {
       timeout: 2_000_000_000,
       probeHeader: 'health',
     })
+  })
+})
+
+/**
+ * THE LOAD REHEARSAL'S EXEMPTION (the load rehearsal plan's Task 3, Decision 5; §20 as Spec action C left it): for one run,
+ * the staging route's per-IP limit does not apply to the generator's own address. `[M4]` measured the shape in a throwaway
+ * Caddy from the edge's own image (B sitting 1): the zone's OWN `match` given a `not` — the exempt client sent 1,300 in a
+ * minute with no `429`, another was cut at 600 — so nothing else about the route changes.
+ */
+describe('a route whose rate limit skips one address (the load rehearsal, Task 3)', () => {
+  const A = 'a1a1a1a1-0000-4000-8000-000000000001'
+  const B = 'b2b2b2b2-0000-4000-8000-000000000002'
+  const route = (): CaddyRoute =>
+    buildRoute({
+      hostname: 'chem-labs.staging.manifest.internal',
+      routeId: 'mf-chem-labs-staging-manifest-internal',
+      upstreams: [
+        { dial: `mf-i-${A}:3000`, instanceId: A },
+        { dial: `mf-i-${B}:3000`, instanceId: B },
+      ],
+      health: appHealthPolicy('/healthz'),
+    })
+  const zoneOf = (r: CaddyRoute) =>
+    (r.handle[1] as { rate_limits: Record<string, { match: unknown }> }).rate_limits[
+      'mf-chem-labs-staging-manifest-internal'
+    ]!
+
+  it("writes [M4]'s shape exactly: every address, but not the one exempted", () => {
+    const exempt = withRateLimitExemption(route(), '10.89.0.13')
+    expect(zoneOf(exempt).match).toEqual([
+      {
+        remote_ip: { ranges: ['0.0.0.0/0', '::/0'] },
+        not: [{ remote_ip: { ranges: ['10.89.0.13/32'] } }],
+      },
+    ])
+  })
+
+  it('changes NOTHING else about the route — its set, its health policy, its headers, its limit', () => {
+    const before = route()
+    const exempt = withRateLimitExemption(before, '10.89.0.13')
+    const { match: _ignored, ...zoneRest } = zoneOf(exempt) as { match: unknown }
+    const { match: _was, ...zoneBefore } = zoneOf(before) as { match: unknown }
+    expect(zoneRest).toEqual(zoneBefore)
+    expect(exempt.handle.filter((_, i) => i !== 1)).toEqual(
+      before.handle.filter((_, i) => i !== 1),
+    )
+    expect({ ...exempt, handle: [] }).toEqual({ ...before, handle: [] })
+  })
+
+  it("clears back to today's route BYTE FOR BYTE, and twice is once", () => {
+    const today = route()
+    const cleared = withRateLimitExemption(
+      withRateLimitExemption(today, '10.89.0.13'),
+      null,
+    )
+    expect(JSON.stringify(cleared)).toBe(JSON.stringify(today))
+    const twice = withRateLimitExemption(
+      withRateLimitExemption(today, '10.89.0.13'),
+      '10.89.0.13',
+    )
+    expect(twice).toEqual(withRateLimitExemption(today, '10.89.0.13'))
+  })
+
+  it('leaves a route with no rate limit — the switched-off page — exactly as it is', () => {
+    const page: CaddyRoute = {
+      '@id': 'mf-chem-labs-staging-manifest-internal',
+      match: [{ host: ['chem-labs.staging.manifest.internal'] }],
+      handle: [{ handler: 'static_response', status_code: 410 }],
+      terminal: true,
+    }
+    expect(withRateLimitExemption(page, '10.89.0.13')).toEqual(page)
+  })
+
+  it('takes one address of either family, as its own range — and nothing else', () => {
+    expect(rateLimitExemptRange('10.89.0.13')).toBe('10.89.0.13/32')
+    expect(rateLimitExemptRange('fd00::13')).toBe('fd00::13/128')
+    // F6: Caddy answers a malformed address with its admin API's 500. Refused BEFORE anything is written.
+    for (const bad of ['not-an-address', '10.89.0.0/24', '0.0.0.0/0', '', '10.89.0.256'])
+      expect(rateLimitExemptRange(bad)).toBeUndefined()
   })
 })
 

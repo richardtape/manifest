@@ -1,6 +1,7 @@
 import { INSTANCE_ALIAS_PREFIX } from '../runtime/index.js'
 import {
   buildRoute,
+  withRateLimitExemption,
   type CaddyClient,
   type CaddyRoute,
   type HealthPolicy,
@@ -141,6 +142,38 @@ export async function removeRoute(
   kind: EnvironmentKind,
 ): Promise<void> {
   await deps.caddy.deleteRoute(deps.servers[listenerFor(kind)], routeIdFor(hostname))
+}
+
+/**
+ * ONE ADDRESS PAST `hostname`'s PER-IP RATE LIMIT, or nobody (`null`) — the load rehearsal plan's Task 3, Decision 5. The
+ * route is read AS THE EDGE HOLDS IT and PATCHed in place by its `@id` with only the rate limit's `match` changed
+ * (`withRateLimitExemption`), so the set it dials, its health policy and its headers are exactly what serves now — never
+ * the Route records' idea of them, and never a member dropped because its container was not found. The switched-off page
+ * has no rate limit and is left exactly as it is. Answers what it found; nothing is swallowed — a PATCH the edge refuses
+ * is thrown.
+ *
+ * Caddy's rate-limit counters SURVIVE the PATCH (`[M4]` T3/T4): a client already limited stays limited, and the exempt
+ * address — never counted while exempt — starts at zero once cleared.
+ *
+ * Its caller is the Docker driver's `setRateLimitExemption`, which validates the address first.
+ */
+export async function setRouteRateLimitExemption(
+  deps: RoutingDeps,
+  hostname: string,
+  address: string | null,
+): Promise<'set' | 'switched-off' | 'absent'> {
+  const routeId = routeIdFor(hostname)
+  const route = await deps.caddy.getRoute(routeId)
+  if (route === undefined) return 'absent'
+  const next = withRateLimitExemption(route, address)
+  if (JSON.stringify(next) === JSON.stringify(route)) {
+    // Nothing to skip (the switched-off page), or nothing to change (asked twice): no PATCH, no reload of the edge.
+    return route.handle.some((h) => (h as { handler?: string }).handler === 'rate_limit')
+      ? 'set'
+      : 'switched-off'
+  }
+  await deps.caddy.patchRoute(routeId, next)
+  return 'set'
 }
 
 /**

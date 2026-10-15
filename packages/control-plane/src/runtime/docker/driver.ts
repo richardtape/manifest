@@ -16,9 +16,11 @@ import {
   applySwitchedOffRoute,
   edgeIdentityProbe,
   inFlightTo,
+  rateLimitExemptRange,
   removeRoute,
   restoreRouteTo,
   servingRoute,
+  setRouteRateLimitExemption,
   upstreamsInUse,
   waitForIdentities,
   waitForReady,
@@ -570,8 +572,10 @@ export async function createDockerDriver(options: DockerDriverOptions): Promise<
        * leaves a window with no route, which the edge's wildcard answers 200 —
        * measured 2026-09-15: 4 wildcard answers in 320 requests across 20 such
        * moves, 0 in 330 across 20 PATCHes. The route balances round robin and carries
-       * the app's health policy: active checks on its health path, passive ones on dial
-       * failures, `502` and `504`, a dial failure retried on another member (A1 Decision 4).
+       * the app's health policy: active checks on its health path, passive ones on the
+       * failures the edge meets reaching a member — a dial or transport failure, never a
+       * status the app answers (`745def2`) — a dial failure retried on another member (A1
+       * Decision 4).
        */
       const previous = await servingRoute(options.routing, hostname)
       await applyRoute(options.routing, {
@@ -813,6 +817,31 @@ export async function createDockerDriver(options: DockerDriverOptions): Promise<
         })),
         health: healthPath === undefined ? 'none' : appHealthPolicy(healthPath),
       })
+    },
+
+    /**
+     * ONE ADDRESS PAST THE ROUTE'S RATE LIMIT, FOR ONE LOAD REHEARSAL (the load rehearsal plan's Task 3, Decision 5;
+     * §11 and §20 as Spec action C left them). The route as the EDGE holds it, its rate limit's `match` alone changed
+     * (`setRouteRateLimitExemption`) — so EXACTLY the set the hostname reaches now, with its health policy, never one
+     * rebuilt from the containers or the Route records. The address is checked before anything is written: Caddy
+     * answers a malformed one with its admin API's `500` and keeps the config it had (`[M4]` T7).
+     */
+    async setRateLimitExemption(hostname: string, address: string | null): Promise<void> {
+      if (address !== null && rateLimitExemptRange(address) === undefined) {
+        throw new DriverRefusalError(
+          'ADDRESS_INVALID',
+          `'${address}' is not one IP address`,
+          "The exemption is for one address — the load generator's own. Nothing was changed.",
+        )
+      }
+      const found = await setRouteRateLimitExemption(options.routing, hostname, address)
+      if (found === 'absent') {
+        throw new DriverRefusalError(
+          'INSTANCE_NOT_FOUND',
+          `${hostname} has no route to exempt an address from`,
+          'Only a name the edge routes has a rate limit. Nothing was changed.',
+        )
+      }
     },
 
     /**

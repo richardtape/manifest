@@ -358,6 +358,7 @@ export async function instanceStatus(
       ExitCode: number
       Health?: { Status: string }
       Error?: string
+      OOMKilled?: boolean
     }
   }>(`/containers/${id}/json`)
   // 404 -> undefined (Task 1). §11 and the contract both require `gone`, never a throw.
@@ -382,5 +383,12 @@ export async function instanceStatus(
     healthy: inspect.State.Health?.Status === 'healthy',
     ...(error === undefined || error === '' ? {} : { message: error }),
     ...(exited ? { exitCode: inspect.State.ExitCode } : {}),
+    /**
+     * DOCKER'S OWN FLAG, NEVER THE EXIT CODE (the load rehearsal plan's Task 3): `137` is any `SIGKILL`, and `[M7]`
+     * measured a kill and an out-of-memory exit identical but for `OOMKilled`. READ WHATEVER THE STATE (F2): under the
+     * init an app runs with, a process killed at the ceiling leaves the container running with the flag set — and it
+     * stays set for the container's life, which `InstanceStatus.outOfMemory` says to its readers.
+     */
+    outOfMemory: inspect.State.OOMKilled === true,
   }
 }

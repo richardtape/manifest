@@ -183,6 +183,18 @@ export interface InstanceStatus {
    * 13). Absent while it runs, and from a driver with no process to report on.
    */
   exitCode?: number
+  /**
+   * Whether the instance has run out of memory — the kernel killed a process of it at its ceiling (the load rehearsal
+   * plan's Task 3; the second review's I5). An exit code cannot say so: `137` is ANY `SIGKILL`. Absent from a driver that
+   * cannot tell, as `exitCode` is.
+   *
+   * **ONCE TRUE, TRUE FOR THE INSTANCE'S LIFE, AND IT MAY BE TRUE OF ONE STILL RUNNING** (B sitting 1's `[M7]`, F2, on
+   * Docker Desktop 4.95.0): under the init every app runs with, a process the app started that hits the ceiling is killed
+   * and the instance keeps serving — and Docker's flag stays set, after an exit `0` too. So it answers *"has this instance
+   * ever run out of memory"*, whatever `state` says, and a reader that wants *"during this run"* reads it of instances
+   * started for the run — as the load rehearsal's grant starts its set.
+   */
+  outOfMemory?: boolean
 }
 
 /**
@@ -220,7 +232,11 @@ export class InstanceNotReadyError extends Error {
  * machine-actionable errors).
  */
 export type DriverRefusalCode =
-  'INSTANCE_SERVING' | 'INSTANCE_SPEC_CHANGED' | 'INSTANCE_NOT_FOUND'
+  | 'INSTANCE_SERVING'
+  | 'INSTANCE_SPEC_CHANGED'
+  | 'INSTANCE_NOT_FOUND'
+  /** `setRateLimitExemption` was given something that is not exactly one IP address (the load rehearsal plan's Task 3). */
+  | 'ADDRESS_INVALID'
 
 export class DriverRefusalError extends Error {
   constructor(
@@ -377,6 +393,17 @@ export interface Driver {
    * hold, and then changes nothing. Every id must be of one hostname.
    */
   restoreRoute(ids: readonly string[]): Promise<void>
+  /**
+   * §11 and §20 as Spec action C left them (the load rehearsal plan's Task 3, Decision 5): ONE address past the hostname's
+   * per-IP rate limit — the load generator's own, for the length of one load rehearsal — or, given `null`, nobody. It
+   * changes that and NOTHING else: the set the name reaches, its health policy and its headers are the route's own as the
+   * edge holds it now, never rebuilt from records, and cleared the route is the one it was. A second address replaces the
+   * first. A switched-off name stays switched off (its page has no limit to skip). Any route the driver writes afresh — a
+   * deploy, a restore — carries no exemption. Throws `DriverRefusalError('INSTANCE_NOT_FOUND')` for a name with no route
+   * and `('ADDRESS_INVALID')` for anything but exactly one address, before anything is written. The caller holds the
+   * environment's lock (an archive takes it too).
+   */
+  setRateLimitExemption(hostname: string, address: string | null): Promise<void>
   /**
    * §11's *Ending an app* (the front-end enablement plan's Task 11, Decision 29): the hostname
    * answers the platform's switched-off page — `410 Gone`, *"This app has been switched off by its
