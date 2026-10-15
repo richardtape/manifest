@@ -1,0 +1,62 @@
+/*
+ * THE ADMINISTRATOR'S CONSOLE'S OWN LAYOUT — the shell's two columns and nothing else. The look is
+ * the design system's and arrives with Task 5, which @imports docs/superpowers/design/'s three
+ * stylesheets here (Decision 5) and ports the rail. No web fonts (Decision 6): the system's.
+ */
+:root {
+  font-family:
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    sans-serif;
+  color-scheme: light;
+}
+
+body {
+  margin: 0;
+}
+
+.shell {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  min-height: 100vh;
+}
+
+.rail {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px;
+  border-right: 1px solid #ddd;
+}
+
+.rail ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.rail__foot {
+  margin-top: auto;
+}
+
+.rail a[aria-current='page'] {
+  font-weight: 600;
+}
+
+.screen {
+  padding: 24px 32px;
+}
+
+.not-admin,
+.signing-in,
+.refusal {
+  max-width: 640px;
+  margin: 48px auto;
+  padding: 0 24px;
+}
+
+.refusal__code,
+.refusal__request code {
+  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+}

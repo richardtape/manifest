@@ -59,4 +59,16 @@ export default defineWorkspace([
       hookTimeout: SCALED.hookTimeout,
     },
   },
+  {
+    // P11: the administrator's console. No global setup — it never touches the database, so a build
+    // sitting runs it without a 7100 window. Named in package.json's `test` script
+    // (src/workspace.test.ts holds that).
+    test: {
+      name: 'admin-ui',
+      root: './packages/admin-ui',
+      include: ['src/**/*.test.ts', 'src/**/*.test.tsx'],
+      testTimeout: SCALED.testTimeout,
+      hookTimeout: SCALED.hookTimeout,
+    },
+  },
 ])

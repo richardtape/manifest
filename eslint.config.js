@@ -114,4 +114,31 @@ export default tseslint.config(
       ],
     },
   },
+  {
+    // §26: "The import boundary that binds console/ binds admin-ui/" (D22, D31; P11's Task 2). The
+    // administrator's console is a client of the published contract and nothing else — plus React,
+    // which renders it, and its own files. The TEST in packages/admin-ui/src/boundary.test.ts is the
+    // other half: it resolves each relative specifier into src/ (which a regex cannot) and finds a
+    // `fetch` that imports nothing. vite.config.ts and the tests are outside the rule, as in the
+    // reference console's block above, whose regex this is.
+    files: ['packages/admin-ui/src/**/*.ts', 'packages/admin-ui/src/**/*.tsx'],
+    ignores: [
+      'packages/admin-ui/src/**/*.test.ts',
+      'packages/admin-ui/src/**/*.test.tsx',
+    ],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              regex: '^(?!@manifest/contract$|react$|react-dom(/.*)?$|node:|\\.{1,2}/)',
+              message:
+                'The administrator’s console may import only @manifest/contract, react, react-dom, node: builtins and its own ./ files (§26, D22).',
+            },
+          ],
+        },
+      ],
+    },
+  },
 )

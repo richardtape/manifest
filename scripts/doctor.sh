@@ -207,6 +207,25 @@ frontend_is_ours() {
   curl -sS -m 2 "http://127.0.0.1:$PORT_FRONTEND/api/__doctor" 2>/dev/null \
     | grep -q '"name":"manifest-app"'
 }
+# THE FIFTH TIME (P11's Task 2, the review's I2). The administrator's console on 7101 and its own mock
+# on 7113 read "CLAIMED BY SOMETHING ELSE" whenever the console runs, because nothing could tell them
+# from strangers. ASK IT, as for the four above: the console's index.html carries `id="root"` and its
+# own title (the reference console's is `<title>Manifest</title>`, so neither is taken for the other),
+# and the mock names itself in an undeclared path's 404. THE TWO PORTS STAY HERE rather than in
+# infra/lib/common.sh with the others: a change under infra/ owes the Docker tier, and these are a
+# development process's ports, not the platform's (`scripts/admin-ui.sh` binds them).
+PORT_ADMIN_UI=7101
+PORT_ADMIN_MOCK=7113
+admin_ui_is_ours() {
+  local body
+  body=$(curl -sS -m 2 "http://127.0.0.1:$PORT_ADMIN_UI/" 2>/dev/null) || return 1
+  case "$body" in *'id="root"'*) ;; *) return 1 ;; esac
+  case "$body" in *'<title>Manifest operations</title>'*) return 0 ;; *) return 1 ;; esac
+}
+admin_mock_is_ours() {
+  curl -sS -m 2 "http://127.0.0.1:$PORT_ADMIN_MOCK/v1/__doctor" 2>/dev/null \
+    | grep -q 'manifest-mock'
+}
 check_block() {
   local p busy="" foreign="" ours
   ours=" $(manifest_own_ports | tr '\n' ' ')"
@@ -214,6 +233,8 @@ check_block() {
   if console_is_ours; then ours="$ours $PORT_CONSOLE "; fi
   if mock_is_ours; then ours="$ours $PORT_MOCK "; fi
   if frontend_is_ours; then ours="$ours $PORT_FRONTEND "; fi
+  if admin_ui_is_ours; then ours="$ours $PORT_ADMIN_UI "; fi
+  if admin_mock_is_ours; then ours="$ours $PORT_ADMIN_MOCK "; fi
   for p in $(seq $PORT_BLOCK_START $PORT_BLOCK_END); do
     port_free "$p" && continue
     case "$ours" in

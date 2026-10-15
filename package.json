@@ -6,7 +6,7 @@
     "node": ">=24.0.0"
   },
   "scripts": {
-    "test": "bash scripts/test-gently.sh vitest run --project unit --project packages",
+    "test": "bash scripts/test-gently.sh vitest run --project unit --project packages --project admin-ui",
     "test:docker": "MANIFEST_TEST_DOCKER=1 bash scripts/test-gently.sh vitest run --project docker",
     "test:watch": "vitest",
     "lint": "eslint .",
