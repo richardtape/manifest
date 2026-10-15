@@ -2032,3 +2032,24 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
     MANIFEST_CAPABLE_MODEL=ubc-ai-gateway/gpt-6.1-sol (repointed 14:15:18, 7100 PID 49461), level `high` unchanged. Rejected: "Back to
     luna (gpt-6-luna)"; "Sol, and raise the plan's limit to 120 s too" (a plan's pause past 60 s still stops — "Carry on" resumes it).
     The RUNBOOK's lines naming luna as this laptop's model are swept to sol.
+
+# Rich's decisions — 2026-10-14, ~18:34 PDT (to manifest-coord4: the third coordinated run, set up before he heads out)
+
+    His words (~18:28): "Please can you now look ahead. Once this work is done, what is next for the platform and the app. I'd like
+    you to help me prepare the next several sittings. We will have a co-ordinator agent like yourself and then however many agents in
+    the platform and app open and ready to go. The co-ordinator agent will need a starting prompt. I'm going to set this up now, with
+    all the claude code sessions open in new tabs waiting to go. The idea is that the next co-ordinator agent will know what they are
+    doing and wait for your go signal once all of your work has been done. I need to head out, hence me wanting to set this up now."
+    Asked through the question tool, one round of four, recommendations first; his answers:
+      1. PLATFORM JOBS (multi-select): "Gentler tiers 2 + the fix session (Recommended)", "Gentler tiers 3 (your Docker step)" and
+         "B, the load rehearsal, 7 sittings" — ALL THREE. Not "Investigation: model via our LiteLLM, no gateway" (his 9bc0bf6 ask
+         stays for later).
+      2. FRONT-END JOBS (multi-select): "F7 sitting 3 (Recommended)", "W5's real 7100 walk (Recommended)", "An eleventh minors round"
+         and "Contract 1.10.0 adopted" — ALL FOUR.
+      3. THE DELEGATION for the next coordinator, manifest-coord5: "Yes, it continues (Recommended)" — 028bb94 and f6dd317 carry to
+         it; what only he can do still comes to him as an action. Not "Routine only", not "Ask me each one".
+      4. THE IMITATED-LOAD RUNS (the gentler test tiers' sitting 2, two of them): "Any time, incl. while I'm out" — with the lid open
+         and on AC. Not "Only when I'm at the machine", not "Overnight only".
+    So manifest-coord4 writes the third run's brief (manifest-app docs/plans/2026-10-14-coordination-3.md), gives him the tabs and
+    manifest-coord5's starting prompt, and sends coord5 its GO once the second run's last job (the gentler test tiers' sitting 1)
+    has closed and the second run is handed back.
