@@ -338,8 +338,13 @@ red() { printf '\033[31m%s\033[0m' "$1"; }
 # and the whole-branch review's fix wave's one case in `test-gently.test.ts` (a SIGKILLed wrapper's sampler ends itself).
 # Measured 3680/223, 0 failed, by Task 6's background run under six burners (21:34:52, 2511 s, on `07c4601`'s tree) — and on the
 # final tree by this sitting's `make ci-acceptance` and its closing `pnpm test` (its record has both).
-EXPECT_TESTS=3680
-EXPECT_FILES=223
+# EXPECT_TESTS 3680 -> 3691 and EXPECT_FILES 223 -> 224 (2026-10-15, the out-of-plan FIX session, `manifest-fix2`): one new file —
+# `packages/journey/src/launch-trace.test.ts` (10: the launch demos' re-use check — approved, or a self-serve release since an approval;
+# getApproval read by status AND code; launchTrace's reads throwing rather than reading "nothing approved") — and
+# `api/source-commit.test.ts` +1 (a commit's sensitive diff with the push webhook's row recorded FIRST); P5a sitting 6's
+# `api/projects.test.ts` case was rewritten across two commits, not added. Measured 3691/224 on the final tree — the roadmap's FIX record.
+EXPECT_TESTS=3691
+EXPECT_FILES=224
 # EXPECT_DOCTOR 21 -> 22 (2026-10-03, the UBC AI Gateway plan's sitting 2, Task 2): the gateway key's expiry, a
 # check_warn — counted, never failing — from 14 days ahead (its Decision 11). Measured: 22 checks, 0 failed, 0 warnings.
 EXPECT_DOCTOR=22

@@ -2826,7 +2826,8 @@ read each as an exit and redeploy it. **Stop 7100 before `pnpm test:docker`** (`
 start it from `.env` afterwards, as G4 already says. The tier's OWN booted control planes (`boot.docker.test.ts`) carry the watcher too;
 its production instance has no Route row, so they watch nothing.
 
-**AFTER `make demo-capacity`, A STANDALONE RE-USE RUN OF `make demo-launch` OR `make demo-production` IS RED IN SECONDS — `no call
+**FIXED 2026-10-15 by the FIX session (`f57b3cb`) — a re-use right after `make demo-capacity` is green on both drivers; kept as history.**
+**AFTER `make demo-capacity`, A STANDALONE RE-USE RUN OF `make demo-launch` OR `make demo-production` WAS RED IN SECONDS — `no call
 refused (getApproval) — 404 NOT_FOUND`** (A1's sitting 8, 2026-10-14). `make demo-capacity` leaves its app (`launch-app` on driver 1,
 `launchpath-github` on driver 2) serving its own last release — code-only, SELF-SERVE, so rightly with no approval — and both launch
 demos' re-use paths assert *"the release production serves was approved"* (`packages/journey/src/launch.ts:1712-1722`,
@@ -2836,7 +2837,9 @@ release of this project was approved, and what serves is it or a self-serve rele
 fix, after the gentler test tiers, before B; the roadmap's *Tracked defects*, `1fe7d7f`): **run no launch demo's re-use right after
 `make demo-capacity`** — `make reset` first, or run the launch demo before it.
 
-**ON DRIVER 2, A COMMIT THROUGH THE API CAN BE TOLD ITS SENSITIVE CHANGE IS NONE** (A1's sitting 8, `make demo-frontend`'s *"its sensitive
+**FIXED 2026-10-15 by the FIX session (`a4937a6`: the baseline is the newest valid spec of a DIFFERENT commit) — kept as history; a red
+of that check on driver 2 now is not this race.**
+**ON DRIVER 2, A COMMIT THROUGH THE API COULD BE TOLD ITS SENSITIVE CHANGE IS NONE** (A1's sitting 8, `make demo-frontend`'s *"its sensitive
 diff names data.classification"* red once on the fake, green on its re-run): the push's webhook can reach the source observer before the
 commit route answers, the observer records the NEW commit's valid spec, and the route's `sensitiveAgainstNewestValid`
 (`api/spec-validation.ts:58`) then compares the commit with itself. A race, pre-existing, tracked and placed (`b967a8e`); a red of that one

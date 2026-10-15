@@ -1320,7 +1320,8 @@ timestamps to the commit (`source-date-epoch`) — which step 10 printed until P
 
 **A second run RE-USES `launch-app`**, because no route deletes a project — and since P6b Task 4 a
 re-used `launch-app` has LAUNCHED, so step 1 checks what a launched project durably is (the records,
-the approval of the release production serves, §12's split), prints `launch-app has launched — the
+an approved release and production serving it or a self-serve release since — `make demo-capacity` leaves
+one, `packages/journey/src/launch-trace.ts` — §12's split), prints `launch-app has launched — the
 re-use path ends here`, and stops green in about four seconds: a launched app is never rehearsed.
 After a `pnpm test` or a reset it is the fresh path again, with step 3's unmet set `[admin-approval,
 iam-registration, privacy-assessment, rehearsal]`.
@@ -1419,10 +1420,10 @@ retry**: each reset is its own class, at most one per loop, a second a failure.
 **The failing releases fail only in production** (`MANIFEST_ENV`): production deploys only the release serving
 staging (`RELEASE_NOT_STAGED`), so a release that never became ready on staging could never be asked of production.
 
-**IT LEAVES ITS APP ON A SELF-SERVE RELEASE — so run no launch demo's RE-USE right after it** (A1 sitting 8): `make demo-launch`'s and `make
-demo-production`'s re-use paths assert *"the release production serves was approved"*, and a code-only release has no approval — both
-read `getApproval` `404` in seconds. `make reset` first, or run the launch demo before it; `make ci-acceptance` (step 12, last) never meets
-it. The demo fix is placed with the driver-2 sensitive-diff race fix, before B (the roadmap's *Tracked defects*, `1fe7d7f`).
+**IT LEAVES ITS APP ON A SELF-SERVE RELEASE**, code-only and rightly with no approval. Until 2026-10-15 a launch demo's RE-USE right after
+it was red in seconds (A1 sitting 8: their re-use paths asserted *"the release production serves was approved"* and read `getApproval`
+`404`); **since the FIX session (`f57b3cb`) they ask whether a release was approved and what serves is it or a self-serve release since**,
+and a re-use right after it is green — measured on both drivers (`make demo-production` on driver 1, `make demo-launch` on the fake).
 **It runs every phase and fails at the end**, naming each failed phase, and keeps its working directory (the loops'
 `.ndjson`, the state file) when red. **It leaves** the app on its good release in staging and production, two
 healthy members, four more commits in its repository (three releases and `server.js` back), and the crash loop's
@@ -1628,8 +1629,8 @@ It is `internal` until step 11 raises it.
 | 10 | in SANDBOX: the launched release, then a release whose health check never answers | `failed` after ~90 s; every instance carries `createdAt`; **the failed attempt's `createdAt` is when its deploy was asked for** (not ~90 s later, when it was last seen), and newer than the serving one's |
 | 11 | an agent session started (`default-chat` warmed first); the app raised to `confidential` by a commit | `default-chat` answers, then **`403 key_model_access_denied`** through the SAME key; the session still open, keeping `default-chat-onprem`, which answers; the manifest committed back to `internal` |
 
-**A launched project re-runs 8b and steps 9–11**, after checking what its launch durably is (the three records, production serving
-an approved release on `127.0.0.3`, nothing of it in the queue) — so the change leg needs a SECOND run on each driver; **a project an earlier run left unlaunched is deleted and
+**A launched project re-runs 8b and steps 9–11**, after checking what its launch durably is (the three records, an approved release and
+production serving it or a self-serve release since on `127.0.0.3`, nothing of it in the queue) — so the change leg needs a SECOND run on each driver; **a project an earlier run left unlaunched is deleted and
 made again**, so steps 1–8 always run whole. **A green FULL run leaves** the app in production, sandbox and staging, the
 manifest `internal`, and a `mf-person-` user at LiteLLM (`scripts/litellm-orphans.sh`). **A control run with
 `DEMO_LAUNCH_SLUG`** leaves that project unlaunched — the next run with the name deletes it. **A green re-use run leaves** production's

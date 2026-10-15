@@ -2012,7 +2012,7 @@ named in the row below.*
 | **U1 levels** | [`plans/2026-10-03-u1-classification.md`](plans/2026-10-03-u1-classification.md) — **EXECUTED 2026-10-04**, eight tasks (0–7) in three sittings | `make demo-levels` — either driver, offline; green three times on EACH and from a `make reset` machine on each; step 18 of the offline acceptance; a step of `make ci-acceptance`; eleven controls exactly as predicted; **Rich reading a `high` app's privacy assessment** | **Sitting 3's F20 and F22 are the ones to read**: `capableFloor` FAILED OPEN on a level none of the seven names — `rank(x) < rank(undefined)` is false, so every fallback was set (sitting 2's F11, judged by the plan's one whole-branch review; now seeded `very-high`) — and the acceptance's own *"ONLY by the builder exception"* check passing by RANK once the capable model is `very-high`, MEASURED with the exception off before it was fixed. **Sitting 3's F21**: every boot reads each live app key in a URL query, and only LiteLLM 1.102.0's own `?REDACTED` keeps it out of its log. **Sitting 2's F9**: the unit tier never migrates |
 | **A1** | [`plans/2026-10-03-production-instances.md`](plans/2026-10-03-production-instances.md) — **EXECUTED 2026-10-13/14**, ten tasks in eight sittings, inline, in the second coordinated run | `make demo-capacity` — either driver, green on both (five controls red as predicted); every launch demo on two instances on both drivers; a step of `make ci-acceptance` (12) and of the offline acceptance (19); **Rich clicking it** | **Sitting 8's F2–F4 are the ones to read**: the edge ejected a member for the APP's own `502`/`504` (a shared outage ejected all), a replacement that failed before it started stopped replacing for good, and the deploy's identity window failed good releases under traffic — all three found only by the plan's one whole-branch review. **Sitting 7's F1**: a launched app on the laptop signs in at UBC's real IdP. **Sitting 7's F6**: every route change resets idle sockets through the edge. **Sitting 1's `[M3]`**: a CWL sign-in could not cross instances until the SAML request cache moved into the app's Mongo |
 | **FE-46/47/5** | [`plans/2026-10-03-fe46-fe47-fe5.md`](plans/2026-10-03-fe46-fe47-fe5.md) — **EXECUTED 2026-10-08/09**, eleven tasks (1–9, with 2b, and 8 as 8a and 8b) in five sittings, inline, in the coordinated run | `make demo-launch` — either driver, green three times on EACH (fresh, re-use with the change leg, re-use again) and from a `make reset` machine; `make demo-token` fresh, re-use and from `make reset` (driver 1's alone); step 16 of the offline acceptance; a step of `make ci-acceptance`; six controls, one per Review Focus line; **Rich clicking the team's step** | **Sitting 5's F1 and F5 are the ones to read**: a change UBC sent back with questions was drafted again from the launch CANDIDATE and sent as NO change — the new attribute dropped silently — found only by the plan's one whole-branch review; and the acceptance's own *"since the SECOND send"* check could not fail, because it compared a column with itself — found by making a control go red through the edge. **Sitting 5's F19**: the cleanup script every sitting runs with `--apply` deleted an ARCHIVED project's data. **Sitting 5's F9–F11**: controls predicted without re-reading an earlier sitting's, red for the wrong reason (a database CHECK), or green because a guard is three layers deep. **Sitting 4's F1**: one Vitest file turns the next demo fresh. **Sitting 2's F13**: nodemailer folds a CR/LF in a subject itself |
-### 7e. The small out-of-plan fix session (FIX) — then W5B's 7100 walk, the gentler test tiers' sitting 3 when Rich is at the machine, then B ← **START HERE**
+### 7e. W5B's 7100 walk (the front end's), and the gentler test tiers' sitting 3 when Rich is at the machine — then B ← **START HERE**
 
 **THE GENTLER TEST TIERS' SITTINGS 1 AND 2 ARE DONE** (2026-10-14/15 — `manifest-gt-s1`, then `manifest-gt-s2` in the third coordinated
 run): `pnpm test` and `pnpm test:docker` run through `scripts/test-gently.sh` (utility priority; `MANIFEST_TEST_QOS=background` when Rich is
@@ -2024,23 +2024,22 @@ background 7**; under twelve (a load the gate refuses) a utility run starves, wh
 *Running the test tiers gently* is the how-to; read a run's load line before believing a red, and the slow list at every close (§6 rule 3 —
 four tests today, `truncate.test.ts`'s reset case new among them by design). **Only sitting 3 is left** — Rich's Docker Desktop step (Task 7).
 
-**THE NEXT JOB IS FIX** (`manifest-fix2` in the third coordinated run) — **one small out-of-plan platform session, two tracked defects** (the
-roadmap's *Tracked defects found in use*, placed by `manifest-coord4` under Rich's delegation, `b967a8e` and `1fe7d7f`), test-first: **(1) driver
-2's sensitive-diff race** — `api/spec-validation.ts`'s `sensitiveAgainstNewestValid` compares a commit with itself when the push webhook
-records it first; the baseline becomes the newest valid spec of a DIFFERENT commit (or the parent's), with a route test that records the
-webhook's row FIRST, red then green; **(2) the launch demos' re-use check after `make demo-capacity`** — `packages/journey/src/launch.ts`'s and
-`production.ts`'s *"the release production serves was approved"* becomes *"a release of this project was approved, and what serves is it or a
-self-serve release since"*, red first (`make demo-capacity`, then a re-use). And the two stale *"three fixture users"* comments (`packages/control-plane/src/config.ts:270`,
-`sso/sign-in.ts:67`; the laptop IdP has five since `435fd39`). No contract change. It owes `pnpm test` twice, `make demo-frontend` on the GitHub
-fake (the `.env` swap — Rich's standing yes, `bdfc6f2`), `make demo-capacity` then `make demo-launch` re-use on driver 1, and the Docker tier
-only if its files are in CLAUDE.md's owed list. **7100 after this sitting**: real GitHub from `.env`, proved on `gpt-6.1-sol` by a call (G4),
-**0 projects** — every demo app's containers removed, so its first demo goes the fresh path.
+**FIX IS DONE** (2026-10-15, `manifest-fix2` in the third coordinated run; out of plan; its record is the roadmap's *Tracked defects found in
+use* — both rows *FIXED* — and the record after that table): **`a4937a6`** — a commit's sensitive diff is never against its own row (on driver 2
+the push webhook could record the commit first and the commit was compared with itself); **`f57b3cb`** — the launch demos' re-use check is *"a
+release of this project was approved, and what serves is it or a self-serve release since"* (`packages/journey/src/launch-trace.ts`), so a
+re-use right after `make demo-capacity` is green; **`1c69a66`** — the two *"three fixture users"* comments; **`93a128f`** — the two Minors of
+a fresh read-only review (APPROVE, nothing Critical or Important; M3 and M4 recorded in the roadmap). No contract change; the Docker tier
+not owed (`sso/sign-in.ts`'s change is a comment, its emitted JS byte-identical). **Each launch demo's re-use collides with `make demo-capacity`
+on its own driver**: `make demo-production`'s on driver 1 (`launch-app`), `make demo-launch`'s on the fake (`launchpath-github`) — driver 1's
+`make demo-launch` uses `launchpath-local`, which `make demo-capacity` never touches. **7100 after this sitting**: real GitHub from `.env`,
+proved on `gpt-6.1-sol` by a call (G4), **0 projects** — every demo app's containers removed, so its first demo goes the fresh path.
 
-**THEN W5B's 7100 walk** (the front end's, `9ab66d7` — the app lane: a `class` app on two production instances seen on its page), **AND GT3 WHEN
-RICH IS AT THE MACHINE** — the plan's sitting 3, Task 7: Docker Desktop → Settings → Resources → Advanced → CPU limit 6 → Apply & restart
-(his step; it restarts Docker — never under another run), the Docker tier at 6 against sitting 2's at 12 — **1977.1 s, wrapped** (the plan's *Sitting 2*, F9, and
-Task 7's note), and Rich keeps 6 or chooses again; the plan then closes, EXECUTED. **B starts only after GT3** (it measures on the
-VM's CPUs Rich keeps) **and FIX.**
+**THE NEXT JOB ON 7100 IS W5B's walk** (the front end's — `manifest-app-walk2`, the app lane, `9ab66d7`: a `class` app on two production
+instances seen on its page), **AND GT3 WHEN RICH IS AT THE MACHINE** — the gentler test tiers plan's sitting 3, Task 7: Docker Desktop → Settings
+→ Resources → Advanced → CPU limit 6 → Apply & restart (his step; it restarts Docker — never under another run), the Docker tier at 6 against
+sitting 2's at 12 — **1977.1 s, wrapped** (the plan's *Sitting 2*, F9, and Task 7's note), and Rich keeps 6 or chooses again; the plan then
+closes, EXECUTED. **B starts only after GT3** (it measures on the VM's CPUs Rich keeps); FIX, which it also waited on, is done.
 
 **THEN B — [`plans/2026-10-03-load-rehearsal.md`](plans/2026-10-03-load-rehearsal.md)** — approved as revised 2026-10-14 (`0e9db93`, under
 Rich's delegation, which he approved with the rest at 07:31, `8e04181`); **seven sittings**, inline, one fresh session per sitting; contract
@@ -2060,9 +2059,9 @@ which re-reads every fact A1's sittings 6–8 changed.
 - **A launched app on the laptop signs in at UBC's own IdP** (`spec/injection.ts:457-477`): no laptop completes it, so B's sign-in path
   belongs on staging (its plan already uses the skeleton's `/login`).
 - **The minors the review deferred** are in A1's ledger and record; one is Rich's (§8 *Open*: an app made before the SAML request cache).
-- **Two traps from its acceptance** (TRAPS.md, the RUNBOOK): **no `make demo-launch` or `make demo-production` RE-USE right after `make
-  demo-capacity`** (it leaves its app on a self-serve release; their re-use checks read `getApproval` `404`); and **on driver 2 a commit's
-  sensitive diff can read none** (the push webhook's observer races the commit route). Both placed in the out-of-plan fix above.
+- **Two traps from its acceptance are FIXED** (the FIX session above, 2026-10-15): a launch demo's RE-USE right after `make demo-capacity` is
+  green (`f57b3cb`), and on driver 2 a commit's sensitive diff no longer races the push webhook (`a4937a6`) — so B's sitting 7's `make
+  ci-acceptance` on the fake should not meet that one failed check A1's did. TRAPS.md keeps both as history.
 
 **HOW TO SAY WHAT RAN:** a laptop that sleeps runs nothing — A1's sitting 8 lost two whole-suite runs to `Clamshell Sleep` on battery and to
 macOS's post-wake load (`pmset -g log`; §4's load trap): read `pmset -g batt` and `uptime` before trusting a red.
@@ -2087,10 +2086,10 @@ tell the question's expiry from the token's; the control plane has no shutdown h
 answer `LAUNCH_GAP_ANSWERS_INVALID` where the platform answers `REQUEST_INVALID`; a response example in the published document is validated
 only by the mock's `server.test.ts` (A1 sitting 6, F6).
 
-**WHERE THE NEXT SITTING STOPS, AND HOW IT ENDS:** FIX, out of plan, stops when both defects are fixed red-first and its owed runs are
-green; its record is the roadmap's two *Tracked defects* rows (each marked *fixed*, with its commits) and this §7e handed on (to W5B and GT3,
-then B). A plan's sitting stops where its sittings table says; the close-out like every sitting (§6) — its sittings table, its *What
-executing this plan found*, this §7e handed on, the roadmap.
+**WHERE THE NEXT SITTING STOPS, AND HOW IT ENDS:** W5B's walk is the front end's job, and its record is manifest-app's; it holds 7100 in the
+coordinator's window and leaves its one new private repository in `Manifest-local-dev` KEPT (named in CLAUDE.md's unowned list). The next
+PLATFORM sitting is GT3, when Rich is at the machine, and it stops where the gentler test tiers plan's sittings table says. Its close-out is the
+same as every sitting's (§6): the sittings table, the plan's *What executing this plan found*, this §7e handed on to B, and the roadmap.
 
 **THE TWO RULES A SITTING CANNOT GET FROM ANYWHERE ELSE**, restated because they live only in each plan's *Global
 Constraints*:
