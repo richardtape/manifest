@@ -1,6 +1,7 @@
-# The one image built rather than pulled (§20). Rate limiting and Coraza/OWASP-CRS
-# are third-party modules and the edge is "the highest-leverage control in the
-# platform", so a stock Caddy would ship only part of it.
+# Built rather than pulled (§20), as the platform's resolver, egress proxy, IdP and
+# load generator are. Rate limiting and Coraza/OWASP-CRS are third-party modules
+# and the edge is "the highest-leverage control in the platform", so a stock Caddy
+# would ship only part of it.
 #
 # TWO SUPPLY-CHAIN FACTS, recorded because both constrain future upgrades (S7):
 #   1. Coraza PINS Caddy. coraza-caddy/v2@v2.6.0 requires caddy/v2@v2.11.4 and

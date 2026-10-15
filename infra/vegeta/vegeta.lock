@@ -1,0 +1,16 @@
+# vegeta — §24's load generator — BUILT HERE by `make seed` (infra/seed/build-vegeta.sh), never pulled.
+#
+# Rich, 2026-10-03: "vegeta" (MIT), then "Build it locally" — its official release binary on the mirrored
+# alpine:3.22, verified against vegeta's published checksums file AND the sha256 below. A download that
+# matches neither is refused, naming both.
+#
+# v12.13.0: the current release on 2026-10-15 (GitHub's releases/latest; published 2025-10-31; the one
+# before, v12.12.0, 2024-07-29) — ORIENTATION's pinning rule: the current release, the day and the
+# reason recorded. Downloaded and checked 2026-10-15 by the load rehearsal plan's sitting 2: each sha256
+# below equals the release's vegeta_12.13.0_checksums.txt line AND GitHub's own asset digest.
+#
+# Tab-separated. The two architectures Docker Desktop runs (`docker info`'s Architecture: aarch64, x86_64).
+version	12.13.0
+checksums	https://github.com/tsenart/vegeta/releases/download/v12.13.0/vegeta_12.13.0_checksums.txt
+linux/arm64	https://github.com/tsenart/vegeta/releases/download/v12.13.0/vegeta_12.13.0_linux_arm64.tar.gz	950381173a5575e25e8e086f36fc03bf65d61a2433329b48e41e1cb5e4133bba
+linux/amd64	https://github.com/tsenart/vegeta/releases/download/v12.13.0/vegeta_12.13.0_linux_amd64.tar.gz	e8759ce45c14e18374bdccd3ba6068197bc3a9f9b7e484db3837f701b9d12e61

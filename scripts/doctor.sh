@@ -476,6 +476,28 @@ check_github_fake_image() {
 }
 check "the GitHub fake's image is built (make seed, profile github)"  check_github_fake_image
 
+# §24'S LOAD GENERATOR (the load rehearsal plan's Task 2). Built by `make seed` (infra/seed/build-vegeta.sh) from vegeta's
+# release binary into the DAEMON's own store, where the control plane creates its container through the Engine API — so,
+# like the fake's, it is seed state, and nothing else looks for it: no image list names it, the registry never holds it
+# (`make reset` wipes that), and scripts/app-images.sh sweeps only 127.0.0.1:7107/local/. Without it every load rehearsal
+# fails at its first step. THE ANSWER, NOT THAT AN ANSWER ARRIVED: the image's own label must carry the sha256 the lock pins
+# for this daemon's architecture, so an image built from some other archive does not pass.
+check_load_generator_image() {
+  local version arch want got
+  version=$(awk -F '\t' '$1 == "version" { print $2; exit }' infra/vegeta/vegeta.lock)
+  case "$(docker info --format '{{.Architecture}}')" in
+    aarch64|arm64) arch=linux/arm64 ;;
+    *) arch=linux/amd64 ;;
+  esac
+  want=$(awk -F '\t' -v a="$arch" '$1 == a { print $3; exit }' infra/vegeta/vegeta.lock)
+  got=$(docker image inspect "manifest/vegeta:$version" --format '{{index .Config.Labels "manifest.vegeta.sha256"}}' 2>/dev/null) \
+    || { echo "manifest/vegeta:$version is not built — run: bash infra/seed/build-vegeta.sh (offline once its archive is cached)"; return 1; }
+  [ "$got" = "$want" ] \
+    || { echo "manifest/vegeta:$version was built from ${got:-an unlabelled archive}, not the lock's $want ($arch) — rebuild: bash infra/seed/build-vegeta.sh"; return 1; }
+  echo "manifest/vegeta:$version, vegeta's $arch archive ${want:0:12}"
+}
+check "the load generator's image is built from the locked archive (make seed)"  check_load_generator_image
+
 # MAILPIT'S IMAGE (§21's tenth container, added 2026-09-30 at Rich's word). Seed state, like
 # the fake's image above: compose pins it by tag AND digest, `make seed` pulls it, and an
 # offline `make up` could not — so ask the daemon for exactly the reference compose will run,

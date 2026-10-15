@@ -35,6 +35,13 @@ $COMPOSE pull -q mailpit
 echo "4/6  mirroring base images into the local registry"
 bash infra/seed/mirror-images.sh
 
+echo "4a/6 building the load generator (vegeta, from its checksummed release)"
+# §24's load rehearsal (Rich, 2026-10-03: "Build it locally"). AFTER the mirror step, because the image is FROM
+# alpine:3.22 by the digest mirror-images.sh just wrote into infra/images.lock. Its archive is downloaded once into
+# infra/seed-cache/vegeta/ and verified against infra/vegeta/vegeta.lock AND vegeta's published checksums; every later
+# rebuild is offline. It exits non-zero rather than warning: no generator, no load rehearsal.
+bash infra/seed/build-vegeta.sh
+
 echo "4b/6 warming the package mirror from the blueprint and fixture lockfiles"
 # What makes an offline `npm install` possible. Every dependency closure is
 # fetched once, through Verdaccio, so its TARBALLS are cached in its storage.
