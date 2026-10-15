@@ -23,6 +23,20 @@ describe('the console’s URLs (Decision 13)', () => {
       { screen: 'queue', kind: 'iam-change-request', subjectId: RECORD },
     ],
     [`/releases/${RELEASE}/approval`, { screen: 'release', releaseId: RELEASE }],
+    // The step-up round trip comes back to the same preview, named in the URL (Task 7).
+    [
+      `/releases/${RELEASE}/approval?preview=${RECORD}`,
+      { screen: 'release', releaseId: RELEASE, preview: RECORD },
+    ],
+    // The queue's filter is in the URL, so a filtered queue is pasteable (Task 6).
+    [
+      '/queue?q=chem&kind=release-approval',
+      { screen: 'queue', query: 'q=chem&kind=release-approval' },
+    ],
+    [
+      `/queue/iam-registration/${RECORD}?q=chem`,
+      { screen: 'queue', kind: 'iam-registration', subjectId: RECORD, query: 'q=chem' },
+    ],
     [`/projects/${PROJECT}`, { screen: 'project', projectId: PROJECT }],
     [
       `/projects/${PROJECT}/records`,
@@ -60,6 +74,17 @@ describe('the console’s URLs (Decision 13)', () => {
     expect(parseRoute('/')).toStrictEqual({ screen: 'queue' })
     expect(canonicalPath('/')).toBe('/queue')
     expect(canonicalPath('/fleet?state=archived')).toBe('/fleet?state=archived')
+  })
+
+  it('keeps a release pane’s preview and nothing else of its query, and an empty query is no query', () => {
+    expect(canonicalPath(`/releases/${RELEASE}/approval?preview=${RECORD}&x=1`)).toBe(
+      `/releases/${RELEASE}/approval?preview=${RECORD}`,
+    )
+    expect(canonicalPath(`/releases/${RELEASE}/approval?x=1`)).toBe(
+      `/releases/${RELEASE}/approval`,
+    )
+    expect(canonicalPath('/queue?')).toBe('/queue')
+    expect(canonicalPath('/nope?q=chem')).toBe('/queue')
   })
 })
 

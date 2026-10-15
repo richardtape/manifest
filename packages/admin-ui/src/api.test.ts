@@ -1,7 +1,8 @@
 import { ManifestApiError } from '@manifest/contract'
-import { createMockServer, fixtures } from '@manifest/mock'
+import { createMockServer, fixtures, FLEET_PROJECTS } from '@manifest/mock'
 import { describe, expect, it } from 'vitest'
 import { createApi } from './api.js'
+import { BAND, headlineOf } from './queue-state.js'
 
 /**
  * THE CONSOLE'S CALLS, AGAINST `manifest-mock`, IN NODE — the reference console's pattern
@@ -93,5 +94,31 @@ describe('the administrator’s console’s client', () => {
       const error = await refusal(signedOut.getApproval(fixtures.RELEASE_ID))
       expect([error.status, error.code]).toEqual([401, 'UNAUTHENTICATED'])
     })
+  })
+})
+
+/**
+ * THE DEMO FLEET (`MANIFEST_MOCK_FLEET=demo`) — the queue the console is walked on. Its data carries
+ * the headline's trap: our band's oldest wait is `reading-responses`' sign-off, while
+ * `oldestSince` is a privacy assessment with the Privacy Office (`mock-app`'s).
+ */
+describe('the queue on the demo fleet', () => {
+  const fleet = { role: 'admin', fleet: 'demo' } as const
+
+  it('headlines reading-responses’ wait, not oldestSince — five people on our band', async () => {
+    const queue = await withMock((o) => api(o).listQueue(), fleet)
+    const rr = queue.items.find(
+      (i) => i.kind === 'release-approval' && i.project.slug === 'reading-responses',
+    )
+    expect(rr?.project.id).toBe(
+      FLEET_PROJECTS.find((p) => p.slug === 'reading-responses')?.id,
+    )
+    const headline = headlineOf(queue)
+    expect(headline.oldestOnUs).toBe(rr?.since)
+    expect(headline.peopleWaiting).toBe(5)
+    expect(headline.truncated).toBe(false)
+    const oldest = queue.items.find((i) => i.since === queue.oldestSince)
+    expect(oldest && BAND[oldest.kind]).toBe('ubc')
+    expect(queue.oldestSince).not.toBe(rr?.since)
   })
 })

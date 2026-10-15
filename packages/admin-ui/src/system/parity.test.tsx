@@ -260,6 +260,18 @@ const CASES: Record<
         assembled: 'Read just now · again every 60 seconds',
       },
       { oldest: { text: '19 hours' }, people: 1, items: 1 },
+      // The queue screen's (Task 6): a note under the age, and the read line, together.
+      {
+        oldest: {
+          text: '3 days, 4 hours',
+          note: 'Release approval, reading-responses. Its age is from when it was asked for.',
+        },
+        people: 5,
+        items: 9,
+        itemsLabel: 'items · 5 on us, 4 with UBC',
+        assembled:
+          'Only the oldest 200 are shown, and every number here counts those. Read 40 seconds ago · again every 60 seconds',
+      },
       {
         oldest: { text: '2 days', bound: true, note: 'The 200 oldest are shown.' },
         people: 2,
@@ -281,6 +293,22 @@ const CASES: Record<
           meta: [
             { text: 'Instructor One asked on October 11, 2026' },
             { text: '✎ a note', flag: true },
+            { text: 'Waiting on us', holder: true },
+          ],
+        },
+      },
+      // The queue screen's (Task 6): a row it selects on a click, with a registration's environment.
+      {
+        id: 'row-iam-registration-to-submit:x',
+        onSelect: () => undefined,
+        item: {
+          ageText: '1d',
+          kindLabel: 'Registration to submit',
+          project: 'phys-101-labs',
+          ask: 'Jordan Lee sent the production registration to the Manifest team.',
+          meta: [
+            { text: 'Jordan Lee sent it on October 14, 2026' },
+            { text: 'production', mono: true },
             { text: 'Waiting on us', holder: true },
           ],
         },
@@ -584,6 +612,20 @@ const CASES: Record<
         count: '1 app',
         onQuery: () => undefined,
         facets: [],
+      },
+      // The queue screen's (Task 6): its own label, facets that toggle, and Clear.
+      {
+        id: 'queue-search',
+        label: 'Filter the queue',
+        query: 'chem',
+        placeholder: 'Filter by app or person  ( / )',
+        onQuery: () => undefined,
+        facets: [
+          { label: 'Release approvals', on: true, onToggle: () => undefined },
+          { label: 'With UBC', on: false, onToggle: () => undefined },
+        ],
+        onClear: () => undefined,
+        count: '1 of 9 · j and k move',
       },
       {
         query: '',

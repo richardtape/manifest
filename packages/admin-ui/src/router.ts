@@ -11,8 +11,13 @@ import type { Schemas } from '@manifest/contract'
 export type QueueKind = Schemas['QueueItem']['kind']
 
 export type Route =
-  | { screen: 'queue'; kind?: QueueKind; subjectId?: string }
-  | { screen: 'release'; releaseId: string }
+  /** `query`: the queue's filter (`queue-state.ts`'s `queryOf`), so a filtered queue is a pasteable URL. */
+  | { screen: 'queue'; kind?: QueueKind; subjectId?: string; query?: string }
+  /**
+   * `preview`: the stored preview the pane had taken — the step-up round trip comes back to it
+   * (`auth.ts`'s `stepUpUrl`). Nothing else of a release pane's query is kept.
+   */
+  | { screen: 'release'; releaseId: string; preview?: string }
   | { screen: 'fleet'; query: string }
   | { screen: 'project'; projectId: string; section?: 'records' }
   | { screen: 'health' }
@@ -56,15 +61,20 @@ export function parseRoute(path: string): Route {
   const [first, second, third, ...rest] = parts as string[]
   if (rest.length > 0) return QUEUE
   switch (first) {
-    case 'queue':
-      if (second === undefined) return QUEUE
+    case 'queue': {
+      const filtered = query === '' ? {} : { query }
+      if (second === undefined) return { screen: 'queue', ...filtered }
       return third !== undefined && isKind(second)
-        ? { screen: 'queue', kind: second, subjectId: third }
+        ? { screen: 'queue', kind: second, subjectId: third, ...filtered }
         : QUEUE
-    case 'releases':
-      return second !== undefined && third === 'approval'
+    }
+    case 'releases': {
+      if (second === undefined || third !== 'approval') return QUEUE
+      const preview = new URLSearchParams(query).get('preview')
+      return preview === null || preview === ''
         ? { screen: 'release', releaseId: second }
-        : QUEUE
+        : { screen: 'release', releaseId: second, preview }
+    }
     case 'projects':
       if (second === undefined) return QUEUE
       if (third === undefined) return { screen: 'project', projectId: second }
@@ -86,12 +96,15 @@ export function parseRoute(path: string): Route {
 export function routePath(route: Route): string {
   const e = encodeURIComponent
   switch (route.screen) {
-    case 'queue':
+    case 'queue': {
+      const query =
+        route.query === undefined || route.query === '' ? '' : `?${route.query}`
       return route.kind !== undefined && route.subjectId !== undefined
-        ? `/queue/${route.kind}/${e(route.subjectId)}`
-        : '/queue'
+        ? `/queue/${route.kind}/${e(route.subjectId)}${query}`
+        : `/queue${query}`
+    }
     case 'release':
-      return `/releases/${e(route.releaseId)}/approval`
+      return `/releases/${e(route.releaseId)}/approval${route.preview === undefined ? '' : `?preview=${e(route.preview)}`}`
     case 'project':
       return `/projects/${e(route.projectId)}${route.section === 'records' ? '/records' : ''}`
     case 'fleet':
@@ -112,10 +125,15 @@ export function canonicalPath(path: string): string {
   return routePath(parseRoute(path))
 }
 
-/** Moves to a route without reloading the page: an open pane's typed reason survives. */
-export function navigate(route: Route): void {
-  window.history.pushState({}, '', routePath(route))
-  // pushState fires no popstate, so the one listener useRoute installs is told.
+/**
+ * Moves to a route without reloading the page: an open pane's typed reason survives. `replace`
+ * takes the current history entry's place — the keyboard's `j`/`k` and the filter's every keystroke,
+ * so Back leaves the queue rather than stepping through each row and each letter.
+ */
+export function navigate(route: Route, options: { replace?: boolean } = {}): void {
+  if (options.replace === true) window.history.replaceState({}, '', routePath(route))
+  else window.history.pushState({}, '', routePath(route))
+  // Neither fires popstate, so the one listener useRoute installs is told.
   window.dispatchEvent(new PopStateEvent('popstate'))
 }
 

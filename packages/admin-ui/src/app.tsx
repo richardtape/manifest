@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type MouseEvent } from 'react'
 import { ManifestApiError, type Schemas } from '@manifest/contract'
-import { createApi } from './api'
+import { createApi, type Api } from './api'
 import { signIn, signOut } from './auth'
 import { Refusal } from './refusal'
 import {
@@ -13,6 +13,7 @@ import {
   type Route,
 } from './router'
 import { NotAdmin } from './screens/not-admin'
+import { QueueScreen } from './screens/queue'
 import { ConsoleRail, type ConsoleRailProps, type RailItem } from './system'
 
 /**
@@ -63,7 +64,7 @@ export function App() {
     return <p className="signing-in">Signing you in…</p>
   if ('error' in signed) return <Refusal error={signed.error} />
   if (gate === 'not-admin') return <NotAdmin me={signed.me} />
-  return <Shell me={signed.me} />
+  return <Shell me={signed.me} api={api} />
 }
 
 /** Which rail item a route sits under: a release pane is the queue's, a project's page the fleet's. */
@@ -122,7 +123,7 @@ export function isSignOut(event: LinkClick): boolean {
  * a move; and it signs out from the rail. A refused sign-out is shown, never swallowed: the person
  * would otherwise still be signed in with nothing saying so.
  */
-function Shell({ me }: { me: Schemas['Me'] }) {
+function Shell({ me, api }: { me: Schemas['Me']; api: Api }) {
   const route = useRoute()
   const [signOutError, setSignOutError] = useState<unknown>(undefined)
   const onClick = (event: MouseEvent<HTMLDivElement>) => {
@@ -142,20 +143,23 @@ function Shell({ me }: { me: Schemas['Me'] }) {
       <div className="mfa-content">
         <main className="mfa-main">
           <Refusal error={signOutError} />
-          <Screen route={route} />
+          <Screen route={route} api={api} />
         </main>
       </div>
     </div>
   )
 }
 
-/** Each screen's placeholder until its task builds it. */
-function Screen({ route }: { route: Route }) {
+/**
+ * The route's screen; a placeholder until its task builds it. A release pane is the queue's, its
+ * item selected — the same element in the same place, so moving between the two keeps the queue
+ * read and the pane's state.
+ */
+function Screen({ route, api }: { route: Route; api: Api }) {
   switch (route.screen) {
     case 'queue':
-      return <h1 className="mfa-h1">Queue</h1>
     case 'release':
-      return <h1 className="mfa-h1">Release approval</h1>
+      return <QueueScreen api={api} route={route} />
     case 'fleet':
       return <h1 className="mfa-h1">Fleet</h1>
     case 'project':
