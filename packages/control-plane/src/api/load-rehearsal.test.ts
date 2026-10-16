@@ -17,7 +17,14 @@ import { gatedLoadGenerator } from '../launch/testing.js'
 import { buildServer, type ServerDeps } from './server.js'
 import { openApiDocument } from './contract/document.js'
 import { ROUTE_DEFINITIONS } from './routes/index.js'
-import { loginAs, mutationHeaders, projectBody, refusal, testDeps } from './testing.js'
+import {
+  approvedProject,
+  loginAs,
+  mutationHeaders,
+  projectBody,
+  refusal,
+  testDeps,
+} from './testing.js'
 
 /**
  * §24'S LOAD REHEARSAL, AS AN OPERATION (the load rehearsal plan's Task 5; Decisions 1, 6, 7 and 11; Review Focus 4, 6
@@ -512,6 +519,87 @@ describe('staging is the run’s while it lasts (Review Focus 7)', () => {
       await finishAll(s)
       await s.app.close()
     }
+  })
+})
+
+/**
+ * THE CHECKLIST, AND THE GATE THAT READS IT (the load rehearsal plan's Task 6, Decision 10): a large course's app whose
+ * every other blocking item is met is refused production — `409` with the checklist, the load rehearsal the one item
+ * unmet — while nothing has been rehearsed and while a run is under way; once a run of its candidate passes, the same
+ * production deploy answers `200`. Before Task 6 the item was `not_built` and this app could never launch (FE-44).
+ */
+describe('the checklist, and the gate (Task 6)', () => {
+  it('a large course’s app with every other item met is refused production until a run of its candidate passes — then deployed', async () => {
+    const gated = gatedLoadGenerator()
+    const runs = createLoadRehearsalRuns({
+      generator: gated.generator,
+      watchIntervalMs: 5,
+    })
+    const a = await approvedProject('big-course', {
+      scale: 'large_course',
+      overrides: { loadRehearsals: runs },
+    })
+    const owner = await loginAs(a.deps, 'bio_prof', { steppedUp: true })
+    const toProduction = () =>
+      a.app.inject({
+        method: 'POST',
+        url: `/v1/environments/${a.production.id}/deploy`,
+        payload: { releaseId: a.release.id },
+        cookies: owner,
+        headers: mutationHeaders(a.deps),
+      })
+    type View = {
+      ready: boolean
+      items: { id: string; blocking: boolean; state: string; why: string }[]
+    }
+    const unmetOf = (view: View) =>
+      view.items.filter((i) => i.blocking && i.state !== 'met').map((i) => i.id)
+    const loadItem = (view: View) => view.items.find((i) => i.id === 'load-rehearsal')!
+
+    const refused = await toProduction()
+    expect(refusal(refused)).toEqual({
+      status: 409,
+      code: 'RELEASE_PRODUCTION_GATE_UNAVAILABLE',
+    })
+    const before = refused.json().error.launchReadiness as View
+    expect(before.ready).toBe(false)
+    expect(unmetOf(before)).toEqual(['load-rehearsal'])
+    expect(loadItem(before).why).toContain('not been rehearsed yet')
+
+    const started = await a.app.inject({
+      method: 'POST',
+      url: `/v1/projects/${a.project.id}/load-rehearsal`,
+      cookies: owner,
+      headers: mutationHeaders(a.deps),
+    })
+    expect(started.statusCode).toBe(202)
+    await gated.went
+    // WHILE IT RUNS the gate still refuses, and says why: a run under way meets nothing.
+    const midRun = await toProduction()
+    expect(refusal(midRun).code).toBe('RELEASE_PRODUCTION_GATE_UNAVAILABLE')
+    expect(loadItem(midRun.json().error.launchReadiness as View).why).toContain(
+      'running now',
+    )
+    gated.open()
+    await runs.idle()
+    const record = await a.app.inject({
+      method: 'GET',
+      url: `/v1/projects/${a.project.id}/load-rehearsals/${(started.json() as { id: string }).id}`,
+      cookies: owner,
+    })
+    expect(record.json()).toMatchObject({ state: 'passed' })
+
+    const checklist = await a.app.inject({
+      method: 'GET',
+      url: `/v1/projects/${a.project.id}/launch-readiness`,
+      cookies: owner,
+    })
+    const after = checklist.json() as View
+    expect(loadItem(after)).toMatchObject({ state: 'met', blocking: true })
+    expect(after.ready).toBe(true)
+    const deployed = await toProduction()
+    expect(deployed.statusCode).toBe(200)
+    expect(deployed.json().state).toBe('healthy')
   })
 })
 

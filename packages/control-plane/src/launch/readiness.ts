@@ -1,6 +1,13 @@
-import { eq } from 'drizzle-orm'
+import { desc, eq } from 'drizzle-orm'
 import { STALENESS_THRESHOLD_DAYS } from '../build/index.js'
-import { builds, environments, projects, releases, type Db } from '../db/index.js'
+import {
+  builds,
+  environments,
+  loadRehearsals,
+  projects,
+  releases,
+  type Db,
+} from '../db/index.js'
 import { personName, type StoredAudience } from '../projects/index.js'
 import {
   approvalCoversDigest,
@@ -19,6 +26,7 @@ import {
   type IamRegistrationRow,
 } from './records.js'
 import { readAssessmentDraft } from './assessment.js'
+import type { LoadRehearsalRow } from './load-run.js'
 import { readPackage } from './package.js'
 import { rehearsalItem } from './rehearsal.js'
 
@@ -165,7 +173,7 @@ export async function computeLaunchReadiness(
       await piaItem(db, projectId, candidate?.build.commitSha),
       scans,
       approval.item,
-      ...loadRehearsalItems(audience),
+      ...(await loadRehearsalItems(db, projectId, audience, candidate, true)),
       await codeReviewItem(db, candidate),
     ]
     return {
@@ -195,7 +203,7 @@ export async function computeLaunchReadiness(
     ),
     scans,
     await approvalItem(db, projectId, candidate),
-    ...loadRehearsalItems(audience),
+    ...(await loadRehearsalItems(db, projectId, audience, candidate, false)),
     // LAST, after every blocking item — including `load-rehearsal`, which is conditional —
     // so the checklist reads as the things that gate production followed by the one that
     // does not, and no blocking item's position depends on whether this one is present.
@@ -224,21 +232,143 @@ const DOMAIN_ITEM: LaunchItem = {
   why: 'Canonical hostname only — no action. A custom domain is not offered yet, and for a CWL app one must be chosen before IAM registration, because the registration carries it.',
 }
 
-/** §24: a large-audience app is rehearsed under load before launch — P9 builds it. Both clauses. */
-function loadRehearsalItems(audience: StoredAudience | null | undefined): LaunchItem[] {
+/**
+ * §24'S LOAD REHEARSAL, MET BY A MEASUREMENT (the load rehearsal plan's Task 6, Decision 10) — as D21's `rehearsal` is by
+ * its own. A large course's or a public app's item, in both of D9's clauses; no other audience has one. Until this task it
+ * read `not_built` for ever, so no such app could reach production (FE-44).
+ *
+ *  - **BEFORE LAUNCH**: met by the newest `passed` run of the CANDIDATE'S DIGEST that COVERS the project's audience — its
+ *    scale at least the project's (`public` covers `large_course`) AND its burst at least the project's (`synchronised`
+ *    covers `steady`, whose rates it exceeds). A new candidate, or an audience raised, needs a run of its own.
+ *  - **AFTER LAUNCH** (Rich, *"First launch + audience raised"*): met while SOME `passed` run covers the audience as it is
+ *    now, of any release — so a later release needs none, and raising the scale or the burst needs one.
+ *  - Otherwise `unmet`, saying why: a run under way; the newest run of what it would cover, and its reason; a pass that
+ *    no longer covers; or nothing run yet, naming the operation that runs one.
+ *
+ * **ONLY A `passed` ROW MEETS IT** — a `teardown_failed` run whose own judgement passed never does (Decision 9: staging
+ * was not given back, so what it measured is not what a launch would run beside). **`builtBy` is gone from this item**,
+ * and a reader who finds it again should treat that as a regression.
+ */
+async function loadRehearsalItems(
+  db: Db,
+  projectId: string,
+  audience: StoredAudience | null | undefined,
+  candidate: LaunchCandidate | undefined,
+  launched: boolean,
+): Promise<LaunchItem[]> {
   if (audience?.scale !== 'large_course' && audience?.scale !== 'public') return []
+  const wanted: RehearsedAudience = { scale: audience.scale, burst: audience.burst }
+  const base = {
+    id: 'load-rehearsal' as const,
+    title: 'Load rehearsal passed',
+    owner: 'Manifest',
+    blocking: true,
+  }
+  const rows = await db
+    .select()
+    .from(loadRehearsals)
+    .where(eq(loadRehearsals.projectId, projectId))
+    .orderBy(desc(loadRehearsals.createdAt), desc(loadRehearsals.id))
+  // WHAT A PASS MUST BE OF: before launch the candidate's digest — production runs exactly what staging ran (§13) — and
+  // after it any release (Q3 (a)): the app's capacity was measured, and a later release changes code, not arrival.
+  const digest = candidate?.build.imageDigest ?? null
+  const relevant = launched ? rows : rows.filter((r) => r.imageDigest === digest)
+  const pass = relevant.find((r) => r.state === 'passed' && covers(r, wanted))
+  if (pass !== undefined)
+    return [
+      {
+        ...base,
+        state: 'met',
+        why: `A load rehearsal passed on ${dayOf(pass.finishedAt)}${launched ? '' : ' for the release serving staging'}, rehearsed for ${audienceInWords(pass)} on production’s shape: ${pass.evidence?.reason ?? 'no reason was recorded'}.`,
+        since: isoOrNull(pass.finishedAt),
+      },
+    ]
+  const running = rows.find((r) => r.state === 'running')
+  if (running !== undefined)
+    return [
+      {
+        ...base,
+        state: 'unmet',
+        why: 'A load rehearsal is running now — staging has production’s shape and the arrival is being put on it, which takes up to about ten minutes. Read its result with getLoadRehearsal.',
+        since: isoOrNull(running.createdAt),
+      },
+    ]
+  if (!launched && candidate === undefined)
+    return [
+      {
+        ...base,
+        state: 'unmet',
+        why: 'Nothing is serving in staging yet, so there is no candidate release to rehearse under load. Production runs exactly what staging ran.',
+      },
+    ]
+  // THE NEWEST RUN OF WHAT A PASS MUST BE OF, when it did not pass: the latest fact, and its reason is what to act on.
+  const newest = relevant[0]
+  if (newest !== undefined && newest.state !== 'passed')
+    return [
+      {
+        ...base,
+        state: 'unmet',
+        why: `${NEWEST_RUN[newest.state as Exclude<LoadRehearsalRow['state'], 'running' | 'passed'>]} on ${dayOf(newest.finishedAt ?? newest.createdAt)}: ${newest.evidence?.reason ?? 'no reason was recorded'}. Run it again (runLoadRehearsal).`,
+      },
+    ]
+  // A PASS THAT NO LONGER COVERS — the audience raised since it ran, and nothing run since. "It passed" reads as a bug
+  // the first time somebody meets it, so the checklist says which half moved (D21's item does the same).
+  const outgrown = relevant.find((r) => r.state === 'passed')
+  if (outgrown !== undefined)
+    return [
+      {
+        ...base,
+        state: 'unmet',
+        why: `A load rehearsal passed on ${dayOf(outgrown.finishedAt)} for ${audienceInWords(outgrown)}, and this app’s audience is now ${audienceInWords(wanted)} — a bigger arrival than it measured. Run it again (runLoadRehearsal).`,
+      },
+    ]
   return [
     {
-      id: 'load-rehearsal',
-      title: 'Load rehearsal passed',
-      owner: 'Manifest',
-      blocking: true,
-      state: 'not_built',
-      builtBy: 'a later Manifest release (the load rehearsal)',
-      why: `An app for ${audience.scale === 'public' ? 'the public' : 'a large course'} is rehearsed against staging with production-shaped capacity before launch.`,
+      ...base,
+      state: 'unmet',
+      why: `An app for ${audience.scale === 'public' ? 'the public' : 'a large course'} is rehearsed before launch: Manifest gives staging production’s shape, puts the audience’s arrival on it through the edge for a few minutes, and judges what it measured. ${
+        rows.length === 0
+          ? 'This app has not been rehearsed yet'
+          : 'The release serving staging has not been rehearsed yet — a load rehearsal measures one release, and a new one needs its own'
+      }: the owner, a collaborator or an administrator runs it (runLoadRehearsal).`,
     },
   ]
 }
+
+/** An audience as a load rehearsal ran it, or as a project states it now — a scale that has one, and its burst. */
+interface RehearsedAudience {
+  scale: 'large_course' | 'public'
+  burst: 'steady' | 'synchronised'
+}
+
+/** The newest run's state, as the first words of the item's `why` when it did not pass. */
+const NEWEST_RUN = {
+  failed: 'The load rehearsal did not pass',
+  teardown_failed:
+    'The load rehearsal could not give staging back its own shape afterwards, so it does not count',
+  abandoned: 'The load rehearsal was not finished',
+} as const
+
+const SCALE_RANK = { large_course: 0, public: 1 } as const
+const BURST_RANK = { steady: 0, synchronised: 1 } as const
+
+/**
+ * WHETHER A RUN COVERS AN AUDIENCE (Decision 10; the second review's minor — scale was compared, burst was not): its
+ * scale at least the audience's, AND its burst at least the audience's. A `public` run covers `large_course` (the same
+ * profile, the larger set), and a `synchronised` run covers `steady` (whose rates it exceeds).
+ */
+function covers(run: RehearsedAudience, audience: RehearsedAudience): boolean {
+  return (
+    SCALE_RANK[run.scale] >= SCALE_RANK[audience.scale] &&
+    BURST_RANK[run.burst] >= BURST_RANK[audience.burst]
+  )
+}
+
+const audienceInWords = (a: RehearsedAudience): string =>
+  `${a.scale === 'public' ? 'the public' : 'a large course'} ${a.burst === 'synchronised' ? 'all arriving at once' : 'arriving steadily'}`
+
+const dayOf = (at: Date | null): string =>
+  at === null ? 'an unknown day' : at.toISOString().slice(0, 10)
 
 /**
  * §13 and D9.1: production is reachable when EVERY BLOCKING item is met, and a

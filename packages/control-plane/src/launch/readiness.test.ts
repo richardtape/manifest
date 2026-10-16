@@ -8,6 +8,7 @@ import {
   environments,
   iamRegistrations,
   instances,
+  loadRehearsals,
   privacyAssessments,
   projects,
   releases,
@@ -27,7 +28,12 @@ import {
   sendPrivacyAssessment,
   vancouverNoon,
 } from './records.js'
-import { everyGapAnswered, withAssessmentDraft, withDraft } from './testing.js'
+import {
+  everyGapAnswered,
+  stagedRelease,
+  withAssessmentDraft,
+  withDraft,
+} from './testing.js'
 
 /**
  * §12 classifies Critical and High and nothing else (P5a Task 13), so a `SeverityCounts`
@@ -523,32 +529,27 @@ describe('LaunchReadiness (§13, P5a Task 15; the two external records, P6a Task
     })
   })
 
-  it('adds the load rehearsal for a large course or a public app, and only then (§24)', async () => {
+  it('adds the load rehearsal for a large course or a public app, and only then (§24) — unmet, never not_built', async () => {
     await withProject(async (tx, { projectId }) => {
       expect(
         (await computeLaunchReadiness(tx, projectId)).items.some(
           (i) => i.id === 'load-rehearsal',
         ),
       ).toBe(false)
-      await tx
-        .update(projects)
-        .set({
-          audience: {
-            scale: 'large_course',
-            burst: 'synchronised',
-            justification: null,
-            set_by: projectId,
-            set_at: '2026-09-16T00:00:00.000Z',
-          },
-        })
-        .where(eq(projects.id, projectId))
+      await setAudience(tx, projectId, 'class', 'synchronised')
+      expect(
+        (await computeLaunchReadiness(tx, projectId)).items.some(
+          (i) => i.id === 'load-rehearsal',
+        ),
+      ).toBe(false)
+      await setAudience(tx, projectId, 'large_course', 'synchronised')
       const rehearsal = (await computeLaunchReadiness(tx, projectId)).items.find(
         (i) => i.id === 'load-rehearsal',
       )
-      expect(rehearsal).toMatchObject({
-        state: 'not_built',
-        builtBy: 'a later Manifest release (the load rehearsal)',
-      })
+      // THE LOAD REHEARSAL PLAN'S TASK 6: built, so a project nobody has rehearsed reads `unmet` with no `builtBy` —
+      // a `not_built` back on it is the regression that kept every large app out of production (FE-44).
+      expect(rehearsal).toMatchObject({ state: 'unmet', blocking: true })
+      expect(rehearsal!.builtBy).toBeUndefined()
     })
   })
 
@@ -937,6 +938,267 @@ describe('who has it, and since when (Task 6)', () => {
       expect(waiting.why).toContain(
         'a change is with the Manifest team since September 22, 2026, asking for mail, sn, ubcEduCwlPuid;',
       )
+    })
+  })
+})
+
+/** A project's audience written straight to its row — nothing raises one through the API yet (Decision 10). */
+async function setAudience(
+  tx: Db,
+  projectId: string,
+  scale: 'solo' | 'class' | 'large_course' | 'public',
+  burst: 'steady' | 'synchronised',
+): Promise<void> {
+  await tx
+    .update(projects)
+    .set({
+      audience: {
+        scale,
+        burst,
+        justification: null,
+        set_by: projectId,
+        set_at: '2026-09-16T00:00:00.000Z',
+      },
+    })
+    .where(eq(projects.id, projectId))
+}
+
+/**
+ * §24'S LOAD REHEARSAL, MET BY A MEASUREMENT (the load rehearsal plan's Task 6, Decision 10; Review Focus 3): the item
+ * reads `load_rehearsals` — the newest `passed` run of the candidate's digest that COVERS the audience, its scale and its
+ * burst — and after launch any pass covering the audience as it is now. The rows are written directly: this file is
+ * about what the checklist READS, and `load-run.test.ts` is about how a row gets there.
+ */
+describe('the load-rehearsal item — met by a measurement (the load rehearsal plan’s Task 6)', () => {
+  const item = async (tx: Db, projectId: string) =>
+    (await computeLaunchReadiness(tx, projectId)).items.find(
+      (i) => i.id === 'load-rehearsal',
+    )!
+
+  /** One load rehearsal of the release serving staging (`release`), as the run would have left it. */
+  async function rehearsed(
+    tx: Db,
+    projectId: string,
+    release: { releaseId: string; imageDigest: string },
+    run: {
+      state: 'running' | 'passed' | 'failed' | 'teardown_failed' | 'abandoned'
+      scale?: 'large_course' | 'public'
+      burst?: 'steady' | 'synchronised'
+      reason?: string
+      finishedAt?: Date
+      judged?: { passed: boolean; reason: string }
+    },
+  ): Promise<void> {
+    const [staging] = await tx
+      .select()
+      .from(environments)
+      .where(eq(environments.projectId, projectId))
+      .then((rows) => rows.filter((e) => e.kind === 'staging'))
+    const finishedAt =
+      run.state === 'running'
+        ? null
+        : (run.finishedAt ?? new Date('2026-10-15T20:13:03Z'))
+    await tx.insert(loadRehearsals).values({
+      projectId,
+      environmentId: staging!.id,
+      releaseId: release.releaseId,
+      imageDigest: release.imageDigest,
+      scale: run.scale ?? 'large_course',
+      burst: run.burst ?? 'synchronised',
+      state: run.state,
+      profile: {
+        phases: [{ name: 'arrive', rps: 75, seconds: 60 }],
+        paths: ['/', '/healthz', '/login'],
+        timeoutMs: 10_000,
+        pass: { answeredRatio: 0.99, p95Ms: 2_000, achievedRatio: 0.9 },
+      },
+      evidence:
+        run.state === 'running'
+          ? null
+          : {
+              reason: run.reason ?? 'a reason',
+              ...(run.judged === undefined ? {} : { judged: run.judged }),
+            },
+      createdAt: new Date(
+        (finishedAt ?? new Date('2026-10-15T20:13:03Z')).getTime() - 367_000,
+      ),
+      finishedAt,
+      takenDownAt: run.state === 'passed' || run.state === 'failed' ? finishedAt : null,
+    })
+  }
+
+  const PASSED =
+    '100% of requests answered, p95 0.01 s, at 54.2 requests a second; every instance stayed healthy'
+
+  it('nothing run: unmet, blocking, not rehearsed yet — naming the operation that runs it', async () => {
+    await withProject(async (tx, { projectId, ownerId }) => {
+      await setAudience(tx, projectId, 'large_course', 'synchronised')
+      await stagedRelease(tx, { projectId, ownerId })
+      const load = await item(tx, projectId)
+      expect(load).toMatchObject({ state: 'unmet', blocking: true, since: null })
+      expect(load.builtBy).toBeUndefined()
+      expect(load.why).toContain('not been rehearsed yet')
+      expect(load.why).toContain('runLoadRehearsal')
+    })
+  })
+
+  it('nothing serving staging: unmet, saying there is no candidate to rehearse', async () => {
+    await withProject(async (tx, { projectId }) => {
+      await setAudience(tx, projectId, 'public', 'steady')
+      const load = await item(tx, projectId)
+      expect(load.state).toBe('unmet')
+      expect(load.why).toContain('Nothing is serving in staging')
+    })
+  })
+
+  it('a run under way: unmet, running, since it began', async () => {
+    await withProject(async (tx, { projectId, ownerId }) => {
+      await setAudience(tx, projectId, 'large_course', 'synchronised')
+      const release = await stagedRelease(tx, { projectId, ownerId })
+      await rehearsed(tx, projectId, release, { state: 'running' })
+      const load = await item(tx, projectId)
+      expect(load.state).toBe('unmet')
+      expect(load.why).toContain('running now')
+      expect(load.why).toContain('getLoadRehearsal')
+      expect(load.since).not.toBeNull()
+    })
+  })
+
+  it.each([
+    ['failed', 'did not pass', undefined],
+    // DECISION 9: a run whose own judgement PASSED, and staging could not be given back — it never meets the item.
+    ['teardown_failed', 'does not count', { passed: true, reason: PASSED }],
+    ['abandoned', 'not finished', undefined],
+  ] as const)(
+    'the newest run %s: unmet, saying so with its reason',
+    async (state, words, judged) => {
+      await withProject(async (tx, { projectId, ownerId }) => {
+        await setAudience(tx, projectId, 'large_course', 'synchronised')
+        const release = await stagedRelease(tx, { projectId, ownerId })
+        await rehearsed(tx, projectId, release, {
+          state,
+          reason: 'only 62.0% of requests were answered; the mark is 99%',
+          ...(judged === undefined ? {} : { judged }),
+        })
+        const load = await item(tx, projectId)
+        expect(load.state).toBe('unmet')
+        expect(load.why).toContain(words)
+        expect(load.why).toContain('only 62.0% of requests were answered')
+        expect(load.why).toContain('runLoadRehearsal')
+      })
+    },
+  )
+
+  it('a pass of the candidate: met, since it finished, in its own words — and blocking, so ready may read it', async () => {
+    await withProject(async (tx, { projectId, ownerId }) => {
+      await setAudience(tx, projectId, 'large_course', 'synchronised')
+      const release = await stagedRelease(tx, { projectId, ownerId })
+      await rehearsed(tx, projectId, release, {
+        state: 'passed',
+        reason: PASSED,
+        finishedAt: new Date('2026-10-15T20:13:03Z'),
+      })
+      const load = await item(tx, projectId)
+      expect(load).toMatchObject({
+        state: 'met',
+        blocking: true,
+        since: '2026-10-15T20:13:03.000Z',
+      })
+      expect(load.why).toContain('2026-10-15')
+      expect(load.why).toContain(PASSED)
+      expect(load.why).toContain('a large course all arriving at once')
+    })
+  })
+
+  it('a NEW candidate after a pass: unmet again — the release serving staging has not been rehearsed', async () => {
+    await withProject(async (tx, { projectId, ownerId }) => {
+      await setAudience(tx, projectId, 'large_course', 'synchronised')
+      const first = await stagedRelease(tx, { projectId, ownerId })
+      await rehearsed(tx, projectId, first, { state: 'passed', reason: PASSED })
+      expect((await item(tx, projectId)).state).toBe('met')
+      await stagedRelease(tx, { projectId, ownerId })
+      const load = await item(tx, projectId)
+      expect(load.state).toBe('unmet')
+      expect(load.why).toContain('The release serving staging has not been rehearsed yet')
+    })
+  })
+
+  it('the SCALE raised to public after a large-course pass: unmet, naming both audiences', async () => {
+    await withProject(async (tx, { projectId, ownerId }) => {
+      await setAudience(tx, projectId, 'large_course', 'synchronised')
+      const release = await stagedRelease(tx, { projectId, ownerId })
+      await rehearsed(tx, projectId, release, { state: 'passed', reason: PASSED })
+      expect((await item(tx, projectId)).state).toBe('met')
+      await setAudience(tx, projectId, 'public', 'synchronised')
+      const load = await item(tx, projectId)
+      expect(load.state).toBe('unmet')
+      expect(load.why).toContain(
+        'passed on 2026-10-15 for a large course all arriving at once',
+      )
+      expect(load.why).toContain('now the public all arriving at once')
+    })
+  })
+
+  it('the BURST raised to synchronised after a steady pass: unmet, naming both audiences', async () => {
+    await withProject(async (tx, { projectId, ownerId }) => {
+      await setAudience(tx, projectId, 'large_course', 'steady')
+      const release = await stagedRelease(tx, { projectId, ownerId })
+      await rehearsed(tx, projectId, release, {
+        state: 'passed',
+        burst: 'steady',
+        reason: PASSED,
+      })
+      expect((await item(tx, projectId)).state).toBe('met')
+      await setAudience(tx, projectId, 'large_course', 'synchronised')
+      const load = await item(tx, projectId)
+      expect(load.state).toBe('unmet')
+      expect(load.why).toContain('for a large course arriving steadily')
+      expect(load.why).toContain('now a large course all arriving at once')
+    })
+  })
+
+  it('a public pass covers a large course, and a synchronised pass covers steady', async () => {
+    await withProject(async (tx, { projectId, ownerId }) => {
+      await setAudience(tx, projectId, 'large_course', 'steady')
+      const release = await stagedRelease(tx, { projectId, ownerId })
+      await rehearsed(tx, projectId, release, {
+        state: 'passed',
+        scale: 'public',
+        burst: 'synchronised',
+        reason: PASSED,
+      })
+      const load = await item(tx, projectId)
+      expect(load.state).toBe('met')
+      expect(load.why).toContain('the public all arriving at once')
+    })
+  })
+
+  it('after launch: met by a pass covering the audience now, of ANY release — and unmet once the audience is raised', async () => {
+    await withProject(async (tx, { projectId, ownerId }) => {
+      await setAudience(tx, projectId, 'large_course', 'steady')
+      const launched = await stagedRelease(tx, { projectId, ownerId })
+      await rehearsed(tx, projectId, launched, {
+        state: 'passed',
+        burst: 'steady',
+        reason: PASSED,
+      })
+      await tx
+        .update(projects)
+        .set({ launchedAt: new Date('2026-10-15T21:00:00Z') })
+        .where(eq(projects.id, projectId))
+      // A LATER RELEASE serving staging needs no run of its own (Q3 (a)): the app's capacity was measured.
+      await stagedRelease(tx, { projectId, ownerId })
+      const view = await computeLaunchReadiness(tx, projectId)
+      expect(view.launched).toBe(true)
+      expect(view.items.find((i) => i.id === 'load-rehearsal')).toMatchObject({
+        state: 'met',
+        blocking: true,
+      })
+      // THE AUDIENCE RAISED after launch — held here, by writing it: nothing raises one through the API yet.
+      await setAudience(tx, projectId, 'large_course', 'synchronised')
+      const raised = await item(tx, projectId)
+      expect(raised.state).toBe('unmet')
+      expect(raised.why).toContain('now a large course all arriving at once')
     })
   })
 })

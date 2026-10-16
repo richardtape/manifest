@@ -290,6 +290,8 @@ export async function projectFor(
   slug = 'chem-labs',
   /** Laid over `testDeps()`'s — a model gateway, say (the front-end enablement plan's Task 14a). */
   overrides: Partial<ServerDeps> = {},
+  /** §24's answer — `solo` unless a test is about a bigger audience (the load rehearsal plan's Task 6). */
+  scale?: 'solo' | 'class' | 'large_course' | 'public',
 ) {
   const deps = { ...(await testDeps()), ...overrides }
   const app = await buildServer(deps)
@@ -297,7 +299,7 @@ export async function projectFor(
   const created = await app.inject({
     method: 'POST',
     url: '/v1/projects',
-    payload: projectBody(slug),
+    payload: projectBody(slug, scale === undefined ? {} : { scale }),
     cookies,
     headers: mutationHeaders(deps),
   })
@@ -315,6 +317,8 @@ export interface FixtureOptions {
   env?: { name: string; value: string }[]
   classification?: Classification
   overrides?: Partial<ServerDeps>
+  /** The project's audience scale — a large course's checklist carries the load rehearsal (Task 6). */
+  scale?: 'solo' | 'class' | 'large_course' | 'public'
 }
 
 /**
@@ -331,6 +335,7 @@ export async function builtProject(slug: string, options: FixtureOptions = {}) {
     'bio_prof',
     slug,
     options.overrides,
+    options.scale,
   )
   if (options.env !== undefined || options.classification !== undefined) {
     await writeFiles(

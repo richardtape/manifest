@@ -2136,7 +2136,7 @@ export function createFleet(t0: number): Fleet {
       ...(launched ? [] : [rehearsal]),
       scans,
       approval,
-      ...loadRehearsal(p.project.audience),
+      ...loadRehearsal(p.project.audience, candidate === undefined && !launched),
       fixture('code-review'),
     ]
     return {
@@ -2155,9 +2155,13 @@ export function createFleet(t0: number): Fleet {
 
   /**
    * §24's `load-rehearsal` (`launch/readiness.ts`'s `loadRehearsalItems`, both clauses): a large-audience
-   * app's, `not_built` at 1.9.0 — no measurement can meet it until the load rehearsal is built (B's Task 6).
+   * app's, met by a passed load rehearsal since 1.10.0 (B's Task 6). The fleet holds no load rehearsal, so it is
+   * `unmet` in the platform's words — nothing serving staging, or not rehearsed yet — and no large app launches.
    */
-  function loadRehearsal(audience: Schemas['Project']['audience']): Item[] {
+  function loadRehearsal(
+    audience: Schemas['Project']['audience'],
+    noCandidate: boolean,
+  ): Item[] {
     if (audience?.scale !== 'large_course' && audience?.scale !== 'public') return []
     return [
       {
@@ -2165,9 +2169,10 @@ export function createFleet(t0: number): Fleet {
         title: 'Load rehearsal passed',
         owner: 'Manifest',
         blocking: true,
-        state: 'not_built',
-        builtBy: 'a later Manifest release (the load rehearsal)',
-        why: `An app for ${audience.scale === 'public' ? 'the public' : 'a large course'} is rehearsed against staging with production-shaped capacity before launch.`,
+        state: 'unmet',
+        why: noCandidate
+          ? 'Nothing is serving in staging yet, so there is no candidate release to rehearse under load. Production runs exactly what staging ran.'
+          : `An app for ${audience.scale === 'public' ? 'the public' : 'a large course'} is rehearsed before launch: Manifest gives staging production’s shape, puts the audience’s arrival on it through the edge for a few minutes, and judges what it measured. This app has not been rehearsed yet: the owner, a collaborator or an administrator runs it (runLoadRehearsal).`,
         since: null,
       },
     ]

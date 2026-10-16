@@ -282,9 +282,9 @@ describe('the demo fleet (MANIFEST_MOCK_FLEET=demo)', () => {
     for (const row of ours) {
       const project = await read<Schemas['Project']>(`/v1/projects/${row.id}`)
       const production = row.environments.find((e) => e.kind === 'production')!
-      // AT 1.9.0 ONLY A `class` APP LAUNCHES: a large-audience app's blocking `load-rehearsal` is
-      // `not_built` (`launch/readiness.ts`), so it is never in production — and every launched app runs
-      // its audience's set of two.
+      // ONLY A `class` APP LAUNCHES IN THE FLEET: a large-audience app's blocking `load-rehearsal` is met by a
+      // passed load rehearsal since 1.10.0 (`launch/readiness.ts`), and the fleet holds none — so it is
+      // `unmet`, never `not_built`, and never in production; every launched app runs its audience's set of two.
       if (row.audience?.scale === 'large_course' || row.audience?.scale === 'public') {
         expect(project.body.launchedAt, row.slug).toBeNull()
         expect(production.instances, row.slug).toBe(0)
@@ -294,7 +294,7 @@ describe('the demo fleet (MANIFEST_MOCK_FLEET=demo)', () => {
         expect(
           readiness.body.items.find((i) => i.id === 'load-rehearsal'),
           row.slug,
-        ).toMatchObject({ blocking: true, state: 'not_built' })
+        ).toMatchObject({ blocking: true, state: 'unmet' })
       }
       if (project.body.launchedAt !== null) {
         expect(row.audience?.scale, row.slug).toBe('class')
