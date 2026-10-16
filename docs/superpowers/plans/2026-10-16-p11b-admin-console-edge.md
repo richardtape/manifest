@@ -810,8 +810,11 @@ Create `packages/admin-ui/src/base.test.ts`, `scripts/admin-ui-edge.sh`.
   `base.test.ts`'s order case red; **and, once, live** (*The live controls*: the shared checkout's landed Caddyfile edited, never committed;
   `make up` — its re-bind restart — and 7100 restarted; read red; `git checkout -- infra/caddy/Caddyfile`, `make up` and 7100 restarted again;
   `git status --short` clean): `make verify`'s `console_serves_admin` red with *"the reference console answered"*; (b) the run copied into
-  `app.`'s site (worktree): `base.test.ts`'s `app.` case red, and — in the shared checkout, statically, no `make up` — `make verify`'s parity
-  check red, restored by `git checkout`; (c) `team.ts`'s links written without the constant (worktree): **`team.test.ts` and `base.test.ts`'s
+  `app.`'s site (worktree): `base.test.ts`'s `app.` case red, and — in the shared checkout, read statically — `make verify`'s parity
+  check red, restored by `git checkout -- infra/caddy/Caddyfile`, **then `make up` and a 7100 restart (G4), as (a) does**: the edit and the
+  restore each replace the file's inode, so the edge's single-file mount is stale until its re-bind restart (`ensure-caddy-config.sh:26-58`;
+  ORIENTATION §4's trap 18), and leaving it for the next `make up` — anyone's — would drop every runtime route until 7100 restarted
+  (REV4's addendum, `a6cabc82`); (c) `team.ts`'s links written without the constant (worktree): **`team.test.ts` and `base.test.ts`'s
   third case red** (M2). **A control the classifier refuses** (a Caddyfile edit can read as a weakening) goes to the coordinator as one
   restore-safe script for Rich (the memory *Negative controls: Rich runs a script*), never round.
 
@@ -1149,6 +1152,7 @@ A widened grep (C1's fix) found no third unlisted reader: the email's three link
 | **M9** — the documents lag the ports by two sittings | **Task 3 Step 8**: the port lines in RUNBOOK, WALKTHROUGH, ORIENTATION and TRAPS committed in the shared checkout right after L1 |
 | **M10** — four smaller things | `gateway-controls.sh start fake` for the driver-2 run (Task 4 Step 6; fact 20); the Docker tier asks *"7100 is yours"* and HOLD in words (Task 4 Step 0; *The gates*); *"`EXPECT_VERIFY` + 1 on whatever `main` carries"* (Task 3 Step 3; `[M9]`); the design's *"two links"* → three, swept with this revision and again in Task 6 |
 | **M11** — BYOA's Task 8 edits both sites | **One sentence added to BYOA's top note** (with this revision): the console's site carries P11b's five-line `/admin` run, which `make verify`'s parity check strips by name — BYOA's `@mcp` lines must be identical in both sites and outside that run; fact 6 |
+| **The addendum** (`a6cabc82`, REV4: the revision closes all fifteen) — control (b)'s live half restored the shared checkout's Caddyfile *"statically, no `make up`"*, leaving the edge on a stale single-file mount (both writes replace the inode) for the next person's `make up` to restart, dropping every runtime route | **Task 3 Step 9 (b)**: after its restore, `make up` (the re-bind restart) and a 7100 restart (G4), as (a) does — checked against `ensure-caddy-config.sh:26-58`, which records a `git checkout` replacing the file |
 
 **Counts after the revision:** seven tasks in **seven sittings**; **three landings**; no contract change; one spec action drafted; G3 once,
 at L3; the Docker tier once, after L1; `make ci-acceptance` once, at the close.
