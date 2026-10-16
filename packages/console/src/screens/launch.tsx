@@ -1,8 +1,13 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { ManifestApiError, type Schemas, type StreamFrame } from '@manifest/contract'
 import type { Api } from '../api'
 import { approvalLinkWanted } from '../approval-state'
 import { dayInWords, signOffAction } from '../launch-records-state'
+import {
+  loadRehearsalOffer,
+  loadRehearsalWords,
+  pollDelayMs,
+} from '../load-rehearsal-state'
 import { href } from '../router'
 import { instanceFrameCount } from './deploy'
 import {
@@ -112,6 +117,12 @@ export function Launch({
               readiness: readiness.value,
               onChanged: readiness.reload,
             }),
+            ...loadRehearsalAction({
+              api,
+              projectId,
+              readiness: readiness.value,
+              onChanged: readiness.reload,
+            }),
             ...recordsActions(projectId, isAdmin),
           }}
         />
@@ -131,6 +142,8 @@ export function Launch({
  *   alone: an owner may READ the decision, in the administrator's own words.
  * - **`rehearsal` is `rehearsalAction`'s**, because since the launch path plan's Task 6b it is
  *   not an administrator's alone either: it is anybody's who can read this checklist.
+ * - **`load-rehearsal` is `loadRehearsalAction`'s** (the load rehearsal plan's Task 7), for the same
+ *   people and the same reason — and only where the checklist has the item: a large app's.
  */
 function recordsActions(
   projectId: string,
@@ -189,6 +202,141 @@ function rehearsalAction({
           />
         ),
       }
+}
+
+/**
+ * §24'S LOAD REHEARSAL, for everyone who can read this checklist (the load rehearsal plan's Task 7): the owner, a
+ * collaborator and an administrator hold `launch:rehearse`, and the platform refuses a delegated token. Offered only
+ * where the checklist HAS the item (`loadRehearsalOffer`) — a large course's app or a public one; a class app's has
+ * none, and the platform would refuse it `409 LOAD_REHEARSAL_NOT_NEEDED`.
+ */
+function loadRehearsalAction({
+  api,
+  projectId,
+  readiness,
+  onChanged,
+}: {
+  api: Api
+  projectId: string
+  readiness: Schemas['LaunchReadiness']
+  onChanged: () => void
+}): Partial<Record<LaunchItemId, React.ReactNode>> {
+  const offer = loadRehearsalOffer(readiness)
+  return offer === null
+    ? {}
+    : {
+        'load-rehearsal': (
+          <RunLoadRehearsal
+            api={api}
+            projectId={projectId}
+            again={offer === 'again'}
+            onDone={onChanged}
+          />
+        ),
+      }
+}
+
+/**
+ * THE LOAD REHEARSAL, RUN AND WATCHED. **It answers at once with the run `running`** and takes up to about ten
+ * minutes, so this POLLS `getLoadRehearsal` at the record's own `pollAfterSeconds` until it has ended, then re-reads the
+ * checklist (`onDone`). A run already under way — started in another tab, or before a reload — is found by
+ * `listLoadRehearsals` and polled the same way, so the button is never offered beside a run the platform would refuse
+ * `409 LOAD_REHEARSAL_RUNNING`.
+ *
+ * **THE ANSWER IS A MEASUREMENT**, said as one (`loadRehearsalWords`): the share answered and the p95, or the first rule
+ * it broke with its number. A run that fails is a run, never a request error — so the words, not the HTTP status, say
+ * how it went. It needs a step-up, which `<Refusal>` offers as a link.
+ */
+function RunLoadRehearsal({
+  api,
+  projectId,
+  again,
+  onDone,
+}: {
+  api: Api
+  projectId: string
+  again: boolean
+  onDone: () => void
+}) {
+  const runs = useAsync(() => api.listLoadRehearsals(projectId), [projectId])
+  // THE RUN THIS SCREEN STARTED OR LAST READ — until then the newest the list answered.
+  const [read, setRead] = useState<Schemas['LoadRehearsal'] | undefined>(undefined)
+  const [starting, setStarting] = useState(false)
+  const [error, setError] = useState<unknown>(undefined)
+  // ONE key per press (D23.6), reused only if that same press is retried after a failure.
+  const attemptKey = useRef<string | undefined>(undefined)
+  const shown = read ?? runs.value?.loadRehearsals[0]
+  const delay = shown === undefined ? null : pollDelayMs(shown)
+
+  // POLL WHILE IT RUNS: each read is a new object, so each one schedules the next; an ended run schedules none.
+  useEffect(() => {
+    if (shown === undefined || delay === null) return
+    const timer = setTimeout(() => {
+      api.getLoadRehearsal(projectId, shown.id).then(
+        (next) => {
+          setRead(next)
+          if (next.state !== 'running') onDone()
+        },
+        (e: unknown) => setError(e),
+      )
+    }, delay)
+    return () => clearTimeout(timer)
+  }, [api, projectId, shown, delay, onDone])
+
+  async function run() {
+    setStarting(true)
+    setError(undefined)
+    attemptKey.current ??= api.newKey()
+    try {
+      setRead(await api.runLoadRehearsal(projectId, attemptKey.current))
+      attemptKey.current = undefined
+      onDone()
+    } catch (e) {
+      setError(e)
+    } finally {
+      setStarting(false)
+    }
+  }
+
+  const running = shown?.state === 'running'
+  return (
+    <>
+      <button type="button" onClick={() => void run()} disabled={starting || running}>
+        {starting
+          ? 'starting…'
+          : running
+            ? 'running…'
+            : again
+              ? 'Run the load rehearsal again'
+              : 'Run the load rehearsal'}
+      </button>{' '}
+      <span className="hint">
+        up to about ten minutes: staging is given production’s size, the audience’s
+        arrival is put on it, and nothing can be deployed to staging until it has finished
+      </span>
+      <Refusal error={runs.error} />
+      <Refusal error={error} />
+      {shown !== undefined && (
+        <div className="evidence">
+          <Field label="Load rehearsal">
+            <Pill
+              tone={
+                shown.state === 'passed'
+                  ? 'good'
+                  : shown.state === 'running'
+                    ? 'plain'
+                    : 'bad'
+              }
+            >
+              {shown.state === 'teardown_failed' ? 'does not count' : shown.state}
+            </Pill>{' '}
+            <Instant at={shown.finishedAt ?? shown.createdAt} />
+          </Field>
+          <p className="hint">{loadRehearsalWords(shown)}</p>
+        </div>
+      )}
+    </>
+  )
 }
 
 /**

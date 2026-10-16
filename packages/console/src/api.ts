@@ -861,6 +861,54 @@ export function createApi(options: ApiOptions) {
     },
 
     /**
+     * §24's LOAD REHEARSAL (the load rehearsal plan's Task 7): staging given production's capacity for the app's
+     * audience, that audience's arrival put on it through the edge for a few minutes, the app judged — and staging given
+     * back. **IT ANSWERS AT ONCE, `202`, WITH THE RUN `running`**: the run takes up to about ten minutes, longer than any
+     * client waits for a response, so the caller POLLS `getLoadRehearsal` at `pollAfterSeconds` until it is not
+     * `running`. A run that fails is still a run — its record says why — never a request error. Person-only and stepped
+     * up (`403 STEP_UP_REQUIRED`, whose `<Refusal>` is the link that does it); `409 LOAD_REHEARSAL_NOT_NEEDED` for an
+     * audience that needs none, `409 LOAD_REHEARSAL_RUNNING` while this app's runs, `409 LOAD_REHEARSAL_BUSY` while
+     * another app's does. BODYLESS, like `runRehearsal`.
+     */
+    async runLoadRehearsal(
+      projectId: string,
+      idempotency: string,
+    ): Promise<Schemas['LoadRehearsal']> {
+      return unwrap(
+        await client.POST('/v1/projects/{projectId}/load-rehearsal', {
+          params: { path: { projectId }, ...key(idempotency) },
+        }),
+        'runLoadRehearsal',
+      )
+    },
+
+    /** One load rehearsal, re-read — how a run is polled to its end (`pollAfterSeconds`, null once it has ended). */
+    async getLoadRehearsal(
+      projectId: string,
+      loadRehearsalId: string,
+    ): Promise<Schemas['LoadRehearsal']> {
+      return unwrap(
+        await client.GET('/v1/projects/{projectId}/load-rehearsals/{loadRehearsalId}', {
+          params: { path: { projectId, loadRehearsalId } },
+        }),
+        'getLoadRehearsal',
+      )
+    },
+
+    /**
+     * A project's load rehearsals, the newest first — how the checklist finds a run already under way (started in
+     * another tab, or before a reload) and the newest result to show.
+     */
+    async listLoadRehearsals(projectId: string): Promise<Schemas['LoadRehearsalList']> {
+      return unwrap(
+        await client.GET('/v1/projects/{projectId}/load-rehearsals', {
+          params: { path: { projectId } },
+        }),
+        'listLoadRehearsals',
+      )
+    },
+
+    /**
      * §13's PREVIEW — what an administrator reads BEFORE deciding (Rich, 2026-09-22; P6b
      * Task 9). Interactive and `release:approve`, and **no step-up**: a preview decides
      * nothing, so the step-up round trip comes after it, with its id in the URL. The platform

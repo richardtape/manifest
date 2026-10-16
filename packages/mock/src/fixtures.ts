@@ -1739,6 +1739,125 @@ export const EMPTIED_MANIFEST: Schemas['ErrorEnvelope'] = {
   },
 }
 
+/**
+ * §24'S LOAD REHEARSAL (the load rehearsal plan's Task 7), as `MANIFEST_MOCK_LOAD=passed|failed` plays it: `mock-app` a
+ * large course whose people all arrive at once, and its one run — started, read once while it runs, then ended. The numbers
+ * are a run measured through the edge on the laptop (the document's own example). Off, `mock-app` is a class (`AUDIENCE`)
+ * and has no load rehearsal at all, as the platform answers a class app.
+ */
+export const LARGE_AUDIENCE: Schemas['Audience'] = {
+  ...AUDIENCE,
+  scale: 'large_course',
+  burst: 'synchronised',
+  justification: 'two hundred students in one course, all submitting in the same hour',
+}
+
+/** `runLoadRehearsal`'s `202`: the run started — nothing granted or measured yet. */
+export const LOAD_REHEARSAL_STARTED: Schemas['LoadRehearsal'] = {
+  id: 'dddddddd-dddd-4ddd-8ddd-ddddddddddd1',
+  projectId: PROJECT_ID,
+  releaseId: RELEASE_ID,
+  state: 'running',
+  audience: { scale: 'large_course', burst: 'synchronised' },
+  profile: {
+    phases: [
+      { name: 'arrive', rps: 75, seconds: 60 },
+      { name: 'sustain', rps: 50, seconds: 300 },
+    ],
+    paths: ['/', '/healthz', '/login'],
+    timeoutMs: 10_000,
+    pass: { answeredRatio: 0.99, p95Ms: 2_000, achievedRatio: 0.9 },
+  },
+  granted: null,
+  evidence: null,
+  runBy: USER_ID,
+  createdAt: ISO,
+  finishedAt: null,
+  takenDownAt: null,
+  pollAfterSeconds: 10,
+}
+
+/** Read while it runs: production's shape on staging, as read back — three instances at production's resources. */
+export const LOAD_REHEARSAL_RUNNING: Schemas['LoadRehearsal'] = {
+  ...LOAD_REHEARSAL_STARTED,
+  granted: {
+    count: 3,
+    instanceIds: [
+      'dddddddd-dddd-4ddd-8ddd-ddddddddddd2',
+      'dddddddd-dddd-4ddd-8ddd-ddddddddddd3',
+      'dddddddd-dddd-4ddd-8ddd-ddddddddddd4',
+    ],
+    resources: { environment: 'production', cpu: 0.5, memory: '512Mi' },
+  },
+}
+
+/** Ended, and it passed — every request answered (`MANIFEST_MOCK_LOAD=passed`). */
+export const LOAD_REHEARSAL_PASSED: Schemas['LoadRehearsal'] = {
+  ...LOAD_REHEARSAL_RUNNING,
+  state: 'passed',
+  evidence: {
+    reason:
+      '100% of requests answered, p95 0.01 s, at 54.2 requests a second; every instance stayed healthy',
+    requests: 19_500,
+    answered: 19_500,
+    answeredRatio: 1,
+    timeouts: 0,
+    achievedRps: 54.2,
+    p50Ms: 1.8,
+    p95Ms: 12.4,
+    p99Ms: 14.5,
+    durationMs: 360_000,
+    phases: [
+      { name: 'arrive', asked: 75, achieved: 75.02, requests: 4_500, answered: 4_500 },
+      { name: 'sustain', asked: 50, achieved: 50, requests: 15_000, answered: 15_000 },
+    ],
+    byPath: {
+      '/': { '200': 6_500 },
+      '/healthz': { '200': 6_500 },
+      '/login': { '302': 6_500 },
+    },
+    instanceExits: 0,
+    outOfMemory: false,
+    unhealthy: false,
+  },
+  finishedAt: '2026-09-18T09:06:07.000Z',
+  takenDownAt: '2026-09-18T09:06:07.000Z',
+  pollAfterSeconds: null,
+}
+
+/**
+ * Ended, and it did not pass (`MANIFEST_MOCK_LOAD=failed`): the app's front page refused a third of its people with
+ * `503` — the first rule broken is the answered share, named with its number, as `judge` names it.
+ */
+export const LOAD_REHEARSAL_FAILED: Schemas['LoadRehearsal'] = {
+  ...LOAD_REHEARSAL_PASSED,
+  state: 'failed',
+  evidence: {
+    reason: '66.6% of requests were answered (12990 of 19500); the mark is 99%',
+    requests: 19_500,
+    answered: 12_990,
+    answeredRatio: 0.666,
+    timeouts: 0,
+    achievedRps: 54.2,
+    p50Ms: 602.3,
+    p95Ms: 640.8,
+    p99Ms: 655.1,
+    durationMs: 360_000,
+    phases: [
+      { name: 'arrive', asked: 75, achieved: 75.01, requests: 4_500, answered: 1_990 },
+      { name: 'sustain', asked: 50, achieved: 50, requests: 15_000, answered: 11_000 },
+    ],
+    byPath: {
+      '/': { '503': 6_500 },
+      '/healthz': { '200': 6_500 },
+      '/login': { '302': 6_490, '503': 10 },
+    },
+    instanceExits: 0,
+    outOfMemory: false,
+    unhealthy: false,
+  },
+}
+
 export const FIXTURES: [string, unknown][] = [
   ['Me', ME],
   ['Me', ADMIN_ME],
@@ -1810,4 +1929,10 @@ export const FIXTURES: [string, unknown][] = [
   ['ApprovalPreview', WITHHELD_APPROVAL_PREVIEW],
   ['ApprovalPreview', UNAVAILABLE_APPROVAL_PREVIEW],
   ['ErrorEnvelope', EMPTIED_MANIFEST],
+  // The load rehearsal plan's Task 7: `MANIFEST_MOCK_LOAD`'s one run, at each state it is read in.
+  ['Audience', LARGE_AUDIENCE],
+  ['LoadRehearsal', LOAD_REHEARSAL_STARTED],
+  ['LoadRehearsal', LOAD_REHEARSAL_RUNNING],
+  ['LoadRehearsal', LOAD_REHEARSAL_PASSED],
+  ['LoadRehearsal', LOAD_REHEARSAL_FAILED],
 ]

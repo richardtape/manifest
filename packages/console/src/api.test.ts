@@ -57,6 +57,37 @@ const {
 } = fixtures
 
 describe('the console’s data layer against manifest-mock', () => {
+  /**
+   * §24'S LOAD REHEARSAL (the load rehearsal plan's Task 7), the three calls the checklist makes: start it (`202`,
+   * `running`), poll it to its end, and list a project's runs — against `MANIFEST_MOCK_LOAD=passed`, where `mock-app` is a
+   * large course. By default `mock-app` is a class, and the platform's refusal is what the console shows.
+   */
+  it('runs the load rehearsal, polls it to its end and lists it — and a class app is refused by code', async () => {
+    await withMock(async (origin) => {
+      const a = api(origin)
+      const refused = await a
+        .runLoadRehearsal(PROJECT_ID, a.newKey())
+        .catch((e: unknown) => e)
+      expect(refused).toMatchObject({ code: 'LOAD_REHEARSAL_NOT_NEEDED', status: 409 })
+    })
+    await withMock(
+      async (origin) => {
+        const a = api(origin)
+        expect((await a.listLoadRehearsals(PROJECT_ID)).loadRehearsals).toEqual([])
+        const started = await a.runLoadRehearsal(PROJECT_ID, a.newKey())
+        expect(started).toMatchObject({ state: 'running', pollAfterSeconds: 10 })
+        expect((await a.getLoadRehearsal(PROJECT_ID, started.id)).state).toBe('running')
+        const ended = await a.getLoadRehearsal(PROJECT_ID, started.id)
+        expect(ended).toMatchObject({ state: 'passed', pollAfterSeconds: null })
+        expect(ended.evidence?.answeredRatio).toBe(1)
+        expect(
+          (await a.listLoadRehearsals(PROJECT_ID)).loadRehearsals.map((r) => r.id),
+        ).toEqual([started.id])
+      },
+      { load: 'passed' },
+    )
+  })
+
   it('reads who is signed in', async () => {
     await withMock(async (origin) => {
       expect((await api(origin).getMe()).puid).toBe('ins000001')

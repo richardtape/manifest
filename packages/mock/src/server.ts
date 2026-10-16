@@ -25,21 +25,27 @@ import {
 } from './fleet.js'
 import {
   approvalOf,
+  assertStagingFree,
   draftAssessment,
   draftRegistration,
   launchReadiness,
   launchRecords,
+  loadRehearsalsOf,
   queueOf,
+  readLoadRehearsal,
   rehearsalOf,
   requestApproval,
   returnAssessment,
   returnRegistration,
   sendAssessment,
   sendRegistration,
+  startLoadRehearsal,
   teamSubmitsAssessment,
   teamSubmitsRegistration,
   type ApprovalState,
   type LaunchOptions,
+  type LoadRuns,
+  type LoadStage,
   type RecordsStage,
   type SendAssessmentBody,
   type SendBody,
@@ -174,6 +180,13 @@ export interface MockOptions {
   /** FE-40 (2): `MANIFEST_MOCK_STEP_UP=1` — see *What it does not enforce unless asked*, above. */
   stepUp?: boolean
   /**
+   * §24's load rehearsal (the load rehearsal plan's Task 7; `launch.ts`): `MANIFEST_MOCK_LOAD=passed` or `=failed` makes
+   * `mock-app` a large course whose people all arrive at once — its checklist carries `load-rehearsal`, and the one run
+   * it starts reads `running` once, then passes or fails as the switch says; staging is the run's while it lasts. Unset,
+   * `off`: `mock-app` is a class, and the three operations answer as the platform answers one.
+   */
+  load?: LoadStage
+  /**
    * `MANIFEST_MOCK_ADMIN_REASON=1` (the faculty-ready plan's Task 10): the signed-in person is a platform
    * administrator who is NOT a member of `mock-app` — so every operation the document declares
    * `Manifest-Admin-Reason` on is refused `400 ADMIN_REASON_REQUIRED` without one (or with one longer
@@ -215,6 +228,8 @@ interface Context {
   steppedUp: boolean
   /** The demo fleet, when `MANIFEST_MOCK_FLEET=demo` — its rows and items join `listFleet`'s and `listQueue`'s. */
   fleet: Fleet | undefined
+  /** `MANIFEST_MOCK_LOAD`'s one run, kept by the server (`launch.ts`'s `LoadRun`). */
+  loadRuns: LoadRuns
 }
 
 interface Answer {
@@ -307,8 +322,12 @@ function assertHeld(params: Record<string, string>, holding: typeof HELD): void 
 const isLaunched = (ctx: Context): boolean =>
   ctx.options.launched || ctx.options.records === 'change-with-team'
 
-const projectOf = (ctx: Context): typeof f.PROJECT =>
-  isLaunched(ctx) ? { ...f.PROJECT, launchedAt: '2026-09-18T12:00:00.000Z' } : f.PROJECT
+const projectOf = (ctx: Context): typeof f.PROJECT => ({
+  ...f.PROJECT,
+  ...(isLaunched(ctx) ? { launchedAt: '2026-09-18T12:00:00.000Z' } : {}),
+  // §24 (the load rehearsal plan's Task 7): a large course under `MANIFEST_MOCK_LOAD`, whose launch asks for a load rehearsal.
+  ...(ctx.options.load === 'off' ? {} : { audience: f.LARGE_AUDIENCE }),
+})
 
 /** A launched app's production reaches its set of two (A1, contract 1.9.0); otherwise none. */
 const environmentsOf = (ctx: Context): typeof f.ENVIRONMENTS =>
@@ -354,7 +373,8 @@ const scriptsALaunch = (ctx: Context): boolean =>
   ctx.options.records !== 'sent' ||
   ctx.options.approval !== 'approved' ||
   ctx.options.rehearsal !== 'passed' ||
-  ctx.options.stepUp
+  ctx.options.stepUp ||
+  ctx.options.load !== 'off'
 
 /** The launch path's options, as `launch.ts` reads them. */
 const launchOf = (ctx: Context): LaunchOptions => ({
@@ -362,6 +382,8 @@ const launchOf = (ctx: Context): LaunchOptions => ({
   approval: ctx.options.approval,
   rehearsal: ctx.options.rehearsal,
   queue: ctx.options.queue,
+  load: ctx.options.load,
+  loadRun: ctx.loadRuns.current,
 })
 
 /**
@@ -419,6 +441,9 @@ const ANSWERS: Record<string, Answerer> = {
   // own instance once the checklist is ready (`MANIFEST_MOCK_RECORDS=approved`, or `=change-before-launch`). Otherwise production
   // still answers staging's fixture — the default does not move (FE-40), and that is a known lie.
   deploy: (ctx) => {
+    // STAGING IS THE LOAD REHEARSAL'S WHILE IT RUNS (the load rehearsal plan's Task 7): `409 LOAD_REHEARSAL_RUNNING`.
+    if (ctx.params.environmentId === f.STAGING_ID)
+      assertStagingFree(launchOf(ctx), 'deploy')
     if (ctx.params.environmentId === f.SANDBOX_ID)
       return ok(
         'Instance',
@@ -659,7 +684,27 @@ const ANSWERS: Record<string, Answerer> = {
   // `passed: false` would hide the state the screen is for. `script.ts` is where timing is
   // modelled, deliberately, and only for the stream.
   // FE-40 (4): `MANIFEST_MOCK_REHEARSAL=failed` answers one that did not pass — still a `200`.
-  runRehearsal: (ctx) => ok('Rehearsal', rehearsalOf(launchOf(ctx))),
+  runRehearsal: (ctx) => {
+    assertStagingFree(launchOf(ctx), 'rehearsal')
+    return ok('Rehearsal', rehearsalOf(launchOf(ctx)))
+  },
+  // §24'S LOAD REHEARSAL (the load rehearsal plan's Task 7; `launch.ts`): started at once, `202`, and polled — its first
+  // read `running`, every read after its end. The platform's six minutes are not slept here, for the rehearsal's reason
+  // above; `pollAfterSeconds` still says how long a client should wait between reads. It needs a step-up when scripted.
+  runLoadRehearsal: (ctx) => {
+    assertSteppedUp(ctx, 'launch:rehearse')
+    return {
+      status: 202,
+      schema: 'LoadRehearsal',
+      body: startLoadRehearsal(launchOf(ctx), ctx.loadRuns, ctx.now),
+    }
+  },
+  getLoadRehearsal: (ctx) =>
+    ok(
+      'LoadRehearsal',
+      readLoadRehearsal(launchOf(ctx), ctx.loadRuns, ctx.params.loadRehearsalId, ctx.now),
+    ),
+  listLoadRehearsals: (ctx) => ok('LoadRehearsalList', loadRehearsalsOf(launchOf(ctx))),
   listMembers: () => ok('MemberList', f.MEMBERS),
   addMember: (ctx) => {
     if (!ctx.options.mayBuild)
@@ -1293,6 +1338,12 @@ export function createMockServer(options: MockOptions = {}): Server {
       options.rehearsal ??
       (process.env.MANIFEST_MOCK_REHEARSAL === 'failed' ? 'failed' : 'passed'),
     stepUp: options.stepUp ?? process.env.MANIFEST_MOCK_STEP_UP === '1',
+    load:
+      options.load ??
+      (process.env.MANIFEST_MOCK_LOAD === 'passed' ||
+      process.env.MANIFEST_MOCK_LOAD === 'failed'
+        ? process.env.MANIFEST_MOCK_LOAD
+        : 'off'),
     adminReason: options.adminReason ?? process.env.MANIFEST_MOCK_ADMIN_REASON === '1',
     queue:
       options.queue ?? (process.env.MANIFEST_MOCK_QUEUE === 'full' ? 'full' : 'default'),
@@ -1342,6 +1393,8 @@ export function createMockServer(options: MockOptions = {}): Server {
    * which is the ordinary state of a project nobody is building.
    */
   let buildSucceedsAt: number | undefined
+  /** `MANIFEST_MOCK_LOAD`'s one run (`launch.ts`): undefined until `runLoadRehearsal` starts it. */
+  const loadRuns: LoadRuns = { current: undefined }
 
   const server = createServer((request, response) => {
     // FE-30 (contract 1.6.0): EVERY answer carries a request id, as the platform's does — set
@@ -1562,6 +1615,7 @@ export function createMockServer(options: MockOptions = {}): Server {
         credential,
         steppedUp,
         fleet,
+        loadRuns,
       })
 
       // EVERY BODY IS VALIDATED ON ITS WAY OUT, in-process. A mock that lies is worse than

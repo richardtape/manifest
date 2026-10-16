@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto'
 import type { Schemas } from '@manifest/contract'
 import * as f from './fixtures.js'
 import { MockRefusal } from './refusal.js'
@@ -30,7 +31,9 @@ import { MockRefusal } from './refusal.js'
  *   back — the item met, saying where the change is, the checklist ready, and a production deploy answering.
  *
  * **WHAT IT CANNOT DO**: remember. A draft or a send answers as the platform would, and the next read
- * answers the stage again — exactly as `recordIamRegistration` always has.
+ * answers the stage again — exactly as `recordIamRegistration` always has. **The one exception is §24's load
+ * rehearsal** (`MANIFEST_MOCK_LOAD`, below): a run is started, then polled, and a poll that never saw its run would be
+ * no answer at all — so the mock keeps its ONE run, as it keeps the scripted build's clock.
  */
 
 export type RecordsStage =
@@ -49,6 +52,10 @@ export interface LaunchOptions {
   approval: ApprovalState
   rehearsal: 'passed' | 'failed'
   queue: 'default' | 'full'
+  /** §24's load rehearsal (`MANIFEST_MOCK_LOAD`): off (or absent) — `mock-app` is a class, with none — or how its run ends. */
+  load?: LoadStage
+  /** That one run, as `server.ts` keeps it — `undefined` before one is started. */
+  loadRun?: LoadRun | undefined
 }
 
 type Environment = 'staging' | 'production'
@@ -821,6 +828,8 @@ export function launchReadiness(
         return item
     }
   })
+  // §24'S ITEM, WHERE THE PLATFORM PUTS IT: after every other blocking item, before the one that does not block.
+  items.splice(items.length - 1, 0, ...loadRehearsalItem(o))
   return {
     ...f.LAUNCH_READINESS,
     // A change is asked of a live registration: `change-with-team` is a launched app's checklist.
@@ -830,6 +839,181 @@ export function launchReadiness(
     ready: items.every((i) => !i.blocking || i.state === 'met'),
     items,
   }
+}
+
+// ─── §24's load rehearsal (the load rehearsal plan's Task 7) ───
+
+/**
+ * `MANIFEST_MOCK_LOAD=passed|failed`: `mock-app` is a large course whose people all arrive at once (`LARGE_AUDIENCE`), so
+ * its launch asks for a load rehearsal, and its one run ends as the switch says. Off — the default — `mock-app` is a
+ * class: `runLoadRehearsal` is `409 LOAD_REHEARSAL_NOT_NEEDED`, the list empty and any record `404`, as the platform
+ * answers a class app.
+ */
+export type LoadStage = 'off' | 'passed' | 'failed'
+
+/**
+ * THE ONE RUN THE MOCK REMEMBERS. Started, it is `running`; the FIRST `getLoadRehearsal` reads it running (production's
+ * shape read back), and every read after reads its end — so a client polling at `pollAfterSeconds` sees both, and a test
+ * need not wait the platform's six minutes. Nothing else moves it: the checklist and the list read it as it stands.
+ */
+export interface LoadRun {
+  id: string
+  startedAt: string
+  /** Read once while it ran — the next read ends it. */
+  readRunning: boolean
+  endedAt: string | null
+}
+
+/** Where `server.ts` keeps the run: one holder per server, so two mocks never share one. */
+export interface LoadRuns {
+  current: LoadRun | undefined
+}
+
+/** The run as `LoadRehearsal`: its own id and times over the fixture of the state it is in. */
+export function loadRehearsalView(
+  o: LaunchOptions,
+  run: LoadRun,
+): Schemas['LoadRehearsal'] {
+  const own = { id: run.id, createdAt: run.startedAt }
+  if (run.endedAt === null)
+    return {
+      ...(run.readRunning ? f.LOAD_REHEARSAL_RUNNING : f.LOAD_REHEARSAL_STARTED),
+      ...own,
+    }
+  return {
+    ...(loadOf(o) === 'failed' ? f.LOAD_REHEARSAL_FAILED : f.LOAD_REHEARSAL_PASSED),
+    ...own,
+    finishedAt: run.endedAt,
+    takenDownAt: run.endedAt,
+  }
+}
+
+/** The stage asked — off when no switch said otherwise. */
+const loadOf = (o: LaunchOptions): LoadStage => o.load ?? 'off'
+
+const loadRunning = (o: LaunchOptions): boolean =>
+  loadOf(o) !== 'off' && o.loadRun !== undefined && o.loadRun.endedAt === null
+
+/** `runLoadRehearsal`: a run started, `202` — refused, in the platform's words, for a class app or while one runs. */
+export function startLoadRehearsal(
+  o: LaunchOptions,
+  runs: LoadRuns,
+  now: number,
+): Schemas['LoadRehearsal'] {
+  if (loadOf(o) === 'off')
+    throw new MockRefusal(
+      409,
+      'LOAD_REHEARSAL_NOT_NEEDED',
+      "a load rehearsal is for an app whose audience is a large course or the public; this app's is one class, so its launch does not ask for one and nothing was started",
+    )
+  if (loadRunning(o))
+    throw new MockRefusal(
+      409,
+      'LOAD_REHEARSAL_RUNNING',
+      'a load rehearsal of this app is already running, so this one was not started and nothing was deployed. A run takes up to about ten minutes; its record then says how it went.',
+    )
+  runs.current = {
+    id: randomUUID(),
+    startedAt: new Date(now).toISOString(),
+    readRunning: false,
+    endedAt: null,
+  }
+  return loadRehearsalView(o, runs.current)
+}
+
+/** `getLoadRehearsal`: the one run — running on its first read, ended on every read after; any other id `404`. */
+export function readLoadRehearsal(
+  o: LaunchOptions,
+  runs: LoadRuns,
+  id: string | undefined,
+  now: number,
+): Schemas['LoadRehearsal'] {
+  const run = runs.current
+  if (loadOf(o) === 'off' || run === undefined || run.id !== id)
+    throw new MockRefusal(
+      404,
+      'NOT_FOUND',
+      `no load rehearsal '${String(id)}' of this project`,
+    )
+  if (run.endedAt === null) {
+    if (run.readRunning) run.endedAt = new Date(now).toISOString()
+    else run.readRunning = true
+  }
+  return loadRehearsalView(o, run)
+}
+
+/** `listLoadRehearsals`: the one run, as it stands — or none. Reading the list moves nothing. */
+export function loadRehearsalsOf(o: LaunchOptions): Schemas['LoadRehearsalList'] {
+  return {
+    loadRehearsals:
+      loadOf(o) === 'off' || o.loadRun === undefined
+        ? []
+        : [loadRehearsalView(o, o.loadRun)],
+  }
+}
+
+/**
+ * STAGING IS THE RUN'S WHILE IT LASTS: a staging deploy — and D21's rehearsal — while the run holds staging is `409
+ * LOAD_REHEARSAL_RUNNING`, in the platform's words, and nothing is deployed.
+ */
+export function assertStagingFree(o: LaunchOptions, what: 'deploy' | 'rehearsal'): void {
+  if (!loadRunning(o)) return
+  throw new MockRefusal(
+    409,
+    'LOAD_REHEARSAL_RUNNING',
+    what === 'deploy'
+      ? 'a load rehearsal of this app is running and holds its staging environment, so nothing was deployed. A run takes up to about ten minutes; deploy again once its record (`getLoadRehearsal`) is no longer running.'
+      : 'a load rehearsal of this app is running and holds its staging environment, so the pre-production rehearsal was not started and nothing was deployed. A run takes up to about ten minutes; rehearse again once its record (`getLoadRehearsal`) is no longer running.',
+  )
+}
+
+/** The checklist's `load-rehearsal`, in `launch/readiness.ts`'s words, at the run's stage — none for a class app. */
+function loadRehearsalItem(o: LaunchOptions): Item[] {
+  if (loadOf(o) === 'off') return []
+  const base = {
+    id: 'load-rehearsal' as const,
+    title: 'Load rehearsal passed',
+    owner: 'Manifest',
+    blocking: true,
+  }
+  const run = o.loadRun
+  if (run === undefined)
+    return [
+      {
+        ...base,
+        state: 'unmet',
+        why: 'An app for a large course is rehearsed before launch: Manifest gives staging production’s shape, puts the audience’s arrival on it through the edge for a few minutes, and judges what it measured. This app has not been rehearsed yet: the owner, a collaborator or an administrator runs it (runLoadRehearsal).',
+        since: null,
+      },
+    ]
+  if (run.endedAt === null)
+    return [
+      {
+        ...base,
+        state: 'unmet',
+        why: 'A load rehearsal is running now — staging has production’s shape and the arrival is being put on it, which takes up to about ten minutes. Read its result with getLoadRehearsal.',
+        since: run.startedAt,
+      },
+    ]
+  const ended = loadRehearsalView(o, run)
+  const day = run.endedAt.slice(0, 10)
+  return loadOf(o) === 'failed'
+    ? [
+        {
+          ...base,
+          state: 'unmet',
+          why: `The load rehearsal did not pass on ${day}: ${ended.evidence!.reason}. Run it again (runLoadRehearsal).`,
+          since: null,
+        },
+      ]
+    : [
+        {
+          ...base,
+          state: 'met',
+          why: `A load rehearsal passed on ${day} for the release serving staging, rehearsed for a large course all arriving at once on production’s shape: ${ended.evidence!.reason}.`,
+          since: run.endedAt,
+        },
+      ]
 }
 
 // ─── The rehearsal (FE-40 (4)) ───

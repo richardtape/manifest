@@ -1549,3 +1549,185 @@ describe('the launch path plan’s Task 13 — the records by stage, the sign-of
     expect((await item(origin, 'rehearsal')).state).toBe('met')
   })
 })
+
+/**
+ * §24'S LOAD REHEARSAL, AS THE MOCK PLAYS IT (the load rehearsal plan's Task 7; `launch.ts`): off by default, `mock-app` a
+ * class and the three operations answered as the platform answers one; under `MANIFEST_MOCK_LOAD=passed|failed` a large
+ * course, its one run started at once, read `running` once and then ended — staging the run's while it lasts, and the
+ * checklist's item, and so the production gate, reading it.
+ */
+describe('the load rehearsal plan’s Task 7 — MANIFEST_MOCK_LOAD', () => {
+  type Run = {
+    id: string
+    state: string
+    granted: { count: number } | null
+    evidence: { reason: string; answeredRatio?: number } | null
+    pollAfterSeconds: number | null
+    finishedAt: string | null
+  }
+  const post = (at: string, path: string, body?: unknown) =>
+    fetch(`${at}${path}`, {
+      method: 'POST',
+      headers: mutation(SESSION),
+      ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+    })
+  const start = (at: string) => post(at, `/v1/projects/${f.PROJECT_ID}/load-rehearsal`)
+  const read = async (at: string, id: string) =>
+    fetch(`${at}/v1/projects/${f.PROJECT_ID}/load-rehearsals/${id}`, { headers: SESSION })
+  const list = async (at: string) =>
+    (
+      (await (
+        await fetch(`${at}/v1/projects/${f.PROJECT_ID}/load-rehearsals`, {
+          headers: SESSION,
+        })
+      ).json()) as { loadRehearsals: Run[] }
+    ).loadRehearsals
+  const checklist = async (at: string) =>
+    (await (
+      await fetch(`${at}/v1/projects/${f.PROJECT_ID}/launch-readiness`, {
+        headers: SESSION,
+      })
+    ).json()) as {
+      ready: boolean
+      items: { id: string; state: string; why: string; since: string | null }[]
+    }
+  const loadItem = async (at: string) =>
+    (await checklist(at)).items.find((i) => i.id === 'load-rehearsal')
+  const audience = async (at: string) =>
+    (
+      (await (
+        await fetch(`${at}/v1/projects/${f.PROJECT_ID}`, { headers: SESSION })
+      ).json()) as { audience: { scale: string; burst: string } }
+    ).audience
+  const deploy = (at: string, environmentId: string) =>
+    post(at, `/v1/environments/${environmentId}/deploy`, { releaseId: f.RELEASE_ID })
+
+  it('off, the default: mock-app is a class — 409 LOAD_REHEARSAL_NOT_NEEDED, no runs, any record 404, no checklist item', async () => {
+    expect((await audience(origin)).scale).toBe('class')
+    const refused = await start(origin)
+    expect(refused.status).toBe(409)
+    expect(await codeOf(refused)).toBe('LOAD_REHEARSAL_NOT_NEEDED')
+    expect(await list(origin)).toEqual([])
+    const none = await read(origin, f.LOAD_REHEARSAL_STARTED.id)
+    expect(none.status).toBe(404)
+    expect(await codeOf(none)).toBe('NOT_FOUND')
+    expect(await loadItem(origin)).toBeUndefined()
+  })
+
+  it('=passed: a large course — started 202 running, read running once, then passed; staging the run’s while it lasts; the item met', async () => {
+    const at = await serve({ load: 'passed' })
+    expect(await audience(at)).toMatchObject({
+      scale: 'large_course',
+      burst: 'synchronised',
+    })
+    const before = await loadItem(at)
+    expect(before).toMatchObject({ state: 'unmet' })
+    expect(before!.why).toContain('not been rehearsed yet')
+    expect(await list(at)).toEqual([])
+
+    const started = await start(at)
+    expect(started.status).toBe(202)
+    const run = (await started.json()) as Run
+    expect(run).toMatchObject({
+      state: 'running',
+      granted: null,
+      evidence: null,
+      pollAfterSeconds: 10,
+    })
+    expect(run.id).not.toBe(f.LOAD_REHEARSAL_STARTED.id)
+
+    // WHILE IT RUNS: the item says so, a second run and a staging deploy and D21's rehearsal are each refused by code.
+    expect((await loadItem(at))!.why).toContain('running now')
+    expect((await list(at)).map((r) => [r.id, r.state])).toEqual([[run.id, 'running']])
+    for (const refused of [
+      await start(at),
+      await deploy(at, f.STAGING_ID),
+      await post(at, `/v1/projects/${f.PROJECT_ID}/rehearsal`),
+    ]) {
+      expect(refused.status).toBe(409)
+      expect(await codeOf(refused)).toBe('LOAD_REHEARSAL_RUNNING')
+    }
+
+    const running = (await (await read(at, run.id)).json()) as Run
+    expect(running).toMatchObject({ id: run.id, state: 'running', granted: { count: 3 } })
+    const passed = (await (await read(at, run.id)).json()) as Run
+    expect(passed).toMatchObject({ id: run.id, state: 'passed', pollAfterSeconds: null })
+    expect(passed.evidence!.reason).toContain('100% of requests answered')
+    expect(passed.finishedAt).not.toBeNull()
+    // Read again, it stays ended — and the list and the item read the same run.
+    expect(((await (await read(at, run.id)).json()) as Run).state).toBe('passed')
+    expect((await list(at)).map((r) => r.state)).toEqual(['passed'])
+    const met = await loadItem(at)
+    expect(met).toMatchObject({ state: 'met', since: passed.finishedAt })
+    expect(met!.why).toContain(passed.evidence!.reason)
+    // Staging is given back: a staging deploy answers again.
+    expect((await deploy(at, f.STAGING_ID)).status).toBe(200)
+    // Another id is not this project's run.
+    expect((await read(at, UNKNOWN)).status).toBe(404)
+  })
+
+  it('=failed: the run ends failed naming the answered share and its number; the item unmet with that reason; another may start', async () => {
+    const at = await serve({ load: 'failed' })
+    const run = (await (await start(at)).json()) as Run
+    await read(at, run.id)
+    const failed = (await (await read(at, run.id)).json()) as Run
+    expect(failed.state).toBe('failed')
+    expect(failed.evidence!.reason).toBe(
+      '66.6% of requests were answered (12990 of 19500); the mark is 99%',
+    )
+    const unmet = await loadItem(at)
+    expect(unmet!.state).toBe('unmet')
+    expect(unmet!.why).toContain('did not pass')
+    expect(unmet!.why).toContain(failed.evidence!.reason)
+    const again = await start(at)
+    expect(again.status).toBe(202)
+    expect(((await again.json()) as Run).id).not.toBe(run.id)
+  })
+
+  it('the production gate reads it: with every other item met (MANIFEST_MOCK_RECORDS=approved), refused 409 with the checklist until the run has passed', async () => {
+    const at = await serve({ load: 'passed', records: 'approved' })
+    const refused = await deploy(at, f.PRODUCTION_ID)
+    expect(refused.status).toBe(409)
+    const body = (await refused.json()) as {
+      error: {
+        code: string
+        launchReadiness: { items: { id: string; state: string; blocking: boolean }[] }
+      }
+    }
+    expect(body.error.code).toBe('RELEASE_PRODUCTION_GATE_UNAVAILABLE')
+    expect(
+      body.error.launchReadiness.items
+        .filter((i) => i.blocking && i.state !== 'met')
+        .map((i) => i.id),
+    ).toEqual(['load-rehearsal'])
+    const run = (await (await start(at)).json()) as Run
+    await read(at, run.id)
+    await read(at, run.id)
+    expect((await checklist(at)).ready).toBe(true)
+    const deployed = (await (await deploy(at, f.PRODUCTION_ID)).json()) as {
+      environmentId: string
+    }
+    expect(deployed.environmentId).toBe(f.PRODUCTION_ID)
+  })
+
+  it('a step-up when scripted (MANIFEST_MOCK_STEP_UP=1): 403 STEP_UP_REQUIRED, and nothing started', async () => {
+    const at = await serve({ load: 'passed', stepUp: true })
+    const refused = await start(at)
+    expect(refused.status).toBe(403)
+    expect(await codeOf(refused)).toBe('STEP_UP_REQUIRED')
+    expect(await list(at)).toEqual([])
+  })
+
+  it('reads the switch from the environment: MANIFEST_MOCK_LOAD=failed', async () => {
+    const was = process.env.MANIFEST_MOCK_LOAD
+    process.env.MANIFEST_MOCK_LOAD = 'failed'
+    let at: string
+    try {
+      at = await serve()
+    } finally {
+      if (was === undefined) delete process.env.MANIFEST_MOCK_LOAD
+      else process.env.MANIFEST_MOCK_LOAD = was
+    }
+    expect((await audience(at)).scale).toBe('large_course')
+  })
+})

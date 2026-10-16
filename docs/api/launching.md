@@ -297,6 +297,52 @@ A platform administrator records what UBC said, with its ticket, in their own se
 
 **Rehearse the sign-in** (`runRehearsal`): the candidate release is deployed to production’s public listener, with its CWL registration shaped as production’s, for as long as one sign-in takes; then it is taken down again, and the result recorded. It proves the registration’s *shape* — never that UBC has accepted it. Afterwards production’s hostname reaches nothing of the app’s, and `getEnvironment` reads the rehearsal’s instance as `gone` (or `failed`, when the candidate never started). The project’s owner, a collaborator or a platform administrator runs it, in their own session, after signing in again within ten minutes (`403 STEP_UP_REQUIRED` otherwise). One runs at a time per project (`409 REHEARSAL_RUNNING`). If it cannot take itself down, nothing is recorded and it answers `500 REHEARSAL_TEARDOWN_FAILED`: run it again.
 
+## The load rehearsal
+
+**An app for a large course or for the public is rehearsed under its audience’s arrival before it launches** — the checklist’s `load-rehearsal` item, which only those two audiences have. **Run it** (`runLoadRehearsal`): Manifest gives staging production’s capacity for the audience — as many instances as production will run, at production’s size, behind the one address — puts the audience’s arrival on it **through the edge** for a few minutes, watches every instance, judges what it measured against a stated mark, and then gives staging back its own shape. **It answers at once, `202`, with the run in state `running`**, because a run takes up to about ten minutes — longer than any client waits for a response. **Poll it** (`getLoadRehearsal`) after `pollAfterSeconds` until it is no longer `running`; `listLoadRehearsals` answers a project’s runs, the newest first, so a screen can find one already under way.
+
+<!-- example: example-load-rehearsal -->
+
+```ts
+import { createManifestClient, unwrap, type Schemas } from '@manifest/contract'
+
+/**
+ * A load rehearsal, read to its end. A person starts it in their own session (`runLoadRehearsal` answers at once with
+ * the run `running`); anyone who may read the project — a token included — then reads it again after `pollAfterSeconds`
+ * until it is no longer `running`. A run that does not pass is still a run: read its `state` and `evidence.reason`,
+ * never the HTTP status.
+ */
+export async function loadRehearsalToItsEnd(
+  origin: string,
+  token: string,
+  projectId: string,
+  loadRehearsalId: string,
+): Promise<Schemas['LoadRehearsal']> {
+  const client = createManifestClient({ origin, token })
+  for (;;) {
+    const run = unwrap(
+      await client.GET('/v1/projects/{projectId}/load-rehearsals/{loadRehearsalId}', {
+        params: { path: { projectId, loadRehearsalId } },
+      }),
+      'getLoadRehearsal',
+    )
+    if (run.state !== 'running' || run.pollAfterSeconds === null) return run
+    const wait = run.pollAfterSeconds * 1000
+    await new Promise((resolve) => setTimeout(resolve, wait))
+  }
+}
+```
+
+<!-- /example -->
+
+**What it puts on the app** — the run’s `profile` says exactly what was asked, from the platform’s settings; these are the defaults. Each arriving person asks for the app’s front page, its health path and, for an app that signs people in, its sign-in (answered with the redirect to CWL, never followed); a person who has arrived asks for one every ten seconds. **All at once** (`synchronised`): 75 requests a second for a minute, then 50 a second for five minutes. **Steadily** (`steady`): 10, 20, 30, 40 and 50 requests a second, a minute each. A public app is rehearsed at a large course’s rates here.
+
+**It passes** when **at least 99% of requests are answered** — a status below `500` other than `429`, within ten seconds — **the 95th percentile is under 2 s**, **the load reached at least nine-tenths of the rate asked** (a run that could not drive the app measured nothing, and fails), and **every instance stayed healthy, with no exit and no out-of-memory exit**. A run that does not pass names the first rule it broke, with its number — *“66.6% of requests were answered (12990 of 19500); the mark is 99%”* — and `evidence` has the counts by path and by phase. **A run that fails is a run, never a request error**: switch on its `state`, never on the HTTP status. `teardown_failed` means staging could not be given back its own shape afterwards — it never counts, whatever it measured, and the next staging deploy gives staging back; `abandoned` means the control plane stopped, or the app was switched off, while it ran.
+
+**The item is met by a passed run of the release serving staging, for the audience as it is now** — its scale at least the project’s (a public run covers a large course) and its arrival at least as sharp (all at once covers steadily). A new release serving staging needs a run of its own; so does a larger audience. **After launch** a later release needs none: the item stays met while some passed run covers the app’s audience, and raising the audience asks for another.
+
+**While a run lasts, staging is the run’s**: a staging deploy — anyone’s, a token’s included — is refused `409 LOAD_REHEARSAL_RUNNING` and deploys nothing, and so is the sign-in rehearsal. Production is not held. **One runs at a time on the whole platform**: another app’s run under way is `409 LOAD_REHEARSAL_BUSY` (it names no other app); this app’s is `409 LOAD_REHEARSAL_RUNNING`; the sign-in rehearsal under way is `409 REHEARSAL_RUNNING`. An app whose audience is a class or its owner alone has no load rehearsal: `409 LOAD_REHEARSAL_NOT_NEEDED`. Nothing serving staging is `409 REHEARSAL_NO_CANDIDATE`. The project’s owner, a collaborator or a platform administrator runs it, in their own session, after signing in again within ten minutes (`403 STEP_UP_REQUIRED` otherwise); a token may read a run, never start one. Each run that ends publishes one `load_rehearsal.completed` event, naming who ran it and how it went.
+
 ## Signing it off
 
 Once the release you will launch serves staging, **ask an administrator to sign it off** (`requestApproval`). The request waits in the administrators’ queue, and the checklist’s `admin-approval` item says who asked and since when. The `note` is for administrators alone — it is never in the answer or an event. Asking again answers the request already made. A request stays open until an administrator approves or rejects the release, or another release serves staging — then ask about that one; if this release serves staging again, its request waits again from when it was asked.
@@ -326,7 +372,7 @@ An archived project’s items are not in the queue.
 1. **Draft the privacy assessment**, answer each of its gaps, and send it to the Manifest team, who submit it to the UBC Privacy Office. An administrator records the submission, and then the approval, with its PIA number.
 2. **Deploy to staging.** Draft the staging registration — it now carries the PIA number — and send it to the Manifest team, who submit it to UBC IAM. An administrator records it active. Test the app at staging.
 3. **Draft the production registration**, and send it to the Manifest team the same way. An administrator records it active.
-4. **Rehearse the sign-in.**
+4. **Rehearse the sign-in.** For a large course or the public, **run the load rehearsal** too, and wait for it to pass.
 5. **Ask an administrator to sign the release off**; they approve it from a stored preview.
 6. **Deploy to production** (`deploy`, to the production environment), by a person who has signed in again. Production deploys only the release that is serving staging.
 
@@ -348,6 +394,6 @@ A change UBC holds is UBC’s to answer: drafting it again is refused `409 LAUNC
 
 ## What an agent may do here, and what it may not
 
-- **May:** read the checklist, the launch records and the approval; **draft** the three records (`launch:draft`), so its person reads and sends them; **ask an administrator to sign a release off** (`approval:request`) — asking decides nothing; deploy to sandbox and staging; and *ask* for a production deploy.
+- **May:** read the checklist, the launch records, the approval and the load rehearsals; **draft** the three records (`launch:draft`), so its person reads and sends them; **ask an administrator to sign a release off** (`approval:request`) — asking decides nothing; deploy to sandbox and staging; and *ask* for a production deploy.
 - **Asking for a production deploy** is answered `403 TOKEN_ACTION_PENDING`: an owner of the project — a person who could deploy it themselves — confirms that one request, after signing in again, and the agent sends the identical request again — the same method, path and body, whatever its `Idempotency-Key` — which is let through once. *For an AI agent* has the loop.
-- **May not, ever:** send a record to the Manifest team (`launch:submit`), run the rehearsal (`launch:rehearse`), record the team’s step or UBC’s decisions (`launch:record`), take a preview, or approve or reject a release. Sending a record is its owner’s own act; the rehearsal puts an unapproved release on production’s public listener while its sign-in runs; and each of the others is a person’s own record of what they decided — so a person does each, in their own session, and a token is refused it outright (`403 TOKEN_CREDENTIAL_REFUSED`).
+- **May not, ever:** send a record to the Manifest team (`launch:submit`), run the rehearsal or the load rehearsal (`launch:rehearse`), record the team’s step or UBC’s decisions (`launch:record`), take a preview, or approve or reject a release. Sending a record is its owner’s own act; the rehearsal puts an unapproved release on production’s public listener while its sign-in runs, and the load rehearsal holds staging and the platform’s one run for minutes; and each of the others is a person’s own record of what they decided — so a person does each, in their own session, and a token is refused it outright (`403 TOKEN_CREDENTIAL_REFUSED`).
