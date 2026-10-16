@@ -2173,3 +2173,9 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
     (manifest-app docs/research/2026-10-15-contract-1100-adoption.md): the row's press; the refusal while one runs (m281); the line in
     what happened. They are now approved words, and the small follow-up front-end job builds them, as his "(a) is fine" (above) chose:
     the press on the dry run's pattern, the refusals, the history line, in mock mode on B's sitting-5 stage (MANIFEST_MOCK_LOAD).
+
+    On 2026-10-16 at ~09:53 PDT, in chat to manifest-coord5: "I have a pressing need for hatchery work to take precedence today. So
+    please can you pause any items in manifest that would cause a block in hatchery. Please liaise with the other agents to get things
+    unblocked for hatchery". So manifest-coord5 PAUSES Manifest's heavy work for the day: B's sitting 7 (its demos, the Docker tier, make
+    ci-acceptance, and Rich's clicked half) stops at its first safe point; M280 writes code only; P11 sitting 9's docs-only close-out goes
+    on. The platform window is FREE for Hatchery, and a Manifest session runs nothing heavy without asking Hatchery first.
