@@ -1970,6 +1970,10 @@ it belongs among the traps the next sitting is most likely to hit.
   answering: the Monitor expired after 15 minutes with no event, and the background wait ended only after it did, long after
   the run itself had finished. Wait on something the watched process WRITES (`until grep -q '^exit ' log`), or bracket the
   pattern (`pgrep -f "[v]itest run"`), which no watcher's command line matches.
+  **THE BRACKET PROTECTS ONLY `pgrep`'S OWN LINE** (B sitting 4, F6, 2026-10-15): a backgrounded `while [ "$(pgrep -f 'vites[t]' …)" != 0 ];
+  do sleep 15; done; … pnpm exec vitest run …` is ONE `bash -c` whose own command line carries the word `vitest` — so it counted ITSELF,
+  never started, and made the coordinator's HOLD check (the same `pgrep`) read non-zero. Put the wait in a script FILE (its command line
+  names no runner) and ask `pgrep -f 'node.*[v]itest'`.
 - **A UNIQUE COLUMN WRITTEN FROM AN ASSERTION MUST LET GO OF WHO HELD IT** (2026-09-27, sitting 5, F1). `users.cwl_login` is
   unique and comes from `uid`, and a CWL login can be reassigned at UBC — so writing it on every sign-in made the NEW holder's
   first sign-in collide with the old holder's stale row: `500 INTERNAL`, measured. `upsertUserFromAssertion` clears the login
@@ -2865,6 +2869,12 @@ no global setup, nothing truncated. It is not a red: wait for the load to fall (
 loop) or run with `MANIFEST_TEST_FORCE=1` and say so in the record — the summary line then reads `forced yes`. `make ci-acceptance`
 records it as `pnpm test FAIL exit 75 — REFUSED to start: …`. **Twelve CPU burners do not make a load of 12**: twelve `yes` processes
 read a 1-minute load of ~60 at once and 53–333 over a run (sitting 1's F5), so the gate refuses far less than "every core busy".
+
+**A SINGLE HEAVY FILE RUN WITH A BARE `pnpm exec vitest run` HAS NO SCALE — AND ONE TIMEOUT CASCADES** (B sitting 4, F5, 2026-10-15).
+Only the wrapper exports the timeout scale, so a bare one-file run is held to Vitest's 5 s: at a load of ~4–10, eight of `delivery.test.ts`'s
+D21 cases timed out, and each timed-out test's work went on into the next `resetDatabase` (`55P03`, *"Failed query: insert into
+audit.events …"*) — red after red that were none of them the code's. The same files through `bash scripts/test-gently.sh pnpm exec vitest
+run --project unit <files>` (scale 5) were green. Run any heavy single file through the wrapper.
 
 **NEVER `kill -STOP` A TEST RUN** (the gentler test tiers plan, Decision 5). Vitest's limits are wall-clock timers: on `kill -CONT` every
 one that came due while the run was stopped fires at once, and every test in flight times out — a red run made by the pause. To make room

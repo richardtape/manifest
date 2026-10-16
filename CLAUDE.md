@@ -15,7 +15,7 @@ names the next job** and the current plan's sittings table says how far it has g
 **The design is approved and complete, five spikes are done, and twenty-one plans are executed** — each with an acceptance that
 passes; the newest is **the gentler test tiers** (`docs/superpowers/plans/2026-10-14-gentler-test-tiers.md`), EXECUTED 2026-10-14/15,
 inline, three sittings in the second and third coordinated runs — `pnpm test` and `pnpm test:docker` run through `scripts/test-gently.sh`,
-and Docker Desktop runs 6 CPUs (Rich's *"keep 6"*, `d2e2d77`); the contract is still `1.9.0` (A1's). **B is executing** (the load
+and Docker Desktop runs 6 CPUs (Rich's *"keep 6"*, `d2e2d77`); the contract is `1.10.0` since B's Task 5 (`2258937e`). **B is executing** (the load
 rehearsal, FE-44, `docs/superpowers/plans/2026-10-03-load-rehearsal.md`, since 2026-10-15 — ORIENTATION §7e names its next sitting); **P11, the administrator's console,
 is building as a parallel lane beside B** (`docs/superpowers/plans/2026-10-14-p11-admin-console.md`, approved by Rich 2026-10-15,
 `ab6c7b7a`; its worktree `/Users/rich/Developer/manifest-p11`; ORIENTATION §7e); then FE-32 with §12's package allowlist (approved), BYOA on the laptop (approved 2026-10-13, `2b3dd6d`), Phase 3 (sandboxes), A2 (hibernation), the
