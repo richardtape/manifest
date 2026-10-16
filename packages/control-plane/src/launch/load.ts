@@ -34,8 +34,9 @@ export interface LoadPhase {
 export interface LoadTarget {
   /** `https://<staging hostname>` — reached through the edge. */
   origin: string
-  /** The paths loaded, round robin — `['/', '/healthz', '/login']` for a CWL app (Decision 4). No expected class: a status below 500
-   *  other than 429, in time, is answered on every path (Decision 8; the second review's I2). */
+  /** The paths loaded — `['/', '/healthz', '/login']` for a CWL app (Decision 4), each once: the container is handed them in
+   *  `targetCycle`'s order. No expected class: a status below 500 other than 429, in time, is answered on every path (Decision 8;
+   *  the second review's I2). */
   paths: string[]
   /** Each request's own timeout. */
   timeoutMs: number
@@ -132,8 +133,9 @@ const RESULTS_TMPFS = 'rw,noexec,nosuid,size=128m,mode=1777'
 /**
  * THE CONTAINER'S SCRIPT, busybox `sh` (`[M3]`: alpine 3.22's busybox v1.37.0 has every applet it uses).
  *
- * It writes the targets file (the paths round robin, vegeta's own order), waits for `/work/go` — at most
- * `GO_WAIT_SECONDS`, then it says so in its one line and exits 3 — runs each phase in turn, and prints the line.
+ * It writes the targets file (`PATHS` in the order given — `targetCycle`'s — which vegeta hands out round robin),
+ * waits for `/work/go` — at most `GO_WAIT_SECONDS`, then it says so in its one line and exits 3 — runs each phase in
+ * turn, and prints the line.
  * `-redirects=-1`: a `302` to the IdP is the app's answer, never followed (Decision 4). `-max-body=0`: no body kept
  * (the second review's M6). `-root-certs=/ca.crt`: the platform CA is the only root.
  *
@@ -296,7 +298,7 @@ export function createLoadGenerator(options: LoadGeneratorOptions): LoadGenerato
         Cmd: ['-c', SCRIPT],
         Env: [
           `ORIGIN=${target.origin}`,
-          `PATHS=${target.paths.join(' ')}`,
+          `PATHS=${targetCycle(target.paths).join(' ')}`,
           `PHASES=${phases.map((p) => `${p.name}:${p.rps}:${p.seconds}`).join(' ')}`,
           `TIMEOUT_MS=${target.timeoutMs}`,
           `GO_WAIT_SECONDS=${goWaitSeconds}`,
@@ -608,6 +610,20 @@ export function phasesFor(
     name: `ramp-${index + 1}` as LoadPhase['name'],
     ...phase,
   }))
+}
+
+/**
+ * THE ORDER THE GENERATOR ASKS ITS PATHS IN — the paths in as many rounds as there are paths, each round rotated by one
+ * (`/ /healthz /login  /healthz /login /  /login / /healthz`): a Latin square. vegeta hands the targets out round robin and
+ * the edge hands requests to the granted set round robin (`routing/caddy.ts`), so the paths in a plain cycle of three meet
+ * three members in step and each member is asked ONE path — one member took every `/`, a load no crowd puts on it (the
+ * whole-branch review's I1, sitting 6's F3). In this order every member of a set of 1, 2 or 3 — every count `shapeFor`
+ * grants — is asked every path equally, whatever the offset between the two counters, and the mix stays one of each.
+ */
+export function targetCycle(paths: readonly string[]): string[] {
+  return paths.flatMap((_, round) =>
+    paths.map((__, i) => paths[(i + round) % paths.length]!),
+  )
 }
 
 /**

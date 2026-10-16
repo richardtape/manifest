@@ -80,16 +80,17 @@ function allOf(
 }
 
 /** Per path, per status, as the container's awk folds it: the round robin over three paths. */
-function byPathOf(all: VegetaReport): Record<string, Record<string, number>> {
-  const out: Record<string, Record<string, number>> = {
-    '/': {},
-    '/healthz': {},
-    '/login': {},
-  }
+function byPathOf(
+  all: VegetaReport,
+  paths: readonly string[] = TARGET.paths,
+): Record<string, Record<string, number>> {
+  const out: Record<string, Record<string, number>> = Object.fromEntries(
+    paths.map((path) => [path, {}]),
+  )
   let i = 0
   for (const [code, n] of Object.entries(all.status_codes)) {
     for (let k = 0; k < n; k++) {
-      const path = TARGET.paths[i++ % 3]!
+      const path = paths[i++ % paths.length]!
       out[path]![code] = (out[path]![code] ?? 0) + 1
     }
   }
@@ -451,7 +452,8 @@ describe('createLoadGenerator — the container', () => {
     expect(body.Env).toEqual(
       expect.arrayContaining([
         'ORIGIN=https://load-app.staging.manifest.internal',
-        'PATHS=/ /healthz /login',
+        // In targetCycle's order (F3): three rounds, each rotated by one.
+        'PATHS=/ /healthz /login /healthz /login / /login / /healthz',
         'PHASES=arrive:50:30 sustain:100:30',
         'TIMEOUT_MS=10000',
       ]),
@@ -461,6 +463,56 @@ describe('createLoadGenerator — the container', () => {
       expect(script).toContain(flag)
     finish()
     await handle.done
+  })
+
+  it('orders the targets so no round-robin set of 1, 2 or 3 members lines up with them: each member is asked every path equally (F3)', async () => {
+    // vegeta hands the targets file out round robin, and the edge hands requests to the granted set round robin
+    // (`routing/caddy.ts`'s `round_robin`). With three paths in a row and three members, member m was asked only
+    // path m: one member took every `/` (sitting 6's F3). Any offset between the two counters relabels members only.
+    for (const paths of [
+      ['/', '/healthz', '/login'],
+      ['/', '/healthz'],
+    ]) {
+      const { engine, calls, finish } = fakeEngine({
+        lastLine: lineOf({ byPath: byPathOf(allOf(captured(50), captured(100)), paths) }),
+      })
+      const handle = await createLoadGenerator({ engine, ...OPTIONS }).start(
+        { ...TARGET, paths },
+        PHASES,
+        { loadRehearsalId: 'lr-1' },
+      )
+      const env = (
+        calls.find((c) => c.path === '/containers/create')!.body as { Env: string[] }
+      ).Env
+      const order = env
+        .find((e) => e.startsWith('PATHS='))!
+        .slice('PATHS='.length)
+        .split(' ')
+      // The mix is the paths', one each: every path, nothing else, equally often.
+      expect([...new Set(order)].sort()).toEqual([...paths].sort())
+      for (const path of paths)
+        expect(order.filter((p) => p === path)).toHaveLength(order.length / paths.length)
+      for (const members of [1, 2, 3]) {
+        const asked = Array.from({ length: members }, () => new Map<string, number>())
+        for (let k = 0; k < order.length * members * 2; k++) {
+          const member = asked[k % members]!
+          const path = order[k % order.length]!
+          member.set(path, (member.get(path) ?? 0) + 1)
+        }
+        for (const member of asked) {
+          expect(
+            [...member.keys()].sort(),
+            `${members} members, ${order.join(' ')}`,
+          ).toEqual([...paths].sort())
+          expect(
+            new Set(member.values()).size,
+            `${members} members, ${order.join(' ')}`,
+          ).toBe(1)
+        }
+      }
+      finish()
+      await handle.done
+    }
   })
 
   it('resolves done with the report read from the LAST line, and removes the container with its volumes', async () => {
