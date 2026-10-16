@@ -464,6 +464,9 @@ export function createSetWatcher(deps: SetWatcherDeps): SetWatcher {
           instanceId: member.id,
           releaseId: member.releaseId,
           environment: 'production',
+          // FE-62: a member that stopped, said as the Incident says it — and whether it was itself a replacement.
+          cause,
+          replacing: member.replacing,
         },
         humanMessage:
           cause === 'exit'

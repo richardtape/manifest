@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import type { FastifyInstance } from 'fastify'
-import { appSpecs, instances } from '../db/index.js'
+import { appSpecs, instances, loadRehearsals } from '../db/index.js'
 import { resetDatabase } from '../db/testing.js'
 import type { Classification } from '../spec/index.js'
 import { ensureTestUser } from '../identity/testing.js'
@@ -326,6 +326,11 @@ interface Fixture {
    * INSTANCE_OUTPUT_STAGING` to everyone holding `output:read` whatever the deploy rows did to it.
    */
   instanceId: { sandbox: string; staging: string; production: string }
+  /**
+   * A FINISHED load rehearsal of the fixture project, written directly (the load rehearsal plan's Task 5) — what the read
+   * row is aimed at. `failed`, so it holds nothing: no staging deploy row is refused for it.
+   */
+  loadRehearsalId: string
 }
 
 const SESSION_ACTORS: SessionActor[] = [
@@ -1584,6 +1589,63 @@ const ROUTES: RouteCase[] = [
       'token-privileged': SESSION_ONLY,
     },
   },
+  /**
+   * §24's load rehearsal (the load rehearsal plan's Task 5): `launch:rehearse`, PERSON-ONLY and stepped up — D21's row
+   * above, row for row. Every person who holds the capability is refused for freshness before the project's state is
+   * read; a token is refused for its credential class first. That a STEPPED-UP person starts a run is
+   * `api/load-rehearsal.test.ts`'s, which asserts `202` for the owner, a collaborator and an administrator.
+   */
+  {
+    method: 'POST',
+    url: '/v1/projects/:projectId/load-rehearsal',
+    request: (f) => ({ url: `/v1/projects/${f.projectId}/load-rehearsal` }),
+    expect: {
+      owner: STEP_UP,
+      collaborator: STEP_UP,
+      stranger: 404,
+      admin: STEP_UP,
+      anonymous: 401,
+      'token-capable': SESSION_ONLY,
+      'token-incapable': SESSION_ONLY,
+      'token-other-project': SESSION_ONLY,
+      'token-privileged': SESSION_ONLY,
+    },
+  },
+  {
+    // A run is read by whoever may read the project — a token included: it polls a run a person started.
+    method: 'GET',
+    url: '/v1/projects/:projectId/load-rehearsals',
+    request: (f) => ({ url: `/v1/projects/${f.projectId}/load-rehearsals` }),
+    expect: {
+      owner: 'pass',
+      collaborator: 'pass',
+      stranger: 404,
+      admin: 'pass',
+      anonymous: 401,
+      'token-capable': 'pass',
+      'token-incapable': 403,
+      'token-other-project': 404,
+      'token-privileged': 'pass',
+    },
+  },
+  {
+    method: 'GET',
+    url: '/v1/projects/:projectId/load-rehearsals/:loadRehearsalId',
+    request: (f) => ({
+      url: `/v1/projects/${f.projectId}/load-rehearsals/${f.loadRehearsalId}`,
+    }),
+    expect: {
+      owner: 'pass',
+      collaborator: 'pass',
+      stranger: 404,
+      admin: 'pass',
+      anonymous: 401,
+      'token-capable': 'pass',
+      'token-incapable': 403,
+      'token-other-project': 404,
+      'token-privileged': 'pass',
+    },
+  },
   {
     method: 'POST',
     url: '/v1/environments/:environmentId/deploy',
@@ -2628,6 +2690,34 @@ export function describeAuthorizationContract(
       }
       const environmentOf = (kind: string): string =>
         body.environments.find((e: { kind: string }) => e.kind === kind).id
+      // The load rehearsal read row's target (the load rehearsal plan's Task 5): a run that ENDED, so it holds nothing.
+      const finishedLoadRehearsal = async (
+        projectId: string,
+        environmentId: string,
+        releaseId: string,
+      ) => {
+        const [row] = await deps.db
+          .insert(loadRehearsals)
+          .values({
+            projectId,
+            environmentId,
+            releaseId,
+            imageDigest: '',
+            scale: 'large_course',
+            burst: 'steady',
+            state: 'failed',
+            profile: {
+              phases: [{ name: 'ramp-1', rps: 10, seconds: 60 }],
+              paths: ['/'],
+              timeoutMs: 10_000,
+              pass: { answeredRatio: 0.99, p95Ms: 2000, achievedRatio: 0.9 },
+            },
+            evidence: { reason: 'the authorization fixture’s run, written directly' },
+            finishedAt: new Date(),
+          })
+          .returning()
+        return row!.id
+      }
 
       // The removal row's target: a member whose going changes no other expectation.
       const removable = await ensureTestUser(deps.db, 'platform_admin')
@@ -2702,6 +2792,11 @@ export function describeAuthorizationContract(
             'authz-production-instance',
           ),
         },
+        loadRehearsalId: await finishedLoadRehearsal(
+          body.id,
+          environmentOf('staging'),
+          release.json().id,
+        ),
         environmentId: {
           staging: body.environments.find((e: { kind: string }) => e.kind === 'staging')
             .id,
@@ -3097,7 +3192,7 @@ export function describeAuthorizationContract(
      * refuses every change — so nothing this measurement asks can move anything the rows above read.
      */
     it(
-      'declares ADMIN_REASON_REQUIRED on exactly the operations that ask an administrator who is not a member for a reason — the 24 [M5] measured',
+      'declares ADMIN_REASON_REQUIRED on exactly the operations that ask an administrator who is not a member for a reason — the 24 [M5] measured, and runLoadRehearsal since the load rehearsal plan’s Task 5',
       async () => {
         const admin = await ensureTestUser(deps.db, 'platform_admin')
         expect(await removeMember(deps.db, fixture.projectId, admin.id)).toBe('removed')
@@ -3161,6 +3256,7 @@ export function describeAuthorizationContract(
           'removeMember',
           'requestApproval',
           'restoreProject',
+          'runLoadRehearsal',
           'runRehearsal',
           'sendIamRegistration',
           'sendPrivacyAssessment',

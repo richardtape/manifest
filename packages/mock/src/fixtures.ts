@@ -204,7 +204,11 @@ export const LAUNCHED_ENVIRONMENTS: Schemas['EnvironmentList'] = [
 /** A LAUNCHED `mock-app`'s production instances: both members of its set, both serving. */
 export const LAUNCHED_PRODUCTION_INSTANCES: Schemas['InstanceList'] = {
   environmentId: PRODUCTION_ID,
-  instances: PRODUCTION_SET.map((instance) => ({ ...instance, serving: true })),
+  instances: PRODUCTION_SET.map((instance) => ({
+    ...instance,
+    serving: true,
+    replacing: null,
+  })),
   truncated: false,
 }
 
@@ -218,7 +222,7 @@ export const INSTANCE_LISTS: Record<string, Schemas['InstanceList']> = {
   [SANDBOX_ID]: {
     environmentId: SANDBOX_ID,
     instances: [
-      { ...SANDBOX_INSTANCE, serving: true },
+      { ...SANDBOX_INSTANCE, serving: true, replacing: null },
       {
         ...SANDBOX_INSTANCE,
         id: SANDBOX_FAILED_INSTANCE_ID,
@@ -226,13 +230,14 @@ export const INSTANCE_LISTS: Record<string, Schemas['InstanceList']> = {
         lastSeenAt: '2026-09-18T08:40:00.000Z',
         createdAt: '2026-09-18T09:00:30.000Z',
         serving: false,
+        replacing: null,
       },
     ],
     truncated: false,
   },
   [STAGING_ID]: {
     environmentId: STAGING_ID,
-    instances: [{ ...INSTANCE, serving: true }],
+    instances: [{ ...INSTANCE, serving: true, replacing: null }],
     truncated: false,
   },
   [PRODUCTION_ID]: { environmentId: PRODUCTION_ID, instances: [], truncated: false },
@@ -664,6 +669,7 @@ export const INCIDENTS: Schemas['IncidentList'] = {
       diffSinceHealthy: 'runtime.health: /healthz → /never-ready',
       createdAt: ISO,
       cause: 'deploy',
+      replacing: null,
       prompt:
         'The app did not answer its health path. Check runtime.health in manifest.yaml.',
     },

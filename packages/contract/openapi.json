@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Manifest",
-    "version": "1.9.0",
+    "version": "1.10.0",
     "description": "Manifest's public API. Resource routes are under /v1, and a breaking change gets a new prefix beside it. Response objects may gain fields under /v1, so a client ignores fields it does not know. Every mutation carries an Idempotency-Key, and a mutation made with a session also carries Origin."
   },
   "servers": [
@@ -775,7 +775,7 @@
           "delivery"
         ],
         "summary": "Deploy a release to an environment",
-        "description": "Deploys a release, answering once the new instances serve or one has failed with an Incident — a failed deploy is a `200` whose `state` is `failed`. Production runs as many instances as its audience needs (one for `solo`, two for `class`, three for `large_course` and `public`), sandbox and staging one; if any one fails, none serves. The answer is ONE instance of the set: the one that failed, or otherwise the first — the instance `getEnvironment`’s `instance` names; read the whole set from `getEnvironment`’s `instances`. The previous instances serve until the new ones are proved, then drain. Up to ~90 s when a release never becomes ready. Production takes only the release serving staging and answers `409` with the launch checklist (`getLaunchReadiness`) until it is met; it needs a recent step-up in a session, and a delegated token’s request becomes a pending action (`TOKEN_ACTION_PENDING`).",
+        "description": "Deploys a release, answering once the new instances serve or one has failed with an Incident — a failed deploy is a `200` whose `state` is `failed`. Production runs as many instances as its audience needs (one for `solo`, two for `class`, three for `large_course` and `public`), sandbox and staging one; if any one fails, none serves. The answer is ONE instance of the set: the one that failed, or otherwise the first — the instance `getEnvironment`’s `instance` names; read the whole set from `getEnvironment`’s `instances`. The previous instances serve until the new ones are proved, then drain. Up to ~90 s when a release never becomes ready. Production takes only the release serving staging and answers `409` with the launch checklist (`getLaunchReadiness`) until it is met; it needs a recent step-up in a session, and a delegated token’s request becomes a pending action (`TOKEN_ACTION_PENDING`). While the app’s load rehearsal runs, a staging deploy is refused `409 LOAD_REHEARSAL_RUNNING`.",
         "parameters": [
           {
             "name": "environmentId",
@@ -844,7 +844,7 @@
             }
           },
           "default": {
-            "description": "An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: ADMIN_REASON_REQUIRED, AI_BACKEND_UNAVAILABLE, CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, PROJECT_ARCHIVED, RATE_LIMITED, RELEASE_AI_BUDGET_MISSING, RELEASE_AI_DISABLED, RELEASE_CWL_NO_ATTRIBUTES, RELEASE_DIGEST_MISSING, RELEASE_DIGEST_NOT_APPROVED, RELEASE_MODEL_CLASSIFICATION_TOO_LOW, RELEASE_MODEL_NOT_IN_CATALOGUE, RELEASE_MODEL_UNCLASSIFIED, RELEASE_NOT_FOUND, RELEASE_NOT_STAGED, RELEASE_PRODUCTION_GATE_UNAVAILABLE, RELEASE_REESCALATED, RELEASE_SECRET_NOT_SET, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, STEP_UP_REQUIRED, TOKEN_ACTION_PENDING, TOKEN_ACTION_REJECTED, UNAUTHENTICATED.",
+            "description": "An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: ADMIN_REASON_REQUIRED, AI_BACKEND_UNAVAILABLE, CSRF_ORIGIN_REFUSED, FORBIDDEN, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, LOAD_REHEARSAL_RUNNING, NOT_FOUND, PROJECT_ARCHIVED, RATE_LIMITED, RELEASE_AI_BUDGET_MISSING, RELEASE_AI_DISABLED, RELEASE_CWL_NO_ATTRIBUTES, RELEASE_DIGEST_MISSING, RELEASE_DIGEST_NOT_APPROVED, RELEASE_MODEL_CLASSIFICATION_TOO_LOW, RELEASE_MODEL_NOT_IN_CATALOGUE, RELEASE_MODEL_UNCLASSIFIED, RELEASE_NOT_FOUND, RELEASE_NOT_STAGED, RELEASE_PRODUCTION_GATE_UNAVAILABLE, RELEASE_REESCALATED, RELEASE_SECRET_NOT_SET, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, STEP_UP_REQUIRED, TOKEN_ACTION_PENDING, TOKEN_ACTION_REJECTED, UNAUTHENTICATED.",
             "content": {
               "application/json": {
                 "schema": {
@@ -862,6 +862,7 @@
           "IDEMPOTENCY_KEY_REQUIRED",
           "IDEMPOTENCY_KEY_REUSED",
           "INTERNAL",
+          "LOAD_REHEARSAL_RUNNING",
           "NOT_FOUND",
           "PROJECT_ARCHIVED",
           "RATE_LIMITED",
@@ -931,6 +932,7 @@
                       "diffSinceHealthy": "This app has never been healthy in staging, so there is no working release to compare this one with.",
                       "createdAt": "2026-09-26T21:47:38.803Z",
                       "cause": "deploy",
+                      "replacing": null,
                       "prompt": "The application \"chem-labs\" failed to start in its staging environment.\n\nWhat the platform checked: health: GET /healthz on port 3000 — the driver reported the instance as failed\nHow it ended: the platform reports the instance as failed\n\nWhat changed since the last time it starte …"
                     }
                   ]
@@ -1000,7 +1002,8 @@
                       "state": "failed",
                       "lastSeenAt": "2026-09-27T16:34:54.739Z",
                       "createdAt": "2026-09-27T16:34:54.702Z",
-                      "serving": false
+                      "serving": false,
+                      "replacing": null
                     },
                     {
                       "id": "3124947b-b928-4e66-be25-59a427f96569",
@@ -1010,7 +1013,8 @@
                       "state": "healthy",
                       "lastSeenAt": "2026-09-27T16:34:54.691Z",
                       "createdAt": "2026-09-27T16:34:54.655Z",
-                      "serving": true
+                      "serving": true,
+                      "replacing": null
                     }
                   ],
                   "truncated": false
@@ -1802,7 +1806,7 @@
                   "openapi": "3.1.0",
                   "info": {
                     "title": "Manifest",
-                    "version": "1.9.0"
+                    "version": "1.10.0"
                   },
                   "paths": {}
                 }
@@ -3893,7 +3897,8 @@
               "releaseId": "6f1c1d2e-8a4b-4c3d-9e2f-1a2b3c4d5e6f",
               "environmentId": "6f1c1d2e-8a4b-4c3d-9e2f-1a2b3c4d5e6f",
               "environment": "staging",
-              "state": "provisioning"
+              "state": "provisioning",
+              "replacing": null
             }
           },
           {
@@ -3904,7 +3909,8 @@
               "releaseId": "6f1c1d2e-8a4b-4c3d-9e2f-1a2b3c4d5e6f",
               "environmentId": "6f1c1d2e-8a4b-4c3d-9e2f-1a2b3c4d5e6f",
               "environment": "staging",
-              "state": "starting"
+              "state": "starting",
+              "replacing": null
             }
           },
           {
@@ -3915,7 +3921,8 @@
               "releaseId": "6f1c1d2e-8a4b-4c3d-9e2f-1a2b3c4d5e6f",
               "environmentId": "6f1c1d2e-8a4b-4c3d-9e2f-1a2b3c4d5e6f",
               "environment": "staging",
-              "state": "healthy"
+              "state": "healthy",
+              "replacing": null
             }
           },
           {
@@ -3927,17 +3934,20 @@
               "environmentId": "6f1c1d2e-8a4b-4c3d-9e2f-1a2b3c4d5e6f",
               "environment": "staging",
               "state": "failed",
-              "failedCheck": "health: GET /healthz on port 3000 — connection refused"
+              "failedCheck": "health: GET /healthz on port 3000 — connection refused",
+              "replacing": null
             }
           },
           {
             "type": "incident.opened",
-            "description": "An Incident was recorded for a failed instance: its logs, redacted, and a prompt an agent can work from.",
+            "description": "An Incident was recorded for a failed instance: its logs, redacted, and a prompt an agent can work from. `cause` says what it is about, and `replacing` whether the instance was the platform’s replacement of one that stopped.",
             "example": {
               "incidentId": "6f1c1d2e-8a4b-4c3d-9e2f-1a2b3c4d5e6f",
               "instanceId": "6f1c1d2e-8a4b-4c3d-9e2f-1a2b3c4d5e6f",
               "releaseId": "6f1c1d2e-8a4b-4c3d-9e2f-1a2b3c4d5e6f",
-              "environment": "staging"
+              "environment": "staging",
+              "cause": "deploy",
+              "replacing": null
             }
           },
           {
@@ -4213,6 +4223,18 @@
               "releaseId": "6f1c1d2e-8a4b-4c3d-9e2f-1a2b3c4d5e6f",
               "passed": true,
               "attributeCount": 2
+            }
+          },
+          {
+            "type": "load_rehearsal.completed",
+            "description": "A load rehearsal ended — passed, failed, or not judged — and staging was given back its own shape (or, for `teardown_failed`, could not be).",
+            "example": {
+              "loadRehearsalId": "6f1c1d2e-8a4b-4c3d-9e2f-1a2b3c4d5e6f",
+              "releaseId": "6f1c1d2e-8a4b-4c3d-9e2f-1a2b3c4d5e6f",
+              "state": "passed",
+              "p95Ms": 12.4,
+              "answeredRatio": 1,
+              "reason": "100% of requests answered, p95 0.01 s, at 54.2 requests a second; every instance stayed healthy"
             }
           },
           {
@@ -7300,6 +7322,452 @@
         ]
       }
     },
+    "/v1/projects/{projectId}/load-rehearsal": {
+      "post": {
+        "operationId": "runLoadRehearsal",
+        "tags": [
+          "launch"
+        ],
+        "summary": "Run the load rehearsal",
+        "description": "Gives staging production’s capacity for the app’s audience — production’s count of instances, at production’s resources, behind one balanced route — puts that audience’s arrival on it through the edge for a few minutes, watches the app, judges it against the pass mark, records what it measured, and gives staging back its own shape. For an app whose audience is a large course or the public; any other is refused `409 LOAD_REHEARSAL_NOT_NEEDED`. ANSWERED AT ONCE, `202`, with the record in state `running`: a run takes up to about ten minutes, so read it with `getLoadRehearsal` every `pollAfterSeconds` until its `state` is not `running`. It rehearses the release serving staging (`409 REHEARSAL_NO_CANDIDATE` when nothing does). One runs at a time across the platform (`409 LOAD_REHEARSAL_BUSY`, naming no other app), one per app (`409 LOAD_REHEARSAL_RUNNING`), and not while the app’s pre-production rehearsal runs (`409 REHEARSAL_RUNNING`); while it runs, every other deploy to the app’s staging, and that rehearsal, are refused `409 LOAD_REHEARSAL_RUNNING`. The owner, a collaborator or a platform administrator runs it in their own session, after a second sign-in (step-up) in the last ten minutes, or is refused `403 STEP_UP_REQUIRED`; a delegated token is refused `403 TOKEN_CREDENTIAL_REFUSED`, and anyone else is answered `404 NOT_FOUND`.",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "description": "The project’s id, from `listProjects` or `createProject`.",
+            "required": true,
+            "schema": {
+              "description": "The project’s id, from `listProjects` or `createProject`.",
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "description": "One per user action, and the same key when retrying that action.",
+            "schema": {
+              "type": "string",
+              "minLength": 8
+            }
+          },
+          {
+            "name": "Manifest-Admin-Reason",
+            "in": "header",
+            "required": false,
+            "description": "Why you are doing this, when you are a platform administrator who is not a member of the project — or a collaborator on it doing what a collaborator may not (adding or removing a person, archiving, restoring or deleting the project, promoting a release): 1 to 500 characters once trimmed, percent-encoded as UTF-8 (`encodeURIComponent`) when it is not plain ASCII, since a header carries no other text. Refused `400 ADMIN_REASON_REQUIRED` without it. Stored with the audit event beside your name and shown to the project’s people on their event stream. Nobody else is asked, and nothing is recorded from a reason sent when none is asked — but it is always part of the request: a retry with the same Idempotency-Key sends exactly what the first did, and another reason (or none) under that key is `409 IDEMPOTENCY_KEY_REUSED`.",
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "The run, started: its record in state `running`, with what it will put on the app and the mark it will be held to. A run that then fails is still a run — its record says why, in numbers — never a request error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoadRehearsal"
+                },
+                "example": {
+                  "id": "0d5b6f4e-8c1a-4e7b-9a2d-3f6c1b8e4a90",
+                  "projectId": "11303e87-e32a-4264-9191-bc37307c218b",
+                  "releaseId": "beefa3d6-c695-47e7-a632-ace8f5bd702a",
+                  "state": "running",
+                  "audience": {
+                    "scale": "large_course",
+                    "burst": "synchronised"
+                  },
+                  "profile": {
+                    "phases": [
+                      {
+                        "name": "arrive",
+                        "rps": 75,
+                        "seconds": 60
+                      },
+                      {
+                        "name": "sustain",
+                        "rps": 50,
+                        "seconds": 300
+                      }
+                    ],
+                    "paths": [
+                      "/",
+                      "/healthz",
+                      "/login"
+                    ],
+                    "timeoutMs": 10000,
+                    "pass": {
+                      "answeredRatio": 0.99,
+                      "p95Ms": 2000,
+                      "achievedRatio": 0.9
+                    }
+                  },
+                  "granted": null,
+                  "evidence": null,
+                  "runBy": "5604d74f-590f-41e9-a34f-75d343aec6f6",
+                  "createdAt": "2026-10-15T23:56:41.000Z",
+                  "finishedAt": null,
+                  "takenDownAt": null,
+                  "pollAfterSeconds": 10
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: ADMIN_REASON_REQUIRED, CSRF_ORIGIN_REFUSED, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, LOAD_REHEARSAL_BUSY, LOAD_REHEARSAL_NOT_NEEDED, LOAD_REHEARSAL_RUNNING, NOT_FOUND, PROJECT_ARCHIVED, RATE_LIMITED, REHEARSAL_NO_CANDIDATE, REHEARSAL_RUNNING, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, STEP_UP_REQUIRED, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "x-manifest-error-codes": [
+          "ADMIN_REASON_REQUIRED",
+          "CSRF_ORIGIN_REFUSED",
+          "IDEMPOTENCY_KEY_REQUIRED",
+          "IDEMPOTENCY_KEY_REUSED",
+          "INTERNAL",
+          "LOAD_REHEARSAL_BUSY",
+          "LOAD_REHEARSAL_NOT_NEEDED",
+          "LOAD_REHEARSAL_RUNNING",
+          "NOT_FOUND",
+          "PROJECT_ARCHIVED",
+          "RATE_LIMITED",
+          "REHEARSAL_NO_CANDIDATE",
+          "REHEARSAL_RUNNING",
+          "REQUEST_BODY_TOO_LARGE",
+          "REQUEST_INVALID",
+          "REQUEST_MEDIA_TYPE_UNSUPPORTED",
+          "STEP_UP_REQUIRED",
+          "TOKEN_CREDENTIAL_REFUSED",
+          "UNAUTHENTICATED"
+        ]
+      }
+    },
+    "/v1/projects/{projectId}/load-rehearsals": {
+      "get": {
+        "operationId": "listLoadRehearsals",
+        "tags": [
+          "launch"
+        ],
+        "summary": "List the load rehearsals",
+        "description": "The project’s load rehearsals, the newest first — at most 20 — each as `getLoadRehearsal` answers it.",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "description": "The project’s id, from `listProjects` or `createProject`.",
+            "required": true,
+            "schema": {
+              "description": "The project’s id, from `listProjects` or `createProject`.",
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The load rehearsals, the newest first.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoadRehearsalList"
+                },
+                "example": {
+                  "loadRehearsals": [
+                    {
+                      "id": "0d5b6f4e-8c1a-4e7b-9a2d-3f6c1b8e4a90",
+                      "projectId": "11303e87-e32a-4264-9191-bc37307c218b",
+                      "releaseId": "beefa3d6-c695-47e7-a632-ace8f5bd702a",
+                      "state": "passed",
+                      "audience": {
+                        "scale": "large_course",
+                        "burst": "synchronised"
+                      },
+                      "profile": {
+                        "phases": [
+                          {
+                            "name": "arrive",
+                            "rps": 75,
+                            "seconds": 60
+                          },
+                          {
+                            "name": "sustain",
+                            "rps": 50,
+                            "seconds": 300
+                          }
+                        ],
+                        "paths": [
+                          "/",
+                          "/healthz",
+                          "/login"
+                        ],
+                        "timeoutMs": 10000,
+                        "pass": {
+                          "answeredRatio": 0.99,
+                          "p95Ms": 2000,
+                          "achievedRatio": 0.9
+                        }
+                      },
+                      "granted": {
+                        "count": 3,
+                        "instanceIds": [
+                          "6ac3e6d7-3080-4c70-8af6-376e447829f6",
+                          "7bd4f7e8-4191-4d81-9b07-487f558930a7",
+                          "8ce508f9-52a2-4e92-8c18-598066904ab8"
+                        ],
+                        "resources": {
+                          "environment": "production",
+                          "cpu": 0.5,
+                          "memory": "512Mi"
+                        }
+                      },
+                      "evidence": {
+                        "reason": "100% of requests answered, p95 0.01 s, at 54.2 requests a second; every instance stayed healthy",
+                        "requests": 19500,
+                        "answered": 19500,
+                        "answeredRatio": 1,
+                        "timeouts": 0,
+                        "achievedRps": 54.2,
+                        "p50Ms": 1.8,
+                        "p95Ms": 12.4,
+                        "p99Ms": 14.5,
+                        "durationMs": 360000,
+                        "phases": [
+                          {
+                            "name": "arrive",
+                            "asked": 75,
+                            "achieved": 75.02,
+                            "requests": 4500,
+                            "answered": 4500
+                          },
+                          {
+                            "name": "sustain",
+                            "asked": 50,
+                            "achieved": 50,
+                            "requests": 15000,
+                            "answered": 15000
+                          }
+                        ],
+                        "byPath": {
+                          "/": {
+                            "200": 6500
+                          },
+                          "/healthz": {
+                            "200": 6500
+                          },
+                          "/login": {
+                            "302": 6500
+                          }
+                        },
+                        "instanceExits": 0,
+                        "outOfMemory": false,
+                        "unhealthy": false
+                      },
+                      "runBy": "5604d74f-590f-41e9-a34f-75d343aec6f6",
+                      "createdAt": "2026-10-15T23:56:41.000Z",
+                      "finishedAt": "2026-10-16T00:02:48.000Z",
+                      "takenDownAt": "2026-10-16T00:02:48.000Z",
+                      "pollAfterSeconds": null
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "x-manifest-error-codes": [
+          "INTERNAL",
+          "NOT_FOUND",
+          "RATE_LIMITED",
+          "REQUEST_INVALID",
+          "UNAUTHENTICATED"
+        ]
+      }
+    },
+    "/v1/projects/{projectId}/load-rehearsals/{loadRehearsalId}": {
+      "get": {
+        "operationId": "getLoadRehearsal",
+        "tags": [
+          "launch"
+        ],
+        "summary": "Read a load rehearsal",
+        "description": "One load rehearsal of the project: while it runs, its `state` is `running` and `pollAfterSeconds` says when to read it again; then what it measured, and whether it passed. A run of another project is answered `404 NOT_FOUND`.",
+        "parameters": [
+          {
+            "name": "loadRehearsalId",
+            "in": "path",
+            "description": "The load rehearsal’s id, from `runLoadRehearsal` or `listLoadRehearsals`.",
+            "required": true,
+            "schema": {
+              "description": "The load rehearsal’s id, from `runLoadRehearsal` or `listLoadRehearsals`.",
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+            }
+          },
+          {
+            "name": "projectId",
+            "in": "path",
+            "description": "The project’s id, from `listProjects` or `createProject`.",
+            "required": true,
+            "schema": {
+              "description": "The project’s id, from `listProjects` or `createProject`.",
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The load rehearsal.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoadRehearsal"
+                },
+                "example": {
+                  "id": "0d5b6f4e-8c1a-4e7b-9a2d-3f6c1b8e4a90",
+                  "projectId": "11303e87-e32a-4264-9191-bc37307c218b",
+                  "releaseId": "beefa3d6-c695-47e7-a632-ace8f5bd702a",
+                  "state": "passed",
+                  "audience": {
+                    "scale": "large_course",
+                    "burst": "synchronised"
+                  },
+                  "profile": {
+                    "phases": [
+                      {
+                        "name": "arrive",
+                        "rps": 75,
+                        "seconds": 60
+                      },
+                      {
+                        "name": "sustain",
+                        "rps": 50,
+                        "seconds": 300
+                      }
+                    ],
+                    "paths": [
+                      "/",
+                      "/healthz",
+                      "/login"
+                    ],
+                    "timeoutMs": 10000,
+                    "pass": {
+                      "answeredRatio": 0.99,
+                      "p95Ms": 2000,
+                      "achievedRatio": 0.9
+                    }
+                  },
+                  "granted": {
+                    "count": 3,
+                    "instanceIds": [
+                      "6ac3e6d7-3080-4c70-8af6-376e447829f6",
+                      "7bd4f7e8-4191-4d81-9b07-487f558930a7",
+                      "8ce508f9-52a2-4e92-8c18-598066904ab8"
+                    ],
+                    "resources": {
+                      "environment": "production",
+                      "cpu": 0.5,
+                      "memory": "512Mi"
+                    }
+                  },
+                  "evidence": {
+                    "reason": "100% of requests answered, p95 0.01 s, at 54.2 requests a second; every instance stayed healthy",
+                    "requests": 19500,
+                    "answered": 19500,
+                    "answeredRatio": 1,
+                    "timeouts": 0,
+                    "achievedRps": 54.2,
+                    "p50Ms": 1.8,
+                    "p95Ms": 12.4,
+                    "p99Ms": 14.5,
+                    "durationMs": 360000,
+                    "phases": [
+                      {
+                        "name": "arrive",
+                        "asked": 75,
+                        "achieved": 75.02,
+                        "requests": 4500,
+                        "answered": 4500
+                      },
+                      {
+                        "name": "sustain",
+                        "asked": 50,
+                        "achieved": 50,
+                        "requests": 15000,
+                        "answered": 15000
+                      }
+                    ],
+                    "byPath": {
+                      "/": {
+                        "200": 6500
+                      },
+                      "/healthz": {
+                        "200": 6500
+                      },
+                      "/login": {
+                        "302": 6500
+                      }
+                    },
+                    "instanceExits": 0,
+                    "outOfMemory": false,
+                    "unhealthy": false
+                  },
+                  "runBy": "5604d74f-590f-41e9-a34f-75d343aec6f6",
+                  "createdAt": "2026-10-15T23:56:41.000Z",
+                  "finishedAt": "2026-10-16T00:02:48.000Z",
+                  "takenDownAt": "2026-10-16T00:02:48.000Z",
+                  "pollAfterSeconds": null
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: INTERNAL, NOT_FOUND, RATE_LIMITED, REQUEST_INVALID, UNAUTHENTICATED.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "x-manifest-error-codes": [
+          "INTERNAL",
+          "NOT_FOUND",
+          "RATE_LIMITED",
+          "REQUEST_INVALID",
+          "UNAUTHENTICATED"
+        ]
+      }
+    },
     "/v1/projects/{projectId}/members": {
       "get": {
         "operationId": "listMembers",
@@ -7705,7 +8173,7 @@
           "launch"
         ],
         "summary": "Run the pre-production rehearsal",
-        "description": "Deploys the candidate release to production, registers its Service Provider with production-shaped values and completes one CWL sign-in, then takes the deployment down again and records pass or fail with the evidence — proving the registration’s shape, not UBC’s acceptance of it. The candidate answers production’s hostname on the public listener only while the sign-in runs; afterwards the hostname reaches nothing of the app’s, and production’s environment reads the rehearsal’s instance as `gone` (or `failed`, when the candidate never started). The owner, a collaborator or a platform administrator runs it in their own session, after a second sign-in (step-up) in the last ten minutes, or is refused `403 STEP_UP_REQUIRED`; a delegated token is refused `403 TOKEN_CREDENTIAL_REFUSED`, and anyone else is answered `404 NOT_FOUND`. One rehearsal of a project runs at a time (`REHEARSAL_RUNNING`), and none once the app has launched (`REHEARSAL_LAUNCHED`). If the deployment cannot be taken down, nothing is recorded and the answer is `500 REHEARSAL_TEARDOWN_FAILED`; running it again is the remedy. Up to ~90 s.",
+        "description": "Deploys the candidate release to production, registers its Service Provider with production-shaped values and completes one CWL sign-in, then takes the deployment down again and records pass or fail with the evidence — proving the registration’s shape, not UBC’s acceptance of it. The candidate answers production’s hostname on the public listener only while the sign-in runs; afterwards the hostname reaches nothing of the app’s, and production’s environment reads the rehearsal’s instance as `gone` (or `failed`, when the candidate never started). The owner, a collaborator or a platform administrator runs it in their own session, after a second sign-in (step-up) in the last ten minutes, or is refused `403 STEP_UP_REQUIRED`; a delegated token is refused `403 TOKEN_CREDENTIAL_REFUSED`, and anyone else is answered `404 NOT_FOUND`. One rehearsal of a project runs at a time (`REHEARSAL_RUNNING`), none while its load rehearsal runs (`LOAD_REHEARSAL_RUNNING`), and none once the app has launched (`REHEARSAL_LAUNCHED`). If the deployment cannot be taken down, nothing is recorded and the answer is `500 REHEARSAL_TEARDOWN_FAILED`; running it again is the remedy. Up to ~90 s.",
         "security": [
           {
             "session": []
@@ -7781,7 +8249,7 @@
             }
           },
           "default": {
-            "description": "An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: ADMIN_REASON_REQUIRED, CSRF_ORIGIN_REFUSED, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, NOT_FOUND, PROJECT_ARCHIVED, RATE_LIMITED, REHEARSAL_DEPLOY_FAILED, REHEARSAL_LAUNCHED, REHEARSAL_NOT_CWL, REHEARSAL_NO_CANDIDATE, REHEARSAL_RUNNING, REHEARSAL_TEARDOWN_FAILED, RELEASE_DIGEST_MISSING, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, STEP_UP_REQUIRED, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED.",
+            "description": "An error envelope; `x-manifest-errors` gives each code's meaning and remedy. This operation can answer: ADMIN_REASON_REQUIRED, CSRF_ORIGIN_REFUSED, IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_REUSED, INTERNAL, LOAD_REHEARSAL_RUNNING, NOT_FOUND, PROJECT_ARCHIVED, RATE_LIMITED, REHEARSAL_DEPLOY_FAILED, REHEARSAL_LAUNCHED, REHEARSAL_NOT_CWL, REHEARSAL_NO_CANDIDATE, REHEARSAL_RUNNING, REHEARSAL_TEARDOWN_FAILED, RELEASE_DIGEST_MISSING, REQUEST_BODY_TOO_LARGE, REQUEST_INVALID, REQUEST_MEDIA_TYPE_UNSUPPORTED, STEP_UP_REQUIRED, TOKEN_CREDENTIAL_REFUSED, UNAUTHENTICATED.",
             "content": {
               "application/json": {
                 "schema": {
@@ -7797,6 +8265,7 @@
           "IDEMPOTENCY_KEY_REQUIRED",
           "IDEMPOTENCY_KEY_REUSED",
           "INTERNAL",
+          "LOAD_REHEARSAL_RUNNING",
           "NOT_FOUND",
           "PROJECT_ARCHIVED",
           "RATE_LIMITED",
@@ -12386,6 +12855,9 @@
           "LAUNCH_SENT_AT_INVALID",
           "LAUNCH_STAGING_NOT_REGISTERED",
           "LAUNCH_TRANSITION_INVALID",
+          "LOAD_REHEARSAL_BUSY",
+          "LOAD_REHEARSAL_NOT_NEEDED",
+          "LOAD_REHEARSAL_RUNNING",
           "MEMBER_MAY_NOT_BUILD",
           "MEMBER_USER_AMBIGUOUS",
           "MEMBER_USER_NOT_FOUND",
@@ -12534,6 +13006,9 @@
           "LAUNCH_SENT_AT_INVALID": "The day the Manifest team says it sent the record to UBC cannot be true: it is after today in Vancouver, or before its owner sent it to the team.",
           "LAUNCH_STAGING_NOT_REGISTERED": "The production registration is sent only once the staging registration is active — registered by UBC IAM, and the app tested at staging. UBC’s order is staging before production.",
           "LAUNCH_TRANSITION_INVALID": "An IAM registration or a privacy assessment was asked to move to a state it cannot reach from the one it is in — sent to the Manifest team twice, recorded into or out of `sent` by the record route, or submitted or handed back by the team when it was not sent to them; the message names what the record CAN do.",
+          "LOAD_REHEARSAL_BUSY": "Another app’s load rehearsal is running, and the platform runs one at a time so that two cannot measure each other — this one was not started and nothing was deployed.",
+          "LOAD_REHEARSAL_NOT_NEEDED": "A load rehearsal is for an app whose audience is a large course or the public; this app’s audience is smaller, so its launch does not ask for one and nothing was started.",
+          "LOAD_REHEARSAL_RUNNING": "A load rehearsal of this app is running and holds its staging environment, so nothing else is deployed to staging, and no other rehearsal of the app starts, until it ends — this request changed nothing.",
           "MEMBER_MAY_NOT_BUILD": "The person named may not build on Manifest — only faculty members and platform administrators may, for now — so they cannot be added to a project. The message names them; nobody was added.",
           "MEMBER_USER_AMBIGUOUS": "More than one person who has signed in to Manifest has the email given, so it names nobody in particular. The answer names none of them.",
           "MEMBER_USER_NOT_FOUND": "Nobody Manifest knows by the PUID, CWL login name or email given has signed in. A CWL login name is known only for a person who has signed in since Manifest began asking CWL for one, so a person who has signed in can still miss by login.",
@@ -13311,6 +13786,19 @@
                       "destroying",
                       "gone"
                     ]
+                  },
+                  "replacing": {
+                    "description": "The production instance this one was started to replace — the platform replacing a member that stopped while it was serving; null for an instance a deploy made.",
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
                   }
                 },
                 "required": [
@@ -13318,7 +13806,8 @@
                   "releaseId",
                   "environmentId",
                   "environment",
-                  "state"
+                  "state",
+                  "replacing"
                 ],
                 "additionalProperties": false
               },
@@ -13432,6 +13921,19 @@
                       "destroying",
                       "gone"
                     ]
+                  },
+                  "replacing": {
+                    "description": "The production instance this one was started to replace — the platform replacing a member that stopped while it was serving; null for an instance a deploy made.",
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
                   }
                 },
                 "required": [
@@ -13439,7 +13941,8 @@
                   "releaseId",
                   "environmentId",
                   "environment",
-                  "state"
+                  "state",
+                  "replacing"
                 ],
                 "additionalProperties": false
               },
@@ -13553,6 +14056,19 @@
                       "destroying",
                       "gone"
                     ]
+                  },
+                  "replacing": {
+                    "description": "The production instance this one was started to replace — the platform replacing a member that stopped while it was serving; null for an instance a deploy made.",
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
                   }
                 },
                 "required": [
@@ -13560,7 +14076,8 @@
                   "releaseId",
                   "environmentId",
                   "environment",
-                  "state"
+                  "state",
+                  "replacing"
                 ],
                 "additionalProperties": false
               },
@@ -13675,6 +14192,19 @@
                       "gone"
                     ]
                   },
+                  "replacing": {
+                    "description": "The production instance this one was started to replace — the platform replacing a member that stopped while it was serving; null for an instance a deploy made.",
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
                   "failedCheck": {
                     "description": "Which check it failed, and how — the health check, and what it answered. For an instance that passed but was not kept because another deployed with it failed, it starts `set:` and names that instance.",
                     "type": "string"
@@ -13686,6 +14216,7 @@
                   "environmentId",
                   "environment",
                   "state",
+                  "replacing",
                   "failedCheck"
                 ],
                 "additionalProperties": false
@@ -13755,7 +14286,7 @@
                 "type": "string"
               },
               "machineDetail": {
-                "description": "An Incident was recorded for a failed instance: its logs, redacted, and a prompt an agent can work from.",
+                "description": "An Incident was recorded for a failed instance: its logs, redacted, and a prompt an agent can work from. `cause` says what it is about, and `replacing` whether the instance was the platform’s replacement of one that stopped.",
                 "type": "object",
                 "properties": {
                   "incidentId": {
@@ -13784,13 +14315,37 @@
                       "staging",
                       "production"
                     ]
+                  },
+                  "cause": {
+                    "description": "What it is about, as the Incident’s `cause`: `deploy` — a deploy that never became healthy; `exit` — a production instance that stopped while it was serving, which the platform is replacing; `exit_stopped` — the same, with replacing stopped.",
+                    "type": "string",
+                    "enum": [
+                      "deploy",
+                      "exit",
+                      "exit_stopped"
+                    ]
+                  },
+                  "replacing": {
+                    "description": "The production instance this one was started to replace — the platform replacing a member that stopped while it was serving; null for an instance a deploy made.",
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
                   }
                 },
                 "required": [
                   "incidentId",
                   "instanceId",
                   "releaseId",
-                  "environment"
+                  "environment",
+                  "cause",
+                  "replacing"
                 ],
                 "additionalProperties": false
               },
@@ -16434,6 +16989,133 @@
                   "releaseId",
                   "passed",
                   "attributeCount"
+                ],
+                "additionalProperties": false
+              },
+              "createdAt": {
+                "description": "When it was recorded.",
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+              },
+              "actor": {
+                "description": "Who acted. Null when no person’s request caused the event — the platform finishing work at a restart, retiring the instances a deploy replaced, or a push to GitHub (even one that a request’s own sync found). An event that a request’s work publishes later, such as a build ending, names who started it.",
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/EventActor"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "kind",
+              "id",
+              "projectId",
+              "subject",
+              "type",
+              "humanMessage",
+              "machineDetail",
+              "createdAt",
+              "actor"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "description": "An audit event.",
+                "type": "string",
+                "const": "event"
+              },
+              "id": {
+                "description": "The event’s id; a replay after a reconnect repeats it, so a client can drop what it has seen.",
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+              },
+              "projectId": {
+                "description": "The project the event belongs to.",
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+              },
+              "subject": {
+                "description": "What the event is about — `build:<id>`, `instance:<id>`. Opaque.",
+                "type": "string"
+              },
+              "type": {
+                "description": "What happened. Switch on it: each type has one `machineDetail` shape.",
+                "type": "string",
+                "const": "load_rehearsal.completed"
+              },
+              "humanMessage": {
+                "description": "What happened, in words for a person. Never parse it.",
+                "type": "string"
+              },
+              "machineDetail": {
+                "description": "A load rehearsal ended — passed, failed, or not judged — and staging was given back its own shape (or, for `teardown_failed`, could not be).",
+                "type": "object",
+                "properties": {
+                  "loadRehearsalId": {
+                    "description": "The load rehearsal (`getLoadRehearsal`).",
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+                  },
+                  "releaseId": {
+                    "description": "The release rehearsed.",
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+                  },
+                  "state": {
+                    "description": "How it ended: `passed` or `failed`, judged; `teardown_failed` — staging could not be given back its own shape (it never counts as passed); `abandoned` — the control plane stopped, or the app was switched off, while it ran.",
+                    "type": "string",
+                    "enum": [
+                      "passed",
+                      "failed",
+                      "teardown_failed",
+                      "abandoned"
+                    ]
+                  },
+                  "p95Ms": {
+                    "description": "The 95th percentile, in milliseconds; null when nothing was loaded.",
+                    "anyOf": [
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "answeredRatio": {
+                    "description": "The share of requests answered; null when nothing was loaded.",
+                    "anyOf": [
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "reason": {
+                    "description": "Why it passed or did not — the first rule it broke, with the number.",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "loadRehearsalId",
+                  "releaseId",
+                  "state",
+                  "p95Ms",
+                  "answeredRatio",
+                  "reason"
                 ],
                 "additionalProperties": false
               },
@@ -19593,6 +20275,19 @@
               "exit_stopped"
             ]
           },
+          "replacing": {
+            "description": "When the instance was the platform’s replacement of a production member that stopped — which no person asked for — the instance it was started to replace; null for an instance a deploy made. A replacement that never became healthy reads `cause: deploy` with this set.",
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "prompt": {
             "description": "Shaped to be handed straight to an agent as a repair request — except a `high` or `very-high` project’s staging or production Incident: it carries the log tail, which a delegated token is refused (`INCIDENT_LOG_CONFIDENTIAL`), so show it to the person and never hand it to a model.",
             "type": "string"
@@ -19608,6 +20303,7 @@
           "diffSinceHealthy",
           "createdAt",
           "cause",
+          "replacing",
           "prompt"
         ],
         "additionalProperties": false
@@ -19856,7 +20552,7 @@
         "additionalProperties": false
       },
       "InstanceSummary": {
-        "description": "An instance, and whether it is one of those serving.",
+        "description": "An instance, whether it is one of those serving, and whether the platform started it to replace one that stopped.",
         "type": "object",
         "properties": {
           "id": {
@@ -19925,6 +20621,19 @@
           "serving": {
             "description": "Whether the environment’s hostname reaches this instance now — one of the instances it reaches: production runs as many as its audience needs, sandbox and staging one. A failed instance never serves.",
             "type": "boolean"
+          },
+          "replacing": {
+            "description": "The production instance this one was started to replace — the platform replacing a member that stopped while it was serving, which no person asked for; null for an instance a deploy made.",
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
@@ -19935,7 +20644,8 @@
           "state",
           "lastSeenAt",
           "createdAt",
-          "serving"
+          "serving",
+          "replacing"
         ],
         "additionalProperties": false
       },
@@ -20338,6 +21048,460 @@
           "scope",
           "period",
           "resetsAt"
+        ],
+        "additionalProperties": false
+      },
+      "LoadRehearsal": {
+        "description": "A load rehearsal: staging given production’s capacity for the app’s audience, that audience’s arrival put on it through the edge for a few minutes, the app watched and judged against a stated mark — and staging given back its own shape.",
+        "type": "object",
+        "properties": {
+          "id": {
+            "description": "The load rehearsal (`getLoadRehearsal`).",
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+          },
+          "projectId": {
+            "description": "Its project.",
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+          },
+          "releaseId": {
+            "description": "The release rehearsed — the one serving staging when it started, the launch candidate.",
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+          },
+          "state": {
+            "description": "`running` while it lasts — read it again after `pollAfterSeconds`; then `passed` or `failed`, judged; `teardown_failed` when staging could not be given back its own shape afterwards (the next staging deploy gives it back, and the run never counts as passed); `abandoned` when the control plane stopped, or the app was switched off, while it ran.",
+            "type": "string",
+            "enum": [
+              "running",
+              "passed",
+              "failed",
+              "teardown_failed",
+              "abandoned"
+            ]
+          },
+          "audience": {
+            "description": "The audience it was run for — a later answer of a larger audience asks for another.",
+            "type": "object",
+            "properties": {
+              "scale": {
+                "description": "The audience’s size, as rehearsed.",
+                "type": "string",
+                "enum": [
+                  "large_course",
+                  "public"
+                ]
+              },
+              "burst": {
+                "description": "How the audience arrives, as rehearsed.",
+                "type": "string",
+                "enum": [
+                  "steady",
+                  "synchronised"
+                ]
+              }
+            },
+            "required": [
+              "scale",
+              "burst"
+            ],
+            "additionalProperties": false
+          },
+          "profile": {
+            "description": "What was put on the app, and the mark it was held to — the platform’s settings when it ran.",
+            "type": "object",
+            "properties": {
+              "phases": {
+                "description": "The arrival, phase by phase.",
+                "type": "array",
+                "items": {
+                  "description": "One phase of the arrival, as asked.",
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "description": "`arrive` then `sustain` for a synchronised audience; `ramp-1` to `ramp-5` for a steady one.",
+                      "type": "string"
+                    },
+                    "rps": {
+                      "description": "The requests a second asked for.",
+                      "type": "number"
+                    },
+                    "seconds": {
+                      "description": "For how long.",
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "required": [
+                    "name",
+                    "rps",
+                    "seconds"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "paths": {
+                "description": "The paths each arriving person asks for: the app’s front page, its health path and, for an app that signs people in, its sign-in.",
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "timeoutMs": {
+                "description": "How long each request may take before it counts as not answered.",
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "pass": {
+                "description": "The pass mark.",
+                "type": "object",
+                "properties": {
+                  "answeredRatio": {
+                    "description": "The share of requests that must be answered — 0.99 by default.",
+                    "type": "number"
+                  },
+                  "p95Ms": {
+                    "description": "The 95th percentile must be under this many milliseconds — 2000 by default.",
+                    "type": "number"
+                  },
+                  "achievedRatio": {
+                    "description": "The share of the asked rate the load must reach, or the run fails as unable to measure the app — 0.9 by default.",
+                    "type": "number"
+                  }
+                },
+                "required": [
+                  "answeredRatio",
+                  "p95Ms",
+                  "achievedRatio"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "phases",
+              "paths",
+              "timeoutMs",
+              "pass"
+            ],
+            "additionalProperties": false
+          },
+          "granted": {
+            "description": "Production’s shape on staging, as READ BACK from what served — null until it is read. A count under production’s means the shape could not start, and nothing was loaded.",
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "count": {
+                    "description": "How many instances served staging when the load began — production’s count for the audience.",
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  },
+                  "instanceIds": {
+                    "description": "Those instances (`listInstances`).",
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+                    }
+                  },
+                  "resources": {
+                    "description": "What each instance was given.",
+                    "type": "object",
+                    "properties": {
+                      "environment": {
+                        "description": "Whose resources they ran with — production’s.",
+                        "type": "string",
+                        "enum": [
+                          "sandbox",
+                          "staging",
+                          "production"
+                        ]
+                      },
+                      "cpu": {
+                        "description": "CPUs each.",
+                        "type": "number"
+                      },
+                      "memory": {
+                        "description": "Memory each.",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "environment",
+                      "cpu",
+                      "memory"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "count",
+                  "instanceIds",
+                  "resources"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "evidence": {
+            "description": "What it measured — null while it runs. Counts and timings only, never a response.",
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "reason": {
+                    "description": "Why it passed or did not, in the platform’s words — the first rule it broke, with the number.",
+                    "type": "string"
+                  },
+                  "requests": {
+                    "description": "Every request sent.",
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  },
+                  "answered": {
+                    "description": "Those answered: a status below 500 other than 429, within the timeout.",
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  },
+                  "answeredRatio": {
+                    "description": "`answered` over `requests`.",
+                    "type": "number"
+                  },
+                  "timeouts": {
+                    "description": "Requests that timed out.",
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  },
+                  "achievedRps": {
+                    "description": "The rate the load actually reached, a second.",
+                    "type": "number"
+                  },
+                  "p50Ms": {
+                    "description": "The median, in milliseconds.",
+                    "type": "number"
+                  },
+                  "p95Ms": {
+                    "description": "The 95th percentile, in milliseconds.",
+                    "type": "number"
+                  },
+                  "p99Ms": {
+                    "description": "The 99th percentile, in milliseconds.",
+                    "type": "number"
+                  },
+                  "durationMs": {
+                    "description": "How long the load ran.",
+                    "type": "number"
+                  },
+                  "phases": {
+                    "description": "Each phase, as it ran.",
+                    "type": "array",
+                    "items": {
+                      "description": "One phase, as it ran.",
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "description": "The phase.",
+                          "type": "string"
+                        },
+                        "asked": {
+                          "description": "The rate asked, a second.",
+                          "type": "number"
+                        },
+                        "achieved": {
+                          "description": "The rate reached, a second.",
+                          "type": "number"
+                        },
+                        "requests": {
+                          "description": "Requests sent in it.",
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "answered": {
+                          "description": "Those answered.",
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        }
+                      },
+                      "required": [
+                        "name",
+                        "asked",
+                        "achieved",
+                        "requests",
+                        "answered"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "byPath": {
+                    "description": "For each path, how many requests got each status (`0` for none at all) — where a failure was, never a rule of its own.",
+                    "type": "object",
+                    "propertyNames": {
+                      "type": "string"
+                    },
+                    "additionalProperties": {
+                      "type": "object",
+                      "propertyNames": {
+                        "type": "string"
+                      },
+                      "additionalProperties": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      }
+                    }
+                  },
+                  "instanceExits": {
+                    "description": "How many instances exited while the load ran.",
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  },
+                  "outOfMemory": {
+                    "description": "Whether an instance ran out of memory while the load ran.",
+                    "type": "boolean"
+                  },
+                  "unhealthy": {
+                    "description": "Whether an instance failed its health check while the load ran.",
+                    "type": "boolean"
+                  },
+                  "judged": {
+                    "description": "For a `teardown_failed` run, how the load itself was judged — it never counts as passed.",
+                    "type": "object",
+                    "properties": {
+                      "passed": {
+                        "description": "Whether the run itself met the mark.",
+                        "type": "boolean"
+                      },
+                      "reason": {
+                        "description": "Its reason.",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "passed",
+                      "reason"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "reason"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "runBy": {
+            "description": "The person who ran it (`listMembers` names them); null when that person’s account is gone.",
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "createdAt": {
+            "description": "When it was started.",
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+          },
+          "finishedAt": {
+            "description": "When it ended; null while it runs.",
+            "anyOf": [
+              {
+                "description": "An instant, ISO 8601 in UTC.",
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "takenDownAt": {
+            "description": "When staging was given back its own shape; null while it runs, and for a `teardown_failed` run.",
+            "anyOf": [
+              {
+                "description": "An instant, ISO 8601 in UTC.",
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "pollAfterSeconds": {
+            "description": "While it runs, read it again (`getLoadRehearsal`) after this many seconds — a run takes up to about ten minutes; null once it has ended.",
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "projectId",
+          "releaseId",
+          "state",
+          "audience",
+          "profile",
+          "granted",
+          "evidence",
+          "runBy",
+          "createdAt",
+          "finishedAt",
+          "takenDownAt",
+          "pollAfterSeconds"
+        ],
+        "additionalProperties": false
+      },
+      "LoadRehearsalList": {
+        "description": "A project’s load rehearsals, the newest first.",
+        "type": "object",
+        "properties": {
+          "loadRehearsals": {
+            "description": "The project’s load rehearsals, the newest first — at most 20.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LoadRehearsal"
+            }
+          }
+        },
+        "required": [
+          "loadRehearsals"
         ],
         "additionalProperties": false
       },
@@ -24417,6 +25581,21 @@
       "status": 409,
       "summary": "An IAM registration or a privacy assessment was asked to move to a state it cannot reach from the one it is in — sent to the Manifest team twice, recorded into or out of `sent` by the record route, or submitted or handed back by the team when it was not sent to them; the message names what the record CAN do.",
       "remedy": "Move the record through its states one step at a time, as the message names. A record with the Manifest team (`sent`) moves on only by the team’s own two operations: submitted to UBC (`submitIamRegistration`, `submitPrivacyAssessment`) or handed back (`returnIamRegistration`, `returnPrivacyAssessment`)."
+    },
+    "LOAD_REHEARSAL_BUSY": {
+      "status": 409,
+      "summary": "Another app’s load rehearsal is running, and the platform runs one at a time so that two cannot measure each other — this one was not started and nothing was deployed.",
+      "remedy": "Try again in about ten minutes: a load rehearsal takes up to about ten minutes from start to end."
+    },
+    "LOAD_REHEARSAL_NOT_NEEDED": {
+      "status": 409,
+      "summary": "A load rehearsal is for an app whose audience is a large course or the public; this app’s audience is smaller, so its launch does not ask for one and nothing was started.",
+      "remedy": "Nothing to do: the launch checklist (`getLaunchReadiness`) asks this app for no load rehearsal."
+    },
+    "LOAD_REHEARSAL_RUNNING": {
+      "status": 409,
+      "summary": "A load rehearsal of this app is running and holds its staging environment, so nothing else is deployed to staging, and no other rehearsal of the app starts, until it ends — this request changed nothing.",
+      "remedy": "Wait for it to end — up to about ten minutes — by reading `getLoadRehearsal` until its `state` is no longer `running`; then send this again."
     },
     "MEMBER_MAY_NOT_BUILD": {
       "status": 409,

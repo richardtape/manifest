@@ -48,6 +48,7 @@ export const EXAMPLE_DETAILS: { readonly [T in EventType]: Record<string, unknow
     environmentId: UUID,
     environment: 'staging',
     state: 'provisioning',
+    replacing: null,
   },
   'instance.starting': {
     instanceId: UUID,
@@ -55,6 +56,7 @@ export const EXAMPLE_DETAILS: { readonly [T in EventType]: Record<string, unknow
     environmentId: UUID,
     environment: 'staging',
     state: 'starting',
+    replacing: null,
   },
   'instance.healthy': {
     instanceId: UUID,
@@ -62,6 +64,7 @@ export const EXAMPLE_DETAILS: { readonly [T in EventType]: Record<string, unknow
     environmentId: UUID,
     environment: 'staging',
     state: 'healthy',
+    replacing: null,
   },
   'instance.failed': {
     instanceId: UUID,
@@ -70,12 +73,15 @@ export const EXAMPLE_DETAILS: { readonly [T in EventType]: Record<string, unknow
     environment: 'staging',
     state: 'failed',
     failedCheck: 'health: GET /healthz on port 3000 — connection refused',
+    replacing: null,
   },
   'incident.opened': {
     incidentId: UUID,
     instanceId: UUID,
     releaseId: UUID,
     environment: 'staging',
+    cause: 'deploy',
+    replacing: null,
   },
   'ai.key_rotated': {
     instanceId: UUID,
@@ -216,6 +222,15 @@ export const EXAMPLE_DETAILS: { readonly [T in EventType]: Record<string, unknow
     releaseId: UUID,
     passed: true,
     attributeCount: 2,
+  },
+  'load_rehearsal.completed': {
+    loadRehearsalId: UUID,
+    releaseId: UUID,
+    state: 'passed',
+    p95Ms: 12.4,
+    answeredRatio: 1,
+    reason:
+      '100% of requests answered, p95 0.01 s, at 54.2 requests a second; every instance stayed healthy',
   },
   'release.approved': {
     releaseId: UUID,

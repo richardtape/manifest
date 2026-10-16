@@ -4,6 +4,7 @@ import {
   builds,
   environments,
   instances,
+  loadRehearsals,
   projects,
   releases,
   replaceRouteSet,
@@ -567,6 +568,30 @@ export async function deployReleaseSet(
       throw projectStateRefusal(environment.projectId, current?.state ?? 'deleted')
 
     /**
+     * §24: STAGING IS A LOAD REHEARSAL'S WHILE IT RUNS (the load rehearsal plan's Task 5, Decision 6). Read here, under
+     * staging's lock, so a deploy that took the lock before the run's row existed finishes first and the grant waits for
+     * it — and nothing replaces the granted set mid-run, nor does the take-down silently revert someone's deploy. Only
+     * the run's own two deploys pass, carrying the `running` row's id; any other id is refused like any other deploy.
+     */
+    if (environment.kind === 'staging') {
+      const [holding] = await db
+        .select({ id: loadRehearsals.id })
+        .from(loadRehearsals)
+        .where(
+          and(
+            eq(loadRehearsals.projectId, environment.projectId),
+            eq(loadRehearsals.state, 'running'),
+          ),
+        )
+      if (holding !== undefined && holding.id !== input.loadRehearsalId)
+        throw new ReleaseError(
+          'LOAD_REHEARSAL_RUNNING',
+          'a load rehearsal of this app is running and holds its staging environment, so nothing was deployed. ' +
+            'A run takes up to about ten minutes; deploy again once its record (`getLoadRehearsal`) is no longer running.',
+        )
+    }
+
+    /**
      * A REPLACEMENT RE-READS WHAT IT REPLACES, UNDER THE LOCK (A1 Task 6, Decision 11): the set watcher saw
      * `replacing` exit and released this lock to call here, and a person's deploy may have taken it in
      * between and replaced the whole set. Then there is nothing to replace: nothing is started, and the
@@ -626,6 +651,8 @@ export async function deployReleaseSet(
       environmentId: environment.id,
       environment: environment.kind,
       state,
+      // FE-62: a replacement's deploy says it is one, member by member — the instance it was started for.
+      replacing: input.replacing ?? null,
     })
     for (const member of members) {
       // §22 step 5 (P5a Task 14). The redactor is EMPTY and that is accurate: nothing in this
@@ -1178,6 +1205,9 @@ export async function deployReleaseSet(
             instanceId: failed.id,
             releaseId: release.id,
             environment: environment.kind,
+            // FE-62: a deploy's Incident is a change that did not go live — a replacement's too, which says so.
+            cause: incident.cause,
+            replacing: input.replacing ?? null,
           },
           humanMessage:
             `${projectSlug} failed to start in ${environment.kind}. The incident records ` +

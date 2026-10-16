@@ -28,6 +28,8 @@ Every step from an idea to a launched app, who takes it, and the operations that
 | Ask an administrator to sign off the release serving staging | either | `requestApproval` |
 | See everything waiting on the administrators, oldest first | administrator | `listQueue` |
 | Rehearse the CWL sign-in before launch | person | `runRehearsal` |
+| Run the load rehearsal before a large course’s or a public app’s launch | person | `runLoadRehearsal` |
+| Read how a load rehearsal went, polling it while it runs | either | `getLoadRehearsal`, `listLoadRehearsals` |
 | Record that the Manifest team submitted each to UBC — or hand it back to its owner | administrator | `submitPrivacyAssessment`, `submitIamRegistration`, `returnPrivacyAssessment`, `returnIamRegistration` |
 | Record what UBC IAM and the Privacy Office said | administrator | `recordIamRegistration`, `recordPrivacyAssessment` |
 | Approve a release from a stored preview | administrator | `createApprovalPreview`, `getApprovalPreview`, `approveRelease`, `rejectRelease`, `getApproval` |

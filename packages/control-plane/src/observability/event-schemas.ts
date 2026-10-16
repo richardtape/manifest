@@ -170,6 +170,16 @@ const AppSecretChange = z.strictObject({
   tokenId: ActingToken,
 })
 
+/**
+ * THE PRODUCTION INSTANCE A REPLACEMENT WAS STARTED FOR (FE-62; the load rehearsal plan's Task 5) — the stored
+ * `instances.replacing`, so a client need not infer a replacement from the order of events. REQUIRED, as a field added
+ * to an event has always been: a replay sends a stored event as it was written, so one recorded before 1.10.0 replays
+ * without it (`docs/api/events.md` says so).
+ */
+const Replacing = Uuid.nullable().describe(
+  'The production instance this one was started to replace — the platform replacing a member that stopped while it was serving; null for an instance a deploy made.',
+)
+
 const InstanceDetail = z.strictObject({
   instanceId: Uuid.describe('The instance (`listInstances`).'),
   releaseId: Uuid.describe('The release it runs (`getRelease`).'),
@@ -177,6 +187,7 @@ const InstanceDetail = z.strictObject({
   environment: Kind,
   // The database's own enum, as the Instance representation reads it (P5a sitting 6).
   state: z.enum(instanceState.enumValues).describe('The state the instance moved to.'),
+  replacing: Replacing,
 })
 
 /**
@@ -322,9 +333,18 @@ export const EVENT_DETAIL_SCHEMAS = {
       instanceId: Uuid.describe('The instance that failed.'),
       releaseId: Uuid.describe('The release it ran.'),
       environment: Kind,
+      // FE-62 (the load rehearsal plan's Task 5): what the Incident is about, as `Incident.cause` says it — so a reader
+      // who may not read the Incident itself (a token, at a `high` app's staging or production) can tell a change that
+      // did not go live from a member that stopped. Required; a replay of one recorded before 1.10.0 lacks it.
+      cause: z
+        .enum(['deploy', 'exit', 'exit_stopped'])
+        .describe(
+          'What it is about, as the Incident’s `cause`: `deploy` — a deploy that never became healthy; `exit` — a production instance that stopped while it was serving, which the platform is replacing; `exit_stopped` — the same, with replacing stopped.',
+        ),
+      replacing: Replacing,
     })
     .describe(
-      'An Incident was recorded for a failed instance: its logs, redacted, and a prompt an agent can work from.',
+      'An Incident was recorded for a failed instance: its logs, redacted, and a prompt an agent can work from. `cause` says what it is about, and `replacing` whether the instance was the platform’s replacement of one that stopped.',
     ),
   'ai.key_rotated': z
     .strictObject({
@@ -810,6 +830,34 @@ export const EVENT_DETAIL_SCHEMAS = {
     })
     .describe(
       'A production-shaped rehearsal of the app’s CWL sign-in ran for the release serving staging, and passed or did not.',
+    ),
+  /**
+   * §24 (the load rehearsal plan's Task 5, Decision 11): a load rehearsal ENDED — by its run, or by the boot that found it
+   * left running. The numbers a person acts on and the reason; the whole record is `getLoadRehearsal`'s.
+   */
+  'load_rehearsal.completed': z
+    .strictObject({
+      loadRehearsalId: Uuid.describe('The load rehearsal (`getLoadRehearsal`).'),
+      releaseId: Uuid.describe('The release rehearsed.'),
+      state: z
+        .enum(['passed', 'failed', 'teardown_failed', 'abandoned'])
+        .describe(
+          'How it ended: `passed` or `failed`, judged; `teardown_failed` — staging could not be given back its own shape (it never counts as passed); `abandoned` — the control plane stopped, or the app was switched off, while it ran.',
+        ),
+      p95Ms: z
+        .number()
+        .nullable()
+        .describe('The 95th percentile, in milliseconds; null when nothing was loaded.'),
+      answeredRatio: z
+        .number()
+        .nullable()
+        .describe('The share of requests answered; null when nothing was loaded.'),
+      reason: z
+        .string()
+        .describe('Why it passed or did not — the first rule it broke, with the number.'),
+    })
+    .describe(
+      'A load rehearsal ended — passed, failed, or not judged — and staging was given back its own shape (or, for `teardown_failed`, could not be).',
     ),
   /**
    * §13 (P6a Task 10). **THE DIGEST, NOT THE DIFF.** The diff is on the approval row and is

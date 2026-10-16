@@ -5,6 +5,8 @@ import {
   draftPrivacyAssessment,
   getIamRegistration,
   getPrivacyAssessment,
+  loadRehearsalById,
+  loadRehearsalsOf,
   recordAssessmentSubmission,
   recordIamRegistration,
   recordIamSubmission,
@@ -17,7 +19,11 @@ import {
   submitterOf,
 } from '../../launch/index.js'
 import type { Db } from '../../db/index.js'
-import { assertCapability, assertStepUp } from '../../projects/index.js'
+import {
+  assertCapability,
+  assertStepUp,
+  AuthorizationError,
+} from '../../projects/index.js'
 import { requireSession } from '../actor.js'
 import { withdrawWhatItNoLongerAllows } from '../spec-validation.js'
 import { defineRoute, NO_BODY, NO_QUERY } from '../contract/route.js'
@@ -42,6 +48,8 @@ import {
   IamRegistration,
   LaunchReadiness,
   LaunchRecords,
+  LoadRehearsal,
+  LoadRehearsalList,
   PrivacyAssessment,
   RecordIamRegistrationRequest,
   RecordPrivacyAssessmentRequest,
@@ -50,6 +58,7 @@ import {
   SendLaunchRecordRequest,
   SendPrivacyAssessmentRequest,
   toIamRegistration,
+  toLoadRehearsal,
   toPrivacyAssessment,
   toRehearsal,
   type RecordPeople,
@@ -71,6 +80,63 @@ const ENVIRONMENT = (what: string) =>
   z
     .enum(['staging', 'production'])
     .describe(`Which registration ${what}: \`staging\` or \`production\`.`)
+
+/** One load rehearsal, as `getLoadRehearsal` answers a finished one — the document's example. */
+const LOAD_REHEARSAL_EXAMPLE = {
+  id: '0d5b6f4e-8c1a-4e7b-9a2d-3f6c1b8e4a90',
+  projectId: '11303e87-e32a-4264-9191-bc37307c218b',
+  releaseId: 'beefa3d6-c695-47e7-a632-ace8f5bd702a',
+  state: 'passed' as const,
+  audience: { scale: 'large_course' as const, burst: 'synchronised' as const },
+  profile: {
+    phases: [
+      { name: 'arrive', rps: 75, seconds: 60 },
+      { name: 'sustain', rps: 50, seconds: 300 },
+    ],
+    paths: ['/', '/healthz', '/login'],
+    timeoutMs: 10000,
+    pass: { answeredRatio: 0.99, p95Ms: 2000, achievedRatio: 0.9 },
+  },
+  granted: {
+    count: 3,
+    instanceIds: [
+      '6ac3e6d7-3080-4c70-8af6-376e447829f6',
+      '7bd4f7e8-4191-4d81-9b07-487f558930a7',
+      '8ce508f9-52a2-4e92-8c18-598066904ab8',
+    ],
+    resources: { environment: 'production' as const, cpu: 0.5, memory: '512Mi' },
+  },
+  evidence: {
+    reason:
+      '100% of requests answered, p95 0.01 s, at 54.2 requests a second; every instance stayed healthy',
+    requests: 19500,
+    answered: 19500,
+    answeredRatio: 1,
+    timeouts: 0,
+    achievedRps: 54.2,
+    p50Ms: 1.8,
+    p95Ms: 12.4,
+    p99Ms: 14.5,
+    durationMs: 360000,
+    phases: [
+      { name: 'arrive', asked: 75, achieved: 75.02, requests: 4500, answered: 4500 },
+      { name: 'sustain', asked: 50, achieved: 50, requests: 15000, answered: 15000 },
+    ],
+    byPath: {
+      '/': { '200': 6500 },
+      '/healthz': { '200': 6500 },
+      '/login': { '302': 6500 },
+    },
+    instanceExits: 0,
+    outOfMemory: false,
+    unhealthy: false,
+  },
+  runBy: '5604d74f-590f-41e9-a34f-75d343aec6f6',
+  createdAt: '2026-10-15T23:56:41.000Z',
+  finishedAt: '2026-10-16T00:02:48.000Z',
+  takenDownAt: '2026-10-16T00:02:48.000Z',
+  pollAfterSeconds: null,
+}
 
 /** §22 step 7 (P5a Task 15): what a first production launch still needs. */
 export const launchRoutes = [
@@ -649,7 +715,7 @@ export const launchRoutes = [
     tag: 'launch',
     summary: 'Run the pre-production rehearsal',
     description:
-      'Deploys the candidate release to production, registers its Service Provider with production-shaped values and completes one CWL sign-in, then takes the deployment down again and records pass or fail with the evidence — proving the registration’s shape, not UBC’s acceptance of it. The candidate answers production’s hostname on the public listener only while the sign-in runs; afterwards the hostname reaches nothing of the app’s, and production’s environment reads the rehearsal’s instance as `gone` (or `failed`, when the candidate never started). The owner, a collaborator or a platform administrator runs it in their own session, after a second sign-in (step-up) in the last ten minutes, or is refused `403 STEP_UP_REQUIRED`; a delegated token is refused `403 TOKEN_CREDENTIAL_REFUSED`, and anyone else is answered `404 NOT_FOUND`. One rehearsal of a project runs at a time (`REHEARSAL_RUNNING`), and none once the app has launched (`REHEARSAL_LAUNCHED`). If the deployment cannot be taken down, nothing is recorded and the answer is `500 REHEARSAL_TEARDOWN_FAILED`; running it again is the remedy. Up to ~90 s.',
+      'Deploys the candidate release to production, registers its Service Provider with production-shaped values and completes one CWL sign-in, then takes the deployment down again and records pass or fail with the evidence — proving the registration’s shape, not UBC’s acceptance of it. The candidate answers production’s hostname on the public listener only while the sign-in runs; afterwards the hostname reaches nothing of the app’s, and production’s environment reads the rehearsal’s instance as `gone` (or `failed`, when the candidate never started). The owner, a collaborator or a platform administrator runs it in their own session, after a second sign-in (step-up) in the last ten minutes, or is refused `403 STEP_UP_REQUIRED`; a delegated token is refused `403 TOKEN_CREDENTIAL_REFUSED`, and anyone else is answered `404 NOT_FOUND`. One rehearsal of a project runs at a time (`REHEARSAL_RUNNING`), none while its load rehearsal runs (`LOAD_REHEARSAL_RUNNING`), and none once the app has launched (`REHEARSAL_LAUNCHED`). If the deployment cannot be taken down, nothing is recorded and the answer is `500 REHEARSAL_TEARDOWN_FAILED`; running it again is the remedy. Up to ~90 s.',
     params: z.strictObject({ projectId: PATH.projectId }),
     query: NO_QUERY,
     body: NO_BODY,
@@ -677,6 +743,9 @@ export const launchRoutes = [
       'REHEARSAL_RUNNING',
       'REHEARSAL_TEARDOWN_FAILED',
       'RELEASE_DIGEST_MISSING',
+      // §24 (the load rehearsal plan's Task 5, Decision 6): not while the app's load rehearsal runs — the two exclude
+      // each other both ways.
+      'LOAD_REHEARSAL_RUNNING',
     ],
     examples: {
       response: {
@@ -752,6 +821,138 @@ export const launchRoutes = [
         )
       } finally {
         await withdrawWhatItNoLongerAllows(deps, params.projectId, 'a rehearsal')
+      }
+    },
+  }),
+  defineRoute({
+    operationId: 'runLoadRehearsal',
+    credential: 'session',
+    method: 'POST',
+    path: '/v1/projects/{projectId}/load-rehearsal',
+    tag: 'launch',
+    summary: 'Run the load rehearsal',
+    description:
+      'Gives staging production’s capacity for the app’s audience — production’s count of instances, at production’s resources, behind one balanced route — puts that audience’s arrival on it through the edge for a few minutes, watches the app, judges it against the pass mark, records what it measured, and gives staging back its own shape. For an app whose audience is a large course or the public; any other is refused `409 LOAD_REHEARSAL_NOT_NEEDED`. ANSWERED AT ONCE, `202`, with the record in state `running`: a run takes up to about ten minutes, so read it with `getLoadRehearsal` every `pollAfterSeconds` until its `state` is not `running`. It rehearses the release serving staging (`409 REHEARSAL_NO_CANDIDATE` when nothing does). One runs at a time across the platform (`409 LOAD_REHEARSAL_BUSY`, naming no other app), one per app (`409 LOAD_REHEARSAL_RUNNING`), and not while the app’s pre-production rehearsal runs (`409 REHEARSAL_RUNNING`); while it runs, every other deploy to the app’s staging, and that rehearsal, are refused `409 LOAD_REHEARSAL_RUNNING`. The owner, a collaborator or a platform administrator runs it in their own session, after a second sign-in (step-up) in the last ten minutes, or is refused `403 STEP_UP_REQUIRED`; a delegated token is refused `403 TOKEN_CREDENTIAL_REFUSED`, and anyone else is answered `404 NOT_FOUND`.',
+    params: z.strictObject({ projectId: PATH.projectId }),
+    query: NO_QUERY,
+    body: NO_BODY,
+    success: {
+      status: 202,
+      description:
+        'The run, started: its record in state `running`, with what it will put on the app and the mark it will be held to. A run that then fails is still a run — its record says why, in numbers — never a request error.',
+      schema: LoadRehearsal,
+    },
+    capability: 'launch:rehearse',
+    errors: [
+      'NOT_FOUND',
+      'TOKEN_CREDENTIAL_REFUSED',
+      'STEP_UP_REQUIRED',
+      'LOAD_REHEARSAL_NOT_NEEDED',
+      'LOAD_REHEARSAL_BUSY',
+      'LOAD_REHEARSAL_RUNNING',
+      'REHEARSAL_NO_CANDIDATE',
+      'REHEARSAL_RUNNING',
+    ],
+    examples: {
+      response: {
+        ...LOAD_REHEARSAL_EXAMPLE,
+        state: 'running' as const,
+        granted: null,
+        evidence: null,
+        finishedAt: null,
+        takenDownAt: null,
+        pollAfterSeconds: 10,
+      },
+    },
+    handler: async ({ deps, request, params }) => {
+      // A PERSON, in their own session (D24's person-only list): `requireSession` before the project is read, so a token
+      // learns nothing about which projects exist — D21's rehearsal's order.
+      const actor = requireSession(request)
+      await assertCapability(deps.db, actor, params.projectId, 'launch:rehearse')
+      // §20's STEP-UP: a run grants staging production's capacity and holds staging for its length, and a stolen session
+      // alone must not be enough to do that. After the capability, so a stranger is still `404`; before anything moves.
+      assertStepUp(actor, 'launch:rehearse')
+      return toLoadRehearsal(
+        await deps.loadRehearsals.start(
+          {
+            db: deps.db,
+            driver: deps.driver,
+            config: deps.config,
+            // THE SAME OBJECT THE DEPLOY ROUTE BUILDS, held equal by `tsc`: `DeployDeps` gaining a field turns this red.
+            deploy: {
+              secrets: deps.secrets,
+              appSecrets: deps.appSecrets,
+              sso: deps.sso,
+              blueprints: deps.blueprints,
+              ai: deps.ai,
+              catalogue: deps.catalogue,
+              bus: deps.bus,
+              retirer: deps.retirer,
+            },
+          },
+          { projectId: params.projectId, actor: { id: actor.userId } },
+        ),
+      )
+    },
+  }),
+  defineRoute({
+    operationId: 'getLoadRehearsal',
+    method: 'GET',
+    path: '/v1/projects/{projectId}/load-rehearsals/{loadRehearsalId}',
+    tag: 'launch',
+    summary: 'Read a load rehearsal',
+    description:
+      'One load rehearsal of the project: while it runs, its `state` is `running` and `pollAfterSeconds` says when to read it again; then what it measured, and whether it passed. A run of another project is answered `404 NOT_FOUND`.',
+    params: z.strictObject({
+      projectId: PATH.projectId,
+      loadRehearsalId: PATH.loadRehearsalId,
+    }),
+    query: NO_QUERY,
+    body: NO_BODY,
+    success: { status: 200, description: 'The load rehearsal.', schema: LoadRehearsal },
+    capability: 'project:read',
+    errors: ['NOT_FOUND'],
+    examples: { response: LOAD_REHEARSAL_EXAMPLE },
+    handler: async ({ deps, actor, params }) => {
+      await assertCapability(deps.db, actor, params.projectId, 'project:read')
+      const row = await loadRehearsalById(
+        deps.db,
+        params.projectId,
+        params.loadRehearsalId,
+      )
+      if (row === undefined)
+        throw new AuthorizationError(
+          'NOT_FOUND',
+          `no load rehearsal '${params.loadRehearsalId}' of this project`,
+        )
+      return toLoadRehearsal(row)
+    },
+  }),
+  defineRoute({
+    operationId: 'listLoadRehearsals',
+    method: 'GET',
+    path: '/v1/projects/{projectId}/load-rehearsals',
+    tag: 'launch',
+    summary: 'List the load rehearsals',
+    description:
+      'The project’s load rehearsals, the newest first — at most 20 — each as `getLoadRehearsal` answers it.',
+    params: z.strictObject({ projectId: PATH.projectId }),
+    query: NO_QUERY,
+    body: NO_BODY,
+    success: {
+      status: 200,
+      description: 'The load rehearsals, the newest first.',
+      schema: LoadRehearsalList,
+    },
+    capability: 'project:read',
+    errors: ['NOT_FOUND'],
+    examples: { response: { loadRehearsals: [LOAD_REHEARSAL_EXAMPLE] } },
+    handler: async ({ deps, actor, params }) => {
+      await assertCapability(deps.db, actor, params.projectId, 'project:read')
+      return {
+        loadRehearsals: (await loadRehearsalsOf(deps.db, params.projectId)).map(
+          toLoadRehearsal,
+        ),
       }
     },
   }),

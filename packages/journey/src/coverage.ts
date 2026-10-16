@@ -153,6 +153,18 @@ export const JOURNEY: readonly JourneyStep[] = [
     who: 'person',
     operations: ['runRehearsal'],
   },
+  // §24's load rehearsal (the load rehearsal plan's Task 5): a person starts it, in their session and stepped up; anyone
+  // who may read the project — an agent's token too — reads how it went, polling it while it runs.
+  {
+    step: 'Run the load rehearsal before a large course’s or a public app’s launch',
+    who: 'person',
+    operations: ['runLoadRehearsal'],
+  },
+  {
+    step: 'Read how a load rehearsal went, polling it while it runs',
+    who: 'either',
+    operations: ['getLoadRehearsal', 'listLoadRehearsals'],
+  },
   {
     step: 'Record that the Manifest team submitted each to UBC — or hand it back to its owner',
     who: 'administrator',

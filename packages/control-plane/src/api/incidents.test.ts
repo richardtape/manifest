@@ -298,3 +298,36 @@ describe('listIncidents — what each Incident is ABOUT (A1 Task 6; Incident.cau
     })
   })
 })
+
+describe('listIncidents — whether the instance was the platform’s replacement (FE-63)', () => {
+  it('answers `replacing` from the instance’s stored mark — the instance it was started for — and null for a deploy’s', async () => {
+    await withSetting('capable', async (ctx) => {
+      await incidentIn(ctx, ctx.productionEnvironmentId, undefined, 'exit')
+      await incidentIn(ctx, ctx.productionEnvironmentId)
+      const [stopped, replacement] = await ctx.db
+        .select({ instanceId: incidents.instanceId, cause: incidents.cause })
+        .from(incidents)
+        .orderBy(incidents.createdAt)
+      // The second Incident's instance is the platform's replacement of the first's — as the set watcher writes it.
+      await ctx.db
+        .update(instances)
+        .set({ replacing: stopped!.instanceId })
+        .where(eq(instances.id, replacement!.instanceId))
+      const res = await read(ctx, ctx.productionEnvironmentId, {})
+      expect(res.statusCode, res.body).toBe(200)
+      const listed = (
+        res.json() as {
+          incidents: { instanceId: string; cause: string; replacing: string | null }[]
+        }
+      ).incidents
+      expect(
+        Object.fromEntries(
+          listed.map((incident) => [incident.instanceId, incident.replacing]),
+        ),
+      ).toEqual({
+        [stopped!.instanceId]: null,
+        [replacement!.instanceId]: stopped!.instanceId,
+      })
+    })
+  })
+})

@@ -10,7 +10,8 @@ import {
   withEnvironmentLock,
   type Db,
 } from '../db/index.js'
-import type { StoredAudience } from '../projects/index.js'
+import { makeRedactor, publishEvent } from '../observability/index.js'
+import { personName, type StoredAudience } from '../projects/index.js'
 import {
   deployReleaseSet,
   shapeFor,
@@ -158,6 +159,55 @@ export async function runLoadRehearsal(
   // Handled here so a caller that has not awaited it yet cannot crash the process; `done` still rejects for whoever awaits it.
   done.catch(() => undefined)
   return { row, done }
+}
+
+/**
+ * THE RUNS THE CONTROL PLANE HAS UNDER WAY (the load rehearsal plan's Task 5): what `runLoadRehearsal`'s route starts a run
+ * through — the generator bound at boot, which the boot's pass 2⅞ reads too — and every run's end kept, so `idle()` waits
+ * for each (a test's reset drains them, as it drains builds and retires). A run's own failures are recorded on its row,
+ * so `idle()` never rejects.
+ */
+export interface LoadRehearsalRuns {
+  generator: LoadGenerator
+  start(
+    deps: Omit<LoadRehearsalDeps, 'generator' | 'watchIntervalMs'>,
+    input: { projectId: string; actor: { id: string } },
+  ): Promise<LoadRehearsalRow>
+  idle(): Promise<void>
+}
+
+export function createLoadRehearsalRuns(opts: {
+  generator: LoadGenerator
+  /** Every 5 s (Decision 8) unless a test reads faster. */
+  watchIntervalMs?: number
+}): LoadRehearsalRuns {
+  const underWay = new Set<Promise<unknown>>()
+  return {
+    generator: opts.generator,
+    async start(deps, input) {
+      const { row, done } = await runLoadRehearsal(
+        {
+          ...deps,
+          generator: opts.generator,
+          ...(opts.watchIntervalMs === undefined
+            ? {}
+            : { watchIntervalMs: opts.watchIntervalMs }),
+        },
+        input,
+      )
+      // `done` already carries its operator line and a handler (`runLoadRehearsal`); kept here only to be waited for.
+      const settled = done.then(
+        () => undefined,
+        () => undefined,
+      )
+      underWay.add(settled)
+      void settled.then(() => underWay.delete(settled))
+      return row
+    },
+    async idle() {
+      while (underWay.size > 0) await Promise.all([...underWay])
+    },
+  }
 }
 
 /**
@@ -407,7 +457,7 @@ async function run(deps: LoadRehearsalDeps, ctx: RunContext): Promise<LoadRehear
   // 7. STAGING GIVEN BACK ITS OWN SHAPE — and only then the row's end.
   const back = await giveStagingBack(deps, row, staging)
   if (back.outcome === 'archived')
-    return finish(db, row.id, 'abandoned', {
+    return finish(deps, row.id, 'abandoned', {
       ...outcome.evidence,
       reason:
         'the app was switched off while its load rehearsal ran, so staging was the archive’s to take down and ' +
@@ -417,22 +467,26 @@ async function run(deps: LoadRehearsalDeps, ctx: RunContext): Promise<LoadRehear
     console.error(
       `[load-rehearsal] ${row.id}: staging of ${hostname} was not given back its own shape`,
     )
-    return finish(db, row.id, 'teardown_failed', {
+    return finish(deps, row.id, 'teardown_failed', {
       ...outcome.evidence,
       reason: `${back.reason}. The run itself: ${outcome.evidence.reason}`,
       judged: { passed: outcome.state === 'passed', reason: outcome.evidence.reason },
     })
   }
-  return finish(db, row.id, outcome.state, outcome.evidence)
+  return finish(deps, row.id, outcome.state, outcome.evidence)
 }
 
-/** The row's end, written ONCE: only a row still `running` is ended (the boot may have ended it first). */
+/**
+ * The row's end, written ONCE: only a row still `running` is ended (the boot may have ended it first) — and the one place
+ * `load_rehearsal.completed` is published (Decision 11), for the run and the boot alike, by whichever ended the row.
+ */
 async function finish(
-  db: Db,
+  deps: Pick<LoadRehearsalDeps, 'db' | 'deploy'>,
   id: string,
   state: Exclude<LoadRehearsalRow['state'], 'running'>,
   evidence: Evidence,
 ): Promise<LoadRehearsalRow> {
+  const { db } = deps
   const [ended] = await db
     .update(loadRehearsals)
     .set({
@@ -443,7 +497,10 @@ async function finish(
     })
     .where(and(eq(loadRehearsals.id, id), eq(loadRehearsals.state, 'running')))
     .returning()
-  if (ended !== undefined) return ended
+  if (ended !== undefined) {
+    await announce(deps, ended)
+    return ended
+  }
   const [current] = await db
     .select()
     .from(loadRehearsals)
@@ -451,6 +508,53 @@ async function finish(
   if (current === undefined)
     throw new Error(`load rehearsal '${id}' vanished before it could be recorded`)
   return current
+}
+
+/**
+ * `load_rehearsal.completed` (Decision 11): the numbers a person acts on and the reason, its sentence naming who ran it
+ * and how it ended. Published inside the request that started the run when the run ends it — so an administrator's
+ * reason (§26) is on it — and with no actor when the boot does. The row is already ended: a publish that fails is an
+ * operator line, never the run's failure.
+ */
+async function announce(
+  deps: Pick<LoadRehearsalDeps, 'db' | 'deploy'>,
+  ended: LoadRehearsalRow,
+): Promise<void> {
+  const { db } = deps
+  try {
+    const evidence = ended.evidence ?? { reason: 'no reason was recorded' }
+    const ranBy = ended.runBy === null ? 'Someone' : await personName(db, ended.runBy)
+    const state = ended.state as Exclude<LoadRehearsalRow['state'], 'running'>
+    const humanMessage = {
+      passed: `${ranBy} ran the load rehearsal and it passed: ${evidence.reason}.`,
+      failed: `${ranBy} ran the load rehearsal and it did not pass: ${evidence.reason}.`,
+      teardown_failed: `${ranBy} ran the load rehearsal, and staging could not be given back its own shape afterwards, so it does not count: ${evidence.reason}.`,
+      abandoned: `The load rehearsal ${ranBy} ran was not finished: ${evidence.reason}.`,
+    }[state]
+    await publishEvent(
+      db,
+      deps.deploy.bus,
+      {
+        projectId: ended.projectId,
+        subject: `load-rehearsal:${ended.id}`,
+        type: 'load_rehearsal.completed',
+        machineDetail: {
+          loadRehearsalId: ended.id,
+          releaseId: ended.releaseId,
+          state,
+          p95Ms: evidence.p95Ms ?? null,
+          answeredRatio: evidence.answeredRatio ?? null,
+          reason: evidence.reason,
+        },
+        humanMessage,
+      },
+      makeRedactor([]),
+    )
+  } catch (error) {
+    console.error(
+      `[load-rehearsal] ${ended.id} ended '${ended.state}', but its load_rehearsal.completed could not be published: ${codeOf(error)}`,
+    )
+  }
 }
 
 /**
@@ -559,7 +663,7 @@ export async function takeDownLeftLoadRehearsals(
         const back = await giveStagingBack(deps, row, staging)
         if (back.outcome === 'not-given-back') throw new Error(back.reason)
       }
-      await finish(deps.db, row.id, 'abandoned', {
+      await finish(deps, row.id, 'abandoned', {
         reason:
           'the control plane stopped while this load rehearsal ran, so nothing was judged; at its next start the ' +
           'generator was removed and staging given back its own shape',
@@ -572,7 +676,7 @@ export async function takeDownLeftLoadRehearsals(
       console.error(
         `[boot] load rehearsal ${row.id} of ${staging.hostname} could not be taken down (${step}): ${codeOf(error)}`,
       )
-      await finish(deps.db, row.id, 'teardown_failed', {
+      await finish(deps, row.id, 'teardown_failed', {
         reason:
           `the control plane stopped while this load rehearsal ran, and at its next start the ${step} step of ` +
           'taking it down failed — what it granted may still serve staging; the next deploy to staging gives it back',
@@ -612,6 +716,20 @@ export async function latestLoadRehearsalFor(
     .orderBy(desc(loadRehearsals.createdAt), desc(loadRehearsals.id))
     .limit(1)
   return row
+}
+
+/** A project's load rehearsals, the newest first, at most `limit` (`listLoadRehearsals`). */
+export async function loadRehearsalsOf(
+  db: Db,
+  projectId: string,
+  limit = 20,
+): Promise<LoadRehearsalRow[]> {
+  return db
+    .select()
+    .from(loadRehearsals)
+    .where(eq(loadRehearsals.projectId, projectId))
+    .orderBy(desc(loadRehearsals.createdAt), desc(loadRehearsals.id))
+    .limit(limit)
 }
 
 /** One load rehearsal of a project — `undefined` for an id that is not that project's. */

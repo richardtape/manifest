@@ -17,6 +17,15 @@ import { describe, expect, it } from 'vitest'
  * and the list is where that claim is recorded.
  */
 const DELIBERATELY_UNCALLED: Record<string, string> = {
+  // §24's load rehearsal (the load rehearsal plan's Task 5, contract 1.10.0): its three operations are on the wire a
+  // sitting before the console's *Run the load rehearsal* — that plan's Task 7 (its sitting 5) adds their callers and
+  // removes these three parks in the same commit, which the stale-park check below holds it to.
+  runLoadRehearsal:
+    'the console’s Run the load rehearsal, on the launch checklist — the load rehearsal plan’s Task 7',
+  getLoadRehearsal:
+    'the console polls a run it started — the load rehearsal plan’s Task 7',
+  listLoadRehearsals:
+    'the console lists a project’s load rehearsals — the load rehearsal plan’s Task 7',
   // **EMPTY AGAIN SINCE THE LAUNCH PATH PLAN'S TASK 13 (sitting 10, 2026-10-01)**, and that is a
   // measurement: all 72 operations have a caller. Its Tasks 9–12 parked SIX here naming Task 13 as
   // their remover — `draftIamRegistration` and `submitIamRegistration`, `draftPrivacyAssessment` and

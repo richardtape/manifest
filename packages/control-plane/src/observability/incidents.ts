@@ -116,14 +116,21 @@ export async function listIncidents(
   db: Db,
   environmentId: string,
   opts: { limit?: number } = {},
-): Promise<(Incident & { releaseId: string })[]> {
-  return db
-    .select({ ...getTableColumns(incidents), releaseId: instances.releaseId })
-    .from(incidents)
-    .innerJoin(instances, eq(incidents.instanceId, instances.id))
-    .where(eq(instances.environmentId, environmentId))
-    .orderBy(desc(incidents.createdAt))
-    .limit(opts.limit ?? 20)
+): Promise<(Incident & { releaseId: string; replacing: string | null })[]> {
+  return (
+    db
+      // FE-63: whether the Incident's instance was the platform's replacement — its stored mark, by the join already made.
+      .select({
+        ...getTableColumns(incidents),
+        releaseId: instances.releaseId,
+        replacing: instances.replacing,
+      })
+      .from(incidents)
+      .innerJoin(instances, eq(incidents.instanceId, instances.id))
+      .where(eq(instances.environmentId, environmentId))
+      .orderBy(desc(incidents.createdAt))
+      .limit(opts.limit ?? 20)
+  )
 }
 
 /**

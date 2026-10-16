@@ -41,6 +41,7 @@ export type ErrorFamily =
   | 'LaunchTransitionError'
   | 'LaunchRecordError'
   | 'RehearsalError'
+  | 'LoadRehearsalError'
   | 'ProductionGateError'
   | 'OutputError'
   | 'AgentSessionError'
@@ -652,6 +653,35 @@ export const ERROR_CODES = {
       'The rehearsal ran, but could not take its production instance down afterwards (the message says what is left), so its result was not recorded.',
     remedy:
       'Run the rehearsal again: it deploys the candidate afresh and takes it down again. If it keeps failing, tell a platform administrator: the control plane’s operator log names the step that failed.',
+  },
+
+  // §24's load rehearsal (the load rehearsal plan's Task 5): one at a time across the platform, and staging the run's while
+  // it lasts. Each a state conflict, answered with the registry's status.
+  LOAD_REHEARSAL_BUSY: {
+    status: 409,
+    families: ['LoadRehearsalError'],
+    summary:
+      'Another app’s load rehearsal is running, and the platform runs one at a time so that two cannot measure each other — this one was not started and nothing was deployed.',
+    remedy:
+      'Try again in about ten minutes: a load rehearsal takes up to about ten minutes from start to end.',
+  },
+  LOAD_REHEARSAL_RUNNING: {
+    status: 409,
+    // Answered by the run itself, by D21's rehearsal (a `LoadRehearsalError`), and by a staging deploy (a `ReleaseError`:
+    // `releases/` is below `launch/`, so the deploy names the code through its own class).
+    families: ['LoadRehearsalError', 'ReleaseError'],
+    summary:
+      'A load rehearsal of this app is running and holds its staging environment, so nothing else is deployed to staging, and no other rehearsal of the app starts, until it ends — this request changed nothing.',
+    remedy:
+      'Wait for it to end — up to about ten minutes — by reading `getLoadRehearsal` until its `state` is no longer `running`; then send this again.',
+  },
+  LOAD_REHEARSAL_NOT_NEEDED: {
+    status: 409,
+    families: ['LoadRehearsalError'],
+    summary:
+      'A load rehearsal is for an app whose audience is a large course or the public; this app’s audience is smaller, so its launch does not ask for one and nothing was started.',
+    remedy:
+      'Nothing to do: the launch checklist (`getLaunchReadiness`) asks this app for no load rehearsal.',
   },
 
   // source/ — every one is 409 but SOURCE_UNREACHABLE, a 503 (the D5 plan's Task 8).

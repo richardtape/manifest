@@ -36,6 +36,7 @@ import { createEventBus, createStreamRegistry } from './observability/index.js'
 import {
   NullReviewer,
   createLoadGenerator,
+  createLoadRehearsalRuns,
   takeDownLeftLoadRehearsals,
   takeDownLeftRehearsals,
 } from './launch/index.js'
@@ -350,6 +351,19 @@ const source =
  */
 const sourceSync = createSerialQueue()
 
+/**
+ * §24'S LOAD GENERATOR (the load rehearsal plan's Tasks 2 and 4): vegeta's container, through the engine seam as D21's
+ * sign-in probe is — the engine, the platform CA and the resolver — and gone, whatever happens, within the hard stop
+ * (`MANIFEST_LOAD_HARD_STOP_SECONDS`). Handed to the server, whose `runLoadRehearsal` starts a run through it, and read by
+ * the boot's pass 2⅞ below, which removes what a stopped run left by its label.
+ */
+const loadGenerator = createLoadGenerator({
+  engine: createEngineClient({ socketPath: config.dockerSocket }),
+  caCertPath: config.caCertPath,
+  dnsServer: config.dnsServer,
+  hardStopMs: config.loadRehearsal.hardStopMs,
+})
+
 const app = await buildServer({
   db,
   config,
@@ -379,6 +393,8 @@ const app = await buildServer({
     dnsServer: config.dnsServer,
     credentials: config.rehearsalCredentials,
   }),
+  // §24's load rehearsal (the load rehearsal plan's Task 5): `runLoadRehearsal` starts each run through the generator above.
+  loadRehearsals: createLoadRehearsalRuns({ generator: loadGenerator }),
   // The same bus the registrar above publishes to, and `WS /v1/projects/:projectId/events`
   // subscribes to.
   bus,
@@ -408,19 +424,6 @@ const app = await buildServer({
     privateKeyPem: spKeypair.privateKeyPem,
     certificatePem: spKeypair.certificatePem,
   }),
-})
-
-/**
- * §24'S LOAD GENERATOR (the load rehearsal plan's Tasks 2 and 4): vegeta's container, through the engine seam as D21's
- * sign-in probe is — the engine, the platform CA and the resolver — and gone, whatever happens, within the hard stop
- * (`MANIFEST_LOAD_HARD_STOP_SECONDS`). Read by the boot's pass 2⅞ below, which removes what a stopped run left by its
- * label, and by the load rehearsal's run.
- */
-const loadGenerator = createLoadGenerator({
-  engine: createEngineClient({ socketPath: config.dockerSocket }),
-  caCertPath: config.caCertPath,
-  dnsServer: config.dnsServer,
-  hardStopMs: config.loadRehearsal.hardStopMs,
 })
 
 /**

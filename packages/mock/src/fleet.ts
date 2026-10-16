@@ -691,6 +691,11 @@ interface EnvironmentState {
   routes: string[]
   /** Newest first. */
   incidents: Incident[]
+  /**
+   * FE-63 (contract 1.10.0): the member each REPLACEMENT was started for, by the replacement's id — as the platform stores
+   * it on every member of a replacement set (`instances.replacing`); a member a person's deploy made is not here.
+   */
+  replacing: Record<string, string>
 }
 
 interface Request {
@@ -951,6 +956,7 @@ export function createFleet(t0: number): Fleet {
         instances: [],
         routes: [],
         incidents: [],
+        replacing: {},
       }
     }
     const environments: Record<EnvironmentKind, EnvironmentState> = {
@@ -985,6 +991,8 @@ export function createFleet(t0: number): Fleet {
       ago: number,
       members: number,
       actor: EventFrame['actor'],
+      /** The exited member a replacement set is for (FE-62/63) — the set watcher's deploys alone pass it. */
+      replacing?: string,
     ): void => {
       const e = environments[kind]
       // THE RETIRE PASS CHANGES A MEMBER'S STATE AND NOTHING ELSE: `lastSeenAt` is written by the deploy
@@ -1001,6 +1009,7 @@ export function createFleet(t0: number): Fleet {
           lastSeenAt: at(ago - 20_000),
         })
         e.routes.push(instance.id)
+        if (replacing !== undefined) e.replacing[instance.id] = replacing
         event(
           ago - 20_000,
           'instance.healthy',
@@ -1011,6 +1020,7 @@ export function createFleet(t0: number): Fleet {
             environmentId: e.environment.id,
             environment: kind,
             state: 'healthy',
+            replacing: replacing ?? null,
           },
           `${slug} is running in ${kind}.`,
           actor,
@@ -1067,6 +1077,7 @@ export function createFleet(t0: number): Fleet {
           environment: 'staging',
           state: 'failed',
           failedCheck,
+          replacing: null,
         },
         `${slug} did not start in staging.`,
         by(owner),
@@ -1080,6 +1091,8 @@ export function createFleet(t0: number): Fleet {
           instanceId: failed.id,
           releaseId: release.id,
           environment: 'staging',
+          cause: 'deploy',
+          replacing: null,
         },
         `${slug} failed to start in staging. The incident records what it printed and what changed since it last worked.`,
         by(owner),
@@ -1464,6 +1477,7 @@ export function createFleet(t0: number): Fleet {
           diffSinceHealthy: `Compared with release ${release.id}, the last release that was healthy in production:\n- this is that same release: its code and manifest.yaml have not changed since it was last healthy`,
           createdAt: at(exit.ago - 1000),
           cause: replaced ? 'exit' : 'exit_stopped',
+          replacing: e.replacing[member.id] ?? null,
           prompt: '',
         }
         incident.prompt = promptOf(incident, slug, 'production')
@@ -1477,6 +1491,8 @@ export function createFleet(t0: number): Fleet {
             instanceId: member.id,
             releaseId: release.id,
             environment: 'production',
+            cause: replaced ? 'exit' : 'exit_stopped',
+            replacing: e.replacing[member.id] ?? null,
           },
           replaced
             ? `${slug} stopped in production while it was serving. The incident records what it printed.`
@@ -1487,7 +1503,7 @@ export function createFleet(t0: number): Fleet {
         if (exit.replacedAfter !== null) {
           const startedAgo = exit.ago - exit.replacedAfter * 1000 - 5000
           started.push(clock(at(startedAgo)))
-          deploy('production', release, startedAgo, 2, null)
+          deploy('production', release, startedAgo, 2, null, member.id)
         }
       })
     }
@@ -1898,7 +1914,12 @@ export function createFleet(t0: number): Fleet {
             ? Number(a.lastSeenAt === null) - Number(b.lastSeenAt === null)
             : Date.parse(b.lastSeenAt) - Date.parse(a.lastSeenAt),
         )
-        .map((i) => ({ ...i, serving: e.routes.includes(i.id) && SERVING.has(i.state) })),
+        .map((i) => ({
+          ...i,
+          serving: e.routes.includes(i.id) && SERVING.has(i.state),
+          // FE-63 (contract 1.10.0): a member of a replacement set names the member it was started for.
+          replacing: e.replacing[i.id] ?? null,
+        })),
       truncated: false,
     }
   }

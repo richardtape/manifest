@@ -123,11 +123,21 @@ import { STREAM_PATH, streamPathItem } from './websocket.js'
  * `instances` (the mock's do). Tasks 6 and 7 of that plan add to this one bump (`instance.exited`, the readers), because
  * nothing is published between its tasks.
  *
+ * **`1.10.0` SINCE THE LOAD REHEARSAL PLAN'S TASK 5 (2026-10-15)**, its Decision 1: §24's load rehearsal as an operation —
+ * `runLoadRehearsal` (`POST /v1/projects/{projectId}/load-rehearsal`, session-only, `launch:rehearse`, stepped up) answers
+ * AT ONCE, `202`, with the `running` `LoadRehearsal`, polled by `getLoadRehearsal` (`pollAfterSeconds`) and listed by
+ * `listLoadRehearsals`; `409 LOAD_REHEARSAL_BUSY`, `LOAD_REHEARSAL_RUNNING` and `LOAD_REHEARSAL_NOT_NEEDED`, new —
+ * `LOAD_REHEARSAL_RUNNING` answered by `deploy` (a staging deploy while a run holds the project) and `runRehearsal` too;
+ * `load_rehearsal.completed`, new. With FE-62 — `incident.opened` gains `cause` and `replacing`, and the deploy's
+ * `instance.provisioning`/`starting`/`healthy`/`failed` gain `replacing` — and FE-63: `InstanceSummary.replacing` and
+ * `Incident.replacing`. Additive; each new field REQUIRED, so a client or fixture that BUILDS one must supply it (the
+ * mock's do), and an event recorded before 1.10.0 replays without it. That plan's Tasks 6 and 7 add to this one bump.
+ *
  * Three files carry it and two tests hold them together: this constant,
  * `packages/contract/openapi.json`'s `info.version` (GENERATED — `pnpm contract:write`,
  * never edited) and `packages/contract/package.json`.
  */
-export const CONTRACT_VERSION = '1.9.0'
+export const CONTRACT_VERSION = '1.10.0'
 
 type JsonSchema = Record<string, unknown>
 

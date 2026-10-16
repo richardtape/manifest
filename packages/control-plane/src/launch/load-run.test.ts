@@ -1,9 +1,11 @@
+import { randomUUID } from 'node:crypto'
 import { fileURLToPath } from 'node:url'
 import { and, asc, eq } from 'drizzle-orm'
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   appSpecs,
   db,
+  events,
   instances,
   loadRehearsals,
   projects,
@@ -413,6 +415,18 @@ async function stagingNow(fake: FakeDriver, hostname: string, environmentId: str
 const rowOf = async (id: string) =>
   (await db.select().from(loadRehearsals).where(eq(loadRehearsals.id, id)))[0]!
 
+/** Every `load_rehearsal.completed` published for a run — ONE per finished row (Decision 11). */
+const completedOf = async (id: string) =>
+  db
+    .select()
+    .from(events)
+    .where(
+      and(
+        eq(events.type, 'load_rehearsal.completed'),
+        eq(events.subject, `load-rehearsal:${id}`),
+      ),
+    )
+
 // --- the run ---------------------------------------------------------------------------------------------------------
 
 describe('runLoadRehearsal — grant, read back, load, watch, judge, record, take down', () => {
@@ -481,6 +495,21 @@ describe('runLoadRehearsal — grant, read back, load, watch, judge, record, tak
     expect(now[0]!.state).toBe('healthy')
     expect(ended.granted!.instanceIds).not.toContain(now[0]!.id)
     expect(fake.rateLimitExemption(f.staging.hostname)).toBeNull()
+    // ONE `load_rehearsal.completed`, from the run, naming who ran it and how it went (Task 5, Decision 11).
+    const completed = await completedOf(row.id)
+    expect(completed.map((event) => event.machineDetail)).toEqual([
+      {
+        loadRehearsalId: row.id,
+        releaseId: f.release.id,
+        state: 'passed',
+        p95Ms: 8,
+        answeredRatio: 1,
+        reason: ended.evidence!.reason,
+      },
+    ])
+    expect(completed[0]!.humanMessage).toBe(
+      `big-course ran the load rehearsal and it passed: ${ended.evidence!.reason}.`,
+    )
   })
 
   it('reads the candidate while staging serves N — the same release before, during (its first member crashed too) and after', async () => {
@@ -823,6 +852,47 @@ describe('the shape is narrow', () => {
 
 // --- the boot's half -------------------------------------------------------------------------------------------------
 
+describe('staging is the run’s while it lasts (Task 5, Decision 6; Review Focus 7)', () => {
+  it('refuses a staging deploy that names no run, and one that names another — LOAD_REHEARSAL_RUNNING, nothing started — while the run’s own pass; after it, one passes', async () => {
+    const fake = createFakeDriver()
+    const f = await staged(fake)
+    const rec = recording(fake)
+    const gen = fakeGenerator(rec.calls, { hangs: true })
+    const { done } = await runLoadRehearsal(depsFor(f, rec.driver, gen.generator), {
+      projectId: f.project.id,
+      actor: { id: f.user.id },
+    })
+    await gen.went
+    const stagingRows = async () =>
+      (await db.select().from(instances).where(eq(instances.environmentId, f.staging.id)))
+        .length
+    const before = await stagingRows()
+    for (const loadRehearsalId of [undefined, randomUUID()])
+      await expect(
+        deployReleaseSet(db, fake, config, f.deploy, {
+          releaseId: f.release.id,
+          environmentId: f.staging.id,
+          ...(loadRehearsalId === undefined ? {} : { loadRehearsalId }),
+        }),
+        String(loadRehearsalId),
+      ).rejects.toMatchObject({ name: 'ReleaseError', code: 'LOAD_REHEARSAL_RUNNING' })
+    expect(await stagingRows()).toBe(before)
+
+    // The run's own take-down passed (it carries the row's id): staging is back in its own shape.
+    gen.end()
+    const ended = await done
+    expect(ended.state).toBe('failed')
+    expect(await stagingNow(fake, f.staging.hostname, f.staging.id)).toHaveLength(1)
+    // The positive control: with no run holding staging, a deploy that names none passes.
+    const after = await deployReleaseSet(db, fake, config, f.deploy, {
+      releaseId: f.release.id,
+      environmentId: f.staging.id,
+    })
+    expect(after.instances.map((member) => member.state)).toEqual(['healthy'])
+    await f.retirer.idle()
+  })
+})
+
 describe('takeDownLeftLoadRehearsals — the boot’s pass 2⅞ (Decision 13)', () => {
   it('ends a run a stopped process left — its generator removed, the exemption cleared, staging given back, the row abandoned, one operator line', async () => {
     const fake = createFakeDriver()
@@ -866,6 +936,21 @@ describe('takeDownLeftLoadRehearsals — the boot’s pass 2⅞ (Decision 13)', 
     // The stopped run, ended for the test's sake: the row the boot ended stays as the boot wrote it.
     stopped.end()
     expect((await done).state).toBe('abandoned')
+    // ONE `load_rehearsal.completed` — the boot's, nobody acting — and the stopped run's own end publishes none.
+    const completed = await completedOf(row.id)
+    expect(completed).toHaveLength(1)
+    expect(completed[0]).toMatchObject({
+      actorUserId: null,
+      machineDetail: {
+        loadRehearsalId: row.id,
+        state: 'abandoned',
+        p95Ms: null,
+        answeredRatio: null,
+      },
+    })
+    expect(completed[0]!.humanMessage).toMatch(
+      /^The load rehearsal big-course ran was not finished: /,
+    )
   })
 
   it('finds nothing to do when no run is left', async () => {

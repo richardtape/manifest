@@ -82,6 +82,7 @@ const WIRE_CLASSES = [
   'LaunchTransitionError',
   'LaunchRecordError',
   'RehearsalError',
+  'LoadRehearsalError',
   'ProductionGateError',
   'OutputError',
   'AgentSessionError',

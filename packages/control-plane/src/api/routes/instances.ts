@@ -43,6 +43,7 @@ const EXAMPLE_LIST: z.input<typeof InstanceList> = {
       lastSeenAt: '2026-09-27T16:34:54.739Z',
       createdAt: '2026-09-27T16:34:54.702Z',
       serving: false,
+      replacing: null,
     },
     {
       id: '3124947b-b928-4e66-be25-59a427f96569',
@@ -53,6 +54,7 @@ const EXAMPLE_LIST: z.input<typeof InstanceList> = {
       lastSeenAt: '2026-09-27T16:34:54.691Z',
       createdAt: '2026-09-27T16:34:54.655Z',
       serving: true,
+      replacing: null,
     },
   ],
   truncated: false,
@@ -174,6 +176,8 @@ export const instanceRoutes = [
         instances: rows.map((row) => ({
           ...toInstance(row),
           serving: serving.has(row.id) && SERVING_STATES.has(row.state),
+          // FE-63: the platform's replacement of a member that stopped says so, from the stored mark.
+          replacing: row.replacing,
         })),
         truncated,
       }

@@ -54,7 +54,12 @@ export const InstanceSummary = representation(
       .describe(
         'Whether the environment’s hostname reaches this instance now — one of the instances it reaches: production runs as many as its audience needs, sandbox and staging one. A failed instance never serves.',
       ),
-  }).describe('An instance, and whether it is one of those serving.'),
+    replacing: Uuid.nullable().describe(
+      'The production instance this one was started to replace — the platform replacing a member that stopped while it was serving, which no person asked for; null for an instance a deploy made.',
+    ),
+  }).describe(
+    'An instance, whether it is one of those serving, and whether the platform started it to replace one that stopped.',
+  ),
 )
 
 export const InstanceList = representation(

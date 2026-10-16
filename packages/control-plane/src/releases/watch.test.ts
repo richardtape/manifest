@@ -408,6 +408,8 @@ describe('the set watcher — a production member that exits is replaced (A1 Tas
     expect(
       opened.map((event) => (event.machineDetail as { incidentId: string }).incidentId),
     ).toEqual([recorded[0]!.id])
+    // FE-62: it says what it is about, as the Incident does — a member that stopped, itself no replacement.
+    expect(opened[0]!.machineDetail).toMatchObject({ cause: 'exit', replacing: null })
 
     // THE REPLACEMENT: at once, a redeploy of the set naming the member it replaces.
     expect(delays).toEqual([0])
@@ -420,6 +422,35 @@ describe('the set watcher — a production member that exits is replaced (A1 Tas
       ['healthy', a!.id],
     ])
     expect((await servingSet(f)).map((row) => row.id)).toEqual(fresh.map((row) => row.id))
+    // FE-62: the replacement's deploy says it is one, member by member, on every instance event it publishes.
+    const replacementEvents = await db
+      .select()
+      .from(events)
+      .where(
+        and(
+          eq(events.projectId, f.project.id),
+          inArray(
+            events.subject,
+            fresh.map((row) => `instance:${row.id}`),
+          ),
+        ),
+      )
+    expect(
+      replacementEvents
+        .map((event) => [
+          event.type,
+          (event.machineDetail as { replacing: unknown }).replacing,
+        ])
+        .sort(),
+    ).toEqual(
+      fresh
+        .flatMap(() => [
+          ['instance.provisioning', a!.id],
+          ['instance.starting', a!.id],
+          ['instance.healthy', a!.id],
+        ])
+        .sort(),
+    )
     // The old pair — the dead member AND the survivor — retired after the drain.
     expect([await stateOf(a!.id), await stateOf(b!.id)]).toEqual(['gone', 'gone'])
     expect((await driver.listInstances(f.production.hostname)).sort()).toEqual(
@@ -520,6 +551,21 @@ describe('the set watcher — a production member that exits is replaced (A1 Tas
           )
       ).map((incident) => incident.cause),
     ).toEqual(['deploy'])
+    // FE-62: its incident.opened says it is a deploy's AND a replacement's — so a reader need not read the events' order.
+    const replacementOpened = await db
+      .select()
+      .from(events)
+      .where(and(eq(events.projectId, f.project.id), eq(events.type, 'incident.opened')))
+      .orderBy(asc(events.seq))
+    expect(
+      replacementOpened.map((event) => {
+        const detail = event.machineDetail as { cause: string; replacing: string | null }
+        return [detail.cause, detail.replacing]
+      }),
+    ).toEqual([
+      ['exit', null],
+      ['deploy', a!.id],
+    ])
 
     await round(f, watcher)
     await round(f, watcher)

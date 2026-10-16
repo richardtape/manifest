@@ -117,6 +117,31 @@ describe('listInstances — an environment’s instances (Task 3)', () => {
     })
   })
 
+  it('marks the platform’s replacement of a member that stopped (FE-63): `replacing` names the instance it was started for, null for a deploy’s', async () => {
+    await withProjectServer(async (ctx) => {
+      const first = await deployToStaging(ctx)
+      const second = await deployToStaging(ctx)
+      // As the set watcher writes it on every member of a replacement set.
+      await ctx.db
+        .update(instances)
+        .set({ replacing: first.id })
+        .where(eq(instances.id, second.id))
+      const res = await ctx.app.inject({
+        method: 'GET',
+        url: `/v1/environments/${ctx.stagingEnvironmentId}/instances`,
+        cookies: ctx.ownerCookies,
+      })
+      expect(res.statusCode, res.body).toBe(200)
+      const listed = (
+        res.json() as { instances: { id: string; replacing: string | null }[] }
+      ).instances
+      expect(Object.fromEntries(listed.map((i) => [i.id, i.replacing]))).toEqual({
+        [first.id]: null,
+        [second.id]: first.id,
+      })
+    })
+  })
+
   // `servingInstanceOf` falls back to the newest instance of ANY state when no Route record
   // exists — so an environment whose only deploy failed would name the failed one (P6b Task 6).
   it('marks no instance serving when the only deploy failed', async () => {

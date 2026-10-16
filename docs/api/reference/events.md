@@ -77,7 +77,8 @@ A deploy made an instance and is binding its services — the first step of a de
   "releaseId": "6f1c1d2e-8a4b-4c3d-9e2f-1a2b3c4d5e6f",
   "environmentId": "6f1c1d2e-8a4b-4c3d-9e2f-1a2b3c4d5e6f",
   "environment": "staging",
-  "state": "provisioning"
+  "state": "provisioning",
+  "replacing": null
 }
 ```
 
@@ -91,7 +92,8 @@ The instance’s services are bound and the runtime is starting it, beside whate
   "releaseId": "6f1c1d2e-8a4b-4c3d-9e2f-1a2b3c4d5e6f",
   "environmentId": "6f1c1d2e-8a4b-4c3d-9e2f-1a2b3c4d5e6f",
   "environment": "staging",
-  "state": "starting"
+  "state": "starting",
+  "replacing": null
 }
 ```
 
@@ -105,7 +107,8 @@ The instance passed its health check and now serves the environment, with the re
   "releaseId": "6f1c1d2e-8a4b-4c3d-9e2f-1a2b3c4d5e6f",
   "environmentId": "6f1c1d2e-8a4b-4c3d-9e2f-1a2b3c4d5e6f",
   "environment": "staging",
-  "state": "healthy"
+  "state": "healthy",
+  "replacing": null
 }
 ```
 
@@ -120,20 +123,23 @@ The instance never became healthy, or another deployed with it did not — whate
   "environmentId": "6f1c1d2e-8a4b-4c3d-9e2f-1a2b3c4d5e6f",
   "environment": "staging",
   "state": "failed",
-  "failedCheck": "health: GET /healthz on port 3000 — connection refused"
+  "failedCheck": "health: GET /healthz on port 3000 — connection refused",
+  "replacing": null
 }
 ```
 
 ## `incident.opened`
 
-An Incident was recorded for a failed instance: its logs, redacted, and a prompt an agent can work from.
+An Incident was recorded for a failed instance: its logs, redacted, and a prompt an agent can work from. `cause` says what it is about, and `replacing` whether the instance was the platform’s replacement of one that stopped.
 
 ```json
 {
   "incidentId": "6f1c1d2e-8a4b-4c3d-9e2f-1a2b3c4d5e6f",
   "instanceId": "6f1c1d2e-8a4b-4c3d-9e2f-1a2b3c4d5e6f",
   "releaseId": "6f1c1d2e-8a4b-4c3d-9e2f-1a2b3c4d5e6f",
-  "environment": "staging"
+  "environment": "staging",
+  "cause": "deploy",
+  "replacing": null
 }
 ```
 
@@ -484,6 +490,21 @@ A production-shaped rehearsal of the app’s CWL sign-in ran for the release ser
   "releaseId": "6f1c1d2e-8a4b-4c3d-9e2f-1a2b3c4d5e6f",
   "passed": true,
   "attributeCount": 2
+}
+```
+
+## `load_rehearsal.completed`
+
+A load rehearsal ended — passed, failed, or not judged — and staging was given back its own shape (or, for `teardown_failed`, could not be).
+
+```json
+{
+  "loadRehearsalId": "6f1c1d2e-8a4b-4c3d-9e2f-1a2b3c4d5e6f",
+  "releaseId": "6f1c1d2e-8a4b-4c3d-9e2f-1a2b3c4d5e6f",
+  "state": "passed",
+  "p95Ms": 12.4,
+  "answeredRatio": 1,
+  "reason": "100% of requests answered, p95 0.01 s, at 54.2 requests a second; every instance stayed healthy"
 }
 ```
 

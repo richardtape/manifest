@@ -31,6 +31,9 @@ export const Incident = representation(
         .describe(
           'What it is about: `deploy` — a deploy that never became healthy; `exit` — a production instance that stopped while it was serving, which the platform is replacing (its `instance.exited` says when); `exit_stopped` — the same, with replacing stopped (three replacements this hour, or one refused), so nothing more is started until the app is deployed again. Incidents recorded before exits were watched read `deploy`.',
         ),
+      replacing: Uuid.nullable().describe(
+        'When the instance was the platform’s replacement of a production member that stopped — which no person asked for — the instance it was started to replace; null for an instance a deploy made. A replacement that never became healthy reads `cause: deploy` with this set.',
+      ),
       prompt: z
         .string()
         .describe(
@@ -53,7 +56,7 @@ export const IncidentList = representation(
 )
 
 export function toIncident(
-  row: IncidentRow & { releaseId: string },
+  row: IncidentRow & { releaseId: string; replacing: string | null },
   prompt: string,
 ): z.input<typeof Incident> {
   return {
@@ -66,6 +69,7 @@ export function toIncident(
     diffSinceHealthy: row.diffSinceHealthy,
     createdAt: row.createdAt.toISOString(),
     cause: row.cause,
+    replacing: row.replacing,
     prompt,
   }
 }

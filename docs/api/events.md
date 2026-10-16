@@ -122,7 +122,7 @@ Each type, and the one sentence that says what it means; *Event types* has an ex
 | `instance.starting` | The instance’s services are bound and the runtime is starting it, beside whatever is already serving. |
 | `instance.healthy` | The instance passed its health check and now serves the environment, with the rest of its set; a deploy has succeeded. |
 | `instance.failed` | The instance never became healthy, or another deployed with it did not — whatever was already serving keeps serving — and an Incident records why, on the instance that failed its own check. |
-| `incident.opened` | An Incident was recorded for a failed instance: its logs, redacted, and a prompt an agent can work from. |
+| `incident.opened` | An Incident was recorded for a failed instance: its logs, redacted, and a prompt an agent can work from. `cause` says what it is about, and `replacing` whether the instance was the platform’s replacement of one that stopped. |
 | `ai.key_rotated` | The app’s AI key was replaced by a deploy that became healthy. The key itself is never in an event. |
 | `ai.models_withdrawn` | A running app’s AI key lost models now approved only below its data’s level — or was revoked, when nothing it declared is still allowed. Checked when the platform starts. The key itself is never in an event. |
 | `instance.retiring` | An instance a deploy replaced is finishing the requests it already had, before it stops. |
@@ -148,6 +148,7 @@ Each type, and the one sentence that says what it means; *Event types* has an ex
 | `iam_registration.drafted` | Manifest drafted the app’s staging or production registration request for a person to send to UBC IAM. Nothing was sent; the draft is on the record. |
 | `privacy_assessment.drafted` | Manifest drafted the app’s privacy impact assessment for a person to complete and send to UBC’s Privacy Office. Nothing was sent; the draft is on the record. |
 | `rehearsal.completed` | A production-shaped rehearsal of the app’s CWL sign-in ran for the release serving staging, and passed or did not. |
+| `load_rehearsal.completed` | A load rehearsal ended — passed, failed, or not judged — and staging was given back its own shape (or, for `teardown_failed`, could not be). |
 | `release.approved` | An administrator approved a release for production, bound to the image digest it froze. |
 | `release.approval_rejected` | An administrator rejected a release for production, which is final for that release; the sentence carries their reason. |
 | `approval.requested` | A person asked an administrator to approve the release serving staging for production. It waits in the administrators’ queue until an administrator decides, or another release serves staging. |

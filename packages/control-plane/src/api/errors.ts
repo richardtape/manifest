@@ -23,6 +23,7 @@ import { LaunchReadiness } from './representations/launch.js'
 import { Limit, StartedSession } from './representations/errors.js'
 import {
   LaunchRecordError,
+  LoadRehearsalError,
   RehearsalError,
   LaunchTransitionError,
   // §13's gate moved to `launch/` in P6a Task 7, with `assertLaunchable` that throws it.
@@ -834,6 +835,15 @@ function mapError(error: unknown): { status: number; body: UnsentRefusal } {
   // is not at fault, the platform could not finish. `NOT_FOUND` is raised as an `AuthorizationError`
   // by the route before this, so it is not in this family.
   if (error instanceof RehearsalError) {
+    return {
+      status: ERROR_CODES[error.code].status,
+      body: { error: { code: error.code, message: error.message } },
+    }
+  }
+
+  // §24's load rehearsal (the load rehearsal plan's Task 5): every refusal a state conflict — another app's run, this
+  // app's, an audience that needs none — each code's status the registry's.
+  if (error instanceof LoadRehearsalError) {
     return {
       status: ERROR_CODES[error.code].status,
       body: { error: { code: error.code, message: error.message } },

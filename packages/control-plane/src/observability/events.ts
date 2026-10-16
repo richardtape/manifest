@@ -123,6 +123,8 @@ export const EVENT_TYPES = [
   'privacy_assessment.drafted',
   /** D21 as R2 redefines it (P6a Task 14): a production-shaped rehearsal ran, and passed or did not. */
   'rehearsal.completed',
+  /** §24 (the load rehearsal plan's Task 5): a load rehearsal ended — by its run, or at the next boot. */
+  'load_rehearsal.completed',
   /** §13 (P6a Task 10): an administrator approved this release for production, bound to its digest. */
   'release.approved',
   /** The other answer, and a separate type so a client can switch on it rather than read a field. */

@@ -1,6 +1,7 @@
 import { z } from 'zod/v4'
 import {
   iamRegistrationState,
+  LOAD_REHEARSAL_STATES,
   privacyAssessmentState,
   RECORDED_IAM_STATES,
   RECORDED_PIA_STATES,
@@ -10,6 +11,7 @@ import {
   readAssessmentDraft,
   readPackage,
   type IamRegistrationRow,
+  type LoadRehearsalRow,
   type PrivacyAssessmentRow,
   type RehearsalRow,
 } from '../../launch/index.js'
@@ -848,5 +850,237 @@ export function toRehearsal(row: RehearsalRow): z.infer<typeof Rehearsal> {
     attributes: row.attributes,
     evidence: row.evidence,
     ranAt: row.ranAt.toISOString(),
+  }
+}
+
+/** A run is polled this often while it lasts (the load rehearsal plan's Decision 7): about ten minutes, read every ten seconds. */
+const LOAD_REHEARSAL_POLL_SECONDS = 10
+
+const LoadPhaseRead = z
+  .object({
+    name: z
+      .string()
+      .describe(
+        '`arrive` then `sustain` for a synchronised audience; `ramp-1` to `ramp-5` for a steady one.',
+      ),
+    rps: z.number().describe('The requests a second asked for.'),
+    seconds: z.number().int().describe('For how long.'),
+  })
+  .describe('One phase of the arrival, as asked.')
+
+export const LoadRehearsal = representation(
+  'LoadRehearsal',
+  z
+    .object({
+      id: Uuid.describe('The load rehearsal (`getLoadRehearsal`).'),
+      projectId: Uuid.describe('Its project.'),
+      releaseId: Uuid.describe(
+        'The release rehearsed — the one serving staging when it started, the launch candidate.',
+      ),
+      state: z
+        .enum(LOAD_REHEARSAL_STATES)
+        .describe(
+          '`running` while it lasts — read it again after `pollAfterSeconds`; then `passed` or `failed`, judged; `teardown_failed` when staging could not be given back its own shape afterwards (the next staging deploy gives it back, and the run never counts as passed); `abandoned` when the control plane stopped, or the app was switched off, while it ran.',
+        ),
+      audience: z
+        .object({
+          scale: z
+            .enum(['large_course', 'public'])
+            .describe('The audience’s size, as rehearsed.'),
+          burst: z
+            .enum(['steady', 'synchronised'])
+            .describe('How the audience arrives, as rehearsed.'),
+        })
+        .describe(
+          'The audience it was run for — a later answer of a larger audience asks for another.',
+        ),
+      profile: z
+        .object({
+          phases: z.array(LoadPhaseRead).describe('The arrival, phase by phase.'),
+          paths: z
+            .array(z.string())
+            .describe(
+              'The paths each arriving person asks for: the app’s front page, its health path and, for an app that signs people in, its sign-in.',
+            ),
+          timeoutMs: z
+            .number()
+            .int()
+            .describe('How long each request may take before it counts as not answered.'),
+          pass: z
+            .object({
+              answeredRatio: z
+                .number()
+                .describe(
+                  'The share of requests that must be answered — 0.99 by default.',
+                ),
+              p95Ms: z
+                .number()
+                .describe(
+                  'The 95th percentile must be under this many milliseconds — 2000 by default.',
+                ),
+              achievedRatio: z
+                .number()
+                .describe(
+                  'The share of the asked rate the load must reach, or the run fails as unable to measure the app — 0.9 by default.',
+                ),
+            })
+            .describe('The pass mark.'),
+        })
+        .describe(
+          'What was put on the app, and the mark it was held to — the platform’s settings when it ran.',
+        ),
+      granted: z
+        .object({
+          count: z
+            .number()
+            .int()
+            .describe(
+              'How many instances served staging when the load began — production’s count for the audience.',
+            ),
+          instanceIds: z.array(Uuid).describe('Those instances (`listInstances`).'),
+          resources: z
+            .object({
+              environment: z
+                .enum(['sandbox', 'staging', 'production'])
+                .describe('Whose resources they ran with — production’s.'),
+              cpu: z.number().describe('CPUs each.'),
+              memory: z.string().describe('Memory each.'),
+            })
+            .describe('What each instance was given.'),
+        })
+        .nullable()
+        .describe(
+          'Production’s shape on staging, as READ BACK from what served — null until it is read. A count under production’s means the shape could not start, and nothing was loaded.',
+        ),
+      evidence: z
+        .object({
+          reason: z
+            .string()
+            .describe(
+              'Why it passed or did not, in the platform’s words — the first rule it broke, with the number.',
+            ),
+          requests: z.number().int().optional().describe('Every request sent.'),
+          answered: z
+            .number()
+            .int()
+            .optional()
+            .describe(
+              'Those answered: a status below 500 other than 429, within the timeout.',
+            ),
+          answeredRatio: z.number().optional().describe('`answered` over `requests`.'),
+          timeouts: z.number().int().optional().describe('Requests that timed out.'),
+          achievedRps: z
+            .number()
+            .optional()
+            .describe('The rate the load actually reached, a second.'),
+          p50Ms: z.number().optional().describe('The median, in milliseconds.'),
+          p95Ms: z.number().optional().describe('The 95th percentile, in milliseconds.'),
+          p99Ms: z.number().optional().describe('The 99th percentile, in milliseconds.'),
+          durationMs: z.number().optional().describe('How long the load ran.'),
+          phases: z
+            .array(
+              z
+                .object({
+                  name: z.string().describe('The phase.'),
+                  asked: z.number().describe('The rate asked, a second.'),
+                  achieved: z.number().describe('The rate reached, a second.'),
+                  requests: z.number().int().describe('Requests sent in it.'),
+                  answered: z.number().int().describe('Those answered.'),
+                })
+                .describe('One phase, as it ran.'),
+            )
+            .optional()
+            .describe('Each phase, as it ran.'),
+          byPath: z
+            .record(z.string(), z.record(z.string(), z.number().int()))
+            .optional()
+            .describe(
+              'For each path, how many requests got each status (`0` for none at all) — where a failure was, never a rule of its own.',
+            ),
+          instanceExits: z
+            .number()
+            .int()
+            .optional()
+            .describe('How many instances exited while the load ran.'),
+          outOfMemory: z
+            .boolean()
+            .optional()
+            .describe('Whether an instance ran out of memory while the load ran.'),
+          unhealthy: z
+            .boolean()
+            .optional()
+            .describe('Whether an instance failed its health check while the load ran.'),
+          judged: z
+            .object({
+              passed: z.boolean().describe('Whether the run itself met the mark.'),
+              reason: z.string().describe('Its reason.'),
+            })
+            .optional()
+            .describe(
+              'For a `teardown_failed` run, how the load itself was judged — it never counts as passed.',
+            ),
+        })
+        .nullable()
+        .describe(
+          'What it measured — null while it runs. Counts and timings only, never a response.',
+        ),
+      runBy: Uuid.nullable().describe(
+        'The person who ran it (`listMembers` names them); null when that person’s account is gone.',
+      ),
+      createdAt: Timestamp.describe('When it was started.'),
+      finishedAt: Timestamp.nullable().describe('When it ended; null while it runs.'),
+      takenDownAt: Timestamp.nullable().describe(
+        'When staging was given back its own shape; null while it runs, and for a `teardown_failed` run.',
+      ),
+      pollAfterSeconds: z
+        .number()
+        .int()
+        .nullable()
+        .describe(
+          'While it runs, read it again (`getLoadRehearsal`) after this many seconds — a run takes up to about ten minutes; null once it has ended.',
+        ),
+    })
+    .describe(
+      'A load rehearsal: staging given production’s capacity for the app’s audience, that audience’s arrival put on it through the edge for a few minutes, the app watched and judged against a stated mark — and staging given back its own shape.',
+    ),
+)
+
+export const LoadRehearsalList = representation(
+  'LoadRehearsalList',
+  z
+    .object({
+      loadRehearsals: z
+        .array(LoadRehearsal)
+        .describe('The project’s load rehearsals, the newest first — at most 20.'),
+    })
+    .describe('A project’s load rehearsals, the newest first.'),
+)
+
+export function toLoadRehearsal(row: LoadRehearsalRow): z.input<typeof LoadRehearsal> {
+  return {
+    id: row.id,
+    projectId: row.projectId,
+    releaseId: row.releaseId,
+    state: row.state,
+    audience: { scale: row.scale, burst: row.burst },
+    profile: row.profile,
+    granted:
+      row.granted === null
+        ? null
+        : {
+            count: row.granted.count,
+            instanceIds: row.granted.instanceIds,
+            resources: {
+              environment: row.granted.resources.environment,
+              cpu: row.granted.resources.cpu,
+              memory: row.granted.resources.memory,
+            },
+          },
+    evidence: row.state === 'running' ? null : row.evidence,
+    runBy: row.runBy,
+    createdAt: row.createdAt.toISOString(),
+    finishedAt: row.finishedAt?.toISOString() ?? null,
+    takenDownAt: row.takenDownAt?.toISOString() ?? null,
+    pollAfterSeconds: row.state === 'running' ? LOAD_REHEARSAL_POLL_SECONDS : null,
   }
 }

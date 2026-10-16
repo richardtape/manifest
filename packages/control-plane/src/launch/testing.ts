@@ -16,6 +16,7 @@ import { manifestSchema } from '../spec/index.js'
 import { mintSpKeypair, publicHalf, type SpCertificate } from '../sso/index.js'
 import { assembleAssessment, readAssessmentDraft, type GapAnswer } from './assessment.js'
 import { assemblePackage } from './package.js'
+import type { LoadGenerator, LoadPhase, LoadReport, LoadTarget } from './load.js'
 import type {
   IamRegistrationRow,
   PrivacyAssessmentRow,
@@ -287,4 +288,95 @@ export async function stagedRelease(
     instanceIds: [instance!.id],
   })
   return { releaseId: release!.id, imageDigest }
+}
+
+/**
+ * A CLEAN LOAD of the phases asked (the load rehearsal plan's Task 5): every request answered, quick, each phase at its
+ * rate — a report `judge` passes. The fake generator below answers it; `load-run.test.ts` keeps its own, richer one.
+ */
+export function passingLoadReport(target: LoadTarget, phases: LoadPhase[]): LoadReport {
+  const reports = phases.map((phase) => ({
+    name: phase.name,
+    asked: phase.rps,
+    achieved: phase.rps + 0.01,
+    requests: phase.rps * phase.seconds,
+    answered: phase.rps * phase.seconds,
+    statusCounts: { '200': phase.rps * phase.seconds },
+    p50Ms: 2,
+    p95Ms: 8,
+    p99Ms: 15,
+  }))
+  const requests = reports.reduce((sum, phase) => sum + phase.requests, 0)
+  const each = Math.floor(requests / target.paths.length)
+  return {
+    phases: reports,
+    p50Ms: 2,
+    p95Ms: 8,
+    p99Ms: 15,
+    requests,
+    answered: requests,
+    timeouts: 0,
+    achievedRps: 50,
+    answeredRatio: 1,
+    byPath: Object.fromEntries(
+      target.paths.map((path, i) => [
+        path,
+        { '200': i === 0 ? requests - each * (target.paths.length - 1) : each },
+      ]),
+    ),
+    durationMs: 360_000,
+  }
+}
+
+/**
+ * vegeta's container for a ROUTE test (the load rehearsal plan's Task 5): `start` answers an address, and the load
+ * `go()` begins waits until the test calls `open()` — so a test can act WHILE a run holds staging — then reports
+ * `passingLoadReport`. `removeLeft` ends a load still waiting, rejected, as removing the real container does.
+ */
+export function gatedLoadGenerator(): {
+  generator: LoadGenerator
+  /** Lets every load begun (and every one begun later) end. */
+  open(): void
+  /** Resolves once a load has begun — the run has granted, read back and exempted. */
+  went: Promise<void>
+} {
+  let opened!: () => void
+  const gate = new Promise<void>((resolve) => {
+    opened = resolve
+  })
+  let wentAhead!: () => void
+  const went = new Promise<void>((resolve) => {
+    wentAhead = resolve
+  })
+  const waiting = new Map<string, (error: Error) => void>()
+  const generator: LoadGenerator = {
+    async start(target, phases, labels) {
+      let settle!: (report: LoadReport) => void
+      let fail!: (error: Error) => void
+      const done = new Promise<LoadReport>((resolve, reject) => {
+        settle = resolve
+        fail = reject
+      })
+      waiting.set(labels.loadRehearsalId, fail)
+      return {
+        address: '10.89.0.99',
+        async go() {
+          wentAhead()
+          void gate.then(() => {
+            waiting.delete(labels.loadRehearsalId)
+            settle(passingLoadReport(target, phases))
+          })
+        },
+        done,
+      }
+    },
+    async removeLeft(loadRehearsalId) {
+      const fail = waiting.get(loadRehearsalId)
+      if (fail === undefined) return 0
+      waiting.delete(loadRehearsalId)
+      fail(new Error('the load generator’s container was removed'))
+      return 1
+    },
+  }
+  return { generator, open: () => opened(), went }
 }

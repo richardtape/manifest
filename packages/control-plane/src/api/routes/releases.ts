@@ -1074,7 +1074,7 @@ export const releaseRoutes = [
     tag: 'delivery',
     summary: 'Deploy a release to an environment',
     description:
-      'Deploys a release, answering once the new instances serve or one has failed with an Incident — a failed deploy is a `200` whose `state` is `failed`. Production runs as many instances as its audience needs (one for `solo`, two for `class`, three for `large_course` and `public`), sandbox and staging one; if any one fails, none serves. The answer is ONE instance of the set: the one that failed, or otherwise the first — the instance `getEnvironment`’s `instance` names; read the whole set from `getEnvironment`’s `instances`. The previous instances serve until the new ones are proved, then drain. Up to ~90 s when a release never becomes ready. Production takes only the release serving staging and answers `409` with the launch checklist (`getLaunchReadiness`) until it is met; it needs a recent step-up in a session, and a delegated token’s request becomes a pending action (`TOKEN_ACTION_PENDING`).',
+      'Deploys a release, answering once the new instances serve or one has failed with an Incident — a failed deploy is a `200` whose `state` is `failed`. Production runs as many instances as its audience needs (one for `solo`, two for `class`, three for `large_course` and `public`), sandbox and staging one; if any one fails, none serves. The answer is ONE instance of the set: the one that failed, or otherwise the first — the instance `getEnvironment`’s `instance` names; read the whole set from `getEnvironment`’s `instances`. The previous instances serve until the new ones are proved, then drain. Up to ~90 s when a release never becomes ready. Production takes only the release serving staging and answers `409` with the launch checklist (`getLaunchReadiness`) until it is met; it needs a recent step-up in a session, and a delegated token’s request becomes a pending action (`TOKEN_ACTION_PENDING`). While the app’s load rehearsal runs, a staging deploy is refused `409 LOAD_REHEARSAL_RUNNING`.',
     params: EnvironmentParams,
     query: NO_QUERY,
     body: DeployRequest,
@@ -1122,6 +1122,9 @@ export const releaseRoutes = [
       'RELEASE_MODEL_CLASSIFICATION_TOO_LOW',
       'RELEASE_MODEL_UNCLASSIFIED',
       'AI_BACKEND_UNAVAILABLE',
+      // §24 (the load rehearsal plan's Task 5): a load rehearsal holds the app's staging while it runs, so any other
+      // staging deploy — a person's or a token's — is refused, and nothing is started.
+      'LOAD_REHEARSAL_RUNNING',
     ],
     examples: {
       request: { releaseId: '87155b5c-f7d8-4519-9042-cc5fa8e2d352' },
@@ -1259,6 +1262,7 @@ export const releaseRoutes = [
               'This app has never been healthy in staging, so there is no working release to compare this one with.',
             createdAt: '2026-09-26T21:47:38.803Z',
             cause: 'deploy',
+            replacing: null,
             prompt:
               'The application "chem-labs" failed to start in its staging environment.\n\nWhat the platform checked: health: GET /healthz on port 3000 — the driver reported the instance as failed\nHow it ended: the platform reports the instance as failed\n\nWhat changed since the last time it starte …',
           },

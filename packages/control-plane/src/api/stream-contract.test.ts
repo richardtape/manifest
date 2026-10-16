@@ -60,6 +60,9 @@ const PUBLISHED_ELSEWHERE = {
   // publishing task removes the entry, and nothing went red to make it, because this
   // lifecycle never reaches production.
   'rehearsal.completed': 'releases/production.docker.test.ts — runRehearsal, real IdP',
+  // The load rehearsal plan's Task 5: published when a load rehearsal ends, which this lifecycle never starts.
+  'load_rehearsal.completed':
+    'api/load-rehearsal.test.ts — runLoadRehearsal, and launch/load-run.test.ts — the run and the boot',
   'release.approved': 'releases/releases.test.ts — recordApproval, through approveFor',
   'release.approval_rejected': 'releases/releases.test.ts — recordApproval, rejected',
   // The launch path plan's Task 12: a person asks for sign-off, which this lifecycle never does.

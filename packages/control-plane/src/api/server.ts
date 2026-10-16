@@ -47,7 +47,7 @@ import type {
 import type { SamlSp } from '../identity/index.js'
 import type { AiKeyService, LiteLlmClient, ModelCatalogue } from '../ai/index.js'
 import type { BuildRunner, Retirer } from '../releases/index.js'
-import type { Reviewer } from '../launch/index.js'
+import type { LoadRehearsalRuns, Reviewer } from '../launch/index.js'
 import { registryTokenRoutes } from './routes/registry-token.js'
 import { webhookRoutes } from './routes/webhooks.js'
 import { registerRoutes } from './contract/route.js'
@@ -127,6 +127,13 @@ export interface ServerDeps {
    * base URL this is constructed with (`sso/sign-in.ts`), not a line in `launch/`.
    */
   signIn: CwlSignInProbe
+  /**
+   * §24's load rehearsal (the load rehearsal plan's Task 5): what `runLoadRehearsal` starts a run through — vegeta's
+   * container behind the engine seam, bound at boot as the sign-in probe above is (the boot's pass 2⅞ reads the same
+   * generator), and every run under way, so a test can wait for each to end. An interface for `signIn`'s reason: the unit
+   * tier loads nothing, and the API test harness's generator refuses to start (`api/testing.ts`).
+   */
+  loadRehearsals: LoadRehearsalRuns
   /**
    * D23.2's per-project fan-out (P4b Task 14): `WS /v1/projects/:projectId/events`
    * subscribes to it. ONE bus per process, built at boot, so every publisher and every

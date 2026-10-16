@@ -4,6 +4,7 @@ import {
   environments,
   events,
   instances,
+  loadRehearsals,
   projects,
   rehearsals,
   routes,
@@ -23,6 +24,7 @@ import {
 import { nextState, type Driver } from '../runtime/index.js'
 import type { CwlSignInProbe } from '../sso/index.js'
 import { candidateFor } from './candidate.js'
+import { LoadRehearsalError } from './load.js'
 import type { LaunchItem } from './readiness.js'
 
 export type RehearsalRow = typeof rehearsals.$inferSelect
@@ -143,6 +145,25 @@ async function rehearse(
    * is an `INTERNAL`, which is what "this project has no production environment" is.
    */
   if (project === undefined) throw new Error(`no project '${projectId}'`)
+  /**
+   * §24: NOT WHILE THE APP'S LOAD REHEARSAL RUNS (the load rehearsal plan's Task 5, Decision 6). Read under this project's
+   * rehearsal lock, which the load rehearsal's insert takes too — so the two exclude each other both ways with no new
+   * lock: a load rehearsal asked for while this runs is `REHEARSAL_RUNNING`, and this, asked while one runs, is refused
+   * here before anything is read or deployed.
+   */
+  const [loading] = await deps.db
+    .select({ id: loadRehearsals.id })
+    .from(loadRehearsals)
+    .where(
+      and(eq(loadRehearsals.projectId, projectId), eq(loadRehearsals.state, 'running')),
+    )
+  if (loading !== undefined)
+    throw new LoadRehearsalError(
+      'LOAD_REHEARSAL_RUNNING',
+      'a load rehearsal of this app is running and holds its staging environment, so the pre-production ' +
+        'rehearsal was not started and nothing was deployed. A run takes up to about ten minutes; rehearse again ' +
+        'once its record (`getLoadRehearsal`) is no longer running.',
+    )
   /**
    * **A LAUNCHED APP IS NOT REHEARSED** (P6b Task 4, Decision 16). Before a launch no student
    * has been sent the address, which is why the rehearsal may deploy an unapproved candidate into

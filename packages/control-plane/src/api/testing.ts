@@ -53,7 +53,7 @@ import { tmpdir } from 'node:os'
 import { fileURLToPath } from 'node:url'
 import { join } from 'node:path'
 import { createBuildRunner, createRetirer } from '../releases/index.js'
-import { NullReviewer } from '../launch/index.js'
+import { createLoadRehearsalRuns, NullReviewer } from '../launch/index.js'
 import type { Classification } from '../spec/index.js'
 import type { AiKeyService } from '../ai/index.js'
 import type { FastifyInstance, LightMyRequestResponse } from 'fastify'
@@ -856,6 +856,19 @@ export async function testDeps(): Promise<ServerDeps> {
   const builds = createBuildRunner({ db, driver, bus })
   registerBackgroundWork(() => retirer.idle())
   registerBackgroundWork(() => builds.idle())
+  const loadRehearsals = createLoadRehearsalRuns({
+    generator: {
+      start: () =>
+        Promise.reject(
+          new Error(
+            'the API test harness has no load generator: a test in this tier started a load rehearsal ' +
+              'without laying `gatedLoadGenerator` over `loadRehearsals`',
+          ),
+        ),
+      removeLeft: () => Promise.resolve(0),
+    },
+  })
+  registerBackgroundWork(() => loadRehearsals.idle())
   // The webhook's sync writes `app_specs` and events off the request: same drain (final review, M2).
   const sourceSync = createSerialQueue()
   registerBackgroundWork(() => sourceSync.idle())
@@ -948,6 +961,13 @@ export async function testDeps(): Promise<ServerDeps> {
         )
       },
     },
+    /**
+     * §24's load rehearsal cannot LOAD anything in this tier, and says so rather than pretending (the load rehearsal
+     * plan's Task 5) — `signIn`'s shape above, for its reason: a harness whose generator quietly reported a clean run would
+     * make a `passed` record a property of the fake. A run started here ends `failed`, its reason this sentence; a test
+     * about a run lays `gatedLoadGenerator` (`launch/testing.ts`) over it. Its runs are drained at every reset.
+     */
+    loadRehearsals,
     sso: {
       /**
        * D19's package (the launch path plan's Task 10): the REAL certificate store, not a stub —
