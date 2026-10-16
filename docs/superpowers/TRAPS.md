@@ -2876,6 +2876,12 @@ D21 cases timed out, and each timed-out test's work went on into the next `reset
 audit.events …"*) — red after red that were none of them the code's. The same files through `bash scripts/test-gently.sh pnpm exec vitest
 run --project unit <files>` (scale 5) were green. Run any heavy single file through the wrapper.
 
+**DELETE A WALK'S OR A DEMO'S APP BEFORE ANY UNIT VITEST — ONE DB FILE TRUNCATES IT FIRST** (B sitting 5, F2, 2026-10-15). A console walk
+on driver 1 ended at 22:42 with `b5-walk` serving staging; a red-first run of two unit files at 22:44 (`readiness`, `load-rehearsal`) went
+through the unit project's global setup, which empties 7100's tables — so the app's rows were gone, `DELETE /v1/projects/<id>` answered
+`404 NOT_FOUND`, the walk's session was dead, and its staging containers, network, volumes and image were left for the cleanup scripts (which
+take them: no project owns them). Delete the app — or run the DB files — first.
+
 **NEVER `kill -STOP` A TEST RUN** (the gentler test tiers plan, Decision 5). Vitest's limits are wall-clock timers: on `kill -CONT` every
 one that came due while the run was stopped fires at once, and every test in flight times out — a red run made by the pause. To make room
 for Rich, stop the run (Ctrl-C) and start it again with `MANIFEST_TEST_QOS=background` (RUNBOOK, *Running the test tiers gently*).
