@@ -345,3 +345,61 @@ describe('the team’s step and UBC’s answer on the demo fleet', () => {
     }, fleet)
   })
 })
+
+describe('an agent’s question rejected on the demo fleet', () => {
+  const fleet = { role: 'admin', fleet: 'demo' } as const
+  const REASON = 'Ask Dr. Moreno first.'
+  const bioQuestion = async (o: string) => {
+    const bio = FLEET_PROJECTS.find((p) => p.slug === 'bio-201-scheduler')!
+    const [action] = await api(o).listPendingActions(bio.id)
+    expect(action?.state).toBe('pending')
+    return action!
+  }
+  const withReason = (o: string) =>
+    createApi({ origin: o, session: 'mock-session', adminReason: () => REASON })
+
+  it('is refused without §26’s header — 400 ADMIN_REASON_REQUIRED, the question still waiting', async () => {
+    await withMock(async (o) => {
+      const action = await bioQuestion(o)
+      const refused = await refusal(
+        api(o).rejectPendingAction(action.id, { reason: REASON }, api(o).newKey()),
+      )
+      expect([refused.status, refused.code]).toEqual([400, 'ADMIN_REASON_REQUIRED'])
+      expect((await bioQuestion(o)).state).toBe('pending')
+    }, fleet)
+  })
+
+  it('is recorded with the header — rejected, the reason the body’s', async () => {
+    await withMock(async (o) => {
+      const action = await bioQuestion(o)
+      const answered = await withReason(o).rejectPendingAction(
+        action.id,
+        { reason: REASON },
+        api(o).newKey(),
+      )
+      expect([answered.state, answered.reason]).toEqual(['rejected', REASON])
+    }, fleet)
+  })
+
+  it('replays the rejection retried under the same key and reason — never 409 (I7)', async () => {
+    await withMock(async (o) => {
+      const action = await bioQuestion(o)
+      const client = withReason(o)
+      const keys = createKeys(client.newKey)
+      const name = `reject:${action.id}`
+      const first = await client.rejectPendingAction(
+        action.id,
+        { reason: REASON },
+        keys.keyFor(name),
+      )
+      // The answer was lost: no answer arrived, so the key is held for the retry.
+      keys.answered(name, new TypeError('fetch failed'))
+      const again = await client.rejectPendingAction(
+        action.id,
+        { reason: REASON },
+        keys.keyFor(name),
+      )
+      expect(again).toEqual(first)
+    }, fleet)
+  })
+})

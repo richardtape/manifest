@@ -60,7 +60,7 @@ function result(
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`
 
 /** The scan in full (the design's §3.5): what this build introduced, fixable or not, and the base image's own. */
-function scanWords(scan: Schemas['Release']['scan']): string {
+export function scanWords(scan: Schemas['Release']['scan']): string {
   if (scan === null) return 'Not scanned'
   const age =
     scan.databaseAgeDays === null

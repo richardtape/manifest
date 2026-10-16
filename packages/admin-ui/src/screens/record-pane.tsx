@@ -296,7 +296,7 @@ function field(id: string, label: string, input: ReactNode) {
   )
 }
 
-function stateLabel(found: Found): string {
+export function stateLabel(found: Found): string {
   const r = found.record
   switch (r.state) {
     case 'draft':
@@ -324,7 +324,7 @@ const asked = (list: readonly string[], registered: readonly string[]) => (
 )
 
 /** What is on record — every machine fact, the state in the platform's own enum. */
-function recordFacts(found: Found) {
+export function recordFacts(found: Found) {
   const r = found.record
   const submitted =
     r.submittedAt === null
@@ -1111,7 +1111,7 @@ export function recordsOf(records: Schemas['LaunchRecords']): Found[] {
   return found
 }
 
-const titleOf = (found: Found) =>
+export const titleOf = (found: Found) =>
   found.kind === 'pia'
     ? 'The privacy assessment'
     : `The ${found.record.environment} registration`
