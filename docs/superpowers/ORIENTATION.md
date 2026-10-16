@@ -2111,9 +2111,14 @@ write: the platform's upsert erases one left out), a granted change in its two w
 (`6cad9bc0`) — and Task 9, the fleet — filters and sort in the URL, the set's count, an Incident after the last deploy (`800f3f18`); the
 demo fleet's `lastSeenAt` made the platform's (`bf980116`: only a deploy writes it, so `Fleet.lastDeployAt` IS the last deploy); **and
 LANDING 2: `main` at `6c66944e`**, `pnpm test` 244 files / 4076 tests twice (the `EXPECT_` lines). **Its F7: after the landing, 7100 could not
-be restarted — a peer's uncommitted file in the shared checkout failed the control plane's `tsc` build — and was handed to B3.** **Its sitting 7
-(Tasks 10 and 11, the project's page, and Health and Settings) is next**, and its sittings table says where each stops. It takes a 7100
-window only to land (L3 closes its sitting 8). Two of its traps are in TRAPS.md: a
+be restarted — a peer's uncommitted file in the shared checkout failed the control plane's `tsc` build — and was handed to B3.** **So is sitting 7**
+(2026-10-15, `manifest-p11-s7`): Task 10, the project's page — the data's U1 level from the SERVING release, each environment's two
+facts and its set, the Incidents by cause, the releases, the launch with who has each record and since, an agent's question rejected with
+the reason as the body AND §26's header (`b0a96e07`, `3637cb9d`) — and Task 11, Health (five panels, each saying what it cannot see, its
+reads counted: 35 on the demo fleet) and Settings (52 rows, each held by a test to where the platform reads it; every value but a
+blueprint's *"Manifest can’t read this yet."*) (`23c58ea3`), all on the branch, walked on the demo fleet. **Its sitting 8 (Task 12: `make
+demo-admin`, its controls, the one whole-branch review and its fix wave, then LANDING 3) is next**, and its sittings table says where it
+stops. It takes a 7100 window only to land (L3 closes its sitting 8). Two of its traps are in TRAPS.md: a
 backgrounded `scripts/admin-ui.sh` ignores SIGINT (stop it with TERM), and `make doctor` in the worktree reads three fails for git-ignored
 files.
 

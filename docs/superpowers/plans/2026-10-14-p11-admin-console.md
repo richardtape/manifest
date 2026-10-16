@@ -109,8 +109,8 @@ records and UBC's order), **§20** (step-up). **Design:** the refreshed [`2026-0
 | 4 | 5 | **The look**: the six shared and fourteen operations components ported to TSX in `src/system/`, each held markup-identical to its reference by the parity test; the stylesheets; the shell's rail in the system's own component | No | After Task 5's commit | ✅ **DONE 2026-10-15** (`manifest-p11-s4`, 12:15–12:40 PDT): Task 5 `74e02bd8` on `p11-admin-ui` — twenty ports held by 103 parity cases, the rail as `<ConsoleRail>`, its *Sign out* working; *What executing this plan found*, *Sitting 4* |
 | 5 | 6, 7 | **The queue** — the headline from our band, the two bands, the rows, the filter, the keyboard, the URL, the 60-second read (Task 6) — and **the release approval pane**: the request and its token from the project's stream, the preview on a click, the diff, approve and reject observed, the step-up round trip with the reason kept, stale and expired, decided by someone else (Task 7) | No | After Task 7's commit | ✅ **DONE 2026-10-15** (`manifest-p11-s5`, 12:41–13:17 PDT): the queue `dc111c61` and the release approval pane `df332286` on `p11-admin-ui` — walked on the demo fleet, `reading-responses` approved through the step-up and back; seven findings, one a defect only the walk could see (F2); *What executing this plan found*, *Sitting 5* |
 | 6 | 8, 9 | **The team's step and UBC's answer** — submit, file, hand back, record, every body exactly what the operation requires, a granted change in its two writes (Task 8) — and **the fleet**: the table, its filters in the URL, the instance count, archived rows (Task 9). **LANDING 2** at the close | **Yes — L2** | After L2's merge, read back. **If it overflows, L2 moves to sitting 7's open** | ✅ **DONE 2026-10-15** (`manifest-p11-s6`, 13:17–16:50 PDT, HOLD 13:20–15:47): Task 8 `6cad9bc0` (+ `dbf18178`), the mock's `lastSeenAt` fix `bf980116`, Task 9 `800f3f18`; **LANDING 2 — `main` at `6c66944e`**, `pnpm test` 244 / 4076 twice; seven findings, F7 a peer's uncommitted file keeping 7100 down at G4; *What executing this plan found*, *Sitting 6* |
-| 7 | 10, 11 | **The project's page** — environments and their sets, incidents by cause, releases, the launch, people and agents, events live with the administrator's reason; reject an agent's question (Task 10) — and **Health and Settings** (Task 11) | No (L2 landed at sitting 6) | After Task 11's commit | ← **next** (a fresh session, `manifest-p11-s7`; it opens with `git -C /Users/rich/Developer/manifest-p11 rebase main` — the branch IS `main` at `6c66944e`, so only what lands after it moves — then reads *Sitting 6*'s *What Tasks 10–12 inherit*) |
-| 8 | 12 | **The acceptance's headless half**: `make demo-admin` (the walk) and its step in both acceptances, its negative controls, **the plan's one whole-branch review and its one fix wave**. **LANDING 3** at the close; then RUNBOOK and WALKTHROUGH in the shared checkout | **Yes — L3** | After L3's merge and the two documents, read back | |
+| 7 | 10, 11 | **The project's page** — environments and their sets, incidents by cause, releases, the launch, people and agents, events live with the administrator's reason; reject an agent's question (Task 10) — and **Health and Settings** (Task 11) | No (L2 landed at sitting 6) | After Task 11's commit | ✅ **DONE 2026-10-15** (`manifest-p11-s7`, 16:51–18:45 PDT, HOLD 16:55–17:04 and 17:04–18:29): Task 10 `b0a96e07` (+ `3637cb9d`), Task 11 `23c58ea3` on `p11-admin-ui` — walked on the demo fleet, both controls red as predicted, 56 files / 703 tests twice; *What executing this plan found*, *Sitting 7* |
+| 8 | 12 | **The acceptance's headless half**: `make demo-admin` (the walk) and its step in both acceptances, its negative controls, **the plan's one whole-branch review and its one fix wave**. **LANDING 3** at the close; then RUNBOOK and WALKTHROUGH in the shared checkout | **Yes — L3** | After L3's merge and the two documents, read back | ← **next** (a fresh session, `manifest-p11-s8`; it opens with `git -C /Users/rich/Developer/manifest-p11 rebase main` — `main` took B's sitting 3 after `8c1e5666` (`packages/control-plane`, `EXPECT_` 4112 / 245), no `packages/contract` or `packages/mock` — then reads *Sitting 7*'s *What Task 12 inherits*) |
 | 9 | 13 | **Rich clicks it** (G9 — he is at the machine); his words recorded; the close-out: EXECUTED, the roadmap, ORIENTATION, CLAUDE.md's *State*; the worktree removed; the machine as found | Documents only (in the shared checkout) | After the close-out commit | |
 
 **THE WORKTREE** (Task 1 creates it; every sitting works in it):
@@ -2497,3 +2497,112 @@ scripts bare: `dead-app-resources.sh` *"Nothing was changed. 0 network(s) and 0 
 its cell; **F5's sideways scroll** is for Task 12's walk to expect (or Rich to judge); `createKeys` serves Task 10's rejection of an agent's
 question; Task 12's walk can take this sitting's (`walk.mjs`, scratch) as its pattern — every text read by `textContent`, since the drawing
 uppercases overlines and `innerText` returns them so.
+
+### Sitting 7 — Tasks 10 and 11: the project's page, and Health and Settings (2026-10-15, `manifest-p11-s7`)
+
+**Who and when.** `manifest-p11-s7`, the third coordinated run's P11 build, sitting 7, GOed by `manifest-coord5` at 16:53 PDT; inline
+(`superpowers:executing-plans`). The worktree rebased onto `main` `8c1e5666` first — documents only since `6c66944e`, so the contract's
+`dist/` was not rebuilt; the branch was `main`. **HOLD 16:55–17:04** (B3's load rehearsal through the edge) — Task 10 written; **FREE
+17:04** for its RED and GREEN; **HOLD 17:04–18:29:51** (B3's `pnpm test` twice and its Docker tier) — the console and its mock stopped
+with TERM, Task 10 committed at the coordinator's word, Task 11 written and checkpointed as one WIP commit (`31e94ee8`), none of it run;
+**FREE from 18:29:51**: Task 11's RED and GREEN, both walks, both controls, the checkpoint split into the plan's commits, the gates. Load
+5–8, on AC, no call. The ledger is `.superpowers/sdd/2026-10-14-p11-admin-console/progress.md` (every ruling with its cost).
+
+**Task 10 — the project's page** (`b0a96e07` on `p11-admin-ui`, and `3637cb9d`). **`src/project-state.ts`**: `servingReleaseId` (the
+release `listInstances`' first serving instance runs, else the healthy member of `Environment.instances`), **`levelOf` — the U1 level
+the SERVING production release declares, else the serving staging release's, else *"not deployed yet"*** (M2: never the newest
+release), `personOf` (a token's minter or a release's maker named from the members, else *"someone no longer on the project"*),
+`incidentGroups` with the plan's three cause words, `CAUSE_STATE`, `setOf` (*"1 of 2 serving"* — the set the hostname reaches against
+the instances serving), `lastDeployOf` and `attemptOf` (the right half of each environment's two facts: an Incident after the last
+deploy, else the last deploy), `recordSince` (since when a launch record has been where it is, by state), `releaseRows`, `questionsOf`
+(waiting oldest first, answered newest first) and `askedWords` (the platform's `whatIsAsked`, for the preview). **`src/screens/project.tsx`**:
+`readProject` (the eight project reads, two per environment, and `getRelease` for a serving release older than `listReleases`' 50),
+**`rejectQuestion`** — a client made with `adminReason` for the press, so the reason goes as the body's `reason` (the agent is told it)
+AND as `Manifest-Admin-Reason` (the project's people read it beside the operator's name), under the operator's key — `ProjectView`
+(the head with the data's level; the app; each environment's `TwoFacts` and every instance it lists; the Incidents by environment and
+cause with their log tails in `InverseSurface`; the releases with their digests, makers, levels, scans and where each serves; the launch
+— the checklist in its console form, raw ids and *Blocking*, and each record's holder and since, acting on them one link away at
+`/projects/<id>/records`; the members; the tokens with who minted each; the agents' questions, the waiting ones with *Reject for them*,
+the field *"Written for two readers: the agent is told it, and the project’s people see it."*, the answered ones read only; the agent
+sessions; the events live, *"Operator One · as a platform administrator"* and the reason in the left rule) and `ProjectScreen` (read on
+entry, every 60 seconds and on focus; one socket on the project; the rejection never sent twice at once; keyed by project in the shell).
+`approval-pane.tsx`'s `scanWords` and `record-pane.tsx`'s `stateLabel`, `recordFacts` and `titleOf` exported for it, unchanged.
+**RED first, as predicted** (17:04): both new files failed to load; `api.test.ts`'s three new rejection cases GREEN, as predicted (Task
+2's client against Task 4's fleet). **Load rehearsals: not built** — `[M1]` at this sitting read `1.9.0` (B's Task 5 has not landed).
+
+**Task 11 — Health and Settings** (`23c58ea3` on `p11-admin-ui`). **`src/health-state.ts`**: the fan-out's targets (`recordTargets`,
+`servingReleaseIds`, `incidentTargets` — archived apps out of all of them) and the panels — `certificatesPanel` (both registrations,
+amber within 90 days, red within 14, soonest first), `incidentsPanel` (the last 14 days, `exit_stopped` → `exit` → `deploy`, newest first
+within), `scansPanel` (a serving release unscanned, scanned against a stale database, or with a fixable finding), `supersededPanel` (by
+`fleet-state.ts`'s own rule), `readWords`. **`src/screens/health.tsx`**: **`readHealth` counts every read as it sends it** (the fleet, the
+blueprints, each active app's records, each serving release, and — where the Fleet says an environment's newest Incident is within the
+window — the app's environments, then that environment's Incidents), `HealthView` (five panels, each ending with what it read and what it
+cannot see, the fifth — *Policies a driver says it cannot enforce* — seeing nothing) and `HealthScreen` (read on entry, on focus and on
+*Read again*, never on a timer; *"Read just now from 35 reads"* on the demo fleet). **`src/settings.ts`**: 52 rows in 11 sections — 36
+environment variables, 5 database keys, 6 models, 3 constants, 2 files — each with its key, where it is set and what can be done; the
+value of every one but a blueprint the admission *"Manifest can’t read this yet."*. **`src/screens/settings.tsx`**: the index and the
+sections in the drawing's markup, the blueprints from `listBlueprints`. **RED first, as predicted** (18:30): all four test files failed to
+load. GREEN at the first run.
+
+**Findings:**
+
+**F1 THE FLEET'S ENVIRONMENTS CARRY NO ID**, so Health cannot ask `listIncidents` from the Fleet alone: each app the window names costs a
+`listEnvironments` first. Counted in *N* (35 on the demo fleet: 2 + 13 records + 14 releases + 3 apps' environments + 3 environments'
+Incidents). Not a gap to file — the read exists — but it is why *N* is what it is.
+
+**F2 THE DRAWING'S HEALTH DRAWS A FAILED DEPLOY GREEN** — beside *"Still serving …"* — and the plan's cause words put *"A deploy failed"*
+there instead; green beside those words would read as fine. The console draws `deploy` and `exit` amber, `exit_stopped` red (decision 3,
+*red only for breakage*), the same on the project's page and in Health (`CAUSE_STATE`). For Rich's click.
+
+**F3 THE DEMO FLEET HAS NO AGENT SESSION ON ANY PROJECT** (`listAgentSessions` is empty for all thirteen), so the sessions table is never
+drawn on it — the page says *"No agent session has been started on this project."*. Built and typechecked against the contract, unwalked.
+For Task 12 to name, or a later demo-fleet change to fill.
+
+**F4 PRETTIER'S FIRST PASS ON `health-state.ts` WAS NOT STABLE**: `pnpm format:check` was red after a `prettier --write` of the same
+file (one signature re-wrapped on the second pass). Caught by the gate, amended into Task 11's commit (whitespace only; the health files
+re-run, both whole runs repeated on the final tree). *For any sitting:* run `format:check` after `--write`, never trust the write.
+
+**F5 My own, before any commit:** two assertions in `project.test.tsx` (a regex that kept its `<`; the inverse surface's class is `mf-`,
+not `mfa-`) — the code was right; and the rejection results rendered as a list with no keys, found on re-reading under HOLD (`3637cb9d`).
+
+**F6 THE PLAN'S LEVEL RULE NAMES PRODUCTION THEN STAGING, AND STOPS** — ruled exactly so: a sandbox's data is the agent's, not the app's
+people's, so an app serving only in sandbox reads *"data level: not deployed yet"* (`hist-105-archive`, `rubric-helper`).
+
+**The walk found nothing the tests had not** — no new defect, unlike sitting 5's.
+
+**The negative controls (Step 5), all seen:** Task 10 — `levelOf` reading the newest release → **exactly the two level cases red**
+(`project-state.test.ts`'s bio case and `project.test.tsx`'s head case), 27 green; Task 11 — `MANIFEST_DRAIN_TIMEOUT_MS` renamed in
+`SETTINGS` → **the environment-variable case red alone**, naming the key. Each restored.
+
+**The walks (Steps 2–4)** — `bash scripts/admin-ui.sh`, headless Chrome on a port the system picks (Decision 17), raw CDP, **every check
+passed** (49): from the fleet to `cpsc-110-help` in-app (*2 of 2 serving*, four instances, *Failed* and *Retired*, the exit stopped and
+replaced, *Last deploy*); Back to `econ-101-polls` (*1 of 2 serving*, *Stopped, not replaced*, four Incidents, eight instances, four log
+tails); `bio-201-scheduler` pasted (*high* data, not the newest release's *very-high*; the rename by *"Operator One · as a platform
+administrator"* with its reason quoted; the token minted by Noor Aziz; *Reject for them* disabled without a reason, the preview's
+sentence, then pressed → *"Refused for them"*, the question read only, the live `pending_action.rejected` signed as an administrator with
+the reason, and the platform's record `rejected` with the body's reason); its launch records in-app; `hist-105-archive` and
+`rubric-helper`; then the rail to Health (five panels, counts 2, 6, 1, 0; `math-oh-queue` red, `bio-201-scheduler` amber; `stats-sim`
+stale; the empty blueprints sentence; a failed deploy last; *Read again* at the same 35; a slug in-app to its page) and to Settings (every
+value but the blueprint's the admission; the index moving its current section). No sideways scroll at 1440 on either. Console: sitting 4's
+F2 three and StrictMode's first socket closed per project — nothing else.
+
+**The gates, on the final branch tree `23c58ea3`, at utility through the wrapper:** `pnpm exec vitest run --project admin-ui --project
+packages` **twice, identical — 56 files, 703 passed** (sitting 6's 50 / 646 plus six files and 57 tests: `project-state` 18, `project` 11,
+`api` +3, `health-state` 8, `health` 6, `settings` 7, the settings screen 4), 47.9 s and 44.5 s, load median 5.43 / 5.93; the `admin-ui`
+project alone 23 files / 375; `pnpm lint`, `pnpm typecheck` (seven packages) and `pnpm format:check` clean. The `unit` project not run
+(the plan's rule). **For L3:** since L2 the lane adds 6 files and 57 tests so far — on `main`'s `EXPECT_` 4112 / 245 (B's sitting 3,
+`afbf95c0`), **4169 / 251 before Task 12's own**.
+
+**The machine:** 7101 and 7113 free at the close (`scripts/admin-ui.sh` stopped with TERM, exit 143, both times); no headless Chrome or
+profile left; no Docker resource made; 7100 untouched (B3's). The three cleanup scripts bare: `dead-app-resources.sh` *"Nothing was
+changed. 0 network(s) and 0 volume(s) are dead"*; `litellm-orphans.sh` refused itself — *"/user/list answered no users at all, which is not
+a state this machine reaches"* (7100's lane's state, as at sittings 1, 5 and 6); `app-images.sh` *"Nothing was changed. 0 app image(s) are
+dead"*. **No `--apply` owed.** **The worktree stays** for sitting 8, on `p11-admin-ui` at `23c58ea3` (three commits ahead of `8c1e5666`;
+`main` has moved since by B's sitting 3), clean, no `.env` symlink.
+
+**What Task 12 inherits:** every screen of the plan is built — `make demo-admin`'s walk can take this sitting's (`walk.mjs`, scratch) as
+its pattern: the project's page by its link from the fleet and pasted, Health and Settings from the rail; **a walk that rejects
+`bio-201-scheduler`'s question changes the demo fleet's state** (the mock keeps it until restarted), so order the walk or restart the mock
+between runs; Health's *N* on a fresh demo fleet is 35 and its counts 2, 6, 1, 0 (each counted here, not designed); the agent sessions
+table is unwalked (F3); `settings.test.ts` reads `packages/control-plane/src/config.ts` and `.env.example` from the worktree, so L3's
+rebase onto a `main` that renamed a variable turns it red — that is its job; the console's cold-load errors are unchanged (sitting 4's F2).
