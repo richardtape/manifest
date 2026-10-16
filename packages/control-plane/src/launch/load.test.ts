@@ -2,11 +2,17 @@ import { readFileSync } from 'node:fs'
 import type { IncomingMessage } from 'node:http'
 import { describe, expect, it } from 'vitest'
 import type { EngineClient } from '../runtime/index.js'
+import { loadConfig } from '../config.js'
 import {
   LOAD_GENERATOR_IMAGE,
+  LoadRehearsalError,
   createLoadGenerator,
+  judge,
+  loadPathsFor,
+  phasesFor,
   readLoadResult,
   type LoadPhase,
+  type LoadReport,
   type LoadTarget,
 } from './load.js'
 
@@ -328,6 +334,8 @@ function fakeEngine(opts: {
   address?: string
   created?: boolean
   exitCode?: number
+  /** What `GET /containers/json` lists — the containers a label filter finds. */
+  listed?: { Id: string }[]
 }) {
   const calls: Call[] = []
   let releaseWait: () => void = () => {}
@@ -337,6 +345,7 @@ function fakeEngine(opts: {
   const engine: EngineClient = {
     async get<T>(path: string): Promise<T | undefined> {
       calls.push({ method: 'GET', path })
+      if (path.startsWith('/containers/json?')) return (opts.listed ?? []) as T
       if (path.startsWith('/containers/') && path.endsWith('/json')) {
         return {
           NetworkSettings: {
@@ -504,6 +513,32 @@ describe('createLoadGenerator — the container', () => {
     })
   })
 
+  it('removes whatever a run left by its label — every container labelled with that run, with its volumes', async () => {
+    const { engine, calls } = fakeEngine({
+      lastLine: '',
+      listed: [{ Id: 'gen-7' }, { Id: 'gen-8' }],
+    })
+    expect(await createLoadGenerator({ engine, ...OPTIONS }).removeLeft('lr-9')).toBe(2)
+    const filter = encodeURIComponent(
+      JSON.stringify({ label: ['manifest.load-rehearsal=lr-9'] }),
+    )
+    expect(calls).toEqual([
+      { method: 'GET', path: `/containers/json?all=true&filters=${filter}` },
+      { method: 'DELETE', path: '/containers/gen-7?force=true&v=true' },
+      { method: 'DELETE', path: '/containers/gen-8?force=true&v=true' },
+    ])
+  })
+
+  it('refuses to remove by an id it could not have labelled with, before asking the daemon anything', async () => {
+    const { engine, calls } = fakeEngine({ lastLine: '' })
+    await expect(
+      createLoadGenerator({ engine, ...OPTIONS }).removeLeft('lr-1,other=x'),
+    ).rejects.toThrow(
+      "a load rehearsal id the generator cannot label with: 'lr-1,other=x'",
+    )
+    expect(calls).toEqual([])
+  })
+
   it('says `make seed` builds the image when the daemon does not have it', async () => {
     const { engine } = fakeEngine({ lastLine: '', created: false })
     await expect(
@@ -551,4 +586,240 @@ describe('createLoadGenerator — the container', () => {
       expect(calls).toEqual([])
     },
   )
+})
+
+// --- the judgement and the profile (Task 4) -----------------------------------------------------------------------
+
+const MARK = { answeredRatio: 0.99, p95Ms: 2_000, achievedRatio: 0.9 }
+const ARRIVAL: LoadPhase[] = [
+  { name: 'arrive', rps: 75, seconds: 60 },
+  { name: 'sustain', rps: 50, seconds: 300 },
+]
+const CALM = { exits: 0, outOfMemory: false, unhealthy: false }
+
+/** A clean run of §24's synchronised profile: every request answered, quick, each phase at its rate. */
+function cleanReport(overrides: Partial<LoadReport> = {}): LoadReport {
+  const phases = [
+    {
+      name: 'arrive' as const,
+      asked: 75,
+      achieved: 75.01,
+      requests: 4500,
+      answered: 4500,
+      statusCounts: { '200': 3000, '302': 1500 },
+      p50Ms: 3,
+      p95Ms: 9,
+      p99Ms: 20,
+    },
+    {
+      name: 'sustain' as const,
+      asked: 50,
+      achieved: 50.0,
+      requests: 15000,
+      answered: 15000,
+      statusCounts: { '200': 10000, '302': 5000 },
+      p50Ms: 2,
+      p95Ms: 7,
+      p99Ms: 15,
+    },
+  ]
+  return {
+    phases,
+    p50Ms: 2,
+    p95Ms: 8,
+    p99Ms: 18,
+    requests: 19500,
+    answered: 19500,
+    timeouts: 0,
+    achievedRps: 54.2,
+    answeredRatio: 1,
+    byPath: {
+      '/': { '200': 6500 },
+      '/healthz': { '200': 6500 },
+      '/login': { '302': 6500 },
+    },
+    durationMs: 360_010,
+    ...overrides,
+  }
+}
+
+describe('judge — the pass mark, every rule, the first broken one named (Review Focus 2 and 5)', () => {
+  it('passes a clean run, saying what it measured', () => {
+    const verdict = judge(cleanReport(), CALM, ARRIVAL, MARK)
+    expect(verdict.passed).toBe(true)
+    expect(verdict.reason).toContain('100% of requests answered')
+  })
+
+  it('fails 98.9% answered, naming the ratio and the mark', () => {
+    const verdict = judge(
+      cleanReport({ answered: 19287, answeredRatio: 19287 / 19500 }),
+      CALM,
+      ARRIVAL,
+      MARK,
+    )
+    expect(verdict).toEqual({
+      passed: false,
+      reason: '98.9% of requests were answered (19287 of 19500); the mark is 99%',
+    })
+    // Exactly the mark passes.
+    expect(
+      judge(cleanReport({ answered: 19305, answeredRatio: 0.99 }), CALM, ARRIVAL, MARK)
+        .passed,
+    ).toBe(true)
+  })
+
+  it('fails a p95 of 2.1 s, naming it — and a p95 of exactly 2 s is not under the mark', () => {
+    expect(judge(cleanReport({ p95Ms: 2_100 }), CALM, ARRIVAL, MARK)).toEqual({
+      passed: false,
+      reason: 'p95 was 2.1 s; the mark is under 2 s',
+    })
+    expect(judge(cleanReport({ p95Ms: 2_000 }), CALM, ARRIVAL, MARK).passed).toBe(false)
+    expect(judge(cleanReport({ p95Ms: 1_999 }), CALM, ARRIVAL, MARK).passed).toBe(true)
+  })
+
+  it('fails a run the generator could not drive — a phase under nine-tenths of its rate — never a pass', () => {
+    const short = cleanReport()
+    short.phases[1] = { ...short.phases[1]!, achieved: 44.9 }
+    expect(judge(short, CALM, ARRIVAL, MARK)).toEqual({
+      passed: false,
+      reason:
+        "the generator reached 44.9 of 50 requests a second in its 'sustain' phase, under nine-tenths of the rate asked — a run it could not drive measures the generator, not the app",
+    })
+    const enough = cleanReport()
+    enough.phases[1] = { ...enough.phases[1]!, achieved: 45 }
+    expect(judge(enough, CALM, ARRIVAL, MARK).passed).toBe(true)
+  })
+
+  it('fails an instance that exited, one that ran out of memory, and one that was unhealthy — each named', () => {
+    expect(judge(cleanReport(), { ...CALM, exits: 1 }, ARRIVAL, MARK)).toEqual({
+      passed: false,
+      reason: 'an instance exited during the run',
+    })
+    expect(judge(cleanReport(), { ...CALM, exits: 2 }, ARRIVAL, MARK).reason).toBe(
+      '2 instances exited during the run',
+    )
+    expect(judge(cleanReport(), { ...CALM, outOfMemory: true }, ARRIVAL, MARK)).toEqual({
+      passed: false,
+      reason: 'an instance ran out of memory during the run',
+    })
+    expect(judge(cleanReport(), { ...CALM, unhealthy: true }, ARRIVAL, MARK)).toEqual({
+      passed: false,
+      reason: 'an instance was unhealthy during the run',
+    })
+  })
+
+  it('counts a 302 and a 404 as answered and a 429 as not — through the report it is given', () => {
+    // The ratio is the report's own (readLoadResult's tests hold how it counts); judge reads it, never recounts.
+    const limited = cleanReport({ answered: 15000, answeredRatio: 15000 / 19500 })
+    limited.byPath = {
+      '/': { '200': 6500 },
+      '/healthz': { '429': 4500, '404': 2000 },
+      '/login': { '302': 6500 },
+    }
+    expect(judge(limited, CALM, ARRIVAL, MARK).reason).toBe(
+      '76.9% of requests were answered (15000 of 19500); the mark is 99%',
+    )
+  })
+
+  it("names the FIRST broken rule, in the pass mark's order: answered, p95, the generator's rate, then the instances", () => {
+    const everything = cleanReport({
+      answered: 100,
+      answeredRatio: 100 / 19500,
+      p95Ms: 9_000,
+    })
+    everything.phases[0] = { ...everything.phases[0]!, achieved: 10 }
+    const watched = { exits: 3, outOfMemory: true, unhealthy: true }
+    expect(judge(everything, watched, ARRIVAL, MARK).reason).toMatch(/^0\.5% of requests/)
+    expect(
+      judge({ ...everything, answered: 19500, answeredRatio: 1 }, watched, ARRIVAL, MARK)
+        .reason,
+    ).toBe('p95 was 9 s; the mark is under 2 s')
+    expect(
+      judge(
+        { ...everything, answered: 19500, answeredRatio: 1, p95Ms: 10 },
+        watched,
+        ARRIVAL,
+        MARK,
+      ).reason,
+    ).toMatch(/^the generator reached 10 of 75/)
+    // Among the instances: out of memory, then an exit, then unhealthy — the most specific first.
+    expect(judge(cleanReport(), watched, ARRIVAL, MARK).reason).toBe(
+      'an instance ran out of memory during the run',
+    )
+    expect(
+      judge(cleanReport(), { ...watched, outOfMemory: false }, ARRIVAL, MARK).reason,
+    ).toBe('3 instances exited during the run')
+  })
+
+  it('fails a run that sent nothing', () => {
+    const none = cleanReport({ requests: 0, answered: 0, answeredRatio: 0 })
+    expect(judge(none, CALM, ARRIVAL, MARK).passed).toBe(false)
+  })
+})
+
+describe('phasesFor — §24’s arrival, from the settings', () => {
+  const settings = loadConfig({
+    MANIFEST_DATABASE_URL: 'postgres://unused',
+    MANIFEST_IDP_DATABASE_URL: 'postgres://unused-idp',
+    MANIFEST_SESSION_SECRET: 'k'.repeat(32),
+    MANIFEST_BLUEPRINTS_ROOT: '/tmp/blueprints',
+    MANIFEST_REPOS_ROOT: '/tmp/repos',
+  }).loadRehearsal
+
+  it('gives `synchronised` its arrival and its stay — 75 a second for a minute, then 50 for five', () => {
+    expect(phasesFor({ scale: 'large_course', burst: 'synchronised' }, settings)).toEqual(
+      [
+        { name: 'arrive', rps: 75, seconds: 60 },
+        { name: 'sustain', rps: 50, seconds: 300 },
+      ],
+    )
+  })
+
+  it('gives `steady` its ramp — 10, 20, 30, 40 and 50 a second, a minute each', () => {
+    expect(phasesFor({ scale: 'public', burst: 'steady' }, settings)).toEqual(
+      [10, 20, 30, 40, 50].map((rps, i) => ({ name: `ramp-${i + 1}`, rps, seconds: 60 })),
+    )
+  })
+
+  it('gives `public` the same as `large_course` — the stated cap on a laptop', () => {
+    for (const burst of ['steady', 'synchronised'] as const)
+      expect(phasesFor({ scale: 'public', burst }, settings)).toEqual(
+        phasesFor({ scale: 'large_course', burst }, settings),
+      )
+  })
+
+  it('refuses a solo or a class app: LOAD_REHEARSAL_NOT_NEEDED', () => {
+    for (const scale of ['solo', 'class'] as const) {
+      const refused = (() => {
+        try {
+          phasesFor({ scale, burst: 'synchronised' }, settings)
+        } catch (error) {
+          return error
+        }
+      })()
+      expect(refused).toBeInstanceOf(LoadRehearsalError)
+      expect(refused).toMatchObject({ code: 'LOAD_REHEARSAL_NOT_NEEDED' })
+    }
+  })
+})
+
+describe('loadPathsFor — what a crowd asks for first (Decision 4)', () => {
+  it('loads the front page and the health path — and, for a CWL app, its sign-in redirect', () => {
+    expect(loadPathsFor({ health: '/healthz', auth: { provider: 'none' } })).toEqual([
+      '/',
+      '/healthz',
+    ])
+    expect(loadPathsFor({ health: '/healthz', auth: { provider: 'cwl' } })).toEqual([
+      '/',
+      '/healthz',
+      '/login',
+    ])
+  })
+
+  it('loads a path once, even when the health path is the front page', () => {
+    expect(loadPathsFor({ health: '/', auth: { provider: 'cwl' } })).toEqual([
+      '/',
+      '/login',
+    ])
+  })
 })

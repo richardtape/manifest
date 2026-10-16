@@ -554,6 +554,64 @@ describe('configuration', () => {
       )
   })
 
+  // The load rehearsal plan's Decision 12: §24's numbers are platform settings, these their defaults.
+  it('reads §24’s load rehearsal from its settings, with §24’s numbers as the defaults', () => {
+    expect(loadConfig({ ...base }).loadRehearsal).toEqual({
+      synchronised: [
+        { rps: 75, seconds: 60 },
+        { rps: 50, seconds: 300 },
+      ],
+      steady: [10, 20, 30, 40, 50].map((rps) => ({ rps, seconds: 60 })),
+      requestTimeoutMs: 10_000,
+      pass: { answeredRatio: 0.99, p95Ms: 2_000, achievedRatio: 0.9 },
+      hardStopMs: 480_000,
+    })
+    const set = loadConfig({
+      ...base,
+      MANIFEST_LOAD_SYNCHRONISED: '20x10, 10x20',
+      MANIFEST_LOAD_STEADY: '5x10',
+      MANIFEST_LOAD_REQUEST_TIMEOUT_MS: '3000',
+      MANIFEST_LOAD_PASS_ANSWERED: '0.95',
+      MANIFEST_LOAD_PASS_P95_MS: '500',
+      MANIFEST_LOAD_PASS_ACHIEVED: '0.8',
+      MANIFEST_LOAD_HARD_STOP_SECONDS: '120',
+    }).loadRehearsal
+    expect(set).toEqual({
+      synchronised: [
+        { rps: 20, seconds: 10 },
+        { rps: 10, seconds: 20 },
+      ],
+      steady: [{ rps: 5, seconds: 10 }],
+      requestTimeoutMs: 3000,
+      pass: { answeredRatio: 0.95, p95Ms: 500, achievedRatio: 0.8 },
+      hardStopMs: 120_000,
+    })
+  })
+
+  it('refuses a load profile that is not whole phases in its count, naming the setting — CONFIG_INVALID', () => {
+    const refused = [
+      { MANIFEST_LOAD_SYNCHRONISED: '75x60' }, // one phase: the stay is missing
+      { MANIFEST_LOAD_SYNCHRONISED: '75x60,50x300,10x10' },
+      { MANIFEST_LOAD_SYNCHRONISED: '75x60,0x300' },
+      { MANIFEST_LOAD_SYNCHRONISED: '75 per 60,50x300' },
+      { MANIFEST_LOAD_STEADY: '' },
+      { MANIFEST_LOAD_STEADY: '1x1,1x1,1x1,1x1,1x1,1x1' },
+      { MANIFEST_LOAD_STEADY: '10x60,7.5x60' },
+      { MANIFEST_LOAD_PASS_ANSWERED: '1.5' },
+      { MANIFEST_LOAD_PASS_ACHIEVED: '0' },
+      { MANIFEST_LOAD_HARD_STOP_SECONDS: '0' },
+    ]
+    for (const setting of refused) {
+      const name = Object.keys(setting)[0]!
+      expect(() => loadConfig({ ...base, ...setting })).toThrow(
+        expect.objectContaining({
+          code: 'CONFIG_INVALID',
+          message: expect.stringContaining(name),
+        }),
+      )
+    }
+  })
+
   it('derives §23 zones per environment kind, one setting each', () => {
     const config = loadConfig({ ...base, MANIFEST_ENV: 'development' })
     expect(zoneFor(config, 'sandbox')).toBe('sandbox.manifest.internal')

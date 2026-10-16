@@ -317,6 +317,23 @@ const envSchema = z.object({
    * At least 5: faster reads a status more often than a health check (every 5 s) can change it.
    */
   MANIFEST_SET_WATCH_SECONDS: z.coerce.number().int().min(5).default(15),
+  /**
+   * §24'S LOAD REHEARSAL — its numbers are platform settings, these their defaults (the load rehearsal plan's
+   * Decision 12), so UBC's cluster can set what a laptop cannot. Each profile is its phases, `<rate>x<seconds>`,
+   * comma-separated: 500 people arriving within a minute and staying five (`synchronised` — 75 a second, then 50),
+   * or arriving over five minutes (`steady` — 10, 20, 30, 40 and 50 a second, a minute each), each asking for three
+   * pages and then one every ten seconds. `synchronised` is two phases (the arrival, then the stay); `steady` one to five.
+   */
+  MANIFEST_LOAD_SYNCHRONISED: z.string().default('75x60,50x300'),
+  MANIFEST_LOAD_STEADY: z.string().default('10x60,20x60,30x60,40x60,50x60'),
+  /** Each request's own timeout: a request not answered in it is not answered. 10 s — a person has given up by then. */
+  MANIFEST_LOAD_REQUEST_TIMEOUT_MS: z.coerce.number().int().positive().default(10_000),
+  /** The pass mark: the share of requests answered, the 95th percentile, and the share of each phase's rate reached. */
+  MANIFEST_LOAD_PASS_ANSWERED: z.coerce.number().gt(0).max(1).default(0.99),
+  MANIFEST_LOAD_PASS_P95_MS: z.coerce.number().int().positive().default(2_000),
+  MANIFEST_LOAD_PASS_ACHIEVED: z.coerce.number().gt(0).max(1).default(0.9),
+  /** Whatever happens, the generator is gone this long after it started (Decision 7: eight minutes). */
+  MANIFEST_LOAD_HARD_STOP_SECONDS: z.coerce.number().int().positive().default(480),
   // Every backing-service credential is derived from this by HMAC (Task 6), so it
   // is the single secret behind every app's database password. Optional here and
   // required outside development below, for the same two reasons the build
@@ -614,6 +631,11 @@ export interface Config {
   drainTimeoutMs: number
   /** A1 Task 6: the set watcher's pass, in seconds. `MANIFEST_SET_WATCH_SECONDS`, 15 by default, at least 5. */
   setWatchSeconds: number
+  /**
+   * §24's load rehearsal (the load rehearsal plan's Decision 12): each burst's phases, each request's timeout, the
+   * pass mark and the generator's hard stop — `MANIFEST_LOAD_*`, with §24's numbers as defaults.
+   */
+  loadRehearsal: LoadRehearsalSettings
   /** Task 6 derives every service credential from this by HMAC. */
   masterSecret: string
   /**
@@ -948,6 +970,22 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     readinessTimeoutMs: raw.MANIFEST_READINESS_TIMEOUT_MS,
     drainTimeoutMs: raw.MANIFEST_DRAIN_TIMEOUT_MS,
     setWatchSeconds: raw.MANIFEST_SET_WATCH_SECONDS,
+    loadRehearsal: {
+      synchronised: parseLoadPhases(
+        'MANIFEST_LOAD_SYNCHRONISED',
+        raw.MANIFEST_LOAD_SYNCHRONISED,
+        2,
+        2,
+      ),
+      steady: parseLoadPhases('MANIFEST_LOAD_STEADY', raw.MANIFEST_LOAD_STEADY, 1, 5),
+      requestTimeoutMs: raw.MANIFEST_LOAD_REQUEST_TIMEOUT_MS,
+      pass: {
+        answeredRatio: raw.MANIFEST_LOAD_PASS_ANSWERED,
+        p95Ms: raw.MANIFEST_LOAD_PASS_P95_MS,
+        achievedRatio: raw.MANIFEST_LOAD_PASS_ACHIEVED,
+      },
+      hardStopMs: raw.MANIFEST_LOAD_HARD_STOP_SECONDS * 1000,
+    },
     masterSecret,
     masterSecretGenerated,
     dockerSocket: raw.MANIFEST_DOCKER_SOCKET ?? resolveSocketPath(),
@@ -995,6 +1033,45 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
       webhookSecretPath: fromRepoRoot(raw.MANIFEST_GITHUB_WEBHOOK_SECRET),
     },
   }
+}
+
+/** §24's load rehearsal, as `loadConfig` reads it (the load rehearsal plan's Decision 12). */
+export interface LoadRehearsalSettings {
+  /** The arrival, then the stay: exactly two phases. */
+  synchronised: { rps: number; seconds: number }[]
+  /** The ramp: one to five phases. */
+  steady: { rps: number; seconds: number }[]
+  requestTimeoutMs: number
+  pass: { answeredRatio: number; p95Ms: number; achievedRatio: number }
+  hardStopMs: number
+}
+
+/**
+ * `<rate>x<seconds>,…` — each phase a whole number of requests a second above zero for a whole number of seconds
+ * above zero, `min` to `max` of them. A typo must not boot as a profile that loads nothing, or one the generator
+ * then refuses half-way through a person's run.
+ */
+function parseLoadPhases(
+  name: string,
+  value: string,
+  min: number,
+  max: number,
+): { rps: number; seconds: number }[] {
+  const phases = value.split(',').map((entry) => {
+    const match = /^([1-9]\d*)x([1-9]\d*)$/.exec(entry.trim())
+    if (match === null)
+      throw new ConfigError(
+        'CONFIG_INVALID',
+        `invalid configuration — ${name} entry '${entry.trim()}' is not '<rate>x<seconds>'; give each phase as whole numbers above zero, e.g. 75x60`,
+      )
+    return { rps: Number(match[1]), seconds: Number(match[2]) }
+  })
+  if (phases.length < min || phases.length > max)
+    throw new ConfigError(
+      'CONFIG_INVALID',
+      `invalid configuration — ${name} has ${phases.length} phase(s); it takes ${min === max ? `exactly ${min}` : `${min} to ${max}`}`,
+    )
+  return phases
 }
 
 /**

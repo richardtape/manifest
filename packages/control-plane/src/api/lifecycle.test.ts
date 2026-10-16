@@ -829,6 +829,7 @@ describe('archive and restore (§11, Task 11)', () => {
       retirer: { schedule: () => undefined },
       finishTeardowns: () => finishTeardowns(lifecycleDeps(ctx.deps)),
       takeDownLeftRehearsals: () => Promise.resolve({ takenDown: [], failed: [] }),
+      takeDownLeftLoadRehearsals: () => Promise.resolve({ abandoned: [], failed: [] }),
     })
 
   /**
@@ -1444,6 +1445,8 @@ describe('delete (§11, Task 12)', () => {
           retirer: { schedule: () => undefined },
           finishTeardowns: () => finishTeardowns(lifecycleDeps(ctx.deps)),
           takeDownLeftRehearsals: () => Promise.resolve({ takenDown: [], failed: [] }),
+          takeDownLeftLoadRehearsals: () =>
+            Promise.resolve({ abandoned: [], failed: [] }),
         })
         expect(report.teardowns.finished).toHaveLength(1)
         const archived = await eventTypes(ctx, 'project.archived')
@@ -1499,6 +1502,8 @@ describe('delete (§11, Task 12)', () => {
           retirer: { schedule: () => undefined },
           finishTeardowns: () => finishTeardowns(lifecycleDeps(ctx.deps)),
           takeDownLeftRehearsals: () => Promise.resolve({ takenDown: [], failed: [] }),
+          takeDownLeftLoadRehearsals: () =>
+            Promise.resolve({ abandoned: [], failed: [] }),
         })
         expect(report.teardowns).toEqual({ finished: [], failed: [] })
         expect(driver.isSwitchedOff(deployed.hostname)).toBe(false)

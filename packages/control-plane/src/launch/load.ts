@@ -1,4 +1,6 @@
 import { resolve } from 'node:path'
+import type { LoadRehearsalSettings } from '../config.js'
+import type { StoredAudience } from '../projects/index.js'
 import { demux, type EngineClient } from '../runtime/index.js'
 
 /**
@@ -80,6 +82,12 @@ export interface LoadGenerator {
     phases: LoadPhase[],
     labels: { loadRehearsalId: string },
   ): Promise<{ address: string; go(): Promise<void>; done: Promise<LoadReport> }>
+  /**
+   * Removes, with its volumes, every container labelled with this run — what a run left behind when it stopped (the
+   * boot's pass 2⅞, Decision 13), or a generator the run itself must end now (a `go()` that failed, a set that went
+   * away). Answers how many it removed. Removing one ends its `done`, rejected.
+   */
+  removeLeft(loadRehearsalId: string): Promise<number>
 }
 
 export interface LoadGeneratorOptions {
@@ -261,6 +269,24 @@ export function createLoadGenerator(options: LoadGeneratorOptions): LoadGenerato
   const hardStopMs = options.hardStopMs ?? EIGHT_MINUTES
 
   return {
+    async removeLeft(loadRehearsalId) {
+      if (!LABEL_SHAPE.test(loadRehearsalId)) {
+        throw new Error(
+          `a load rehearsal id the generator cannot label with: '${loadRehearsalId}'`,
+        )
+      }
+      const filters = encodeURIComponent(
+        JSON.stringify({ label: [`${LOAD_REHEARSAL_LABEL}=${loadRehearsalId}`] }),
+      )
+      const left =
+        (await engine.get<{ Id: string }[]>(
+          `/containers/json?all=true&filters=${filters}`,
+        )) ?? []
+      for (const container of left)
+        await engine.del(`/containers/${container.Id}?force=true&v=true`)
+      return left.length
+    },
+
     async start(target, phases, labels) {
       const goWaitSeconds = refuseUnloadable(target, phases, labels, hardStopMs)
       const startedAt = Date.now()
@@ -536,5 +562,137 @@ export function readLoadResult(
     answeredRatio: all.requests === 0 ? 0 : answered / all.requests,
     byPath,
     durationMs: ms(all.duration + all.wait),
+  }
+}
+
+// --- Task 4: the profile and the judgement -------------------------------------------------------------------------
+
+/** Every code a load rehearsal refuses with that is its own (the load rehearsal plan's Decision 6). On the wire from Task 5. */
+export type LoadRehearsalCode =
+  'LOAD_REHEARSAL_BUSY' | 'LOAD_REHEARSAL_RUNNING' | 'LOAD_REHEARSAL_NOT_NEEDED'
+
+export class LoadRehearsalError extends Error {
+  constructor(
+    readonly code: LoadRehearsalCode,
+    message: string,
+  ) {
+    super(message)
+    this.name = 'LoadRehearsalError'
+  }
+}
+
+/**
+ * §24'S ARRIVAL FOR AN AUDIENCE, IN RATES (Decision 7): `synchronised` is its arrival and its stay, `steady` its ramp,
+ * each phase the settings' (Decision 12). `public` is `large_course`'s on a laptop — the stated cap — and a `solo` or
+ * `class` app has no load rehearsal at all: §24 gives neither a load gate.
+ */
+export function phasesFor(
+  audience: Pick<StoredAudience, 'scale' | 'burst'>,
+  settings: Pick<LoadRehearsalSettings, 'synchronised' | 'steady'>,
+): LoadPhase[] {
+  if (audience.scale !== 'large_course' && audience.scale !== 'public')
+    throw new LoadRehearsalError(
+      'LOAD_REHEARSAL_NOT_NEEDED',
+      `a load rehearsal is for an app whose audience is a large course or the public; this app's is ${
+        audience.scale === 'class' ? 'one class' : 'its owner alone'
+      }, so its launch does not ask for one and nothing was started`,
+    )
+  if (audience.burst === 'synchronised') {
+    const [arrive, sustain] = settings.synchronised
+    return [
+      { name: 'arrive', ...arrive! },
+      { name: 'sustain', ...sustain! },
+    ]
+  }
+  return settings.steady.map((phase, index) => ({
+    name: `ramp-${index + 1}` as LoadPhase['name'],
+    ...phase,
+  }))
+}
+
+/**
+ * THE PATHS A CROWD ASKS FOR FIRST (Decision 4): the app's front page, its health path, and — for a CWL app — the
+ * skeleton's `/login`, its sign-in redirect, never followed (each `/login` writes a sign-in request to the app's own
+ * database, as a real arrival's does). Each once, in that order.
+ */
+export function loadPathsFor(staging: {
+  health: string
+  auth?: { provider: 'cwl' | 'none' } | undefined
+}): string[] {
+  const paths = ['/', staging.health]
+  if (staging.auth?.provider === 'cwl') paths.push('/login')
+  return [...new Set(paths)]
+}
+
+/** What the run's watch saw of the granted set while the load ran (Decision 8). */
+export interface Watched {
+  /** Members that exited — or were gone — at any poll. */
+  exits: number
+  /** Any member ran out of memory (`InstanceStatus.outOfMemory`: the grant starts fresh members, so "during this run"). */
+  outOfMemory: boolean
+  /** Any member was running and not healthy at any poll. */
+  unhealthy: boolean
+}
+
+/** A share as a person reads it: one decimal, never rounded UP past a mark (98.96% is 98.9%, not 99%). */
+const percent = (ratio: number): string =>
+  `${String(Math.floor(ratio * 1000 + 1e-9) / 10)}%`
+/** Milliseconds as seconds, to two decimals at most. */
+const seconds = (ms: number): string => String(Math.round(ms / 10) / 100)
+const oneDecimal = (n: number): string => String(Math.round(n * 10) / 10)
+
+/**
+ * DID IT PASS? §24's pass mark, every rule, in its order — and a failure names the FIRST rule it broke, with the
+ * number (Decision 8; Review Focus 2 and 5):
+ *
+ * 1. **At least the mark's share of requests answered** — a status below 500 that is not `429`, in time; the report's
+ *    own count (`readLoadResult`), never recounted here. A run that sent nothing has answered nothing.
+ * 2. **The 95th percentile UNDER the mark** — exactly the mark is not under it.
+ * 3. **Each phase at least nine-tenths of its rate** — vegeta's own achieved rate; a run the generator could not drive
+ *    measures the generator, so it is a failure, never a pass.
+ * 4. **Every instance healthy throughout, with no exit and no out-of-memory exit** — the most specific first: out of
+ *    memory (an exit too), then an exit, then a member running unhealthy.
+ */
+export function judge(
+  report: LoadReport,
+  watched: Watched,
+  phases: LoadPhase[],
+  mark: LoadRehearsalSettings['pass'],
+): { passed: boolean; reason: string } {
+  const ratio = report.requests === 0 ? 0 : report.answered / report.requests
+  if (report.requests === 0 || ratio < mark.answeredRatio)
+    return {
+      passed: false,
+      reason: `${percent(ratio)} of requests were answered (${report.answered} of ${report.requests}); the mark is ${percent(mark.answeredRatio)}`,
+    }
+  if (report.p95Ms >= mark.p95Ms)
+    return {
+      passed: false,
+      reason: `p95 was ${seconds(report.p95Ms)} s; the mark is under ${seconds(mark.p95Ms)} s`,
+    }
+  for (const phase of phases) {
+    const reached = report.phases.find((p) => p.name === phase.name)
+    const achieved = reached?.achieved ?? 0
+    if (achieved < mark.achievedRatio * phase.rps)
+      return {
+        passed: false,
+        reason: `the generator reached ${oneDecimal(achieved)} of ${phase.rps} requests a second in its '${phase.name}' phase, under nine-tenths of the rate asked — a run it could not drive measures the generator, not the app`,
+      }
+  }
+  if (watched.outOfMemory)
+    return { passed: false, reason: 'an instance ran out of memory during the run' }
+  if (watched.exits > 0)
+    return {
+      passed: false,
+      reason:
+        watched.exits === 1
+          ? 'an instance exited during the run'
+          : `${watched.exits} instances exited during the run`,
+    }
+  if (watched.unhealthy)
+    return { passed: false, reason: 'an instance was unhealthy during the run' }
+  return {
+    passed: true,
+    reason: `${percent(ratio)} of requests answered, p95 ${seconds(report.p95Ms)} s, at ${oneDecimal(report.achievedRps)} requests a second; every instance stayed healthy`,
   }
 }

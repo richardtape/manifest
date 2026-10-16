@@ -2021,6 +2021,8 @@ describe('who may run D21’s rehearsal (§13, D24)', () => {
                   bus: ctx.deps.bus,
                 },
               }),
+            takeDownLeftLoadRehearsals: () =>
+              Promise.resolve({ abandoned: [], failed: [] }),
           })
 
         // LAUNCHED: production is the app's own, and the boot leaves it serving.

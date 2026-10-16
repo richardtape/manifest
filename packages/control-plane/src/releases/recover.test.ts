@@ -180,6 +180,8 @@ const bus = createEventBus()
 const noTeardowns = () => Promise.resolve({ finished: [], failed: [] })
 /** No rehearsal left serving — the launch path plan's Task 6c's pass, which `api/delivery.test.ts` drives. */
 const noRehearsals = () => Promise.resolve({ takenDown: [], failed: [] })
+/** No load rehearsal left running — pass 2⅞, which `launch/load-run.test.ts` drives. */
+const noLoadRehearsals = () => Promise.resolve({ abandoned: [], failed: [] })
 
 const recorder = () => {
   const scheduled: string[] = []
@@ -188,6 +190,7 @@ const recorder = () => {
     retirer: { schedule: (id: string) => void scheduled.push(id) },
     finishTeardowns: noTeardowns,
     takeDownLeftRehearsals: noRehearsals,
+    takeDownLeftLoadRehearsals: noLoadRehearsals,
   }
 }
 
@@ -384,6 +387,7 @@ describe('recoverAtBoot (P4c Task 9)', () => {
         retirer,
         finishTeardowns: noTeardowns,
         takeDownLeftRehearsals: noRehearsals,
+        takeDownLeftLoadRehearsals: noLoadRehearsals,
       })
 
       expect(scheduled.sort()).toEqual([first.environmentId, second.environmentId].sort())
@@ -409,11 +413,48 @@ describe('recoverAtBoot (P4c Task 9)', () => {
         bus,
         finishTeardowns: noTeardowns,
         takeDownLeftRehearsals: noRehearsals,
+        takeDownLeftLoadRehearsals: noLoadRehearsals,
         retirer: { schedule: (id: string) => void scheduled.push(id) },
       })
       expect(scheduled).toEqual([])
       expect(report.scheduled).toEqual([])
       expect(environmentId).toBeTruthy()
+    })
+  })
+
+  it('takes down a load rehearsal left running AFTER D21’s rehearsals and BEFORE the retire passes — pass 2⅞ (the load rehearsal plan’s Task 4)', async () => {
+    await withRollback(async (db) => {
+      const { driver } = await deployed(db)
+      const order: string[] = []
+      const report = await recoverAtBoot({
+        db,
+        driver,
+        bus,
+        finishTeardowns: () => {
+          order.push('2½ teardowns')
+          return noTeardowns()
+        },
+        takeDownLeftRehearsals: () => {
+          order.push('2¾ rehearsals')
+          return noRehearsals()
+        },
+        takeDownLeftLoadRehearsals: () => {
+          order.push('2⅞ load rehearsals')
+          return Promise.resolve({ abandoned: ['lr-1'], failed: ['lr-2'] })
+        },
+        retirer: { schedule: () => void order.push('3 retire') },
+      })
+      expect([...new Set(order)]).toEqual([
+        '2½ teardowns',
+        '2¾ rehearsals',
+        '2⅞ load rehearsals',
+        '3 retire',
+      ])
+      // The report carries what the pass did, for the boot line.
+      expect(report.loadRehearsalsTakenDown).toEqual({
+        abandoned: ['lr-1'],
+        failed: ['lr-2'],
+      })
     })
   })
 
@@ -438,6 +479,7 @@ describe('recoverAtBoot (P4c Task 9)', () => {
         bus,
         finishTeardowns: noTeardowns,
         takeDownLeftRehearsals: noRehearsals,
+        takeDownLeftLoadRehearsals: noLoadRehearsals,
         retirer: {
           schedule: () => {
             // Synchronous, like the real `schedule`: read what the edge holds now.

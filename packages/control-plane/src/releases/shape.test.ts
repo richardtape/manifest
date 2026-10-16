@@ -34,7 +34,24 @@ describe('shapeFor — the shape of a deploy, and the only place it is decided (
       })
   })
 
-  it('keeps sandbox and staging at one, at their own resources, whatever the audience or purpose', () => {
+  it('gives staging PRODUCTION’S shape for the load rehearsal’s grant — the audience’s count, at production’s resources', () => {
+    const counts = (['solo', 'class', 'large_course', 'public'] as const).map((scale) =>
+      shapeFor('staging', 'load-rehearsal', { scale }),
+    )
+    expect(counts).toEqual([
+      { instances: 1, resources: 'production' },
+      { instances: 2, resources: 'production' },
+      { instances: 3, resources: 'production' },
+      { instances: 3, resources: 'production' },
+    ])
+    // Sandbox is not staging: the grant is staging's alone (deployRelease refuses it anywhere else).
+    expect(shapeFor('sandbox', 'load-rehearsal', { scale: 'large_course' })).toEqual({
+      instances: 1,
+      resources: 'sandbox',
+    })
+  })
+
+  it('keeps sandbox and staging at one, at their own resources, for a launch, D21’s rehearsal or a replacement, whatever the audience', () => {
     for (const kind of ['sandbox', 'staging'] as const)
       for (const purpose of ['launch', 'rehearsal', 'replacement'] as const)
         for (const scale of ['solo', 'class', 'large_course', 'public'] as const)

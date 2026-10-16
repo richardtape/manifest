@@ -1210,6 +1210,134 @@ export const rehearsals = pgTable(
   ],
 )
 
+/** A load rehearsal's states: `running` until its run — or the boot — ends it (the load rehearsal plan's Decision 9). */
+export const LOAD_REHEARSAL_STATES = [
+  'running',
+  'passed',
+  'failed',
+  'teardown_failed',
+  'abandoned',
+] as const
+
+/**
+ * §24'S LOAD REHEARSAL, ONE ROW A RUN (the load rehearsal plan's Task 4, Decision 9) — and §13's
+ * `load-rehearsal` item is met by a MEASUREMENT here, as D21's is by `rehearsals`.
+ *
+ * **INSERTED `running` BEFORE THE GRANT**, so a boot finds a run a stopped process left (`recover.ts`'s pass
+ * 2⅞) and takes staging back from it. `passed` is written only once staging has been given back its own shape:
+ * a run that passed and could not be taken down ends `teardown_failed`, its judgement kept in `evidence`.
+ *
+ * **ONE RUNNING ROW ACROSS THE WHOLE TABLE** — a partial unique index, so two runs anywhere on the platform
+ * cannot both hold one (Decision 6: the laptop, and UBC's shared cluster, are the shared resource, and two at
+ * once would measure each other). An insert that conflicts is refused by the conflicting row's project; a
+ * process that dies leaves no lock behind, only a row the boot ends.
+ *
+ * **NEVER A RESPONSE BODY**: the generator keeps none (`-max-body=0`), and the evidence is counts and latencies.
+ */
+export const loadRehearsals = pgTable(
+  'load_rehearsals',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    projectId: uuid('project_id')
+      .notNull()
+      .references(() => projects.id, { onDelete: 'cascade' }),
+    /** STAGING's environment — the one granted production's shape for the run. */
+    environmentId: uuid('environment_id')
+      .notNull()
+      .references(() => environments.id, { onDelete: 'cascade' }),
+    /** The candidate: the release serving staging when the run was asked for. */
+    releaseId: uuid('release_id')
+      .notNull()
+      .references(() => releases.id, { onDelete: 'cascade' }),
+    imageDigest: text('image_digest').notNull(),
+    /** The audience AS REHEARSED — the item compares the project's audience now with these (Decision 10). */
+    scale: text('scale', { enum: ['large_course', 'public'] }).notNull(),
+    burst: text('burst', { enum: ['steady', 'synchronised'] }).notNull(),
+    state: text('state', { enum: LOAD_REHEARSAL_STATES }).notNull().default('running'),
+    /** What was asked of the generator: each phase's rate and time, the paths, each request's timeout, the pass mark. */
+    profile: jsonb('profile').notNull().$type<{
+      phases: { name: string; rps: number; seconds: number }[]
+      paths: string[]
+      timeoutMs: number
+      pass: { answeredRatio: number; p95Ms: number; achievedRatio: number }
+    }>(),
+    /**
+     * WHAT SERVED STAGING WHEN THE LOAD STARTED, AS READ BACK from the edge (Decision 2) — never the grant's
+     * intent. Null until the grant is read back.
+     */
+    granted: jsonb('granted').$type<{
+      count: number
+      instanceIds: string[]
+      /** The resources each member was given: the release's frozen numbers for the environment the shape names. */
+      resources: {
+        environment: 'sandbox' | 'staging' | 'production'
+        cpu: number
+        memory: string
+        pids: number
+        disk: string
+      }
+    }>(),
+    /** The generator container's own address on the platform network — the one the edge exempted. */
+    generatorAddress: text('generator_address'),
+    /** What it measured, and why it ended as it did. Null while `running`. */
+    evidence: jsonb('evidence').$type<{
+      reason: string
+      requests?: number
+      answered?: number
+      answeredRatio?: number
+      timeouts?: number
+      achievedRps?: number
+      p50Ms?: number
+      p95Ms?: number
+      p99Ms?: number
+      durationMs?: number
+      phases?: {
+        name: string
+        asked: number
+        achieved: number
+        requests: number
+        answered: number
+      }[]
+      /** Per path, per status — where a failure was. `/login`'s total is how many sign-ins it began. */
+      byPath?: Record<string, Record<string, number>>
+      instanceExits?: number
+      outOfMemory?: boolean
+      unhealthy?: boolean
+      /** A `teardown_failed` run's own judgement, kept — it never meets the item (Decision 9). */
+      judged?: { passed: boolean; reason: string }
+    }>(),
+    runBy: uuid('run_by').references(() => users.id),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    finishedAt: timestamp('finished_at', { withTimezone: true }),
+    /** When staging was given back its own shape — null for a `teardown_failed` row, and while running. */
+    takenDownAt: timestamp('taken_down_at', { withTimezone: true }),
+  },
+  (t) => [
+    index('load_rehearsals_project_idx').on(t.projectId, t.createdAt),
+    /** Decision 6: at most ONE `running` row on the platform. Not per project — another project's run is `LOAD_REHEARSAL_BUSY`. */
+    uniqueIndex('load_rehearsals_one_running_idx')
+      .on(t.state)
+      .where(sql`${t.state} = 'running'`),
+    // `text(…, { enum })` types the columns and creates nothing in the database (`incidents.cause`' reason).
+    check(
+      'load_rehearsals_state_known',
+      sql`${t.state} IN ('running', 'passed', 'failed', 'teardown_failed', 'abandoned')`,
+    ),
+    check('load_rehearsals_scale_known', sql`${t.scale} IN ('large_course', 'public')`),
+    check('load_rehearsals_burst_known', sql`${t.burst} IN ('steady', 'synchronised')`),
+    /** A row is finished exactly when it is no longer running. */
+    check(
+      'load_rehearsals_finished',
+      sql`(${t.state} = 'running') = (${t.finishedAt} IS NULL)`,
+    ),
+    /** Decision 9: `passed` only once staging was given back. */
+    check(
+      'load_rehearsals_passed_taken_down',
+      sql`${t.state} <> 'passed' OR ${t.takenDownAt} IS NOT NULL`,
+    ),
+  ],
+)
+
 /**
  * §20's audit log lives in its own SCHEMA, and that is the control rather than a
  * filing decision.

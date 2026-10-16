@@ -15,6 +15,9 @@ export * from './review.js'
 // §13's third blocking item, and the candidate derivation both of them share.
 export * from './candidate.js'
 export * from './rehearsal.js'
+// §24's load rehearsal (the load rehearsal plan's Tasks 2 and 4): the generator and the judgement, and the run.
+export * from './load.js'
+export * from './load-run.js'
 export * from './package.js'
 export * from './usage.js'
 // D19's privacy-assessment draft (the launch path plan's Task 11).

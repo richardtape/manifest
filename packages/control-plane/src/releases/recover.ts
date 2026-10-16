@@ -29,6 +29,11 @@ export interface RecoveryReport {
    * plan's Task 6c; its whole-branch review's I2(a)) — the hostnames, and the ones that could not be.
    */
   rehearsalsTakenDown: { takenDown: string[]; failed: string[] }
+  /**
+   * Load rehearsals a stopped process left `running`, ended (the load rehearsal plan's Task 4, pass 2⅞) — their row
+   * ids: `abandoned` with staging given back its own shape, or `failed` when a step of that could not be done.
+   */
+  loadRehearsalsTakenDown: { abandoned: string[]; failed: string[] }
 }
 
 /** §11's three states a deploy can be interrupted in, straight from the machine. */
@@ -72,6 +77,14 @@ export async function recoverAtBoot(deps: {
    * somebody happens to rehearse or launch again.
    */
   takeDownLeftRehearsals: () => Promise<{ takenDown: string[]; failed: string[] }>
+  /**
+   * §24's load rehearsals a stopped control plane left running, taken down (the load rehearsal plan's Task 4,
+   * Decision 13): `launch/load-run.ts`'s `takeDownLeftLoadRehearsals`, bound by the boot. REQUIRED, for
+   * `takeDownLeftRehearsals`' reason — the edge outlives this process, so without it staging keeps production's
+   * shape, the edge keeps letting the generator's address past its rate limit (an address Docker hands the next
+   * container), and the platform's one running row refuses every load rehearsal after it.
+   */
+  takeDownLeftLoadRehearsals: () => Promise<{ abandoned: string[]; failed: string[] }>
 }): Promise<RecoveryReport> {
   /**
    * PASS 0 — THE BUILDS this process's predecessor was running when it stopped (P5a Task
@@ -242,6 +255,15 @@ export async function recoverAtBoot(deps: {
   const rehearsalsTakenDown = await deps.takeDownLeftRehearsals()
 
   /**
+   * PASS 2⅞ — A LOAD REHEARSAL A STOPPED PROCESS LEFT RUNNING (the load rehearsal plan's Task 4; A1's Decision 7 gave
+   * it this place). AFTER pass 1, which may just have given the edge staging's granted set back, and after the archived
+   * projects' (pass 2½ has retired an archived project's staging, which this then leaves alone) and D21's; BEFORE pass
+   * 3, so the retire passes it schedules see staging as it now is — its own one instance again. Never throws for one
+   * run: each failure is an operator line and a row in the report.
+   */
+  const loadRehearsalsTakenDown = await deps.takeDownLeftLoadRehearsals()
+
+  /**
    * PASS 3 — AND IT RUNS LAST, WHICH IS LOAD-BEARING (Decision 20, and sitting 5's
    * correction to it).
    *
@@ -272,5 +294,6 @@ export async function recoverAtBoot(deps: {
     scheduled,
     teardowns,
     rehearsalsTakenDown,
+    loadRehearsalsTakenDown,
   }
 }

@@ -33,7 +33,12 @@ import { createAppSecrets, loadMasterKeypair, scrubSecretEnv } from './secrets/i
 import { createServiceCredentials } from './services/index.js'
 import { createSamlSpFor } from './identity/index.js'
 import { createEventBus, createStreamRegistry } from './observability/index.js'
-import { NullReviewer, takeDownLeftRehearsals } from './launch/index.js'
+import {
+  NullReviewer,
+  createLoadGenerator,
+  takeDownLeftLoadRehearsals,
+  takeDownLeftRehearsals,
+} from './launch/index.js'
 import {
   appKeysAtBoot,
   createAiKeyService,
@@ -406,6 +411,19 @@ const app = await buildServer({
 })
 
 /**
+ * §24'S LOAD GENERATOR (the load rehearsal plan's Tasks 2 and 4): vegeta's container, through the engine seam as D21's
+ * sign-in probe is — the engine, the platform CA and the resolver — and gone, whatever happens, within the hard stop
+ * (`MANIFEST_LOAD_HARD_STOP_SECONDS`). Read by the boot's pass 2⅞ below, which removes what a stopped run left by its
+ * label, and by the load rehearsal's run.
+ */
+const loadGenerator = createLoadGenerator({
+  engine: createEngineClient({ socketPath: config.dockerSocket }),
+  caCertPath: config.caCertPath,
+  dnsServer: config.dnsServer,
+  hardStopMs: config.loadRehearsal.hardStopMs,
+})
+
+/**
  * BEFORE `listen`, deliberately (P4c Task 9): §12 says the control plane re-applies
  * all routes at its own boot, and until now nothing did — so an edge restart left
  * every app answering the wildcard until somebody redeployed it. This also ends the
@@ -440,6 +458,16 @@ const recovery = await recoverAtBoot({
   // Task 6c): the edge kept the name through the stop, or pass 1 just gave it back.
   takeDownLeftRehearsals: () =>
     takeDownLeftRehearsals({ db, driver, config, deploy: { ai, appSecrets, bus } }),
+  // §24's load rehearsals a stopped process left running (the load rehearsal plan's Task 4, pass 2⅞): staging still
+  // holds production's shape and the edge still lets the generator's address past its limit, until this gives both back.
+  takeDownLeftLoadRehearsals: () =>
+    takeDownLeftLoadRehearsals({
+      db,
+      driver,
+      config,
+      deploy: { secrets, appSecrets, sso, blueprints, ai, catalogue, bus, retirer },
+      generator: loadGenerator,
+    }),
 })
 
 /**
@@ -638,6 +666,9 @@ console.log(
     teardownsFailed: recovery.teardowns.failed.length,
     rehearsalsTakenDown: recovery.rehearsalsTakenDown.takenDown.length,
     rehearsalsNotTakenDown: recovery.rehearsalsTakenDown.failed.length,
+    // The load rehearsal plan's Task 4: load rehearsals a stopped process left running, ended — each has its own line.
+    loadRehearsalsAbandoned: recovery.loadRehearsalsTakenDown.abandoned.length,
+    loadRehearsalsNotTakenDown: recovery.loadRehearsalsTakenDown.failed.length,
     // A1 Task 6: the set watcher is running, and how often it reads production's members.
     setWatchSeconds: config.setWatchSeconds,
     // Task 10: how many questions nobody answered in time. A sweep nobody can see is

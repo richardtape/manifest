@@ -226,6 +226,14 @@ export interface DeployInput {
    * `instances.replacing`, which is how the watcher's backoff and cap are counted from rows.
    */
   replacing?: string
+  /**
+   * THE LOAD REHEARSAL THIS DEPLOY IS PART OF (the load rehearsal plan's Task 4) — carried by exactly its
+   * two deploys: the GRANT (`purpose: 'load-rehearsal'`, staging in production's shape) and the TAKE-DOWN
+   * (a `'launch'` deploy, staging back in its own). Refused with any environment but staging, and the grant
+   * refused without it. While a run holds staging, every other staging deploy of the project is refused
+   * (Task 5), and this is how those two are told apart from the rest.
+   */
+  loadRehearsalId?: string
 }
 
 /**
@@ -330,6 +338,22 @@ export async function deployReleaseSet(
       `no environment '${input.environmentId}'`,
     )
   }
+
+  /**
+   * THE LOAD REHEARSAL'S TWO DEPLOYS ARE STAGING'S, AND ONLY ITS RUN MAKES THEM (the load rehearsal plan's
+   * Task 4, Decision 2). Plain `Error`s, as the replacement's pairing above: `launch/load.ts` is the one
+   * caller that names either, and no client can reach them. Refused before anything is read further.
+   */
+  if (input.purpose === 'load-rehearsal' && environment.kind !== 'staging')
+    throw new Error(
+      `a load rehearsal grants STAGING production's shape, never ${environment.kind}`,
+    )
+  if (input.loadRehearsalId !== undefined && environment.kind !== 'staging')
+    throw new Error(
+      `a load rehearsal's deploys are staging's: \`loadRehearsalId\` on ${environment.kind} is refused`,
+    )
+  if (input.purpose === 'load-rehearsal' && input.loadRehearsalId === undefined)
+    throw new Error('a load rehearsal’s grant names its run (`loadRehearsalId`)')
 
   // REMOVED in P6a Task 7 (Decision 3). `deployRelease` refused every production deploy
   // here, before it read the build, with a `ReleaseError` carrying no checklist — a SECOND
