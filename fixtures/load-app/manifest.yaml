@@ -1,0 +1,43 @@
+# Course notices: a large course's front page, read by everyone at once when an
+# assignment is released.
+#
+# `make demo-load`'s app (the load rehearsal plan's Task 8a). The demo writes this
+# file, `server.js` and `load-app.json` into a project created from the bare
+# `node-ts-mongo@1` skeleton, through nothing but Manifest's API, and rehearses it
+# under its audience's arrival: once as it is, and once with `load-app.json`
+# saying `"fallOver": true` — a NEW commit, so a new image and a new candidate. The
+# demo puts its project's slug in `name` as it writes it: §7 refuses a manifest
+# whose name is not its project's (SPEC_NAME_SLUG_MISMATCH).
+manifest: 1
+name: load-app
+blueprint: node-ts-mongo@1
+description: Course notices — the page a large course reads at once.
+
+runtime:
+  port: 3000
+  health: /healthz
+
+services:
+  - { type: mongo, version: "7", name: db }
+
+auth:
+  provider: cwl
+  # Who is reading: the page greets a signed-in person by their given name.
+  attributes: [ubcEduCwlPuid, givenName]
+  callback: /auth/ubcshib/callback
+  logout: /auth/logout
+
+data:
+  # Course notices and who signed in: `medium`.
+  classification: medium
+  retention_days: 120
+
+environments:
+  # PRODUCTION IS BIGGER THAN STAGING, on purpose: the load rehearsal gives staging
+  # production's shape for its run — three instances at THESE resources — and then
+  # staging's own back (one, at the blueprint's 512Mi). With both the same, the
+  # demo's "staging back at its own resources" could not fail (the load baseline's
+  # F4).
+  production:
+    resources:
+      memory: 640Mi

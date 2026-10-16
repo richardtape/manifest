@@ -21,6 +21,7 @@ import {
   type Exit,
   type LoopRecord,
 } from './capacity-checks.js'
+import { resetCode, resetSafeFetch } from './edge-reset.js'
 import { describeSeen, seeEveryMember } from './serving-set.js'
 
 /**
@@ -131,36 +132,9 @@ function need<T>(what: string, value: T | undefined | null): T {
   return value === undefined || value === null ? checks.must(what, value) : value
 }
 
-/** The socket errors a reset leaves: the edge closed a connection the client was about to use. */
-const RESET_CODES = new Set(['UND_ERR_SOCKET', 'ECONNRESET', 'EPIPE'])
-const resetCode = (error: unknown): string | undefined => {
-  const code =
-    (error as { cause?: { code?: string } }).cause?.code ??
-    (error as { code?: string }).code
-  return code !== undefined && RESET_CODES.has(code) ? code : undefined
-}
-
-/**
- * §11'S RESET, ON THE CONSOLE'S OWN ROUTE: every route change reloads the edge's whole configuration, and a
- * reload closes the idle keep-alive sockets it held — so a read that reuses one as the reload lands fails
- * `UND_ERR_SOCKET`, whichever app's route moved. Measured here (driver 2, phase 4): the watcher's
- * replacement moved `launchpath-github`'s route between two reads of the environment. The request loops
- * count a reset as its own tolerated class; the client asks a READ again, ONCE, and says so — never a
- * mutation, which is retried only by its caller with its own `Idempotency-Key`.
- */
-const resetSafeFetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
-  const again =
-    input instanceof Request && input.method === 'GET' ? input.clone() : undefined
-  try {
-    return await fetch(input, init)
-  } catch (error) {
-    const code = resetCode(error)
-    if (again === undefined || code === undefined) throw error
-    console.log(`  (a read met the edge's reset, ${code}, and was asked again)`)
-    return fetch(again, init)
-  }
-}) as typeof fetch
-
+// §11'S RESET, ON THE CONSOLE'S OWN ROUTE (`edge-reset.ts`): measured here (driver 2, phase 4) — the watcher's
+// replacement moved `launchpath-github`'s route between two reads of the environment. The request loops count a
+// reset as its own tolerated class; the client asks a READ again, once.
 function clientFor(variable: string): ManifestClient {
   return createManifestClient({ origin, session: env(variable), fetch: resetSafeFetch })
 }

@@ -16,7 +16,7 @@ LITELLM_DIGEST := $(shell awk '$$1 ~ /berriai\/litellm/ {print $$2}' infra/image
 LITELLM_DIGEST := $(or $(LITELLM_DIGEST),sha256:0000000000000000000000000000000000000000000000000000000000000000)
 COMPOSE := LITELLM_DIGEST=$(LITELLM_DIGEST) docker compose -f infra/compose.yaml -p manifest --env-file .env
 
-.PHONY: help seed refresh-vulndb up down reset github-up github-down github-conformance doctor verify demo demo-identity demo-ai demo-redeploy demo-journey demo-token demo-production demo-releases demo-capacity demo-github demo-authoring demo-frontend demo-launch demo-faculty-ready demo-gateway demo-levels demo-console admin-ui demo-admin ci-acceptance host-setup host-undo
+.PHONY: help seed refresh-vulndb up down reset github-up github-down github-conformance doctor verify demo demo-identity demo-ai demo-redeploy demo-journey demo-token demo-production demo-releases demo-capacity demo-load demo-github demo-authoring demo-frontend demo-launch demo-faculty-ready demo-gateway demo-levels demo-console admin-ui demo-admin ci-acceptance host-setup host-undo
 
 # Every compose target needs .env to exist — `--env-file` on a missing file is a
 # hard error, not a warning. `make seed` also writes it; this makes `make up` on
@@ -154,6 +154,9 @@ demo-releases: up  ## P6b's acceptance: a launched app's next release — self-s
 
 demo-capacity: up  ## A1's acceptance: a launched class app on two instances — a redeploy, a dead member and a crash loop. Either driver.
 	@bash scripts/demo-capacity.sh
+
+demo-load: up  ## The load rehearsal's acceptance: a large course's app rehearsed under its arrival — a pass, then a fall-over. Either driver; ~13 minutes.
+	@bash scripts/demo-load.sh
 
 # D5's driver 2 end to end against the GitHub fake (the D5 plan's Task 15). It needs the
 # control plane on DRIVER 2 — MANIFEST_SOURCE_DRIVER=github — which every other demo must not
