@@ -2199,3 +2199,9 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
     decision: a hand-back keeps no reason because returnIamRegistration and returnPrivacyAssessment take no body (FE-46/47/5's scope;
     the admin console design's A19, "for the team to decide whether it wants one kept"). Keeping one is a contract change, named for P11b
     or a plan of its own, at his call (the P11 plan's Sitting 9, F1).
+
+    On 2026-10-16 at ~14:54 PDT, in chat to manifest-coord5 — B's CLICKED HALF (the load rehearsal's Task 8b, manifest-b-s7): after
+    pressing Run the load rehearsal on b7-click (a large_course app on driver 1, at cf6f533c), stepped up, the run passing at 14:47:59
+    (19,500/19,500, p95 11.1 ms, three instances granted, staging given back, the item met): "I saw "Passed: 100% answered, p95 0.01 s"".
+    So B's last step is DONE and B IS EXECUTED (62803b47). Earlier that day he had missed the 12:00 and 13:15 windows while Hatchery
+    came first (his words at ~09:53, above); at ~14:16 he said "I'll be back in about 10 mins so I can do any clicks necessary".
