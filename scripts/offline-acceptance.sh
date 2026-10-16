@@ -16,7 +16,7 @@ cd "$(dirname "$0")/.."
 
 # WHICH SOURCE DRIVER the control plane runs (the D5 plan's Decision 3: ONE per process), asked
 # the way `make demo-github` asks it — an unsigned delivery: `local`, `github`, or `none`. Steps 6
-# to 12 are DRIVER 1's, step 13 is DRIVER 2's and steps 14 to 19 run on either; run a driver-1 demo on driver 2 and it CREATES
+# to 12 are DRIVER 1's, step 13 is DRIVER 2's, steps 14 to 19 run on either and step 20 needs no control plane at all; run a driver-1 demo on driver 2 and it CREATES
 # its project there, where no route can delete it (P6a F5) and driver 1 refuses it for ever.
 source_driver() {
   local answer
@@ -376,6 +376,19 @@ case "$(source_driver)" in
     ;;
   *) echo "  SKIPPED: no control plane answered 127.0.0.1:7100/webhooks/github — start one on either driver (RUNBOOK)." ;;
 esac
+
+echo
+echo "=== 20. P11's acceptance: the administrator's console, walked headless on its demo fleet, offline ==="
+# APPENDED, like steps 7 to 19. WHAT THIS PROVES OFFLINE THAT THE OTHER NINETEEN DO NOT: the administrator's
+# console — @manifest/contract and the console built, its own mock on 7113 with a fresh demo fleet, the built
+# console on 7101 and Chrome headless walking nine checks (the headline from our own band, a release approved
+# through the step-up and back, UBC's answer read back through the API, the fleet, a project's page, Health
+# and Settings) with nothing unexpected on the console. The console loads no web font, so nothing in it reaches
+# the network.
+#
+# IT NEEDS NO CONTROL PLANE, no Docker and no driver: it runs whatever steps 1 to 19 left. It refuses while
+# `make admin-ui` (or another walk) holds 7101 or 7113.
+make demo-admin; echo "demo-admin exit=$?"
 
 echo
 echo "=== done. Turn the network back on. ==="

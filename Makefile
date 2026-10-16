@@ -16,7 +16,7 @@ LITELLM_DIGEST := $(shell awk '$$1 ~ /berriai\/litellm/ {print $$2}' infra/image
 LITELLM_DIGEST := $(or $(LITELLM_DIGEST),sha256:0000000000000000000000000000000000000000000000000000000000000000)
 COMPOSE := LITELLM_DIGEST=$(LITELLM_DIGEST) docker compose -f infra/compose.yaml -p manifest --env-file .env
 
-.PHONY: help seed refresh-vulndb up down reset github-up github-down github-conformance doctor verify demo demo-identity demo-ai demo-redeploy demo-journey demo-token demo-production demo-releases demo-capacity demo-github demo-authoring demo-frontend demo-launch demo-faculty-ready demo-gateway demo-levels demo-console admin-ui ci-acceptance host-setup host-undo
+.PHONY: help seed refresh-vulndb up down reset github-up github-down github-conformance doctor verify demo demo-identity demo-ai demo-redeploy demo-journey demo-token demo-production demo-releases demo-capacity demo-github demo-authoring demo-frontend demo-launch demo-faculty-ready demo-gateway demo-levels demo-console admin-ui demo-admin ci-acceptance host-setup host-undo
 
 # Every compose target needs .env to exist — `--env-file` on a missing file is a
 # hard error, not a warning. `make seed` also writes it; this makes `make up` on
@@ -211,6 +211,12 @@ demo-console: up  ## P5c: serve the reference console and print the checklist a 
 
 admin-ui:  ## P11: the administrator's console on 7101 and its own mock on 7113 — no platform needed.
 	@bash scripts/admin-ui.sh
+
+# P11's acceptance, the headless half (its Task 12): the console built, its mock's demo fleet fresh, and Chrome
+# headless walking nine checks — the headline, a release approved through the step-up, UBC's answer read back,
+# the fleet, a project's page, Health and Settings. No control plane, no Docker, no network.
+demo-admin:  ## P11's acceptance: the administrator's console walked headless on the demo fleet — no platform needed.
+	@bash scripts/demo-admin.sh
 
 ci-acceptance: up  ## 1c's acceptance, headless: the gates with their counts, and both journeys.
 	@bash scripts/ci-acceptance.sh

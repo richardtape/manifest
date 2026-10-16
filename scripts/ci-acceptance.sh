@@ -12,13 +12,14 @@
 #
 # IT IS NOT scripts/offline-acceptance.sh. That one is C1's — run by hand with the network
 # OFF, because turning the network off from a tool call cuts the agent off too — and its
-# twenty `=== n.` headings are numbered 0 to 19, where 0 is the precondition and 1-19 are
+# twenty-one `=== n.` headings are numbered 0 to 20, where 0 is the precondition and 1-20 are
 # the work (this line said "ten, 0 to 9" through P5c's step 10; P6a Task 19 found it; P6b
 # Task 11 added step 12, `make demo-releases`; the D5 plan's Task 15 step 13, `make
 # demo-github`; the authoring API plan's Task 13 step 14, `make demo-authoring`; the front-end
 # enablement plan's Task 15 step 15, `make demo-frontend`; the launch path plan's Task 15 step
 # 16, `make demo-launch`; the faculty-ready plan's Task 11 step 17, `make demo-faculty-ready`;
-# the U1 plan's Task 7 step 18, `make demo-levels`; A1's Task 10 step 19, `make demo-capacity`).
+# the U1 plan's Task 7 step 18, `make demo-levels`; A1's Task 10 step 19, `make demo-capacity`;
+# P11's Task 12 step 20, `make demo-admin`).
 # This one runs with the network on and asserts the gates' COUNTS as well.
 #
 # EVERY STEP REPORTS RATHER THAN EXITS (P4c Decision 26), so a red run is a MEASUREMENT of
@@ -617,13 +618,24 @@ esac
 #                     ready changing nothing, a member killed and replaced, and a crash loop stopped at its
 #                     cap (~7 of its ~12 minutes). EITHER driver: `launch-app` on driver 1, which
 #                     demo-production and demo-releases above have launched, `launchpath-github` on driver
-#                     2, which demo-launch above has. LAST, because it is the longest and changes no other
-#                     demo's project; it leaves its app serving its own last release on a new pair. It adds
+#                     2, which demo-launch above has. The last of the PLATFORM's demos, because it is the longest
+#                     and changes no other demo's project; it leaves its app serving its own last release on a new pair. It adds
 #                     no test (its reading of the loops is `capacity-checks.test.ts`, counted above).
 case "$DRIVER" in
   local | github) run "make demo-capacity" make demo-capacity ;;
   *) record "make demo-capacity" "NOT RUN" "no control plane answered the driver probe at 127.0.0.1:7100" ;;
 esac
+
+# ---------------------------------------------------------------- 13. P11's acceptance, the headless half
+#   demo-admin      — the administrator's console (P11's Task 12), built and walked headless in Chrome on
+#                     its own mock's demo fleet: the sign-in and the rail, the headline from our own band,
+#                     the keyboard, a release approved through the step-up and back, a registration
+#                     submitted to UBC IAM, UBC's answer recorded and read back through the API, the fleet,
+#                     a project's page, Health and Settings — and nothing unexpected on the console. It
+#                     needs NO control plane (7101 and 7113, no Docker), so it runs whatever the driver
+#                     probe answered — and refuses, as a FAIL, while `make admin-ui` holds either port. It
+#                     adds no test.
+run "make demo-admin" make demo-admin
 
 # ---------------------------------------------------------------- the summary
 bold "=== summary ==="
@@ -650,7 +662,7 @@ cat <<'TAIL'
      services/, build/, releases/, identity/, sso/, secrets/, projects/, blueprints/,
      ai/, observability/, infra/ or a *.docker.test.ts;
    - the OFFLINE acceptance — `scripts/offline-acceptance.sh`, run by hand with the
-     network off, whose steps 0-19 include `make demo-identity` and `make demo-ai`;
+     network off, whose steps 0-20 include `make demo-identity` and `make demo-ai`;
    - BOTH source drivers in one run — one driver per control-plane process, so a run on
      driver 1 reads `make demo-github` NOT RUN, and a run on driver 2 the other four.
 TAIL
