@@ -18,8 +18,8 @@ rejected and what changing course would cost.*
 > **BUILT — THE PLAN IS EXECUTED 2026-10-16** (nine sittings; `packages/admin-ui` on `main` since its LANDING 3, `c64f067d`): this design,
 > against the mock's demo fleet (`make admin-ui` on 7101, `make demo-admin` its headless half), **clicked by Rich 2026-10-16, 09:38–09:51
 > PDT** — *"I think this is a fantastic start, I'm sure there will be changes over time, but I really like the shape this is taking."* Serving
-> it through the edge on the real platform is P11b, not built — **its plan is WRITTEN 2026-10-16** ([`plans/2026-10-16-p11b-admin-console-edge.md`](./plans/2026-10-16-p11b-admin-console-edge.md), awaiting its review
-> and Rich's approval). §13 says so; A19 carries his one question, which that plan drafts as an option.
+> it through the edge on the real platform is P11b, not built — **its plan is WRITTEN and REVIEWED 2026-10-16** ([`plans/2026-10-16-p11b-admin-console-edge.md`](./plans/2026-10-16-p11b-admin-console-edge.md), awaiting
+> Rich's approval). §13 says so; A19 carries his one question, which that plan drafts as an option.
 
 **What this is.** The written design for **P11** (the roadmap's *Admin console*): the console's
 design, the design-system components it needs, and what the API cannot yet answer. **It is drawn as a
@@ -778,7 +778,7 @@ queue row needs. And the launch records' state machine refuses an impossible tra
 | 22 | **The queue's headline is computed from the *waiting on us* band**, not read from `oldestSince` (A15) | `oldestSince`, which counts UBC's waits | One function |
 | 23 | **The record-answer form offers only the platform's allowed moves, restated and held to the published sentence by a test** (§3.5) | Every state, leaving `LAUNCH_TRANSITION_INVALID` to say no | A table and its test |
 | 24 | **Settings is read-only and shows where each setting is set, never a value it cannot read** (§7a, refreshed) | The mockup's values; leaving Settings out of the rail | — |
-| 25 | **Built against the mock; served through the edge on the real platform by a later plan (P11b)** — the clicked half is on the demo fleet | Serving it through the edge now: a route on `console.manifest.internal` under `/admin` is an `infra/` change (the Docker tier owed) and the team's email's links would move with it | A Caddy route, Vite's `base`, and two links in `mail/team.ts` |
+| 25 | **Built against the mock; served through the edge on the real platform by a later plan (P11b)** — the clicked half is on the demo fleet | Serving it through the edge now: a route on `console.manifest.internal` under `/admin` is an `infra/` change (the Docker tier owed) and the team's email's links would move with it | A Caddy route, Vite's `base`, and three links in `mail/team.ts` (*"two"* until P11b's plan's review counted them, M10) |
 
 ---
 
@@ -803,7 +803,7 @@ change and no SAML change (`safeReturnTo` accepts any same-origin path, `identit
 **WRITTEN 2026-10-14** — [`plans/2026-10-14-p11-admin-console.md`](./plans/2026-10-14-p11-admin-console.md), at Rich's *"Plan + review
 now, build after approval"* (`3011e11`); its shape follows the paragraph below, with the demo fleet in the mock first and the design
 system ported (decision 12, reversed). The paragraph is kept as it was written. **BUILT 2026-10-15/16** — the plan EXECUTED in nine
-sittings, three landings, clicked by Rich 2026-10-16; its *What executing this plan found* is the record, and P11b (through the edge — its plan WRITTEN 2026-10-16, [`plans/2026-10-16-p11b-admin-console-edge.md`](./plans/2026-10-16-p11b-admin-console-edge.md)) is
+sittings, three landings, clicked by Rich 2026-10-16; its *What executing this plan found* is the record, and P11b (through the edge — its plan WRITTEN and reviewed 2026-10-16, [`plans/2026-10-16-p11b-admin-console-edge.md`](./plans/2026-10-16-p11b-admin-console-edge.md), awaiting Rich's approval) is
 what remains.
 
 **None is written** (Rich, 2026-09-27): the mockup is the deliverable for now. If the console is

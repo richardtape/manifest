@@ -8,7 +8,10 @@
 > ([`2026-10-16-p11b-admin-console-edge.md`](./2026-10-16-p11b-admin-console-edge.md), its Task 2 and Decision 3) moves the demo pair to
 > **7114 (mock) and 7115 (console)** and leaves 7113 to this plan. **If this plan's sitting 1 comes first**, its Task 1 makes that move
 > itself — those four files, with `make demo-admin` green on the new ports — or picks another port for the MCP server and changes every
-> mention here; either way it is recorded in the sitting's record, and P11b's Task 1 re-reads which happened.
+> mention here; either way it is recorded in the sitting's record, and P11b's Task 1 re-reads which happened. **And this plan's Task 8
+> edge change** (`@mcp` in both sites, between `@api` and the catch-all): once P11b lands, the console's site also carries P11b's five-line
+> `/admin` run (`redir /admin /admin/ 308`, `@admin path /admin/*` and its `reverse_proxy` to 7101), which `make verify`'s parity check
+> strips by name — so the `@mcp` lines stay identical in both sites and outside that run (P11b's review, M11; added 2026-10-16 ~16:50).
 
 > **✅ APPROVED BY RICH, 2026-10-13, ~21:50 PDT, AS REVISED (`7493be1`)** — *"Approve; inline per sitting (Recommended)"*, with every
 > departure from the design named to him and approved (D2, D9, D10's three non-tools, D14, D19, D20, D21, 7113, the `initialize` check, the
