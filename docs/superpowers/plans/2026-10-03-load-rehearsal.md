@@ -1483,7 +1483,7 @@ plan predicted the kill row alone; F2's row came after the prediction).
 
 **The machine**: at the open (12:47) 31 containers (23 running), 15 networks, 49 volumes, 62 images (`docker images -q`); after the orphans 21/13, 12, 39, 60; **at the close (15:47) 21 containers (13 running), 12 networks, 39 volumes, 61 images** — the one more is `manifest/vegeta:12.13.0`, in the daemon by design (it survives `make reset` and every cleanup script). After the tier: `dead-app-resources.sh --apply` 7 networks and 1 volume, `litellm-orphans.sh --apply` `mf-platform-intake` (recreated by the tier’s boots) and `p4b-probe-user`, `app-images.sh --apply` 14 images — each re-read to zero; `make verify` 67/0/0, runtime routes 0, `srv1` none. Every throwaway gone (`[M3b]`’s network and three containers, every generator, both clients, the stubs). **7100** (15:46): real GitHub from `.env`, `capableModel` and `ubc-qwen-27b` registered, 16 secrets scrubbed; G4’s one call to `default-chat-large` answered `200` by **`gpt-6.1-sol`, 0 fallbacks**; **0 projects**. HOLD given back to `manifest-coord5` at 15:47.
 
-### Sitting 3 — 2026-10-15, 15:49–18:40 PDT (`manifest-b-s3`, the third coordinated run's job B3): Spec action A, Task 4
+### Sitting 3 — 2026-10-15, 15:49–18:32 PDT (`manifest-b-s3`, the third coordinated run's job B3): Spec action A, Task 4
 
 **Opened** by `manifest-coord5`'s GO (15:49), relaying Rich's decisions — `3ba424a` (A–D approved as drafted, A's stories-page line as
 `2f34041` decided), `d5b0eb2` (his allow line for committing an approved spec action with its pages' sweep), `bdfc6f2`, `3011e11`,
