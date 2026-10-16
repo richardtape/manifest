@@ -1681,6 +1681,13 @@ it belongs among the traps the next sitting is most likely to hit.
   started again (it rebuilds), and so does the restore — **a control plane still running a control's build after `git
   checkout` is the broken code, answering as if it were the committed one.** Stop it by the pid on 7100 (`lsof -nP
   -iTCP:7100 -sTCP:LISTEN -t`), and read the fresh boot line each time.
+- **AN UNCOMMITTED FILE IN THE SHARED CHECKOUT CAN KEEP 7100 DOWN — TEST FILES INCLUDED** (2026-10-15, B's sitting 3, F1; P11's
+  sitting 6, F7, is the same event from the other side). The `dev` script's `pnpm run build` is `tsc` over the whole of `src/`, test files
+  too, so a half-written file anyone leaves in the shared checkout fails EVERY restart of 7100 — a G4, a landing, `gateway-controls.sh` —
+  and the platform stays down until it compiles. Measured: `launch/load-run.test.ts`, written under a coordinator's HOLD (when no `tsc` may
+  run) with `fake.switchOff(host)` missing its kind (TS2554), stopped P11's G4 at 16:45 with nothing listening on 7100. **Keep the shared
+  tree compiling between edits**: a sitting under a HOLD writes new files outside the tree (the scratchpad) until `pnpm typecheck` may run,
+  or runs `tsc` on that one package the moment it may.
 - **THE GITHUB FAKE'S DELIVERY LOG LIVES IN ITS VOLUME** (2026-09-25, the D5 plan's sitting 8, F7): `deliveries.json`
   beside `state.json`, three days of it, with each delivery's bytes and the receiver's answer body — so `GET
   /_fake/deliveries` and a redelivery survive `docker stop`/`start`, as GitHub's do. Until then it was in memory, and

@@ -29,8 +29,11 @@
 > [`../spikes/load-baseline/README.md`](../spikes/load-baseline/README.md), and a *SITTING 1 MEASURED* note sits under each task one
 > changes. **SITTING 2 IS DONE (2026-10-15, `manifest-b-s2`)**: Spec actions C and D APPLIED (`a5c44838`; D in Rich's re-worded words),
 > vegeta v12.13.0 downloaded and checksum-verified, Task 2 `3205b956` (the generator), Task 3 `fff41f8c` (the exemption, `outOfMemory`),
-> the two composed through the real edge `d33d950f`; a *SITTING 2 BUILT AND MEASURED* note sits under Task 4. **Sitting 3 is next: Spec
-> action A at its open (approved as drafted, `3ba424a`), then Task 4.**
+> the two composed through the real edge `d33d950f`; a *SITTING 2 BUILT AND MEASURED* note sits under Task 4. **SITTING 3 IS DONE
+> (2026-10-15, `manifest-b-s3`)**: Spec action A APPLIED (`2cdf6baf`; the stories page's l.130 `9ebd087b`), Task 4 `af407a46` (the run, in
+> `launch/load-run.ts`; `load_rehearsals`; the boot's pass 2⅞) — one run through the edge on driver 1 PASSED at the default profile; a
+> *SITTING 3 BUILT AND MEASURED* note sits under Task 5. **Sitting 4 is next: Spec action B at its open (approved as drafted, `3ba424a`),
+> then Task 5 — contract `1.10.0`.**
 
 > **WRITTEN 2026-10-03, AFTERNOON, BY THE PLANNING SESSION `manifest-c7`** (coordinated by `manifest-94`), after FE-32's plan and placed
 > BEFORE it: Rich, 2026-10-03, ~13:46 PDT, answering FE-44, *"Build the load rehearsal first"* — §24's load rehearsal, before faculty use
@@ -138,8 +141,8 @@ contract `1.11.0`); then BYOA on the laptop ([`2026-10-13-byoa-on-the-laptop.md`
 |---|---|---|---|---|---|
 | 1 | 1 | **The measurements**: every fact re-read (A1's sittings 6–8 included); a container on the platform network reaching staging through the edge (the CA, SNI, the source address Caddy sees); the laptop's headroom (what vegeta sustains is Task 2's, after its download); a route whose rate limit skips one address, in a THROWAWAY Caddy from the edge's image; a staging-shaped set in production's N-instance shape on a hostname no project holds, started and given back; an out-of-memory exit as Docker reports it; the gate numbers | No | After Task 1's commit | **DONE 2026-10-15** (`manifest-b-s1`, the third coordinated run's B1): Task 1 `a46bdad9` — [`../spikes/load-baseline/`](../spikes/load-baseline/README.md); 14 findings, F1 (Spec action D's count) re-worded by Rich (`624deb66`); a *SITTING 1 MEASURED* note under Tasks 2–6 and 8a |
 | 2 | 2, 3 | **Spec actions C and D applied first** (staged scripts Rich runs). **The generator** (vegeta built locally — its download and checksum a Rich-step at this sitting's open — its container, its one-line result) and **the edge's exemption** with its **`Driver` verb** (`setRateLimitExemption`, both drivers, the driver contract), **and `InstanceStatus.outOfMemory`** | Yes — `launch/`, `routing/`, `runtime/`, `infra/` | After both commits, with one generator run through the real edge quoted. **It stops and asks Rich** if `[M3b]` finds the laptop cannot sustain Spec action A's profile — the numbers are his | **DONE 2026-10-15** (`manifest-b-s2`, the third coordinated run's B2): Spec actions C and D `a5c44838` (in-session, D in Rich's words); vegeta v12.13.0, both checksums matched; Task 2 `3205b956`, Task 3 `fff41f8c`, composed `d33d950f` (exempted 750/750 at 30.04/s, p95 2.8 ms; not, 600 + 150 × `429`); `[M3b]` 400/s with 0 errors — no stop for Rich; the Docker tier and `pnpm` twice in the record |
-| 3 | 4 | **Spec action A applied first.** **The run**: grant, read back, load, watch, judge, record — the row written `running` BEFORE the grant — and take down; one at a time platform-wide, by a database invariant; **the boot's pass 2⅞**; the `load_rehearsals` table. No wire change | Yes — `launch/`, `releases/`, `db/` | After the commit, with one run through the edge on driver 1 from a scratch script, passed, and staging back in its own shape | ← **next** (`manifest-b-s3`): Spec action A at its open (approved as drafted, `3ba424a`); read Task 4's *SITTING 2 BUILT AND MEASURED* note first |
-| 4 | 5 | **Spec action B applied first.** **The operation**: `runLoadRehearsal` (`202`) and `getLoadRehearsal`; its codes, declared on every operation that answers them; `load_rehearsal.completed`; **staging deploys refused while a run holds the project**; **contract `1.10.0`** | Yes — `launch/`, `releases/`, `observability/` | After the commit, with the front-end told and one run through the edge polled to its end | |
+| 3 | 4 | **Spec action A applied first.** **The run**: grant, read back, load, watch, judge, record — the row written `running` BEFORE the grant — and take down; one at a time platform-wide, by a database invariant; **the boot's pass 2⅞**; the `load_rehearsals` table. No wire change | Yes — `launch/`, `releases/`, `db/` | After the commit, with one run through the edge on driver 1 from a scratch script, passed, and staging back in its own shape | **DONE 2026-10-15** (`manifest-b-s3`, the third coordinated run's B3): Spec action A `2cdf6baf` (in-session; the stories page's l.130 `9ebd087b`, `manifest-coord5`'s minor wording); Task 4 `af407a46`; one run through the edge on driver 1 PASSED (19,500/19,500, p95 12.4 ms, 367.2 s); five controls; `pnpm` twice 245/4112; the Docker tier 316/316 (46 files, 2,401.7 s at utility) |
+| 4 | 5 | **Spec action B applied first.** **The operation**: `runLoadRehearsal` (`202`) and `getLoadRehearsal`; its codes, declared on every operation that answers them; `load_rehearsal.completed`; **staging deploys refused while a run holds the project**; **contract `1.10.0`** | Yes — `launch/`, `releases/`, `observability/` | After the commit, with the front-end told and one run through the edge polled to its end || ← **next** (`manifest-b-s4`): Spec action B at its open (approved as drafted, `3ba424a`); read Task 5's *SITTING 3 BUILT AND MEASURED* note first |
 | 5 | 6, 7 | **The checklist** — met by a `passed` measurement, at the scale and the burst, for the first launch and an audience raised (Q3) — and **the clients**: the console's *Run the load rehearsal*, the mock's stage, the guide | Yes — `launch/` | After both commits, with the front-end told | |
 | 6 | 8a | **The acceptance's demo**: `make demo-load`, three times on each driver (fresh, re-use, from `make reset`), and its negative controls | Yes, if any code changes | After the demo's commit and its controls | |
 | 7 | 8b | **The rest of the acceptance**: every other demo; `make ci-acceptance`; a clicked half; the plan's one whole-branch review beside the Docker tier, and its one fix wave. **Alone, and last** | Yes, if any code changes | After the clicked half and the review's one fix wave | |
@@ -889,6 +892,24 @@ clients and `make demo-load`.**
 > `incident.opened`'s schema is `observability/event-schemas.ts:319-328` (strict, no `cause`); its publishers `release.ts:1145-1163` and
 > `watch.ts:461`.
 
+> **SITTING 3 BUILT AND MEASURED** (`af407a46` Task 4; the record's *Sitting 3*): **the run is `launch/load-run.ts`, not `load.ts`**
+> (a ruling: `load.test.ts` stays DB-free) — `runLoadRehearsal(deps, { projectId, actor: { id } })` answers `{ row, done }` at once with
+> the `running` row; `LoadRehearsalDeps` is `{ db, driver, config, deploy: DeployDeps, generator: LoadGenerator, watchIntervalMs? }`, so
+> **the route needs the generator in `ServerDeps`**: `src/index.ts` binds `loadGenerator` (`createLoadGenerator`, hard stop from
+> `config.loadRehearsal.hardStopMs`) for pass 2⅞ only — Task 5 hands it to `buildServer` and `api/testing.ts`'s deps. **Its refusals are
+> thrown, not yet on the wire**: `LoadRehearsalError` (`launch/load.ts`; codes `LOAD_REHEARSAL_BUSY`, `LOAD_REHEARSAL_RUNNING`,
+> `LOAD_REHEARSAL_NOT_NEEDED`) is a NEW class — Task 5 adds it to `api/error-codes.test.ts`'s `WIRE_CLASSES`, registers the three codes
+> and maps it in `toErrorResponse`; `REHEARSAL_NO_CANDIDATE` and `REHEARSAL_RUNNING` are thrown as `RehearsalError` (registered). An
+> archived project is NOT refused by the run (the route's capability check answers `PROJECT_ARCHIVED`); an archive mid-run ends the row
+> `abandoned`. **The row's one end is `finish()`** (guarded `WHERE state = 'running'`, so a row the boot ended stays as the boot wrote it) —
+> the one place `load_rehearsal.completed` belongs, for the run AND pass 2⅞. `latestLoadRehearsalFor` and `loadRehearsalById` exist for the
+> reads. **`DeployInput.loadRehearsalId`** rides the grant and the take-down only; Task 5's staging check compares it with the project's
+> `running` row under the environment lock. **The settings** are `config.loadRehearsal` (`MANIFEST_LOAD_SYNCHRONISED` `75x60,50x300`,
+> `MANIFEST_LOAD_STEADY` `10x60,…,50x60`, a 10 s request timeout — a ruling: nothing stated one — the pass mark 0.99 / 2 s / 0.9, the hard
+> stop 480 s). **Measured through the edge on driver 1**: the proof app at the default profile passed — 19,500/19,500, p95 12.4 ms, 75.02
+> then 50.00 a second, the grant in ~3.2 s, staging back ~4 s after the load, 367.2 s end to end — so **Task 8a's failing fixture must fail
+> far below what the proof app sustains** (the second review's I4).
+
 **Files:**
 - Modify: `api/routes/launch.ts` — **`runLoadRehearsal`** (`POST /v1/projects/{projectId}/load-rehearsal`, `credential: 'session'`,
   `capability: 'launch:rehearse'`, stepped up, **`202` with the `running` `LoadRehearsal`**) and **`getLoadRehearsal`** (`GET
@@ -1088,7 +1109,7 @@ run, measured on a throwaway Caddy first.
 
 ---
 
-## Spec actions — DRAFTED, NONE APPLIED
+## Spec actions — APPROVED AS DRAFTED (Rich, `3ba424a`); C and D APPLIED at sitting 2 (`a5c44838`, D in Rich's re-worded words), A at sitting 3 (`2cdf6baf`), B at sitting 4's open
 
 *Lines at `c7e0978`. **Each is decided before its sitting and APPLIED BY RICH from a staged, guarded script at that sitting's open** —
 the edit, the shared pages' sweep and the commit (*What Rich does* 3). **Read in Rich's order** (A1 → B → FE-32 → BYOA on the laptop →
@@ -1097,7 +1118,7 @@ Phase 3 → A2; the second review's M2): **§11's interface** — A1's A (APPLIE
 B later. **§26's settings sentence** — this plan's B first, then FE-32's C, then A2's B. **§20** — this plan's C (*The edge as a control
 point*) and D, then BYOA's C (l.2052-2055, a different paragraph: the per-token limits).*
 
-### A. §24 — what the load rehearsal is (before sitting 3)
+### A. §24 — what the load rehearsal is (before sitting 3) — APPLIED `2cdf6baf` (sitting 3, word for word; the stories page's l.130 `9ebd087b`)
 
 **Proposed.** After *"…launch day will fail on launch day, and that is as true of capacity as it is of identity."* (l.2831-2833), add:
 
@@ -1145,7 +1166,7 @@ point*) and D, then BYOA's C (l.2052-2055, a different paragraph: the per-token 
 *Shared pages:* `manifest-decisions.html`'s D24 (l.170-173) — checked: its *"the four consequential things"* are the privileged four, not
 the person-only list; unchanged.
 
-### C. §11 and §20 — the driver exempts one address from a route's rate limit (before sitting 2)
+### C. §11 and §20 — the driver exempts one address from a route's rate limit (before sitting 2) — APPLIED `a5c44838`
 
 **Why.** The run needs the edge to skip its per-IP limit for the generator alone (Rich: *"Exempt the generator's IP"*), only the driver
 applies routes, and §11's interface is *"everything the control plane may ask of infrastructure, and nothing more"* (the first review's I2).
@@ -1161,7 +1182,7 @@ boot."*
 
 *Shared pages:* `manifest-schematic.html`'s edge line — check; likely unchanged.
 
-### D. §20 — a second image built rather than pulled (before sitting 2) — added by the second review (I6)
+### D. §20 — a second image built rather than pulled (before sitting 2) — added by the second review (I6) — APPLIED `a5c44838`, in Rich's re-worded words (`624deb66`)
 
 **Why.** §20 says the custom Caddy image is *"built during `make seed` — the one image that is built rather than pulled"* (l.2088-2089).
 Rich's *"Build it locally"* makes the load generator a second.
@@ -1461,3 +1482,106 @@ plan predicted the kill row alone; F2's row came after the prediction).
 **Gates**: `pnpm test` twice on the final tree (`30b14484`; the code `d33d950f`, the only change after it a Dockerfile parser directive no test reads) — **233 files / 3800 tests both times**, 3,335.6 s and 3,330.7 s at background priority (Rich on a call; scale 7; load median 4.98 and 4.88, max 11.61 and 10.54, not forced) — so `EXPECT_TESTS` 3756 → 3800 and `EXPECT_FILES` 231 → 233 (`6fba2128`); `EXPECT_DOCTOR` 22 → 23 with Task 2 (measured 23/0/0); lint, typecheck and format:check clean on every commit. **The Docker tier** (owed: `launch/`, `routing/`, `runtime/`, `infra/`): **315/315, 45 files, 1,940.7 s** through the wrapper at utility (the call over by then), load median 6.62 / max 19.56, 12 → 19 networks, 7100 stopped — ORIENTATION §2’s row moves 305/44 → 315/45; its composed case again under the tier’s load: exempted 750/750 at 30.04/s (p95 4.2 ms), not exempted 600 + 150 × `429`. The slow list: nothing of this sitting’s (its unit files 11–904 ms). Inline execution; the plan’s one whole-branch review is Task 8b’s (sitting 7).
 
 **The machine**: at the open (12:47) 31 containers (23 running), 15 networks, 49 volumes, 62 images (`docker images -q`); after the orphans 21/13, 12, 39, 60; **at the close (15:47) 21 containers (13 running), 12 networks, 39 volumes, 61 images** — the one more is `manifest/vegeta:12.13.0`, in the daemon by design (it survives `make reset` and every cleanup script). After the tier: `dead-app-resources.sh --apply` 7 networks and 1 volume, `litellm-orphans.sh --apply` `mf-platform-intake` (recreated by the tier’s boots) and `p4b-probe-user`, `app-images.sh --apply` 14 images — each re-read to zero; `make verify` 67/0/0, runtime routes 0, `srv1` none. Every throwaway gone (`[M3b]`’s network and three containers, every generator, both clients, the stubs). **7100** (15:46): real GitHub from `.env`, `capableModel` and `ubc-qwen-27b` registered, 16 secrets scrubbed; G4’s one call to `default-chat-large` answered `200` by **`gpt-6.1-sol`, 0 fallbacks**; **0 projects**. HOLD given back to `manifest-coord5` at 15:47.
+
+### Sitting 3 — 2026-10-15, 15:49–18:40 PDT (`manifest-b-s3`, the third coordinated run's job B3): Spec action A, Task 4
+
+**Opened** by `manifest-coord5`'s GO (15:49), relaying Rich's decisions — `3ba424a` (A–D approved as drafted, A's stories-page line as
+`2f34041` decided), `d5b0eb2` (his allow line for committing an approved spec action with its pages' sweep), `bdfc6f2`, `3011e11`,
+`d2e2d772` and `624deb66`. HEAD `c295f3e6`. 7100 was not the sitting's until 16:49 (P11's LANDING 2 ran `pnpm test` twice under the
+coordinator's HOLD from 16:05), so Task 4 was WRITTEN under that HOLD and run in one window after it.
+
+**Spec action A — APPLIED AND COMMITTED IN THE SESSION** (`2cdf6baf`, 15:51; the edit and the commit both allowed under `d5b0eb2`):
+§24's paragraph after *"…as true of capacity as it is of identity."*, word for word — the inserted words, whitespace-normalised, `cmp`
+identical with the draft (ll.1104-1116). **The stories page's l.128** became *"Before launch: Two copies of the app running behind one
+address, so one can stop without anyone noticing."* (`2f34041`). **Its l.130's *"for real"*** — which the draft left to the coordinator
+— was put to `manifest-coord5` with three options; **DECIDED (a) by `manifest-coord5` under Rich's delegation and the night-shift rule for
+minor wording** (15:53; `c0f969e` answer 9, carried by `6c9949a`), for Rich's review: *"September, 9am — It holds."* (`9ebd087b`). Checked
+unchanged: stories l.308 (a public app at UBC's cluster), schematic l.347, l.571 and l.678 (a large course's rehearsal before launch —
+what this builds), phases and decisions (no load rehearsal named).
+
+**Task 4 — the run** (`af407a46`): `releases/shape.ts`'s `'load-rehearsal'` row (staging, for the grant, gets
+production's count for the audience at production's resources — before the *"not production → one"* line; `'replacement'`'s stale comment
+swept, B1's F12); `DeployInput.loadRehearsalId`, refused with the purpose anywhere but staging; **`load_rehearsals`** (migration `0056`,
+read before it was applied: one table, its FKs, the project index and the partial unique index on `state = 'running'` across the table);
+§24's numbers as `MANIFEST_LOAD_*` settings; `judge`, `phasesFor`, `loadPathsFor` and the generator's `removeLeft` in `launch/load.ts`;
+**the run in `launch/load-run.ts`** — `runLoadRehearsal` answering at once with the `running` row, the grant, the read-back, the
+generator, the exemption under staging's lock, the load watched every 5 s, the exemption cleared at once once the container is gone, the
+judgement, staging given back (read back), and only then the row's end (`finish`, guarded `WHERE state = 'running'`) —
+`takeDownLeftLoadRehearsals`, **the boot's pass 2⅞** (`recover.ts`, REQUIRED; the boot line's `loadRehearsalsAbandoned` /
+`loadRehearsalsNotTakenDown`), and the generator bound at boot. Its rulings are the ledger's (eleven): the run in its own module so
+`load.test.ts` stays DB-free; `removeLeft`; `judge` taking the pass mark; out-of-memory, then exit, then unhealthy within the instance
+rule; one profile per BURST for both scales; **a 10 s request timeout — stated nowhere**; the take-down redeploying only when staging
+does not already serve one healthy instance older than the run; the last write guarded; no `LOAD_REHEARSAL_*` code on the wire until Task
+5; an archived app's run `abandoned`; the real run's Docker case a new file, `load-run.docker.test.ts`.
+
+**Through the edge on driver 1 (Step 4)** — 16:56:41–17:02:48, under the coordinator's HOLD, from a scratch script whose deps are built as
+`src/index.ts` builds them (the compiled `dist/`): `b3-load`, a `large_course`, `synchronised` app from the proof-app starter, created,
+built, released and deployed to staging through the API as `instructor`; ONE run at the DEFAULT profile — **passed: 19,500 requests,
+19,500 answered** (`/` `200`, `/healthz` `200`, `/login` `302`, 6,500 each — so 6,500 sign-in requests written to the app's Mongo), **p50
+1.8 ms, p95 12.4 ms, p99 14.5 ms**, `arrive` **75.02/s**, `sustain` **50.00/s**, no exit, no out-of-memory, no unhealthy poll; the grant's
+three members healthy **~3.2 s** after the run began (at production's 512 Mi — the proof app's staging and production resolve the same,
+sitting 1's F4), staging back to ONE member ~4 s after the load (512 Mi, 0.5 CPU), its route's limit matching every address again; **367.2
+s** end to end; the generator at `10.89.0.11` (again — B2's F1), gone. Load 4.43 at the start, 2.83 at the end. `b3-load` then deleted
+through the API (stepped up): no container, network, volume or route left; its name answers the wildcard.
+
+**Negative controls** (each watched red, then restored from a saved copy, `cmp` clean):
+- **(a)** the run's own exemption clear a no-op → red ONLY the three order rows, each missing `exempt none`; the *"no exemption left"*
+  assertions stay green, because the take-down's redeploy writes a plain route — as the plan predicted.
+- **(b)** `judge` ignoring the achieved rate → red the under-nine-tenths row AND the first-broken-rule row (the plan predicted one; the
+  second is this sitting's ordering test).
+- **(c)** the row not `running` while the run lasts → red EXACTLY the order row (`row: failed`), `LOAD_REHEARSAL_BUSY`,
+  `LOAD_REHEARSAL_RUNNING` and the boot row. **The plan predicted the boot row alone**: under Decision 6 the `running` row IS the exclusion,
+  so it guards one-at-a-time too. My first form of this control (the row inserted already ended) went red in 12 rows — an artefact of the
+  run's own guarded last write, and BUSY's red there was for the wrong reason (a non-`running` insert never meets the partial index); redone.
+- **(d)** the one-running index made per project, in the LIVE database (`docker exec manifest-postgres psql`), then put back as generated
+  (`indexdef` read back) → red ONLY `LOAD_REHEARSAL_BUSY`, as predicted.
+- **(e)** the grant's read-back skipped → red ONLY the failed-grant row — **but not as predicted**: the plan said *"the failed grant reads
+  `passed`"*; it read `failed`, because the watch counted the failed grant's three removed members as exits. **Only the reason assertion
+  caught the missing read-back** — a state-only assertion would have stayed green (a green control is a question).
+
+**Findings**
+1. **F1 — MY UNCOMMITTED TEST FILE FAILED THE CONTROL PLANE'S BUILD AND KEPT 7100 DOWN** (P11's sitting 6, F7, is the same event from
+   its side): written under the coordinator's HOLD, when no `tsc` may run, `load-run.test.ts` called `fake.switchOff(host)` without its
+   kind (TS2554), and every restart of 7100 runs `pnpm run build` over the whole of `src/`, tests included — P11's G4 at 16:45 left
+   nothing listening. Fixed at 16:49 (`pnpm typecheck` 0). TRAPS.md has it: keep the shared tree compiling between edits.
+2. **F2 — CONTROL (e)'S PREDICTION WAS WRONG, AND THE STATE ASSERTION ALONE WOULD HAVE MISSED IT**: with the read-back skipped, the
+   failed grant did not read `passed` — the watch counted its three removed members as exits — so only the reason assertion went red.
+3. **F3 — THE `running` ROW IS THE EXCLUSION** (control (c)): without it, the order, BUSY, RUNNING and boot rows all go red — the plan
+   predicted the boot row alone. My first form of the control (the row inserted already ended) was an artefact, red in 12 rows.
+4. **F4 — A TAKE-DOWN AFTER A FAILED GRANT MUST NOT REDEPLOY**: the release the grant could not start (a declared secret unset, a crash
+   at start) would fail again and read `teardown_failed` while staging in fact serves its own instance — so the take-down redeploys only
+   when staging does not already serve ONE healthy instance older than the run's row (a ruling; the failed-grant row holds it).
+5. **F5 — NOTHING STATED EACH REQUEST'S TIMEOUT** — not §24, Spec action A, the plan or Rich's answers; ruled 10 s, a setting
+   (`MANIFEST_LOAD_REQUEST_TIMEOUT_MS`), five times the p95 mark.
+6. **F6 — THE PLAN'S ONE-FILE COMMAND FINDS NOTHING** as its *Global Constraints* write it: `pnpm exec vitest run --project unit
+   src/<path>` from `packages/control-plane` answers *"No test files found"*; from the repository root the path is
+   `packages/control-plane/src/<path>`.
+7. **F7 — THE PROOF APP DOES NOT FALL OVER AT §24's RATES HERE**: p95 12.4 ms at 75 a second on three members — so Task 8a's failing
+   fixture must be built to fail far below that (the second review's I4), and a pass on this laptop says nothing of UBC's cluster.
+8. **F8 — THE PROOF APP'S STAGING AND PRODUCTION BOTH RESOLVE 512 Mi** (sitting 1's F4, confirmed live): Step 4 could not show the
+   take-down's resource change; the Docker case sets them apart (256 Mi against 384 Mi) and does.
+9. **F9 — SPEC ACTION B'S SWEEP MAY BE WRONG**: its draft says `manifest-decisions.html`'s D24 paragraph is unchanged, but that page's
+   l.172 restates the stricter-still list B extends (*"The fourth is the rehearsal before a first launch…"*) — for sitting 4 to re-check
+   at its open, and any wording beyond the draft to the coordinator (G6). Handed over in ORIENTATION §7e.
+10. **F10 — MY OWN TWO**: sourcing `scripts/lib/api.sh` into the agent's zsh broke `PATH` (its `local path=`, TRAPS' zsh cluster) —
+    run under `bash`; and `api DELETE … -w …` handed curl's flag to the helper as a BODY (`400 REQUEST_INVALID`) before the plain call
+    deleted the project.
+
+**Gates**: `pnpm test` twice on `af407a46` — **245 files / 4112 tests both times**, 1,075.3 s and 1,412.7 s at utility (load
+median 4.18 and 4.24, max 6.48 and 8.46, not forced) — so `EXPECT_TESTS` 4076 → 4112 and `EXPECT_FILES` 244 → 245 (`afbf95c0`); lint,
+typecheck and format:check clean; the slow list: nothing of this sitting's (`load-run.test.ts` 2.6 s for 16). Single files while working:
+the run's DB file, `recover`, `releases`, `delivery`, `lifecycle` and `error-codes` 199/199; the DB-free files 117/117 under the scratch
+config; `load-run.docker.test.ts` alone 1/1 (16.5 s). **The Docker tier** (owed: `launch/`, `releases/`, `db/`): **316/316, 46 files,
+2,401.7 s** at utility (load median 6.34, max 28.50 — macOS's own Spotlight and model-download work at ~18:14, `manifest-coord5`'s
+reading; no red), 12 → 19 networks, 7100 stopped — ORIENTATION §2's row moves 315/45 → 316/46. Inline execution; the plan's one
+whole-branch review is Task 8b's (sitting 7).
+
+**The machine**: not re-measured at the open (sitting 2's close: 21 containers, 13 running, 12 networks, 39 volumes, 61 image tags); 12 networks at the tier's start; after the tier `dead-app-resources.sh --apply` 7 networks and 1
+volume, `litellm-orphans.sh --apply` `mf-platform-intake` and `p4b-probe-user` (*"0 remain, was 3"*), `app-images.sh --apply` 17 images
+(`b3-load`'s among them) — each re-read to zero; `make verify` 67/0/0, `mf-` 0/0/0. **At the close (18:29)**: 21 containers (13
+running), 12 networks, 40 volumes (39 at sitting 2's close; the new one is `hatchery-dev_pgdata`, created 16:49 — another session's, not Manifest's), 63 image tags by `docker images -q`
+(53 unique ids, 0 dangling; 61 at sitting 2's close — the newest image is still sitting 2's `manifest/vegeta:12.13.0`, so the two tags
+are another session's). `b3-load` deleted (no container, network,
+volume or route; its name answers the wildcard); 17 orphaned mirrors named, untouched. **7100** (18:28, G4): real GitHub from `.env`,
+`capableModel` and `ubc-qwen-27b` registered, 16 secrets scrubbed, `loadRehearsalsAbandoned` 0; ONE call to `default-chat-large` answered
+`200` by **`gpt-6.1-sol`, 0 fallbacks**; **0 projects**; migration `0056` applied. Handed back to `manifest-coord5` at 18:29.
