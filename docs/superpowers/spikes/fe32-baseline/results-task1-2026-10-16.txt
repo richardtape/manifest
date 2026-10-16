@@ -1,0 +1,431 @@
+# FE-32 sitting 1 (manifest-fe32-s1), Task 1's raw output, 2026-10-16 PDT. HEAD 4cb1f2c9. Each section names its probe.
+
+## [M1] committed lockfiles (probes/m1-lockfiles.sh, 15:3x)
+blueprints/fixture-node/skeleton/package-lock.json lockfileVersion=3 entries=13 resolved=12 hosts=[ 12 https://registry.npmjs.org/;] shapes=[ 13 plain;] fields=[dependencies,engines,integrity,license,name,peerDependencies,peerDependenciesMeta,resolved,version]
+blueprints/node-ts-mongo/skeleton/package-lock.json lockfileVersion=3 entries=164 resolved=163 hosts=[ 163 https://registry.npmjs.org/;] shapes=[ 4 peer; 160 plain;] fields=[bin,dependencies,deprecated,engines,funding,integrity,license,name,peer,peerDependencies,peerDependenciesMeta,resolved,version]
+fixtures/fixture-app/package-lock.json lockfileVersion=3 entries=13 resolved=12 hosts=[ 12 https://registry.npmjs.org/;] shapes=[ 13 plain;] fields=[dependencies,engines,integrity,license,name,peerDependencies,peerDependenciesMeta,resolved,version]
+fixtures/saml-sp/package-lock.json lockfileVersion=3 entries=112 resolved=111 hosts=[ 111 https://registry.npmjs.org/;] shapes=[ 1 peer; 111 plain;] fields=[bin,dependencies,engines,funding,integrity,license,name,peer,peerDependencies,peerDependenciesMeta,resolved,version]
+TOTAL resolved=298
+--- manifests without a lockfile:
+--- overrides in any committed package.json:
+  (grep exit 0)
+
+## [M1] mirror storage outside the skeleton's pins (187 tarballs, 206 package documents)
+@mongodb-js/saslprep@1.5.0
+@mongodb-js/saslprep@1.5.2
+@mongodb-js/saslprep@1.5.5
+@types/node@26.6.4
+@xmldom/xmldom@0.7.13
+body-parser@1.20.3
+cookie-signature@1.0.6
+cookie@0.7.1
+encodeurl@1.0.2
+express-session@1.18.1
+express@4.21.2
+finalhandler@1.3.1
+http-errors@2.0.0
+on-headers@1.0.2
+passport-saml@3.2.4
+passport-ubcshib@0.1.6
+path-to-regexp@0.1.12
+proxy-addr@2.0.7
+qs@6.13.0
+raw-body@2.5.2
+send@0.19.0
+serve-static@1.16.2
+statuses@2.0.1
+undici-types@8.9.0
+xml-crypto@2.1.6
+xml-encryption@2.0.0
+xml2js@0.4.23
+
+## [M2] (probes/m2-run.sh, 15:41:04-15:41:23; then spec-git/spec-file 15:42:3x) — the mirror bracketed
+== before 2026-10-16 15:41:04 PDT
+tgz 187
+packages 206
+networks 12
+mf-containers []
+== after 2026-10-16 15:41:23 PDT
+tgz 187
+packages 206
+networks 12
+mf-containers []
+(the 'fetched' lines above failed to parse; re-read by node at 15:42: passport-saml 2026-10-16T22:41:07.205Z, @xmldom/xmldom 22:41:07.570Z, xml-crypto 22:41:07.721Z, xml-encryption 22:41:07.716Z, xml2js 22:41:07.705Z, debug 22:41:07.569Z, ms 22:41:07.765Z, cookie 22:41:21.721Z — each was 2026-10-03T22:11:13Z before)
+
+## [M2] each case's result.json
+{"case":"notoken","buildId":"fe32-notoken-mvbjxh02","exitCode":0,"timedOut":false,"error":null,"msBuilderStart":669,"msBuild":3816,"msTotal":4485,"exported":["package-lock.json"],"exportedCount":1,"logLines":416}
+{"case":"add","buildId":"fe32-add-mvbjxkgq","exitCode":0,"timedOut":false,"error":null,"msBuilderStart":578,"msBuild":3203,"msTotal":3781,"exported":["package-lock.json"],"exportedCount":1,"logLines":414}
+{"case":"add-rewrite","buildId":"fe32-add-rewrite-mvbjxndu","exitCode":0,"timedOut":false,"error":null,"msBuilderStart":606,"msBuild":3362,"msTotal":3967,"exported":["package-lock.json"],"exportedCount":1,"logLines":417}
+{"case":"first","buildId":"fe32-first-mvbjxqg4","exitCode":0,"timedOut":false,"error":null,"msBuilderStart":537,"msBuild":1953,"msTotal":2490,"exported":["package-lock.json"],"exportedCount":1,"logLines":57}
+{"case":"forced","buildId":"fe32-forced-mvbjxsde","exitCode":0,"timedOut":false,"error":null,"msBuilderStart":578,"msBuild":3147,"msTotal":3725,"exported":["package-lock.json"],"exportedCount":1,"logLines":391}
+{"case":"spec-git","buildId":"fe32-spec-git-mvbjzfd8","exitCode":1,"timedOut":false,"error":null,"msBuilderStart":566,"msBuild":1592,"msTotal":2158,"exported":[],"exportedCount":0,"logLines":67}
+{"case":"spec-file","buildId":"fe32-spec-file-mvbjzh1b","exitCode":0,"timedOut":false,"error":null,"msBuilderStart":535,"msBuild":3075,"msTotal":3610,"exported":["package-lock.json"],"exportedCount":1,"logLines":387}
+
+## [M2] analysis (probes/m2-analyse.sh)
+===== notoken — exit 0 builder 669 ms, build 3816 ms, total 4485 ms
+sha256 2cf69ac625c4e6f288f8c3829fe55e5c661621b9c3645dd672dd78460537cc24  lockfileVersion 3  entries 173
+root deps: {"connect-mongo":"6.0.0","express":"4.22.2","express-session":"1.19.0","mongodb":"6.12.0","passport":"0.7.0","passport-saml":"3.2.4","passport-ubcshib":"0.1.7-rc.1","ubc-genai-toolkit-llm":"0.7.0"}
+{
+  "kept": 163,
+  "moved": [],
+  "gone": [],
+  "new": [
+    "node_modules/passport-saml@3.2.4 http://manifest-verdaccio:4873/passport-saml/-/passport-saml-3.2.4.tgz",
+    "node_modules/passport-saml/node_modules/@xmldom/xmldom@0.7.13 http://manifest-verdaccio:4873/@xmldom/xmldom/-/xmldom-0.7.13.tgz",
+    "node_modules/passport-saml/node_modules/debug@4.4.3 http://manifest-verdaccio:4873/debug/-/debug-4.4.3.tgz",
+    "node_modules/passport-saml/node_modules/ms@2.1.3 http://manifest-verdaccio:4873/ms/-/ms-2.1.3.tgz",
+    "node_modules/passport-saml/node_modules/xml-crypto@2.1.6 http://manifest-verdaccio:4873/xml-crypto/-/xml-crypto-2.1.6.tgz",
+    "node_modules/passport-saml/node_modules/xml-encryption@2.0.0 http://manifest-verdaccio:4873/xml-encryption/-/xml-encryption-2.0.0.tgz",
+    "node_modules/passport-saml/node_modules/xml2js@0.4.23 http://manifest-verdaccio:4873/xml2js/-/xml2js-0.4.23.tgz",
+    "node_modules/passport-saml/node_modules/xml2js/node_modules/xmlbuilder@11.0.1 http://manifest-verdaccio:4873/xmlbuilder/-/xmlbuilder-11.0.1.tgz",
+    "node_modules/passport-saml/node_modules/xpath@0.0.32 http://manifest-verdaccio:4873/xpath/-/xpath-0.0.32.tgz"
+  ],
+  "resolvedChangedOnKept": 0,
+  "integrityChanged": 0
+}
+resolved hosts:  9 http://manifest-verdaccio:4873/; 163 https://registry.npmjs.org/;
+http fetch lines: 183 (GET 200: 183; .tgz: 172; cache:  182 (cache miss);)
+#8 1.632 npm warn deprecated @xmldom/xmldom@0.7.13: this version has critical issues, please update to the latest version
+#8 1.680 npm warn deprecated node-domexception@1.0.0: Use your platform's native DOMException instead
+#8 1.714 npm warn deprecated passport-saml@3.2.4: For versions >= 4, please use scopped package @node-saml/passport-saml
+===== add — exit 0 builder 578 ms, build 3203 ms, total 3781 ms
+sha256 2cf69ac625c4e6f288f8c3829fe55e5c661621b9c3645dd672dd78460537cc24  lockfileVersion 3  entries 173
+root deps: {"connect-mongo":"6.0.0","express":"4.22.2","express-session":"1.19.0","mongodb":"6.12.0","passport":"0.7.0","passport-saml":"3.2.4","passport-ubcshib":"0.1.7-rc.1","ubc-genai-toolkit-llm":"0.7.0"}
+{
+  "kept": 163,
+  "moved": [],
+  "gone": [],
+  "new": [
+    "node_modules/passport-saml@3.2.4 http://manifest-verdaccio:4873/passport-saml/-/passport-saml-3.2.4.tgz",
+    "node_modules/passport-saml/node_modules/@xmldom/xmldom@0.7.13 http://manifest-verdaccio:4873/@xmldom/xmldom/-/xmldom-0.7.13.tgz",
+    "node_modules/passport-saml/node_modules/debug@4.4.3 http://manifest-verdaccio:4873/debug/-/debug-4.4.3.tgz",
+    "node_modules/passport-saml/node_modules/ms@2.1.3 http://manifest-verdaccio:4873/ms/-/ms-2.1.3.tgz",
+    "node_modules/passport-saml/node_modules/xml-crypto@2.1.6 http://manifest-verdaccio:4873/xml-crypto/-/xml-crypto-2.1.6.tgz",
+    "node_modules/passport-saml/node_modules/xml-encryption@2.0.0 http://manifest-verdaccio:4873/xml-encryption/-/xml-encryption-2.0.0.tgz",
+    "node_modules/passport-saml/node_modules/xml2js@0.4.23 http://manifest-verdaccio:4873/xml2js/-/xml2js-0.4.23.tgz",
+    "node_modules/passport-saml/node_modules/xml2js/node_modules/xmlbuilder@11.0.1 http://manifest-verdaccio:4873/xmlbuilder/-/xmlbuilder-11.0.1.tgz",
+    "node_modules/passport-saml/node_modules/xpath@0.0.32 http://manifest-verdaccio:4873/xpath/-/xpath-0.0.32.tgz"
+  ],
+  "resolvedChangedOnKept": 0,
+  "integrityChanged": 0
+}
+resolved hosts:  9 http://manifest-verdaccio:4873/; 163 https://registry.npmjs.org/;
+http fetch lines: 183 (GET 200: 183; .tgz: 172; cache:  182 (cache miss);)
+#8 1.093 npm warn deprecated @xmldom/xmldom@0.7.13: this version has critical issues, please update to the latest version
+#8 1.141 npm warn deprecated node-domexception@1.0.0: Use your platform's native DOMException instead
+#8 1.170 npm warn deprecated passport-saml@3.2.4: For versions >= 4, please use scopped package @node-saml/passport-saml
+===== add-rewrite — exit 0 builder 606 ms, build 3362 ms, total 3967 ms
+sha256 dd361cf4398cee9278558c365940369f8cb52e84748497483d464b8b358efdc5  lockfileVersion 3  entries 173
+root deps: {"connect-mongo":"6.0.0","express":"4.22.2","express-session":"1.19.0","mongodb":"6.12.0","passport":"0.7.0","passport-saml":"3.2.4","passport-ubcshib":"0.1.7-rc.1","ubc-genai-toolkit-llm":"0.7.0"}
+{
+  "kept": 163,
+  "moved": [],
+  "gone": [],
+  "new": [
+    "node_modules/passport-saml@3.2.4 https://registry.npmjs.org/passport-saml/-/passport-saml-3.2.4.tgz",
+    "node_modules/passport-saml/node_modules/@xmldom/xmldom@0.7.13 https://registry.npmjs.org/@xmldom/xmldom/-/xmldom-0.7.13.tgz",
+    "node_modules/passport-saml/node_modules/debug@4.4.3 https://registry.npmjs.org/debug/-/debug-4.4.3.tgz",
+    "node_modules/passport-saml/node_modules/ms@2.1.3 https://registry.npmjs.org/ms/-/ms-2.1.3.tgz",
+    "node_modules/passport-saml/node_modules/xml-crypto@2.1.6 https://registry.npmjs.org/xml-crypto/-/xml-crypto-2.1.6.tgz",
+    "node_modules/passport-saml/node_modules/xml-encryption@2.0.0 https://registry.npmjs.org/xml-encryption/-/xml-encryption-2.0.0.tgz",
+    "node_modules/passport-saml/node_modules/xml2js@0.4.23 https://registry.npmjs.org/xml2js/-/xml2js-0.4.23.tgz",
+    "node_modules/passport-saml/node_modules/xml2js/node_modules/xmlbuilder@11.0.1 https://registry.npmjs.org/xmlbuilder/-/xmlbuilder-11.0.1.tgz",
+    "node_modules/passport-saml/node_modules/xpath@0.0.32 https://registry.npmjs.org/xpath/-/xpath-0.0.32.tgz"
+  ],
+  "resolvedChangedOnKept": 0,
+  "integrityChanged": 0
+}
+resolved hosts:  172 https://registry.npmjs.org/;
+http fetch lines: 183 (GET 200: 183; .tgz: 172; cache:  182 (cache miss);)
+#8 1.039 npm warn deprecated @xmldom/xmldom@0.7.13: this version has critical issues, please update to the latest version
+#8 1.086 npm warn deprecated node-domexception@1.0.0: Use your platform's native DOMException instead
+#8 1.117 npm warn deprecated passport-saml@3.2.4: For versions >= 4, please use scopped package @node-saml/passport-saml
+===== first — exit 0 builder 537 ms, build 1953 ms, total 2490 ms
+sha256 d1bcac0114aa770761140000575296db1487acb5ba6b6a275354797cf20679df  lockfileVersion 3  entries 2
+root deps: {"ms":"2.1.3"}
+resolved hosts:  1 https://registry.npmjs.org/;
+http fetch lines: 2 (GET 200: 2; .tgz: 1; cache:  2 (cache miss);)
+===== forced — exit 0 builder 578 ms, build 3147 ms, total 3725 ms
+sha256 0437d9e6542b5568ea0a2df9942fe9e1319158f470f22bd3952c71df56ba8a01  lockfileVersion 3  entries 165
+root deps: {"connect-mongo":"6.0.0","cookie":"0.7.1","express":"4.22.2","express-session":"1.19.0","mongodb":"6.12.0","passport":"0.7.0","passport-ubcshib":"0.1.7-rc.1","ubc-genai-toolkit-llm":"0.7.0"}
+{
+  "kept": 162,
+  "moved": [
+    "node_modules/cookie 0.7.2 -> 0.7.1"
+  ],
+  "gone": [],
+  "new": [
+    "node_modules/express-session/node_modules/cookie@0.7.2 https://registry.npmjs.org/cookie/-/cookie-0.7.2.tgz"
+  ],
+  "resolvedChangedOnKept": 0,
+  "integrityChanged": 0
+}
+resolved hosts:  164 https://registry.npmjs.org/;
+http fetch lines: 167 (GET 200: 167; .tgz: 164; cache:  165 (cache miss); 1 (cache revalidated);)
+#8 0.979 npm warn deprecated node-domexception@1.0.0: Use your platform's native DOMException instead
+
+## [M2] spec-git's npm lines
+#8 0.273 npm error code ENOENT
+#8 0.273 npm error syscall spawn git
+#8 0.273 npm error path git
+#8 0.273 npm error errno -2
+#8 0.273 npm error enoent An unknown git error occurred
+#8 0.274 npm error enoent This is related to npm not being able to find a file.
+#8 0.274 npm error enoent
+#8 0.275 npm error A complete log of this run can be found in: /tmp/npm-cache/_logs/2026-10-16T22_42_37_805Z-debug-0.log
+#8 ERROR: process "/bin/sh -c npm install --ignore-scripts --no-audit --no-fund --cache /tmp/npm-cache --loglevel http" did not complete successfully: exit code: 254
+0.273 npm error code ENOENT
+
+## [M2] spec-file's lockfile entries for x
+"file:../x"
+{"resolved":"../x","link":true}
+{}
+
+## [M2] the build's scan of the exported lockfiles (grype dir:, --network none, DB built 2026-10-15T06:30:36Z) — Critical/High only
+-- add: 19 matches
+Critical	passport-saml@3.2.4	GHSA-4mxg-3p6v-xgq3	fix=not-fixed
+High	@xmldom/xmldom@0.7.13	GHSA-27p8-2357-5qqv	fix=fixed
+High	@xmldom/xmldom@0.7.13	GHSA-2v35-w6hq-6mfw	fix=fixed
+High	@xmldom/xmldom@0.7.13	GHSA-4w3w-2rp5-g8jm	fix=fixed
+High	@xmldom/xmldom@0.7.13	GHSA-8344-3jmq-59r6	fix=fixed
+High	@xmldom/xmldom@0.7.13	GHSA-93r5-fhx6-vmg9	fix=fixed
+High	@xmldom/xmldom@0.7.13	GHSA-965w-775f-mr7g	fix=fixed
+High	@xmldom/xmldom@0.7.13	GHSA-c7q8-3ch8-vqpv	fix=fixed
+High	@xmldom/xmldom@0.7.13	GHSA-f6ww-3ggp-fr8h	fix=fixed
+High	@xmldom/xmldom@0.7.13	GHSA-j759-j44w-7fr8	fix=fixed
+High	@xmldom/xmldom@0.7.13	GHSA-w2rr-34g9-rvrj	fix=fixed
+High	@xmldom/xmldom@0.7.13	GHSA-wh4c-j3r5-mjhp	fix=fixed
+High	@xmldom/xmldom@0.7.13	GHSA-x4fp-j954-r2f4	fix=fixed
+High	@xmldom/xmldom@0.7.13	GHSA-x6wf-f3px-wcqx	fix=fixed
+-- forced: 2 matches
+-- skeleton: 2 matches
+
+## [M2] make seed's warm loop (probes/m2-warm.sh, 15:43:48)
+add-rewrite: installed 130 top-level entries; passport-saml 3.2.4; no WARN
+add (unrewritten): WARN: mirror warm failed; unsilenced: npm error code ENOTFOUND ... request to http://manifest-verdaccio:4873/passport-saml/-/passport-saml-3.2.4.tgz failed, reason: getaddrinfo ENOTFOUND manifest-verdaccio
+
+## [M2] the realm (15:42)
+GET http://127.0.0.1:7107/v2/ -> 401, Www-Authenticate: Bearer realm="http://127.0.0.1:7100/internal/registry/token",service="manifest-registry"
+GET <realm>?service=manifest-registry&scope=repository:base/node:pull (anonymous) -> 200, keys token,access_token,expires_in,issued_at (token not printed)
+
+## [M3] and [M4]'s first attempt (probes/m3-run.sh, 15:51:03-15:52:44) — stdout
+---- up, uplink refused (127.0.0.1:9) (15:51:03)
+networks before: 12
+8:    max_users: 10
+11:    url: http://127.0.0.1:9/
+23:log: { type: stdout, format: pretty, level: http }
+network mf-fe32-probe
+volume mf-fe32-probe-storage
+image=sha256:fcb86134563534e2f634752e6c6c3edcdb78242ec16578c73ce39d1dadbaa801 [manifest-build-internal 172.19.0.4 aliases=[mf-verdaccio-probe]] [mf-fe32-probe 172.20.0.2 aliases=[]] 
+ping ok after 2s
+networks after: 13
+---- seed marked (metadata only) and ms (metadata and tarballs) from the live mirror (15:51:04)
+seeded marked: package.json 
+seeded ms: ms-2.0.0.tgz ms-2.1.3.tgz package.json 
+  .
+  ./.verdaccio-db.json
+  ./marked
+  ./marked/package.json
+  ./ms
+  ./ms/ms-2.0.0.tgz
+  ./ms/ms-2.1.3.tgz
+  ./ms/package.json
+---- (i)/(ii)/(iv) as the throwaway answers them, uplink refused (15:51:05)
+curl /left-pad -> 404 0.009633s {  "error": "no such package available"}
+curl /manifest-no-such-package-191063 -> 404 0.004160s {  "error": "no such package available"}
+curl /marked -> 200 0.042299s {  "name": "marked",  "versions": {    "0.0.1": {      "name": "marked",      "version": "0.0.1",      "keywords": [        "markdown",        "markup"      ], 
+curl /ms -> 200 0.007198s {  "name": "ms",  "versions": {    "0.1.0": {      "name": "ms",      "version": "0.1.0",      "_id": "ms@0.1.0",      "maintainers": [        {          "name"
+---- (i) left-pad@1.3.0, never cached (15:51:05)
+{"case":"probe:left-pad@1.3.0","buildId":"fe32-probe-left-pad-1-3-0-mvbkacbd","baseImage":"manifest-registry:5000/base/node@sha256:38a36422dc7de80f3ced964270f23b3b17f73af816728d21a5fbbf84bf8be46f","exitCode":1,"timedOut":false,"error":null,"msBuilderStart":683,"msBuild":1667,"msTotal":2350,"exported":[],"exportedCount":0,"logLines":75}
+---- (ii) manifest-no-such-package-191063@1.0.0, cannot exist (15:51:07)
+{"case":"probe:manifest-no-such-package-191063@1.0.0","buildId":"fe32-probe-manifest-no-su-mvbkae65","baseImage":"manifest-registry:5000/base/node@sha256:38a36422dc7de80f3ced964270f23b3b17f73af816728d21a5fbbf84bf8be46f","exitCode":1,"timedOut":false,"error":null,"msBuilderStart":515,"msBuild":1939,"msTotal":2454,"exported":[],"exportedCount":0,"logLines":76}
+---- (iv) marked@999.0.0, cached, never published (15:51:10)
+{"case":"probe:marked@999.0.0","buildId":"fe32-probe-marked-999-0-0-mvbkag46","baseImage":"manifest-registry:5000/base/node@sha256:38a36422dc7de80f3ced964270f23b3b17f73af816728d21a5fbbf84bf8be46f","exitCode":1,"timedOut":false,"error":null,"msBuilderStart":558,"msBuild":1653,"msTotal":2211,"exported":[],"exportedCount":0,"logLines":68}
+---- (iv) ms@999.0.0 (15:51:12)
+{"case":"probe:ms@999.0.0","buildId":"fe32-probe-ms-999-0-0-mvbkahvf","baseImage":"manifest-registry:5000/base/node@sha256:38a36422dc7de80f3ced964270f23b3b17f73af816728d21a5fbbf84bf8be46f","exitCode":1,"timedOut":false,"error":null,"msBuilderStart":540,"msBuild":1633,"msTotal":2173,"exported":[],"exportedCount":0,"logLines":68}
+---- (iv) positive: ms@2.1.3 served from the seeded storage, uplink down (15:51:14)
+{"case":"min:ms@2.1.3","buildId":"fe32-min-ms-2-1-3-mvbkajld","baseImage":"manifest-registry:5000/base/node@sha256:38a36422dc7de80f3ced964270f23b3b17f73af816728d21a5fbbf84bf8be46f","exitCode":0,"timedOut":false,"error":null,"msBuilderStart":559,"msBuild":1822,"msTotal":2381,"exported":["package-lock.json"],"exportedCount":1,"logLines":59}
+---- uplink a name that does not resolve (registry.npmjs.invalid) (15:51:17)
+8:    max_users: 10
+11:    url: http://registry.npmjs.invalid/
+23:log: { type: stdout, format: pretty, level: http }
+ping ok after 2s
+curl /left-pad -> 404 0.036859s {  "error": "no such package available"}
+curl /manifest-no-such-package-191063 -> 404 0.013606s {  "error": "no such package available"}
+---- (i) DNS: left-pad@1.3.0 (15:51:18)
+{"case":"probe:left-pad@1.3.0","buildId":"fe32-probe-left-pad-1-3-0-mvbkamln","baseImage":"manifest-registry:5000/base/node@sha256:38a36422dc7de80f3ced964270f23b3b17f73af816728d21a5fbbf84bf8be46f","exitCode":1,"timedOut":false,"error":null,"msBuilderStart":549,"msBuild":1602,"msTotal":2152,"exported":[],"exportedCount":0,"logLines":75}
+---- (ii) DNS: manifest-no-such-package-191063@1.0.0 (15:51:20)
+{"case":"probe:manifest-no-such-package-191063@1.0.0","buildId":"fe32-probe-manifest-no-su-mvbkaoba","baseImage":"manifest-registry:5000/base/node@sha256:38a36422dc7de80f3ced964270f23b3b17f73af816728d21a5fbbf84bf8be46f","exitCode":1,"timedOut":false,"error":null,"msBuilderStart":559,"msBuild":1571,"msTotal":2130,"exported":[],"exportedCount":0,"logLines":75}
+---- uplink REACHABLE (https://registry.npmjs.org/) — what a registry that has no such name answers (15:51:23)
+8:    max_users: 10
+11:    url: https://registry.npmjs.org/
+23:log: { type: stdout, format: pretty, level: http }
+ping ok after 2s
+curl /manifest-no-such-package-191063 -> 404 0.138957s {  "error": "no such package available"}
+---- (ii) online: manifest-no-such-package-191063@1.0.0 (15:51:24)
+{"case":"probe:manifest-no-such-package-191063@1.0.0","buildId":"fe32-probe-manifest-no-su-mvbkar70","baseImage":"manifest-registry:5000/base/node@sha256:38a36422dc7de80f3ced964270f23b3b17f73af816728d21a5fbbf84bf8be46f","exitCode":1,"timedOut":false,"error":null,"msBuilderStart":574,"msBuild":1627,"msTotal":2201,"exported":[],"exportedCount":0,"logLines":72}
+---- [M4] uplink refused again; a user, then @manifest-probe/postinstall-191063 published (15:51:26)
+8:    max_users: 10
+11:    url: http://127.0.0.1:9/
+23:log: { type: stdout, format: pretty, level: http }
+ping ok after 2s
+token minted: yes
+npm error code E503
+npm error 503 Service Unavailable - PUT http://127.0.0.1:7196/@manifest-probe%2fpostinstall-191063 - one of the uplinks is down, refuse to publish
+npm error A complete log of this run can be found in: /Users/rich/.npm/_logs/2026-10-16T22_51_28_409Z-debug-0.log
+curl /@manifest-probe/postinstall-191063 -> 404 0.003199s {  "error": "no such package available"}
+---- [M4] resolved with scripts OFF (Task 2's recipe) (15:52:39)
+{"case":"m4:@manifest-probe/postinstall-191063@1.0.0","buildId":"fe32-m4--manifest-probe-p-mvbkccqj","baseImage":"manifest-registry:5000/base/node@sha256:38a36422dc7de80f3ced964270f23b3b17f73af816728d21a5fbbf84bf8be46f","exitCode":1,"timedOut":false,"error":null,"msBuilderStart":641,"msBuild":1544,"msTotal":2186,"exported":[],"exportedCount":0,"logLines":75}
+---- [M4] positive control: the same with scripts ON (15:52:41)
+{"case":"m4on:@manifest-probe/postinstall-191063@1.0.0","buildId":"fe32-m4on--manifest-probe-mvbkcegp","baseImage":"manifest-registry:5000/base/node@sha256:38a36422dc7de80f3ced964270f23b3b17f73af816728d21a5fbbf84bf8be46f","exitCode":1,"timedOut":false,"error":null,"msBuilderStart":537,"msBuild":1503,"msTotal":2039,"exported":[],"exportedCount":0,"logLines":75}
+m4:@manifest-probe/postinstall-191063@1.0.0: RAN absent; exported 0 files
+m4on:@manifest-probe/postinstall-191063@1.0.0: RAN absent; exported 0 files
+---- [M4] unpublish --force (15:52:43)
+npm error 404 tarball, folder, http url, or git url.
+npm error A complete log of this run can be found in: /Users/rich/.npm/_logs/2026-10-16T22_52_43_550Z-debug-0.log
+curl /@manifest-probe/postinstall-191063 -> 404 0.002540s {  "error": "no such package available"}
+storage after unpublish: 0 entries under @manifest-probe; tgz 0
+---- done (15:52:44)
+gone: container=0 volume=0 network=0
+networks: 12
+
+## [M3] npm's error lines per case directory (the refused phase's (i)/(ii) directories were overwritten by the later phases — see README)
+-- probe_left-pad_1.3.0
+#8 0.229 npm http fetch GET 404 http://mf-verdaccio-probe:4873/npm 15ms
+#8 0.233 npm http fetch GET 404 http://mf-verdaccio-probe:4873/npm 4ms
+#8 0.262 npm http fetch GET 404 http://mf-verdaccio-probe:4873/left-pad 4ms (cache skip)
+#8 0.268 npm error code E404
+#8 0.268 npm error 404 Not Found - GET http://mf-verdaccio-probe:4873/left-pad - no such package available
+#8 0.268 npm error 404
+#8 0.268 npm error 404  The requested resource 'left-pad@1.3.0' could not be found or you do not have permission to access it.
+#8 0.268 npm error 404
+-- probe_manifest-no-such-package-191063_1.0.0
+#8 0.307 npm http fetch GET 404 http://mf-verdaccio-probe:4873/manifest-no-such-package-191063 39ms (cache skip)
+#8 0.314 npm error code E404
+#8 0.314 npm error 404 Not Found - GET http://mf-verdaccio-probe:4873/manifest-no-such-package-191063 - no such package available
+#8 0.314 npm error 404
+#8 0.314 npm error 404  The requested resource 'manifest-no-such-package-191063@1.0.0' could not be found or you do not have permission to access it.
+#8 0.314 npm error 404
+#8 0.314 npm error 404 Note that you can also install from a
+#8 0.314 npm error 404 tarball, folder, http url, or git url.
+-- probe_marked_999.0.0
+#8 0.228 npm http fetch GET 404 http://mf-verdaccio-probe:4873/npm 14ms
+#8 0.232 npm http fetch GET 404 http://mf-verdaccio-probe:4873/npm 3ms
+#8 0.298 npm http fetch GET 200 http://mf-verdaccio-probe:4873/marked 39ms (cache miss)
+#8 0.308 npm error code ETARGET
+#8 0.309 npm error notarget No matching version found for marked@999.0.0.
+#8 0.309 npm error notarget In most cases you or one of your dependencies are requesting a package version that doesn't exist.
+-- probe_ms_999.0.0
+#8 0.256 npm http fetch GET 404 http://mf-verdaccio-probe:4873/npm 16ms
+#8 0.260 npm http fetch GET 404 http://mf-verdaccio-probe:4873/npm 3ms
+#8 0.303 npm http fetch GET 200 http://mf-verdaccio-probe:4873/ms 15ms (cache miss)
+#8 0.310 npm error code ETARGET
+#8 0.310 npm error notarget No matching version found for ms@999.0.0.
+#8 0.311 npm error notarget In most cases you or one of your dependencies are requesting a package version that doesn't exist.
+-- min_ms_2.1.3
+#8 0.229 npm http fetch GET 404 http://mf-verdaccio-probe:4873/npm 14ms
+#8 0.232 npm http fetch GET 404 http://mf-verdaccio-probe:4873/npm 3ms
+#8 0.254 npm http fetch GET 200 http://mf-verdaccio-probe:4873/ms 14ms (cache miss)
+#8 0.271 npm http fetch GET 200 http://mf-verdaccio-probe:4873/ms/-/ms-2.1.3.tgz 10ms (cache miss)
+-- the throwaway's log, refused phase (filtered)
+http <-- 200, user: null(172.19.0.5), req: 'GET /npm', bytes: 0/0
+http <-- 404, user: null(172.19.0.5), req: 'GET /npm', error: no such package available
+info <-- 172.19.0.5 requested 'GET /marked'
+http <-- 200, user: null(172.19.0.5), req: 'GET /marked', bytes: 0/0
+http <-- 200, user: null(172.19.0.5), req: 'GET /marked', bytes: 0/120526
+info <-- 172.19.0.5 requested 'GET /npm'
+http <-- 200, user: null(172.19.0.5), req: 'GET /npm', bytes: 0/0
+http <-- 404, user: null(172.19.0.5), req: 'GET /npm', error: no such package available
+info <-- 172.19.0.5 requested 'GET /npm'
+http <-- 200, user: null(172.19.0.5), req: 'GET /npm', bytes: 0/0
+http <-- 404, user: null(172.19.0.5), req: 'GET /npm', error: no such package available
+info <-- 172.19.0.5 requested 'GET /ms'
+http <-- 200, user: null(172.19.0.5), req: 'GET /ms', bytes: 0/0
+http <-- 200, user: null(172.19.0.5), req: 'GET /ms', bytes: 0/18249
+-- the throwaway's log, dns phase (filtered)
+http <-- 200, user: null(172.19.0.5), req: 'GET /npm', bytes: 0/0
+http <-- 404, user: null(172.19.0.5), req: 'GET /npm', error: no such package available
+info <-- 172.19.0.5 requested 'GET /left-pad'
+http <-- 200, user: null(172.19.0.5), req: 'GET /left-pad', bytes: 0/0
+http <-- 404, user: null(172.19.0.5), req: 'GET /left-pad', error: no such package available
+info <-- 172.19.0.5 requested 'GET /npm'
+http <-- 200, user: null(172.19.0.5), req: 'GET /npm', bytes: 0/0
+http <-- 404, user: null(172.19.0.5), req: 'GET /npm', error: no such package available
+info <-- 172.19.0.5 requested 'GET /npm'
+http <-- 200, user: null(172.19.0.5), req: 'GET /npm', bytes: 0/0
+http <-- 404, user: null(172.19.0.5), req: 'GET /npm', error: no such package available
+info <-- 172.19.0.5 requested 'GET /manifest-no-such-package-191063'
+http <-- 200, user: null(172.19.0.5), req: 'GET /manifest-no-such-package-191063', bytes: 0/0
+http <-- 404, user: null(172.19.0.5), req: 'GET /manifest-no-such-package-191063', error: no such package available
+-- the throwaway's log, online phase (filtered)
+info --- making request: 'GET https://registry.npmjs.org/manifest-no-such-package-191063'
+http --- 404, req: 'GET https://registry.npmjs.org/manifest-no-such-package-191063' (streaming)
+http --- 404, req: 'GET https://registry.npmjs.org/manifest-no-such-package-191063', bytes: 0/21
+http <-- 404, user: null(172.20.0.1), req: 'GET /manifest-no-such-package-191063', error: no such package available
+info <-- 172.19.0.5 requested 'GET /npm'
+http <-- 200, user: null(172.19.0.5), req: 'GET /npm', bytes: 0/0
+info --- making request: 'GET https://registry.npmjs.org/npm'
+info <-- 172.19.0.5 requested 'GET /manifest-no-such-package-191063'
+http <-- 200, user: null(172.19.0.5), req: 'GET /manifest-no-such-package-191063', bytes: 0/0
+info --- making request: 'GET https://registry.npmjs.org/manifest-no-such-package-191063'
+http --- 404, req: 'GET https://registry.npmjs.org/manifest-no-such-package-191063' (streaming)
+http --- 404, req: 'GET https://registry.npmjs.org/manifest-no-such-package-191063', bytes: 0/21
+http <-- 404, user: null(172.19.0.5), req: 'GET /manifest-no-such-package-191063', error: no such package available
+http --- 200, req: 'GET https://registry.npmjs.org/npm' (streaming)
+-- the throwaway's log, m4 phase (filtered)
+http <-- 200, user: null(172.19.0.5), req: 'GET /npm', bytes: 0/0
+http <-- 404, user: null(172.19.0.5), req: 'GET /npm', error: no such package available
+info <-- 172.19.0.5 requested 'GET /@manifest-probe%2fpostinstall-191063'
+http <-- 200, user: null(172.19.0.5), req: 'GET /@manifest-probe%2fpostinstall-191063', bytes: 0/0
+http <-- 404, user: null(172.19.0.5), req: 'GET /@manifest-probe%2fpostinstall-191063', error: no such package available
+info <-- 172.20.0.1 requested 'GET /@manifest-probe%2fpostinstall-191063?write=true'
+http <-- 200, user: null(172.20.0.1), req: 'GET /@manifest-probe%2fpostinstall-191063?write=true', bytes: 0/0
+http <-- 404, user: probe(172.20.0.1), req: 'GET /@manifest-probe%2fpostinstall-191063?write=true', error: no such package available
+info <-- 172.20.0.1 requested 'GET /@manifest-probe%2fpostinstall-191063?write=true'
+http <-- 200, user: null(172.20.0.1), req: 'GET /@manifest-probe%2fpostinstall-191063?write=true', bytes: 0/0
+http <-- 404, user: probe(172.20.0.1), req: 'GET /@manifest-probe%2fpostinstall-191063?write=true', error: no such package available
+info <-- 172.20.0.1 requested 'GET /@manifest-probe/postinstall-191063'
+http <-- 200, user: null(172.20.0.1), req: 'GET /@manifest-probe/postinstall-191063', bytes: 0/0
+http <-- 404, user: null(172.20.0.1), req: 'GET /@manifest-probe/postinstall-191063', error: no such package available
+
+## [M3b] (probes/m3b-run.sh, ~15:55-15:57)
+-- min_marked_18.0.14
+{"case":"min:marked@18.0.14","buildId":"fe32-min-marked-18-0-14-mvbkh4rv","exitCode":1,"timedOut":false,"error":null,"msBuilderStart":539,"msBuild":71792,"msTotal":72331,"exported":[],"exportedCount":0,"logLines":75}
+#8 0.321 npm http fetch GET 200 http://mf-verdaccio-probe:4873/marked 66ms (cache miss)
+#8 0.338 npm http fetch GET http://mf-verdaccio-probe:4873/marked/-/marked-18.0.14.tgz attempt 1 failed with 500
+#8 10.35 npm http fetch GET http://mf-verdaccio-probe:4873/marked/-/marked-18.0.14.tgz attempt 2 failed with 500
+#8 70.38 npm http fetch GET http://mf-verdaccio-probe:4873/marked/-/marked-18.0.14.tgz attempt 3 failed with 500
+#8 70.38 npm http fetch GET 500 http://mf-verdaccio-probe:4873/marked/-/marked-18.0.14.tgz 70046ms attempt #3 (cache skip)
+#8 70.38 npm error code E500
+#8 70.38 npm error 500 Internal Server Error - GET http://mf-verdaccio-probe:4873/marked/-/marked-18.0.14.tgz - uplink is offline
+-- mirror-name-unresolved_marked_18.0.14
+{"case":"min:marked@18.0.14","buildId":"fe32-min-marked-18-0-14-mvbkey2m","exitCode":1,"timedOut":false,"error":null,"msBuilderStart":637,"msBuild":86740,"msTotal":87378,"exported":[],"exportedCount":0,"logLines":75}
+#8 5.246 npm http fetch GET http://mf-verdaccio-probe:4873/marked attempt 1 failed with EAI_AGAIN
+#8 20.28 npm http fetch GET http://mf-verdaccio-probe:4873/marked attempt 2 failed with EAI_AGAIN
+#8 85.30 npm http fetch GET http://mf-verdaccio-probe:4873/marked attempt 3 failed with EAI_AGAIN
+#8 85.32 npm error code EAI_AGAIN
+#8 85.32 npm error syscall getaddrinfo
+#8 85.32 npm error errno EAI_AGAIN
+#8 85.32 npm error request to http://mf-verdaccio-probe:4873/marked failed, reason: getaddrinfo EAI_AGAIN mf-verdaccio-probe
+
+## [M4] (probes/m4-run.sh, 15:53:29-15:53:37) — transcribed from its stdout, which was not teed
+networks before: 12; image=sha256:fcb86134…; [manifest-build-internal 172.19.0.4 aliases=[mf-verdaccio-probe]] [mf-fe32-probe 172.20.0.2]; networks after: 13
+token minted: yes
+npm notice name: @manifest-probe/postinstall-191209 / version: 1.0.0 / total files: 2 / Publishing to http://127.0.0.1:7196/ with tag latest and default access
+curl /@manifest-probe/postinstall-191209 -> 200
+storage after publish: @manifest-probe/postinstall-191209/package.json, postinstall-191209-1.0.0.tgz
+m4:  exit 0, 2502 ms total — RAN absent; exported 6 files; lockfile has it: 3
+m4on: exit 0, 2589 ms total — RAN PRESENT (ran); exported 7 files; lockfile has it: 3
+npm warn using --force Recommended protections disabled. / - @manifest-probe/postinstall-191209
+curl /@manifest-probe/postinstall-191209 -> 404 {"error": "no such package available"}
+storage after unpublish: [/verdaccio/storage/@manifest-probe]
+gone: container=0 volume=0 network=0; networks: 12
+{"case":"m4:@manifest-probe/postinstall-191209@1.0.0","buildId":"fe32-m4--manifest-probe-p-mvbkdh4p","exitCode":0,"timedOut":false,"error":null,"msBuilderStart":635,"msBuild":1868,"msTotal":2502,"exported":["resolve","resolve/.npmrc","resolve/node_modules","resolve/package-lock.json","resolve/package.json","resolve/node_modules/.package-lock.json","resolve/node_modules/@manifest-probe","resolve/node_modules/@manifest-probe/postinstall-191209","resolve/node_modules/@manifest-probe/postinstall-191209/index.js","resolve/node_modules/@manifest-probe/postinstall-191209/package.json"],"exportedCount":10,"logLines":62}
+{"case":"m4on:@manifest-probe/postinstall-191209@1.0.0","buildId":"fe32-m4on--manifest-probe-mvbkdj5h","exitCode":0,"timedOut":false,"error":null,"msBuilderStart":588,"msBuild":2001,"msTotal":2589,"exported":["resolve","resolve/.npmrc","resolve/RAN","resolve/node_modules","resolve/package-lock.json","resolve/package.json","resolve/node_modules/.package-lock.json","resolve/node_modules/@manifest-probe","resolve/node_modules/@manifest-probe/postinstall-191209","resolve/node_modules/@manifest-probe/postinstall-191209/index.js","resolve/node_modules/@manifest-probe/postinstall-191209/package.json"],"exportedCount":11,"logLines":63}
+
+## [M5] Step 5's pnpm test — VOID (stopped by manifest-coord6 at 16:46:40, Rich needing the machine)
+start 16:12:56 load { 7.20 51.87 49.73 }
+ ❯ |unit| src/launch/records.test.ts (61 tests | 1 failed) 138510ms
+     → Test timed out in 25000ms.
+Terminated: 15
+test-gently: load (1-min) min 7.20 / median 197.96 / max 461.55 over 60 samples 30 s apart; QoS utility, timeout scale 5, gate 12, forced no; exit 143
