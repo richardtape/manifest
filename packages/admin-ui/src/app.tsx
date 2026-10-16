@@ -14,9 +14,11 @@ import {
 } from './router'
 import { NotAdmin } from './screens/not-admin'
 import { FleetScreen } from './screens/fleet'
+import { HealthScreen } from './screens/health'
 import { ProjectScreen } from './screens/project'
 import { QueueScreen } from './screens/queue'
 import { RecordsScreen } from './screens/record-pane'
+import { SettingsScreen } from './screens/settings'
 import { ConsoleRail, type ConsoleRailProps, type RailItem } from './system'
 
 /**
@@ -154,7 +156,7 @@ function Shell({ me, api }: { me: Schemas['Me']; api: Api }) {
 }
 
 /**
- * The route's screen; a placeholder until its task builds it. A release pane is the queue's, its
+ * The route's screen. A release pane is the queue's, its
  * item selected — the same element in the same place, so moving between the two keeps the queue
  * read and the pane's state.
  */
@@ -177,8 +179,8 @@ function Screen({ route, api, me }: { route: Route; api: Api; me: Schemas['Me'] 
         />
       )
     case 'health':
-      return <h1 className="mfa-h1">Health</h1>
+      return <HealthScreen api={api} />
     case 'settings':
-      return <h1 className="mfa-h1">Settings</h1>
+      return <SettingsScreen api={api} />
   }
 }
