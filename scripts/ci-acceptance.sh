@@ -371,7 +371,11 @@ red() { printf '\033[31m%s\033[0m' "$1"; }
 # files that existed: `api.test.ts` +3 (an agent's question rejected for its people), `time.test.ts` +2 and
 # `screens/record-pane.test.tsx` +1 (the whole-branch review's I1: a certificate's expiry is Vancouver's day both ways). `make
 # demo-admin`'s walk is not a test file. Measured 4212/252 twice on the branch rebased onto `21b9b1a9` (utility, load median 3.6 / 5.5).
-EXPECT_TESTS=4238
+# EXPECT_TESTS 4238 -> 4240 (2026-10-16, the load rehearsal plan's sitting 7, `manifest-b-s7` — the whole-branch review's fix
+# wave), no new file: `launch/load.test.ts` +1 (the targets in a Latin square, `108f4e30`) and `launch/load-run.test.ts` +1 (a
+# staging deploy under way is never undone, `cf6f533c`). Measured 4240/253 in `make ci-acceptance` on driver 1 (13:14, utility,
+# load median 3.19) and again on driver 2.
+EXPECT_TESTS=4240
 EXPECT_FILES=253
 # EXPECT_DOCTOR 21 -> 22 (2026-10-03, the UBC AI Gateway plan's sitting 2, Task 2): the gateway key's expiry, a
 # check_warn — counted, never failing — from 14 days ahead (its Decision 11). Measured: 22 checks, 0 failed, 0 warnings.
