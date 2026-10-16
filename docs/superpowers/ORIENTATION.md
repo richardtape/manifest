@@ -2124,11 +2124,15 @@ be restarted — a peer's uncommitted file in the shared checkout failed the con
 facts and its set, the Incidents by cause, the releases, the launch with who has each record and since, an agent's question rejected with
 the reason as the body AND §26's header (`b0a96e07`, `3637cb9d`) — and Task 11, Health (five panels, each saying what it cannot see, its
 reads counted: 35 on the demo fleet) and Settings (52 rows, each held by a test to where the platform reads it; every value but a
-blueprint's *"Manifest can’t read this yet."*) (`23c58ea3`), all on the branch, walked on the demo fleet. **Its sitting 8 (Task 12: `make
-demo-admin`, its controls, the one whole-branch review and its fix wave, then LANDING 3) is next**, and its sittings table says where it
-stops. It takes a 7100 window only to land (L3 closes its sitting 8). Two of its traps are in TRAPS.md: a
-backgrounded `scripts/admin-ui.sh` ignores SIGINT (stop it with TERM), and `make doctor` in the worktree reads three fails for git-ignored
-files.
+blueprint's *"Manifest can’t read this yet."*) (`23c58ea3`), all on the branch, walked on the demo fleet. **So is sitting 8**
+(2026-10-15, `manifest-p11-s8`): Task 12, **`make demo-admin`** — the console built and walked headless in Chrome on its own mock's demo
+fleet, nine checks each asserting a shape and nothing unexpected on the console, no control plane, Docker or network, so **a step of `make
+ci-acceptance` (13) on any driver or none, and the offline acceptance's step 20** (`5bff2852`) — and the plan's one whole-branch review
+(*approve with fixes*; its fix wave `783fb175`: a certificate expiry typed into UBC's answer is Vancouver's day both ways) — **and LANDING 3:
+`main` at `c64f067d`**, `pnpm test` 252 files / 4212 tests twice (the `EXPECT_` lines); RUNBOOK *Running the administrator's console* and
+WALKTHROUGH's clicked section (`cdbfd462`). **Its sitting 9 (Task 13: Rich clicks it — G9, he is at the machine) is next**, and alone: it
+changes documents only, then removes the worktree. Two of its traps are in TRAPS.md: a backgrounded `scripts/admin-ui.sh` ignores SIGINT
+(stop it with TERM), and `make doctor` in the worktree reads three fails for git-ignored files.
 
 **WHAT A1 LEFT THE NEXT PLANS, B ABOVE ALL (2026-10-14; A1's *What executing this plan found*, *Sitting 8*, has the story):**
 - **A1's review fix wave, `745def2`** — read it before Task 1's measurements, because B's generator is exactly the traffic it is about:

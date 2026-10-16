@@ -110,8 +110,8 @@ records and UBC's order), **§20** (step-up). **Design:** the refreshed [`2026-0
 | 5 | 6, 7 | **The queue** — the headline from our band, the two bands, the rows, the filter, the keyboard, the URL, the 60-second read (Task 6) — and **the release approval pane**: the request and its token from the project's stream, the preview on a click, the diff, approve and reject observed, the step-up round trip with the reason kept, stale and expired, decided by someone else (Task 7) | No | After Task 7's commit | ✅ **DONE 2026-10-15** (`manifest-p11-s5`, 12:41–13:17 PDT): the queue `dc111c61` and the release approval pane `df332286` on `p11-admin-ui` — walked on the demo fleet, `reading-responses` approved through the step-up and back; seven findings, one a defect only the walk could see (F2); *What executing this plan found*, *Sitting 5* |
 | 6 | 8, 9 | **The team's step and UBC's answer** — submit, file, hand back, record, every body exactly what the operation requires, a granted change in its two writes (Task 8) — and **the fleet**: the table, its filters in the URL, the instance count, archived rows (Task 9). **LANDING 2** at the close | **Yes — L2** | After L2's merge, read back. **If it overflows, L2 moves to sitting 7's open** | ✅ **DONE 2026-10-15** (`manifest-p11-s6`, 13:17–16:50 PDT, HOLD 13:20–15:47): Task 8 `6cad9bc0` (+ `dbf18178`), the mock's `lastSeenAt` fix `bf980116`, Task 9 `800f3f18`; **LANDING 2 — `main` at `6c66944e`**, `pnpm test` 244 / 4076 twice; seven findings, F7 a peer's uncommitted file keeping 7100 down at G4; *What executing this plan found*, *Sitting 6* |
 | 7 | 10, 11 | **The project's page** — environments and their sets, incidents by cause, releases, the launch, people and agents, events live with the administrator's reason; reject an agent's question (Task 10) — and **Health and Settings** (Task 11) | No (L2 landed at sitting 6) | After Task 11's commit | ✅ **DONE 2026-10-15** (`manifest-p11-s7`, 16:51–18:41 PDT, HOLD 16:55–17:04 and 17:04–18:29): Task 10 `b0a96e07` (+ `3637cb9d`), Task 11 `23c58ea3` on `p11-admin-ui` — walked on the demo fleet, both controls red as predicted, 56 files / 703 tests twice; *What executing this plan found*, *Sitting 7* |
-| 8 | 12 | **The acceptance's headless half**: `make demo-admin` (the walk) and its step in both acceptances, its negative controls, **the plan's one whole-branch review and its one fix wave**. **LANDING 3** at the close; then RUNBOOK and WALKTHROUGH in the shared checkout | **Yes — L3** | After L3's merge and the two documents, read back | ← **next** (a fresh session, `manifest-p11-s8`; it opens with `git -C /Users/rich/Developer/manifest-p11 rebase main` — `main` took B's sitting 3 after `8c1e5666` (`packages/control-plane`, `EXPECT_` 4112 / 245), no `packages/contract` or `packages/mock` — then reads *Sitting 7*'s *What Task 12 inherits*) |
-| 9 | 13 | **Rich clicks it** (G9 — he is at the machine); his words recorded; the close-out: EXECUTED, the roadmap, ORIENTATION, CLAUDE.md's *State*; the worktree removed; the machine as found | Documents only (in the shared checkout) | After the close-out commit | |
+| 8 | 12 | **The acceptance's headless half**: `make demo-admin` (the walk) and its step in both acceptances, its negative controls, **the plan's one whole-branch review and its one fix wave**. **LANDING 3** at the close; then RUNBOOK and WALKTHROUGH in the shared checkout | **Yes — L3** | After L3's merge and the two documents, read back | ✅ **DONE 2026-10-15** (`manifest-p11-s8`, 18:42–22:25 PDT, HOLD 19:25–20:14 and 20:17–21:30): Task 12 `5bff2852` and the review's fix wave `783fb175` (0 Critical, 1 Important, 6 Minor — four taken, two ruled, one gap); **LANDING 3 — `main` at `c64f067d`**, `pnpm test` 252 / 4212 twice; RUNBOOK and WALKTHROUGH `cdbfd462`; eleven findings; *What executing this plan found*, *Sitting 8* |
+| 9 | 13 | **Rich clicks it** (G9 — he is at the machine); his words recorded; the close-out: EXECUTED, the roadmap, ORIENTATION, CLAUDE.md's *State*; the worktree removed; the machine as found | Documents only (in the shared checkout) | After the close-out commit | ← **next** (`manifest-p11-s9`, Rich at the machine — G9: the coordinator opens it with ⚠ BLOCKED ON YOU; `make admin-ui` with `MANIFEST_MOCK_STEP_UP=1` from the shared checkout, WALKTHROUGH's nine clicks; *Sitting 8*'s *What sitting 9 inherits*) |
 
 **THE WORKTREE** (Task 1 creates it; every sitting works in it):
 
@@ -2606,3 +2606,141 @@ its pattern: the project's page by its link from the fleet and pasted, Health an
 between runs; Health's *N* on a fresh demo fleet is 35 and its counts 2, 6, 1, 0 (each counted here, not designed); the agent sessions
 table is unwalked (F3); `settings.test.ts` reads `packages/control-plane/src/config.ts` and `.env.example` from the worktree, so L3's
 rebase onto a `main` that renamed a variable turns it red — that is its job; the console's cold-load errors are unchanged (sitting 4's F2).
+
+### Sitting 8 — Task 12 and LANDING 3: `make demo-admin`, its controls, the one whole-branch review and its fix wave, and the third landing (2026-10-15, `manifest-p11-s8`)
+
+**Who and when.** `manifest-p11-s8`, the third coordinated run's P11 build, sitting 8, GOed by `manifest-coord5` at 18:42 PDT; inline
+(`superpowers:executing-plans`). **FREE 18:42–19:25** (load 4.5–7.8, on AC): the walk, its script, the three runs and the controls;
+**HOLD 19:25–20:14** (B4's `pnpm test` ×2 and a load rehearsal): the review read only, the fix wave written; **FREE 20:14–20:17**: the fix
+wave's RED/GREEN, two walks and two controls; **HOLD from 20:17** (B4's Docker tier and suite ×2): the rebase onto contract `1.10.0` (git
+only) and these documents' drafts; **FREE from 21:30:42**: the rebased tree's gates and walk; **LANDING 3** at 21:34:45–22:20. The worktree
+rebased onto `main` `3baaf6bb` first (B3's `packages/control-plane` and `scripts/ci-acceptance.sh` since `8c1e5666` — new `MANIFEST_LOAD_*`
+variables, none renamed, so `settings.test.ts` held), again onto **`2258937e`, B4's contract `1.10.0`** under HOLD — clean, the branch
+carrying no `packages/contract` or `packages/mock` change of its own — and at FREE onto `21b9b1a9` (B4's close: documents and
+`ci-acceptance.sh`'s `EXPECT_` lines, merged beside step 13); the contract's `dist/` rebuilt. The ledger is
+`.superpowers/sdd/2026-10-14-p11-admin-console/progress.md` (every ruling with its cost).
+
+**Task 12** (`5bff2852`, and the fix wave `783fb175`, on `main` since L3). **`packages/admin-ui/walk/walk.ts`** — raw CDP over Node 24's
+`WebSocket`, run by `node` itself (Node 24 strips the types; the walk imports only `node:` builtins): Chrome's port read back from its
+profile's `DevToolsActivePort` (Decision 17); **nine checks, each asserting a shape** — (1) `/` signs in and becomes `/queue`, the rail
+names *Operator One · Platform administrator*, a rail click to Fleet and back keeps the page; (2) the headline is `reading-responses'` age
+computed by the walk from `listQueue` (its own copy of the drawing's age words) and not `oldestSince`'s, the people, both bands' rows as
+the API counts them and ours oldest first; (3) `j` `j` `Enter` opens our band's second row at `/queue/<kind>/<id>`; (4)
+`reading-responses` asked through *'the agent that builds this app'*, the preview's two sensitive changes, Reject disabled without a
+reason, Approve → `403 STEP_UP_REQUIRED` → the mock's step-up → back on the same preview with the reason in the field → Approve → *"Operator
+One approved this release for production."*, the row gone **on the same page**, the approval **read back through the API** (approved, by
+Operator One, the reason, the pane's preview, the release's digest) and **the team's emailed link opened after it** — *"Operator One
+approved this on <Vancouver's day>."*, the reason quoted, no decision offered (sitting 5's F2); (5) `phys-101-labs` submitted with
+`IAM-2026-0612`, Submit disabled before, the row in UBC's band, the record read back `submitted` with the ticket; (6) `stats-sim`'s answer
+recorded `active` and **read back** — staging `active` with the entity, ACS and SLO it had, the attributes and certificate the form sent,
+production's untouched (C1); (7) `/fleet?prod=1` — exactly the launched apps the API names, and `econ-101-polls`' production cell found
+under its heading: *healthy*, the steady colour, *· 2*, *failed Nm ago* (sitting 2's F1/F5, as Task 9 decided); (8)
+`bio-201-scheduler` — the event signed *"Operator One · as a platform administrator"* with its reason, Reject for them disabled without a
+reason, then *Refused for them*, the platform's record `rejected` with the reason, the live event signed; (9) Health — `math-oh-queue`'s
+certificate red, `econ-101-polls`' `exit_stopped` first — and Settings — every value but the blueprint's the admission. **Then the
+console**: every error and warning line one of the four this console is known to print (the session read before signing in, `/v1/me`
+`401`; no icon, `/favicon.ico` `404`; the approve's `403 STEP_UP_REQUIRED`; a project's socket closed before it opened) — anything else
+fails the walk. Each check opens its own page and reads its own ids, so a failure names only its own check; a failed act names the refusal
+on screen; every CDP call fails after 30 s naming its method. **`scripts/demo-admin.sh`**: refuses if 7101 or 7113 listens; builds the
+contract and the console; a **fresh** mock on 7113 (`MANIFEST_MOCK_ROLE=admin MANIFEST_MOCK_FLEET=demo MANIFEST_MOCK_STEP_UP=1`), `vite
+preview` on 7101 (`DEMO_ADMIN_DEV=1`: `vite dev`), each asked by name before the walk; Chrome headless on a system port in a fresh profile;
+the walk in the background and waited on; every process of the four trees TERMed, KILLed after ten seconds if it ignored that, and the
+profile removed, on any exit. **`make demo-admin`**; **`ci-acceptance.sh` step 13** (no control plane, so on either driver or none);
+**`offline-acceptance.sh` step 20**.
+
+**Step 3, the three runs** (the build, 19:00–19:02, load 7.8): fresh 9/9 in 35 s; again (a new mock) 9/9 in 33 s; after `git clean -fdx
+packages/admin-ui/dist` 9/9 in 33 s. And on `vite dev` 9/9 — the console's lines there ten (StrictMode's second `401` and its closed
+sockets), on the build four. After every run: 7101 and 7113 free, no Chrome, no profile.
+
+**A decision of the sitting — THE WALK ALSO HOLDS THE CONSOLE'S OWN LINES** (sitting 4's F2 said Task 12 expects or removes them): expected,
+by an allowlist of four, not removed — a favicon is a design choice, not this task's. *Cost if wrong:* one list. **And `DEMO_ADMIN_DEV=1`**:
+the plan's walk is of the build, but a StrictMode-only defect (sitting 5's F2) shows only in dev, and dev is what `make admin-ui` serves;
+both were walked here. *Cost if wrong:* one branch in the script.
+
+**Findings:**
+
+**F1 MY FIRST WALK CLICKED APPROVE WHILE "CHECKING" IT WAS DISABLED — AND HUNG.** Approve needs no reason (only Reject does), so the probe
+pressed it, the page left for the step-up mid-check, and a CDP `Runtime.evaluate` sent across the navigation was never answered: the walk
+waited for ever. Now a button's state is read without pressing it (`button()`), and every CDP call rejects after 30 s naming its method.
+
+**F2 A TERM TO `demo-admin.sh` WAITED FOR THE HUNG WALK** — bash runs a trap only after its FOREGROUND child returns. The walk now runs in the
+background and is waited on, as `scripts/admin-ui.sh`'s `vite` is.
+
+**F3 CONTROL (a) AS THE PLAN WROTE IT DID NOT NAME 23 DAYS** — `headlineOf` returning `oldestSince` drew *"Nobody is waiting on us."*: the
+queue screen re-finds the headline's item **in our band** by its instant, and UBC's instant matches none (a second guard, not a defect).
+The break where a regression would read `oldestSince` — the screen's words, (a′) — read *27 days, 7 hours*: `mock-app`'s own privacy
+assessment (2026-09-18) is UBC's oldest, older than `field-notes'` 23 days.
+
+**F4 CONTROL (e) AS THE PLAN WROTE IT CANNOT FAIL THE WALK** — the screen reads its filter from the URL through `filterFromQuery`, whose loop
+sets every flag from the query and never reads `NO_FILTER`'s; `NO_FILTER` reaches the tests, *Clear* and Health, and
+`fleet-state.test.ts:71` (`filterFromQuery('')` equals `NO_FILTER`) is what couples the two — sitting 6's thirteen reds. (e′), the default
+in `filterFromQuery`, → check 7 red.
+
+**F5 A CASCADE NAMED THE WRONG CHECK** — under (e′) check 8 went red too: it borrowed project ids that check 7 recorded only when it passed.
+Every check now reads its own ids and opens its own page; (e′) re-run → check 7 red alone.
+
+**F6 THE BUILD CLOSES A PROJECT'S SOCKET BEFORE IT OPENS TOO** — when the page leaves for the step-up while it connects — not only
+StrictMode in dev; the allowlist's comment says both.
+
+**F7 (the review's I1, Important) A CERTIFICATE EXPIRY TYPED INTO UBC'S ANSWER WAS RECORDED THE DAY BEFORE.** `iamAnswerOf` sent
+`<day>T00:00:00.000Z` — the evening before in Vancouver — so the facts and Health read the previous day; and `certOf` pre-filled the UTC
+date beside facts that say Vancouver's. `time.ts`'s `instantOfDate` (20:00 UTC, as `dayOfDate` already read a day) and `dateOf`
+(Vancouver's `YYYY-MM-DD`); RED first — exactly the four new or changed cases — then 35 green.
+
+**F8 (the review's M1) AN APPROVAL LEFT ITS ROW AND THE HEADLINE FOR UP TO A MINUTE** — only the record pane told the queue to read again.
+The approval pane now does; held by the walk alone (no DOM tier): check 4 red on the old pane (*"still waiting on us 10 s after it was
+approved"*), green on the fix.
+
+**F9 (the review's M3) THE SCRIPT'S STOP WAITED WITHOUT A BOUND** on a child that ignores TERM. Now TERM, ten seconds (a zombie not counted
+as running), KILL, named. Control: `DEMO_ADMIN_CHROME` naming a fake that ignores TERM → KILLed, exit 2 in 45 s, nothing left. The old
+script's hang under the same fake was predicted (≈600 s), not run. `scripts/admin-ui.sh` keeps the old shape — a person is at its Ctrl-C;
+named for P11b.
+
+**F10 (the review's M4) CHECK 4 PROVED THE APPROVAL BY ITS WORDS ALONE** — now read back through the API. Its control (the body's reason
+edited) went red through the read-back only: the pane's sentence and the emailed link's quote (a prefix of it) stayed green.
+
+**F11 My own slip, no effect:** a stray `git add -N .` inside the fix wave's commit command — the worktree had no untracked path, and
+`git status` read my eight paths before and none after. Stage by name.
+
+**The review** (Step 6; a fresh read-only subagent over the sixteen P11 commits — 7fd25e4..p11-admin-ui on P11's paths, B's three
+commits excluded — reading only after the 19:25 HOLD): **approve with fixes**, 0 Critical, 1 Important, 6 Minor. **Taken**: I1, M1, M3,
+M4 (F7–F10). **Ruled**: M2 — `rejectQuestion`'s per-press `createApi` stays (sitting 7's ruling: the screen holds an `Api`, as every
+screen does; the raw client and every call stay in `api.ts`); its note recorded — a retry after no answer with the reason edited is `409
+IDEMPOTENCY_KEY_REUSED` (the hash carries the reason), shown and re-read, nothing recorded twice; **M5 — the premise fails**: the answer form
+opens only for a record waiting on an administrator, and an `active` registration never is, so no screen sends `active →
+change_requested` with an empty *Asks for*. **A gap**: M6 — the contract's registration and assessment carry no `recordedBy`, so a
+hand-back or an answer another administrator recorded names nobody from the records alone (the stream's `*.recorded` events could) — for
+P11b or the design's §10. What it checked and found sound: C1's bodies against `records.ts`, the two-write grant, the keys, the step-up's
+`returnTo`, the headline, the queue under an open pane, the mock's I3/C1/I7, the boundary and `<Refusal>`, the acceptance's shapes and
+cleanup, the published words.
+
+**The negative controls (Step 4), each predicted first, each restored and the tree read clean:** (a′) the headline's words from
+`oldestSince` → check 2 red, naming *27 days, 7 hours* and *"oldestSince's … UBC's wait"*; (b) a fresh key on a retry → the walk 9/9
+green (it never retries), `approval-state.test`'s *"reuses the key…"* red alone; (c) one demo fleet for every server in a process → the
+walk green (one server per walk), `fleet.test`'s *"keeps each server's decisions its own…"* red alone; (d) `expired` in
+`IAM_MOVES.submitted` → the walk green (the default move stays `active`), `transitions.test`'s document case red alone; (e′) → check 7 red
+alone (after F5), `fleet-state.test`'s two URL cases red; (f) `EventLine` ignoring `asAdmin` → check 8 red alone; (g) the mock as a
+member (the script edited by hand and restored from a copy — untracked then) → check 1 red with *"This console is for platform
+administrators. You're signed in as Instructor One."* on screen; (h) `iamAnswerBody` without `environment` → check 6 red, naming *"LAUNCH_TRANSITION_INVALID
+an IAM registration cannot go from 'draft' to 'active'"* (production's record — the default), and the console red with an unexpected
+`409`. (a) and (e) as written: F3 and F4.
+
+**Not built, named:** Task 10's *Load rehearsals* section — its condition was `[M1]` at Task 10's sitting (sitting 7 read `1.9.0`), and
+building it now would ship a screen after the plan's one review; for Rich's click and P11b. The agent sessions table still unwalked (the
+demo fleet has none — sitting 7's F3).
+
+**The gates, on the final branch tree `783fb175` (rebased onto `2258937e`, the contract's `dist/` rebuilt), at FREE:** `pnpm exec vitest run --project admin-ui --project packages` **twice, identical — 56 files, 706 passed** (sitting 7's 703 plus `time.test.ts` +2 and `record-pane.test.tsx` +1), 51 s and 46 s, load median 2.95 / 5.55, through the wrapper at utility; `pnpm lint`, `pnpm typecheck` (seven packages) and `pnpm format:check` clean; `make demo-admin` 9/9 on the build and on `vite dev`. The `unit` project not run here (the plan's rule) — L3's two whole runs below are its.
+
+**LANDING 3 — `main` at `c64f067d`** (21:34:45–22:20 PDT, *"7100 is yours"* + HOLD after B4's close). TESTED `21b9b1a9`; the shared `.env` symlinked (`ln` exit 0 — allowed, as at L1 and L2 — never read). **`pnpm test` twice, identical — 252 files, 4212 tests, exit 0** — the counts predicted at *"ready for L3"* (`main`'s 4152/246 plus the lane's 60/6 since L2): 1200 s (load median 3.58) and 1359 s (median 5.45, max 15.41). **The landing commit `c64f067d`** moved `EXPECT_TESTS` 4152 → 4212 and `EXPECT_FILES` 246 → 252 (`EXPECT_DOCTOR` 23 and `EXPECT_VERIFY` 67 unchanged). **No G3**: the branch changed no `packages/mock` or `packages/contract` file since L2. `main` had not moved since TESTED; the branch's 25 paths overlapped none of the shared checkout's uncommitted ones (`.claude/` alone). `git merge --ff-only p11-admin-ui` → **`c64f067d`** (Tasks 10–11 `4f0f024a`, `a518a7e6`, `a99aaa31`; Task 12 `5bff2852`; the fix wave `783fb175`; the counts `c64f067d` — shas moved at each rebase); `pnpm install --offline --frozen-lockfile` exit 0; `pnpm typecheck` exit 0 in the shared checkout; **`make demo-admin` from the shared checkout, the landed tree, 9/9**; the symlink removed (`ls -la` first; the link only). **G4, this sitting's at the coordinator's word**: no uncommitted `packages/control-plane` file in the shared checkout (sitting 6's F7 read first); `bash scripts/gateway-controls.sh start real` → 7100 up on `github` (pid 18184), `capableModel` and its fallback *unchanged*; ONE call to `default-chat-large`, the master key from `.env` in a 0600 header file and never printed → `200`, `llm_provider-x-litellm-model-name: gpt-6.1-sol`, `x-litellm-attempted-fallbacks: 0` (22:19:51); 7100 given back with 0 projects (the two runs truncated it).
+
+**The documents** (Step 5, written in the shared checkout after L3): RUNBOOK *Running the administrator's console* (`make admin-ui`, the
+two ports and `make doctor`'s knowing them, `MANIFEST_MOCK_STEP_UP=1`, the demo fleet's thirteen and what each shows, a restart resets
+it, no web fonts, the contract's `dist/` first, P11b not built) with *`make demo-admin`* beneath, and its *`make ci-acceptance`* sentence
+naming step 13; WALKTHROUGH *The administrator's console, clicked — P11's demo, on its mock*; neither states a count (`cdbfd462`).
+
+**The machine:** 7101 and 7113 free; no headless Chrome or walk profile left; no Docker resource made; 7100 restarted at G4 (pid 18184), 0 projects. The three cleanup scripts bare: `dead-app-resources.sh` *"Nothing was changed. 0 network(s) and 0 volume(s) are dead"*; `litellm-orphans.sh` refused itself — *"/user/list answered no users at all, which is not a state this machine reaches"* (the truncation's, as at sittings 1, 5, 6 and 7); `app-images.sh` *"Nothing was changed. 0 app image(s) are dead"*. **No `--apply` owed.** **The worktree stays** for sitting 9, on `p11-admin-ui` at `c64f067d` — `main`'s landing — clean, no `.env` symlink.
+
+**What sitting 9 inherits:** `make admin-ui` (`MANIFEST_MOCK_STEP_UP=1`) from the shared checkout, then <http://127.0.0.1:7101> — the
+WALKTHROUGH's nine clicks are Rich's walk (*What Rich does* 3); a restart resets the demo fleet; at 1440 the fleet's table scrolls sideways
+for its last columns, as the drawing's does (sitting 6's F5); a failed deploy is amber, not the drawing's green (sitting 7's F2); Task
+10's *Load rehearsals* not built; M6's gap; the worktree, its branch and its `.env` symlink are Task 13's to remove.
