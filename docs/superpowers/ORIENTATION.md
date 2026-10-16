@@ -2020,7 +2020,7 @@ named in the row below.*
 | **A1** | [`plans/2026-10-03-production-instances.md`](plans/2026-10-03-production-instances.md) — **EXECUTED 2026-10-13/14**, ten tasks in eight sittings, inline, in the second coordinated run | `make demo-capacity` — either driver, green on both (five controls red as predicted); every launch demo on two instances on both drivers; a step of `make ci-acceptance` (12) and of the offline acceptance (19); **Rich clicking it** | **Sitting 8's F2–F4 are the ones to read**: the edge ejected a member for the APP's own `502`/`504` (a shared outage ejected all), a replacement that failed before it started stopped replacing for good, and the deploy's identity window failed good releases under traffic — all three found only by the plan's one whole-branch review. **Sitting 7's F1**: a launched app on the laptop signs in at UBC's real IdP. **Sitting 7's F6**: every route change resets idle sockets through the edge. **Sitting 1's `[M3]`**: a CWL sign-in could not cross instances until the SAML request cache moved into the app's Mongo |
 | **FE-46/47/5** | [`plans/2026-10-03-fe46-fe47-fe5.md`](plans/2026-10-03-fe46-fe47-fe5.md) — **EXECUTED 2026-10-08/09**, eleven tasks (1–9, with 2b, and 8 as 8a and 8b) in five sittings, inline, in the coordinated run | `make demo-launch` — either driver, green three times on EACH (fresh, re-use with the change leg, re-use again) and from a `make reset` machine; `make demo-token` fresh, re-use and from `make reset` (driver 1's alone); step 16 of the offline acceptance; a step of `make ci-acceptance`; six controls, one per Review Focus line; **Rich clicking the team's step** | **Sitting 5's F1 and F5 are the ones to read**: a change UBC sent back with questions was drafted again from the launch CANDIDATE and sent as NO change — the new attribute dropped silently — found only by the plan's one whole-branch review; and the acceptance's own *"since the SECOND send"* check could not fail, because it compared a column with itself — found by making a control go red through the edge. **Sitting 5's F19**: the cleanup script every sitting runs with `--apply` deleted an ARCHIVED project's data. **Sitting 5's F9–F11**: controls predicted without re-reading an earlier sitting's, red for the wrong reason (a database CHECK), or green because a guard is three layers deep. **Sitting 4's F1**: one Vitest file turns the next demo fresh. **Sitting 2's F13**: nodemailer folds a CR/LF in a subject itself |
 | **Gentler test tiers** | [`plans/2026-10-14-gentler-test-tiers.md`](plans/2026-10-14-gentler-test-tiers.md) — **EXECUTED 2026-10-14/15**, seven tasks in three sittings, inline, in the second and third coordinated runs | `pnpm test` and `pnpm test:docker` through `scripts/test-gently.sh` — green under ten CPU burners at utility 5, under six at background 7, refused above a load of 12; the Docker tier at 12 CPUs, then at 6 (Rich's *"keep 6"*) | **Sitting 2's F2 and F3 are the ones to read**: twelve burners STARVE a utility run (~1 % of a core), so the gate, not a scale, keeps a run out of saturation; and a scale set from a quiet ratio read 4 red at the gate's edge. **Sitting 3's F1**: Docker Desktop's *Apply & restart* also applied a pending update (4.87.0 → 4.95.0) — read the version on both sides of a restart a measurement brackets |
-### 7e. B, the load rehearsal — its sitting 6 (`manifest-b-s6`: Task 8a, `make demo-load`) ← **START HERE**
+### 7e. B, the load rehearsal — its sitting 7 (`manifest-b-s7`: Task 8b, the rest of the acceptance and Rich's click) ← **START HERE**
 
 **THE GENTLER TEST TIERS PLAN IS EXECUTED** (2026-10-14/15 — `manifest-gt-s1`, `-s2` and `-s3` in the second and third coordinated runs; its
 *What executing this plan found* is the record): `pnpm test` and `pnpm test:docker` run through `scripts/test-gently.sh` (utility priority;
@@ -2044,8 +2044,8 @@ not owed (`sso/sign-in.ts`'s change is a comment, its emitted JS byte-identical)
 on its own driver**: `make demo-production`'s on driver 1 (`launch-app`), `make demo-launch`'s on the fake (`launchpath-github`) — driver 1's
 `make demo-launch` uses `launchpath-local`, which `make demo-capacity` never touches.
 
-**B'S SITTINGS 1 TO 5 ARE DONE** (2026-10-15, `manifest-b-s1` to `-s5`, the third coordinated run's B1–B5; the plan's
-*Sitting 1* to *Sitting 5* are the records, [`spikes/load-baseline/`](spikes/load-baseline/README.md) the measurements). **Sitting 1**
+**B'S SITTINGS 1 TO 6 ARE DONE** (2026-10-15/16, `manifest-b-s1` to `-s6`, the third coordinated run's B1–B6; the plan's
+*Sitting 1* to *Sitting 6* are the records, [`spikes/load-baseline/`](spikes/load-baseline/README.md) the measurements). **Sitting 1**
 (Task 1 `a46bdad9`): the 22 facts re-read; Caddy sees a container's own `manifest-platform` address; a rate-limit zone's own `match` takes
 a `not` and its counters survive every PATCH; a production-shaped set granted in 3.6 s and given back in 1.4 s; `OOMKilled` STICKY and true
 on a container still running; an app may swap up to its memory; Spec action D re-worded by Rich (`624deb66`). **Sitting 2**: **Spec actions
@@ -2097,16 +2097,31 @@ Vancouver), fixed red-first on both sides (`3e4926a4`); a new guide example met 
 truncated the walk's app before I deleted it** (TRAPS.md). The vulnerability database refreshed before the tier (built
 `2026-10-15T06:30:36Z`). `pnpm test` twice **253/4238** (`eb5506e3`); the Docker tier **316/316 (46 files)**.
 
-**THE NEXT PLATFORM JOB IS B'S SITTING 6 — [`plans/2026-10-03-load-rehearsal.md`](plans/2026-10-03-load-rehearsal.md), Task 8a
-(`manifest-b-s6`)** — **`make demo-load`**, on either driver: a `large_course` app from a fixture that can fall over by its own committed
-switch, rehearsed and passing, then a new candidate failing with its reason, and the platform's refusals; three times on each driver
-(fresh, re-use, from `make reset`); a negative control per Review Focus line. **Read Task 8's *SITTING 1 MEASURED* and *SITTING 5 BUILT AND
-MEASURED* notes first** (the item's exact words the demo asserts; the fixture must fall over far below what the proof app sustains — p95
-12.4 ms at 75/s; the journey's `seeEveryMember` waits `4 × N`; `capacity.ts` exports nothing; the walk in
-`.superpowers/sdd/2026-10-03-load-rehearsal/walk-sitting5/`). **Delete the demo's apps before any unit Vitest** (B5's F2). The Docker tier
-is owed as its sittings table says — *"Yes, if any code changes"* (7100 STOPPED for it, then G4). **The vulnerability database is fresh until 2026-10-22** (refreshed 2026-10-15 22:47, built
-`2026-10-15T06:30:36Z`). **7100 as B5 left it** (00:22, G4): real GitHub from `.env`, G4 proved on `gpt-6.1-sol` (0 fallbacks), **0
-projects**, migration `0057` applied; 12 networks; `make verify` 67/0/0.
+**Sitting 6** (`manifest-b-s6`, 2026-10-16): **Task 8a `948ea409` — `make demo-load`** (`scripts/demo-load.sh`,
+`packages/journey/src/load.ts`, `fixtures/load-app/`, and `journey/src/edge-reset.ts` — `resetSafeFetch` moved out of `capacity.ts`): a
+`large_course` app (`load-<driver>`) staged at 512Mi, production at 640Mi; a token and an un-stepped owner refused; the run `202`, its grant
+read back as three at 640Mi, the edge skipping one `/32`, a staging deploy, a second run and D21's rehearsal each `409
+LOAD_REHEARSAL_RUNNING` mid-run, `passed`; staging given back (one fresh instance at 512Mi, the route plain), the item met; then the
+fixture's committed `"fallOver": true` — a new candidate, unmet again — failing *"72.3% of requests were answered (14101 of 19500); the mark
+is 99%"*; and last a 601st request `429`. **Green three times on each driver** — driver 1 fresh 789 s, re-use 794 s, from `make reset` 794
+s; driver 2 (the fake, the `.env` swap) fresh 794 s, re-use 796 s, from `make reset` 792 s. **Nine controls, one per Review Focus line, each
+red where predicted** (control 5 one more, named before its result). The fixture answers TWO at once at 600 ms, not the plan's eight (F4:
+with three paths round robin, eight in flight is never reached). **Its F3 is sitting 7's review's question**: the edge's round robin and the
+generator's align, so each member sees one path and one takes every `/` (1,101 answers, one member's capacity, every run) — harsher than a
+crowd, never a false pass; `manifest-coord5` ruled it recorded and put to 8b's review. **Its F8, mine: my controls script left a broken
+`load-run.ts` in the shared tree ~4 minutes under the HOLD** (TRAPS.md). `pnpm test` twice **253/4238** (the `EXPECT_` lines unchanged); the Docker tier not owed (no file in
+its list changed).
+
+**THE NEXT PLATFORM JOB IS B'S SITTING 7 — [`plans/2026-10-03-load-rehearsal.md`](plans/2026-10-03-load-rehearsal.md), Task 8b
+(`manifest-b-s7`), ALONE AND LAST** — every other demo green (the launch demos after `make refresh-vulndb` if the database is past seven
+days — **fresh until 2026-10-22**, built `2026-10-15T06:30:36Z`), then **`make ci-acceptance`** with a `demo-load` step
+(`scripts/ci-acceptance.sh`, either driver) and `scripts/offline-acceptance.sh`'s (named to Rich as owed); **Rich's clicked half** (G9: he
+is at the machine — the console's *Run the load rehearsal* on a large-course app, stepped up, watched to its end, the checklist turning
+`met`); **the plan's one whole-branch review beside the Docker tier** (7100 STOPPED for it, then G4) and its one fix wave — **with F3's
+question in it** (the fix would be `launch/load.ts`'s target order). **Read Task 8's *SITTING 6 BUILT AND MEASURED* note first** (the
+demo's ~13 minutes, the burst that must stay last, the app it leaves — delete it before any unit Vitest). **7100 as B6 left it**
+(03:15, G4): real GitHub from `.env`, proved on `gpt-6.1-sol` (0 fallbacks), **0 projects** (the suites truncated them), migration
+`0057`; 13 networks; `make verify` 67/0/0.
 
 **P11, THE ADMINISTRATOR'S CONSOLE, IS A PARALLEL LANE BESIDE B** — [`plans/2026-10-14-p11-admin-console.md`](plans/2026-10-14-p11-admin-console.md),
 approved by Rich 2026-10-15 ~08:54 (`ab6c7b7a`), nine sittings, one tab each (`manifest-p11-s1` … `-s9`), GOed by the coordinator. **It is
@@ -2189,9 +2204,10 @@ tell the question's expiry from the token's; the control plane has no shutdown h
 answer `LAUNCH_GAP_ANSWERS_INVALID` where the platform answers `REQUEST_INVALID`; a response example in the published document is validated
 only by the mock's `server.test.ts` (A1 sitting 6, F6).
 
-**WHERE THE NEXT SITTING STOPS, AND HOW IT ENDS:** the next PLATFORM sitting is B's sitting 6, and it stops where B's sittings table says
-(after the demo's commit and its controls). Its close-out is the same as every sitting's (§6): the sittings table, the plan's *What
-executing this plan found*, this §7e handed on to B's sitting 7, and the roadmap; **it does not start sitting 7**.
+**WHERE THE NEXT SITTING STOPS, AND HOW IT ENDS:** the next PLATFORM sitting is B's sitting 7, ALONE AND LAST, and it stops where B's
+sittings table says (after the clicked half and the review's one fix wave). Its close-out is the plan's own (Task 8b, Step 4) and every
+sitting's (§6): the ledger, this §7e handed on to FE-32's plan, §8 (FE-44 BUILT), the front-end told, the roadmap; **it does not start
+FE-32**.
 
 **THE TWO RULES A SITTING CANNOT GET FROM ANYWHERE ELSE**, restated because they live only in each plan's *Global
 Constraints*:

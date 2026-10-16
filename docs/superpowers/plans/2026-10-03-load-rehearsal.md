@@ -40,7 +40,9 @@
 > IS DONE (2026-10-15, `manifest-b-s5`)**: Task 6 `30aa3528` (the item met by a passed run of the candidate covering the audience's scale AND
 > burst; the gate reads it), Task 7 `7235b692` (the console's *Run the load rehearsal*, polled; the mock's `MANIFEST_MOCK_LOAD`; the guide)
 > the walk's fix `3e4926a4` (a run's day in Vancouver's words) and its example's test `bde79b62` — the console walked headless on driver 1 through a real run that passed; a
-> *SITTING 5 BUILT AND MEASURED* note sits under Task 8. **Sitting 6 is next: Task 8a — `make demo-load`.**
+> *SITTING 5 BUILT AND MEASURED* note sits under Task 8. **SITTING 6 IS DONE (2026-10-16, `manifest-b-s6`)**: Task 8a `948ea409` —
+> `make demo-load`, green three times on each driver (fresh, re-use, from `make reset`), nine negative controls each red where
+> predicted; a *SITTING 6 BUILT AND MEASURED* note sits under Task 8. **Sitting 7 is next: Task 8b — alone and last, with Rich's click.**
 
 > **WRITTEN 2026-10-03, AFTERNOON, BY THE PLANNING SESSION `manifest-c7`** (coordinated by `manifest-94`), after FE-32's plan and placed
 > BEFORE it: Rich, 2026-10-03, ~13:46 PDT, answering FE-44, *"Build the load rehearsal first"* — §24's load rehearsal, before faculty use
@@ -151,8 +153,8 @@ contract `1.11.0`); then BYOA on the laptop ([`2026-10-13-byoa-on-the-laptop.md`
 | 3 | 4 | **Spec action A applied first.** **The run**: grant, read back, load, watch, judge, record — the row written `running` BEFORE the grant — and take down; one at a time platform-wide, by a database invariant; **the boot's pass 2⅞**; the `load_rehearsals` table. No wire change | Yes — `launch/`, `releases/`, `db/` | After the commit, with one run through the edge on driver 1 from a scratch script, passed, and staging back in its own shape | **DONE 2026-10-15** (`manifest-b-s3`, the third coordinated run's B3): Spec action A `2cdf6baf` (in-session; the stories page's l.130 `9ebd087b`, `manifest-coord5`'s minor wording); Task 4 `af407a46`; one run through the edge on driver 1 PASSED (19,500/19,500, p95 12.4 ms, 367.2 s); five controls; `pnpm` twice 245/4112; the Docker tier 316/316 (46 files, 2,401.7 s at utility) |
 | 4 | 5 | **Spec action B applied first.** **The operation**: `runLoadRehearsal` (`202`) and `getLoadRehearsal`; its codes, declared on every operation that answers them; `load_rehearsal.completed`; **staging deploys refused while a run holds the project**; **contract `1.10.0`** | Yes — `launch/`, `releases/`, `observability/` | After the commit, with the front-end told and one run through the edge polled to its end | **DONE 2026-10-15** (`manifest-b-s4`, the third coordinated run's B4): Spec action B `cc7ef710` (in-session; its read-back allowed on one retry at Rich's word) and the decisions page's l.172 `9c12c8ec` (`manifest-coord5`'s minor wording); Task 5 `2258937e`, contract `1.10.0` with FE-62 and FE-63; one run through the API on driver 1 PASSED (19,500/19,500, p95 12.4 ms) with a staging deploy refused `409 LOAD_REHEARSAL_RUNNING` mid-run; four controls; `pnpm test` twice 246/4152 (`201a67b0`); the Docker tier 316/316 (46 files, 2,016.9 s) |
 | 5 | 6, 7 | **The checklist** — met by a `passed` measurement, at the scale and the burst, for the first launch and an audience raised (Q3) — and **the clients**: the console's *Run the load rehearsal*, the mock's stage, the guide | Yes — `launch/` | After both commits, with the front-end told | **DONE 2026-10-15** (`manifest-b-s5`, the third coordinated run's B5): Task 6 `30aa3528`, Task 7 `7235b692`, the walk's fix `3e4926a4`, the example's test `bde79b62`; the console walked headless through a real run on driver 1 (passed in 371 s, the item met); four controls; `pnpm test` twice 253/4238 (`eb5506e3`); the Docker tier 316/316 (46 files, 2,003.3 s) |
-| 6 | 8a | **The acceptance's demo**: `make demo-load`, three times on each driver (fresh, re-use, from `make reset`), and its negative controls | Yes, if any code changes | After the demo's commit and its controls | ← **next** (`manifest-b-s6`): read Task 8's *SITTING 5 BUILT AND MEASURED* note first |
-| 7 | 8b | **The rest of the acceptance**: every other demo; `make ci-acceptance`; a clicked half; the plan's one whole-branch review beside the Docker tier, and its one fix wave. **Alone, and last** | Yes, if any code changes | After the clicked half and the review's one fix wave | |
+| 6 | 8a | **The acceptance's demo**: `make demo-load`, three times on each driver (fresh, re-use, from `make reset`), and its negative controls | Yes, if any code changes | After the demo's commit and its controls | **DONE 2026-10-16** (`manifest-b-s6`, the third coordinated run's B6): Task 8a `948ea409` — `make demo-load` green three times on each driver (driver 1 789–794 s, driver 2 792–796 s: a pass 19,500/19,500 at p95 ~12 ms, a fall-over failing *"72.3% … (14101 of 19500)"*); nine controls, one per Review Focus line; 13 findings (F3, the round robins' alignment, is sitting 7's review's question); `pnpm test` twice **253/4238** (the `EXPECT_` lines unchanged); the Docker tier not owed |
+| 7 | 8b | **The rest of the acceptance**: every other demo; `make ci-acceptance`; a clicked half; the plan's one whole-branch review beside the Docker tier, and its one fix wave. **Alone, and last** | Yes, if any code changes | After the clicked half and the review's one fix wave | ← **next** (`manifest-b-s7`): read Task 8's *SITTING 6 BUILT AND MEASURED* note first |
 
 **EVERY SITTING ENDS THE SAME WAY** — the four gates (`pnpm test` twice, alone, on the final tree), the Docker tier when owed (**7100
 stopped for it** — it runs the set watcher), a dated *What executing this plan found*, this table, and ORIENTATION §6's sweep. **Three rules
@@ -1059,6 +1061,20 @@ before a control is seen. **8a is sitting 6** (the demo and its controls); **8b 
 > or walk's app before any unit Vitest** — one DB file truncates it and orphans its containers (F2). The vulnerability database is fresh until
 > 2026-10-22 (built `2026-10-15T06:30:36Z`).
 
+> **SITTING 6 BUILT AND MEASURED — WHAT TASK 8b INHERITS** (`948ea409`; the record's *Sitting 6*): **`make demo-load`** —
+> `scripts/demo-load.sh` and `packages/journey/src/load.ts`, six phases, **~13 minutes** at §24's default profile (two rehearsals of ~367 s,
+> builds ~18 s each), green three times on each driver; `DEMO_LOAD_STOP_AFTER=<0–6>`; the RUNBOOK's *`make demo-load`* has what each step
+> asserts. Its app is `load-<driver>` (`fixtures/load-app/`), deleted and made again by every run and LEFT in staging on the release that
+> falls over — **delete it before any unit Vitest** (stepped up, `DELETE /v1/projects/<id>`; B5's F2). **Its 601-request burst must stay its
+> LAST request to staging** (F2: the limiter's counters outlive every redeploy). **For `make ci-acceptance`'s step** it runs on either
+> driver — on driver 2 only against the fake, through the `.env` swap (`require_fake_github` reads `.env`) — and **for the offline
+> acceptance's step** it needs nothing from the network once `make seed` has built `manifest/vegeta:12.13.0`, and no vulnerability-database
+> refresh (it launches nothing). **F3 is the review's question**: the edge's round robin and the generator's align, so one member takes
+> every `/` — if the fix wave changes `launch/load.ts`'s target order, the fall-over's 72.3% moves (towards the even-spread ~87%), which the
+> demo still asserts as under the mark with its number; re-run it. **The clicked half** presses what B5's headless walk pressed
+> (`.superpowers/sdd/2026-10-03-load-rehearsal/walk-sitting5/`). The controls' script — one break per Review Focus line, a short profile, every
+> break restored on any exit — is the session's (`controls.sh`, recorded in *Sitting 6*), not committed.
+
 **Files (8a):**
 - Create: `packages/journey/src/load.ts` (reusing `journey/src/serving-set.ts` for the set, A1's sitting 4), `scripts/demo-load.sh`;
   `Makefile` (`demo-load`; `DEMO_LOAD_STOP_AFTER=<step>` for a control's short run, as every recent demo has one); `fixtures/load-app/` — a
@@ -1821,3 +1837,153 @@ the session's scratchpad. **It found F1.**
 **Gates**: `pnpm test` twice on the final tree (`bde79b62`) — **253 files / 4238 tests both times** (23:47–00:04 and 00:04–00:22, utility, load median 2.80 and 2.72, not forced), so `EXPECT_TESTS` 4212 → 4238 and `EXPECT_FILES` 252 → 253 (`eb5506e3`); an earlier run on `3e4926a4` read 4236/4237 (F10) and its pair was stopped. Lint, typecheck (every package) and format:check clean. The slow list: nothing of this sitting's over 5 s (`api/load-rehearsal.test.ts` 11 tests in 10.2 s; `journey/src/examples.test.ts` 23 in 5.7 s, its new stand-in case waiting ~1 s by design). Single files while working, through the wrapper: readiness + load-rehearsal 74/74, then 75/75; the mock's and the console's 120/120; the journey's docs 17/17 and examples 23/23. **The Docker tier** (owed: `launch/`): **316/316, 46 files, 2,003.3 s** at utility (load median 5.87, max 14.49), 13 → 20 networks, 7100 stopped — ORIENTATION §2's row unchanged. Inline execution; the plan's one whole-branch review is Task 8b's (sitting 7).
 
 **The machine**: at the HOLD's open (22:35), 23 containers (15 running), 14 networks, 41 volumes, 65 image tags. After the suites, **G4** (00:22): `gateway-controls.sh start real` — `source` `github`, `capableModel` registered, `capableFallback` set, `ubc-qwen-27b` registered, 16 secrets scrubbed — and ONE call to `default-chat-large` answered `200` by **`gpt-6.1-sol`** through UBC's gateway, **0 fallbacks**; `b5-walk`'s three orphaned containers removed by name (`docker rm -f -v`, allowed on the first try), then `dead-app-resources.sh --apply` 8 networks (`b5-walk`'s and seven of the tier's) and 3 volumes, `litellm-orphans.sh --apply` 4 users (*"0 remain, was 4"*), `app-images.sh --apply` 15 images — each re-read to zero; `b5-walk`'s local repository (`.manifest/repos/b5-walk.git`: its one seed commit, no remote) removed; the edge holds no `b5-walk` route (read from its admin API); `b5-class` deleted through the API; `make verify` 67/0/0, 0 `mf-` containers. **At the close (00:24)**: 21 containers (13 running), 12 networks, 41 volumes, 65 image tags by `docker images -q` (55 unique) — B4's close but one volume that is not this sitting's. The 17 orphaned mirrors named, untouched. **7100** (00:22, G4): real GitHub from `.env`, **0 projects** (the suites truncated them), migration `0057` applied. Handed back to `manifest-coord5` at 00:24 (its HOLD), the documents after.
+### Sitting 6 — 2026-10-16, 00:26–03:20 PDT (`manifest-b-s6`, the third coordinated run's job B6): Task 8a — `make demo-load`
+
+**Opened** by `manifest-coord5`'s GO (00:26), relaying Rich's decisions — 2026-10-14 ~18:34 and its appended words (`6c9949a`, `3ba424a`,
+`bdfc6f2`: the standing yeses — `make refresh-vulndb`, the `.env` swap to driver 2 on the fake, `make reset`, inline execution) and
+2026-10-15's entries. HEAD `4efe33ad`. 7100 the sitting's from the GO (real GitHub, 0 projects, migration `0057`); one HOLD from 00:39:31
+for every run, control and suite. The machine at the HOLD: 22 containers (14 running), 13 networks, 43 volumes, 67 image tags (57
+unique), 0 `mf-`; AC power, load ~3.
+
+**The demo — `make demo-load`** (`948ea409`): `scripts/demo-load.sh` (the shell half: the build, the control plane, the driver, the
+generator's image in Docker's store, the sign-in and two step-ups) and `packages/journey/src/load.ts` (six phases through the generated
+client: `find`, `clear`, `app`, `pass`, `candidate`, `fallover`), `fixtures/load-app/` (*Course notices*: a CWL app on `node-ts-mongo@1`
+whose front page reads the app's Mongo; production at `640Mi` against staging's blueprint `512Mi` — sitting 1's F4 — and a COMMITTED
+`load-app.json` that makes it fall over), `Makefile`'s `demo-load` (`DEMO_LOAD_STOP_AFTER=<0–6>`), and
+`packages/journey/src/edge-reset.ts` — `resetSafeFetch` and `resetCode` moved out of `capacity.ts`, which imports them (sitting 1's F9).
+The app is `load-<driver>`; nothing launches, so a run that finds it deletes it (its rehearsals' rows by cascade) and makes it again —
+*re-use* is that path. Its steps:
+
+1. created for a `large_course` arriving `synchronised`, committed, built, staged: `/` `200` from the deploy's instance, `/login` `302`;
+   ONE instance at `HostConfig.Memory` 536870912; the item `unmet` and blocking, *"This app has not been rehearsed yet"*;
+2. a token (`project:read`, `launch:draft`) refused `403 TOKEN_CREDENTIAL_REFUSED`, the owner un-stepped `403 STEP_UP_REQUIRED`, nothing
+   listed;
+3. stepped up: `202` `running`; polled to the grant READ BACK — 3 instances at production's `640Mi`, each `HostConfig.Memory` 671088640,
+   `getEnvironment` serving exactly them; the edge's route skipping ONE `/32` (its admin API) and limiting everyone else at 600; mid-run a
+   staging deploy, a second run AND the sign-in rehearsal each `409 LOAD_REHEARSAL_RUNNING`; the item *"running now"*; polled to `passed`
+   — answered at least the record's mark, p95 under it, no exit, no OOM, never unhealthy, `requests` the profile's total; `takenDownAt` set;
+4. staging given back — ONE fresh instance at 536870912 answering through the edge as exactly itself, the generator's container gone (by
+   its label), the route skipping nobody at 600 — the item `met` (*"A load rehearsal passed on <today in Vancouver's words> for the
+   release serving staging"*) and ONE `load_rehearsal.completed` naming *Test Instructor*;
+5. `"fallOver": true` committed, built, staged: a new digest, `/` still `200` to one person, the item *"The release serving staging has
+   not been rehearsed yet"*;
+6. stepped up again: the run FAILS on the granted shape, its reason the FIRST rule broken — *"72.3% of requests were answered (14101 of
+   19500); the mark is 99%"* — the refusals the front page's `503`s, `/healthz` all `200`, no member out; staging given back (step 4's
+   checks); the item *"The load rehearsal did not pass on <today>: <reason>"*; one `load_rehearsal.completed` `failed`; and LAST, from one
+   address, the edge's `429` by the 601st request in a minute (not before ~590).
+
+**The fixture's numbers — a ruling (`manifest-coord5`: sound, 00:40):** it answers **two at once at 600 ms**, not the plan's eight. By
+Little's law a member's in-flight count is its arrival rate times its answer time, and the run asks its three paths round robin, so `/`
+is a third of the load — 75/s ÷ 3 members ÷ 3 paths ≈ 8.3/s, then 50/s → ≈ 5.6/s a member: ≈ 5.0 then ≈ 3.3 in flight at 600 ms if the
+edge spreads it, never above eight, so the plan's fixture could not have fallen over. At two the page's capacity is 2 ÷ 0.6 s ≈ 3.3/s a
+member — at least 40% of `/` refused at the sustain rate however the edge spreads it — and every answer it gives is ~600 ms, under the
+2 s mark, so the first rule broken is the answered share. **Measured: 72.3%** — harsher than the even-spread estimate (~87%), because
+the edge does NOT spread it (F3).
+
+**Step 2 — the runs** (each `make demo-load` through the edge; the time is the script's own; the load its own last line):
+
+| # | Driver | Mode | Result | Time | The pass (19,500 asked) | The fall-over |
+|---|---|---|---|---|---|---|
+| 1 | 1 | fresh | RED 2 — both the demo's own edge read (F1); every platform check through step 4 green | 400 s, to step 4 | 19,500 answered, 367.9 s | — |
+| 2 | 1 | re-use | RED 1 at step 5 — the demo's own 601-request burst (F2) | 422 s, to step 5 | 19,500, 367.0 s | — |
+| 3 | 1 | re-use | **GREEN**, 62 checks, load 1.95 | 794 s | p50 1.4 / p95 12.1 / p99 14.5 ms, 366.9 s | 14,101 (72.3%), p95 583 ms, 367.4 s |
+| 4 | 1 | fresh | **GREEN**, 61 checks, load 1.43 | 789 s | p95 12.6 ms, 366.8 s | 14,101, p95 595 ms, 367.0 s |
+| 5 | 1 | from `make reset` | **GREEN**, 61 checks, load 1.85 | 794 s | p95 12.5 ms, 366.9 s | 14,102, p95 598 ms, 367.5 s |
+| 6 | 2 (the fake) | fresh | **GREEN**, 61 checks, load 1.95 | 794 s | p95 11.6 ms, 367.0 s | 14,101, p95 579 ms, 367.5 s |
+| 7 | 2 | re-use | **GREEN**, 62 checks, load 1.67 | 796 s | p95 12.2 ms, 366.9 s | 14,101, p95 594 ms, 367.5 s |
+| 8 | 2 | from `make reset` | **GREEN**, 61 checks, load 2.82 | 792 s | p95 12.3 ms, 366.9 s | 14,104, p95 595 ms, 367.6 s |
+
+Every pass answered 19,500 of 19,500 at 75.01–75.02/s then 50.00/s; every fall-over's `/` answered 1,101–1,104 and refused the rest
+`503`, `/healthz` 6,500 × `200`, `/login` 6,500 × `302`. The resets: 7100 stopped, `make reset`, `make up` (and `make github-up`), 7100
+started on the driver — about a minute each; each run after one found its slug's repository orphaned (`.manifest/repos/load-local.git`;
+on the fake, driver 2's mirror `load-github.git`) and the demo's `clear_orphan_repository` removed it. The `.env` swap (Rich's standing
+yes): a 0600 copy, the seven lines commented (0 active), 7100 `start fake`; restored after run 8, `cmp`-equal, the copy removed.
+`load-github` was deleted through the API on driver 2 first (its repository on the fake `404` after).
+
+**Step 3 — the negative controls** (02:18–02:38, driver 1): each broke ONE line of the control plane (saved first), restarted 7100 with a
+SHORT profile (`MANIFEST_LOAD_SYNCHRONISED=75x10,50x30` — 2,250 requests, 40 s), ran the demo to its step, and put the line back
+(`cmp`-equal; `git diff --quiet -- packages/control-plane` after each); 7100 restarted from `.env` at the end. The script is the
+session's (`scratchpad/b6/controls.sh`); one per Review Focus line:
+
+| Line | The break | Predicted | Seen |
+|---|---|---|---|
+| **0** a pass at the wrong shape | `shapeFor`'s grant row → staging's own shape | RED exactly *"READ BACK: 3 instances at 640Mi"* and *"each granted member has production's memory"* | exactly those two — granted `{count 1, 512Mi}`, 536870912; **the run itself PASSED on the wrong shape** (it reads back what it asked for): only the demo's read-back against the audience's count saw it |
+| **1** a rehearsal that dies — the generator | its container `docker kill`ed 25 s into the load | the run `failed` *"the load could not be measured: …"*; RED *"PASSED"*, its evidence, *"item MET"*, the event's *passed*; step 4's give-back GREEN | exactly those four — *"… the load generator printed no result (its container exited 137)"*; staging one instance at 536870912, the generator gone, no exemption (F7: the first form, killed 5 s in, ended the run before the mid-run checks) |
+| **1** — the control plane | 7100 `SIGKILL`ed 15 s into the load (default profile), restarted | at the next boot pass 2⅞ ends the row `abandoned`, removes the generator, clears the exemption, gives staging back one instance at 512Mi; the demo itself red | `loadRehearsalsAbandoned: 1`; the row *"abandoned — the control plane stopped while this load rehearsal ran…"*, 0 generators, staging 1 container at 536870912, exemption none — and twice more, each time a control's restart stopped a run (F12) |
+| **2** a pass that measured the limiter | the exemption set to `null` | RED *"the edge skips ONE address"*, *"PASSED"*, its evidence | exactly those three — exempt `[]`; *"26.4% of requests were answered (596 of 2250)"* |
+| **3** a stale pass | the item's digest filter dropped | RED exactly step 5's *"unmet again"* | exactly that — the new candidate's item *"met"* by the old release's pass |
+| **4** two at once | the app's own second run taken for another app's | RED exactly *"asked again while it runs: 409 LOAD_REHEARSAL_RUNNING"* | exactly that — `409 LOAD_REHEARSAL_BUSY`: the demo names the code, not the status |
+| **5** an app that falls over | `judge` blind to the answered share | the fall-over PASSES; RED step 6's *"FAILED"*, its reason, the item's *"did not pass"* | those three AND the event's *"saying it failed"* — flagged before the result (F10); it *"passed"* at 72.1% |
+| **6** who should not | `runLoadRehearsal`'s step-up check removed | RED exactly *"not stepped up is refused"* (`202`) and *"nothing was started"* | exactly those two — the classifier allowed the break |
+| **7** staging changed under a run | the staging-deploy refusal disabled | RED *"a staging deploy while it runs is refused"* (`200`); the rest observed | the deploy replaced the granted set (3 exits) and its plain route dropped the exemption: the run failed *"50.5% … (1138 of 2250)"* — never a pass (F6) |
+
+Held below the demo, as each plan task says: a take-down ANSWERED `failed` → `teardown_failed` (Task 4's `load-run.test.ts`); a generator
+that cannot reach its rate (Task 2's and Task 4's judge cases); an audience raised (Task 6's `readiness.test.ts` rows — nothing raises
+one through the API); `LOAD_REHEARSAL_BUSY` for another app, a collaborator, an administrator's reason, `LOAD_REHEARSAL_NOT_NEEDED`,
+`REHEARSAL_NO_CANDIDATE`, `PROJECT_ARCHIVED` (Task 5's route matrix, `api/load-rehearsal.test.ts`); an exit and an out-of-memory exit under
+load (Task 3's and Task 4's Docker cases).
+
+**Findings**
+1. **F1 — THE DEMO'S READ OF THE EDGE GOT CADDY'S `403`** (*"client is not allowed to access from origin ''"*): Node's `fetch` to the admin
+   API is refused — `routing/caddy.ts`'s `adminRequest` note (measured 2026-09-06) says why, and the control plane uses `node:http`. Run 1's
+   two reds were exactly the two reads; the demo now reads by `node:http`.
+2. **F2 — THE DEMO'S 601-REQUEST BURST SPENT ITS OWN MINUTE**: run 2's step 5 asked staging's `/` once, ~20 s after step 4's burst, and was
+   answered `429` — the limiter's counters are per hostname and outlive every redeploy (sitting 1's F5). The burst is now the demo's LAST
+   request to staging; the next run's first one comes more than a minute later.
+3. **F3 — THE EDGE'S ROUND ROBIN AND THE GENERATOR'S ALIGN: EACH MEMBER SEES ONE PATH.** The fall-over's `/` answered 1,101 — one member's
+   capacity, 2 ÷ 0.6 s × 367 s ≈ 1,100 — and 1,101–1,104 in all six greens: vegeta asks `/`, `/healthz`, `/login` in turn and the edge hands
+   requests to three members in turn, so for a CWL app at `large_course` or `public` (three paths, three members) one member takes every
+   `/`. The rehearsal is HARSHER than a crowd on whichever member draws the app's costly path — a false fail, never a false pass. **Ruled by
+   `manifest-coord5` under Rich's delegation, for his review** (received by 01:09): recorded here and in the roadmap, a question for sitting 7's
+   whole-branch review; the fix — `launch/load.ts`'s target order (a cycle whose length shares no factor with the count, or the targets
+   shuffled) — is 8b's one fix wave if the review grades it Important. Not this sitting.
+4. **F4 — THE PLAN'S FALL-OVER FIXTURE COULD NOT FALL OVER** — the ruling above: eight in flight is never reached with `/` a third of the
+   load; two is.
+5. **F5 — A GRANT OF THE WRONG SHAPE PASSES THE RUN** (control 0): the run's read-back checks the set against what `shapeFor` asked, so a
+   wrong row in `shapeFor` passes on staging's own shape. The demo's check against the audience's count (3 at `640Mi`) is what holds
+   Review Focus 0 end to end; Task 4's unit test holds the row.
+6. **F6 — A STAGING DEPLOY LET THROUGH FAILS THE RUN, NEVER PASSES IT** (control 7): its new set's route is plain, so the generator meets
+   the limiter (and the watch counts the granted set's exits). The refusal is what keeps a person's ten minutes, not what keeps the item
+   honest.
+7. **F7 — THE GENERATOR KILLED 5 s IN ENDED THE RUN IN 10.5 s, BEFORE THE DEMO'S MID-RUN CHECKS** — so its *"ask again while it runs"* got
+   `202` and started a SECOND run, which every later check then read. The demo's mid-run asks assume a run that lasts minutes (true at
+   any real profile); the control was re-run with the kill 25 s in. Not a platform defect.
+8. **F8 — MY CONTROLS SCRIPT LEFT A BREAK IN THE SHARED TREE FOR ~4 MINUTES**: control 4's first form (`false && holder…`) lost
+   TypeScript's narrowing (`TS18048`), 7100's build failed, and the script's `control()` returned without restoring — then broke a second
+   file for control 5; `packages/control-plane/src/launch/load-run.ts` failed `tsc` 02:23:20–~02:27 under the HOLD (nobody else started
+   7100). Stopped, restored from the saved copy (`cmp`, `git diff --quiet`), and fixed: a failed start restores at once, every break is
+   listed and restored on any exit, the breaks are type-safe. TRAPS.md has it.
+9. **F9 — EDITING A RUNNING BASH SCRIPT**: my edit to `controls.sh` while it ran (control 1's delay) made bash read the line after its loop
+   from a shifted offset — a parse error after the last control, and the exit trap restored 7100. Harmless here; never edit a script that
+   is running.
+10. **F10 — CONTROL 5'S PREDICTION WAS INCOMPLETE**: a fall-over that passes also publishes `passed`, so the event's check went red too —
+    named before the result came in, recorded as a prediction that missed one.
+11. **F11 — `make reset` ORPHANS THE DEMO'S REPOSITORY ON BOTH DRIVERS** — `.manifest/repos/load-local.git` on driver 1 and driver 2's
+    local mirror `load-github.git` (the fake's own repository went with its volume) — and the demo's `clear_orphan_repository` removed
+    each before creating, as designed.
+12. **F12 — PASS 2⅞ SEEN THREE TIMES**: besides control 1's `SIGKILL`, two controls' restarts stopped a run still going (control 1's
+    stray second run; control 6's un-stepped one) and each next boot logged *"[boot] load rehearsal … was left running: abandoned,
+    staging given back"*.
+
+13. **F13 — `litellm-orphans.sh` SAYS A STATE IS UNREACHABLE THAT `make reset` REACHES**: at the close it answered *"/user/list answered no
+    users at all, which is not a state this machine reaches"* — after two `make reset`s emptied LiteLLM's database, with this demo's app
+    declaring no model and the suites leaving 0 projects, no users is exactly right. Nothing was removed; the script's words are wrong after a
+    reset, not the machine.
+
+**Gates**: `pnpm test` twice on the final tree — **253 files / 4238 tests both times** (02:39–02:57 and 02:57–03:15, utility, load
+median 2.97 and 2.96, not forced) — the `EXPECT_` lines unchanged (no test file added); lint, typecheck (every package) and format:check
+clean before the commit and again after a comment-only correction during the second suite (*"~18 minutes"* → *"~13"* in the Makefile's
+help, the script's header and `load.ts`'s, none read by a test). The slow list: nothing of this sitting's. **The Docker tier is NOT owed**:
+no file in its list changed — `packages/journey/`, `scripts/`, `fixtures/` and the `Makefile` only; every control's break was restored
+(`git diff --quiet -- packages/control-plane` after each). Inline execution; the plan's one whole-branch review is Task 8b's (sitting 7).
+
+**The machine**: at the HOLD's open (00:39) 22 containers (14 running), 13 networks, 43 volumes, 67 image tags (57 unique). After the
+suites, **G4** (03:15): `gateway-controls.sh start real` — `source` `github`, `capableModel` unchanged, `ubc-qwen-27b` unchanged, 16
+secrets scrubbed — and ONE call to `default-chat-large` answered `200` by **`gpt-6.1-sol`**, **0 fallbacks**; the `.env` restored
+`cmp`-equal after run 8 (02:17). `dead-app-resources.sh`: 0 dead networks or volumes (the 17 orphaned mirrors named, untouched);
+`app-images.sh --apply` 27 images (`load-local` 21, `load-github` 6), re-read to 0; `litellm-orphans.sh` F13, nothing to remove; the GitHub
+fake — not running at the open, started for driver 2 — `make github-down`, its container and its volume removed; `make verify` **67/0/0**,
+0 `mf-` containers. **At the close (03:17)**: 22 containers (14 running), 13 networks, 43 volumes, 67 image tags (56 unique: one fewer
+unique id than the open, after two resets re-mirrored the registry's images) — the open's counts. The `load-local` and `load-github` apps
+were deleted through the API before the suites (0 containers by their labels). **7100** (03:15, G4): real GitHub from `.env`, **0 projects**
+(the suites truncated them), migration `0057`. Handed back to `manifest-coord5` at 03:20 (its HOLD).

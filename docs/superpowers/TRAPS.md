@@ -2882,6 +2882,16 @@ through the unit project's global setup, which empties 7100's tables — so the 
 `404 NOT_FOUND`, the walk's session was dead, and its staging containers, network, volumes and image were left for the cleanup scripts (which
 take them: no project owns them). Delete the app — or run the DB files — first.
 
+**A CONTROL THAT BREAKS THE CONTROL PLANE MUST RESTORE ON EVERY PATH — INCLUDING THE ONE WHERE 7100 DOES NOT START** (B sitting 6, F8,
+2026-10-16). A controls script broke one line of `launch/load-run.ts` as `if (false && holder.projectId === …)`; that loses TypeScript's
+narrowing on `holder` (`TS18048: 'holder' is possibly 'undefined'`), so 7100's `pnpm run build` failed, its start helper returned 1, and the
+script's `control()` returned on that failure BEFORE its restore — then broke a second file for the next control. The shared tree failed
+`tsc` for ~4 minutes (under a HOLD: nobody else started 7100). **List every file a control breaks and restore the whole list on any exit and
+on any failed start; make each break type-safe** (compare with a value that never matches — `holder.projectId === 'no project is this
+one'` — never `false && …`); `git diff --quiet -- packages/control-plane` after each. And **never edit a bash script while it runs**: bash
+reads it as it goes, so a longer line before the current position shifts what it reads next (the same session's edit made a parse error
+after the loop; its exit trap restored 7100).
+
 **NEVER `kill -STOP` A TEST RUN** (the gentler test tiers plan, Decision 5). Vitest's limits are wall-clock timers: on `kill -CONT` every
 one that came due while the run was stopped fires at once, and every test in flight times out — a red run made by the pause. To make room
 for Rich, stop the run (Ctrl-C) and start it again with `MANIFEST_TEST_QOS=background` (RUNBOOK, *Running the test tiers gently*).

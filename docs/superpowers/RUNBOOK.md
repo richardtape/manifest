@@ -1514,6 +1514,47 @@ and a re-use right after it is green — measured on both drivers (`make demo-pr
 healthy members, four more commits in its repository (three releases and `server.js` back), and the crash loop's
 Incidents in production's history.
 
+## `make demo-load` — the load rehearsal's acceptance: a large course's app rehearsed under its arrival
+
+*Added by the load rehearsal plan's sitting 6, 2026-10-16 (Task 8a).*
+
+A `large_course` or `public` app's launch checklist holds a `load-rehearsal` item that only a measurement meets (§24): Manifest
+gives staging production's shape for the run — the audience's instances, at production's resources, behind one route — puts the
+audience's arrival on it through the edge, judges it against the pass mark, and gives staging back its own shape. This proves it
+**on either driver**: `load-local` on driver 1, `load-github` on driver 2 — **the GitHub fake, through the `.env` swap, because
+`require_fake_github` reads `.env` itself**. The app is `fixtures/load-app/` (*Course notices*), committed through the authoring
+API onto the bare `node-ts-mongo@1` skeleton; its production runs `640Mi` against staging's `512Mi`, and its committed
+`load-app.json` makes it fall over (`"fallOver": true`: the front page answers in 600 ms and refuses past two at once). It needs
+`make up`, the control plane per *Running the control plane*, and the generator's image `manifest/vegeta:<version>` in Docker's
+store (`make seed`). Nothing launches, so no vulnerability-database refresh is needed for it.
+
+```bash
+make demo-load                     # ~13 min; each phase ends `every check passed`, exit 0
+DEMO_LOAD_STOP_AFTER=3 make demo-load   # stop after step 3 — a negative control's short run
+```
+
+| Step | What must happen |
+|---|---|
+| **1** | the app created (`large_course`, `synchronised`), committed, built, staged: `/` `200` from the deploy's instance, `/login` `302`; ONE instance at `HostConfig.Memory` 536870912; the item `unmet`, *"This app has not been rehearsed yet"* |
+| **2** | a token refused `403 TOKEN_CREDENTIAL_REFUSED`; the owner not stepped up `403 STEP_UP_REQUIRED`; nothing listed |
+| **3** | stepped up: `202` `running`; the grant READ BACK — three instances, `640Mi`, each `HostConfig.Memory` 671088640, `getEnvironment` serving exactly them; the edge's route skipping ONE `/32` (its admin API, by `node:http` — Caddy refuses Node's `fetch`); mid-run a staging deploy, a second run and the sign-in rehearsal each `409 LOAD_REHEARSAL_RUNNING`; the item *"running now"*; polled to `passed` |
+| **4** | staging given back: one FRESH instance at 536870912, answering through the edge; the generator's container gone; the route skipping nobody, 600 a minute; the item `met` (*"A load rehearsal passed on <today> for the release serving staging"*); one `load_rehearsal.completed` |
+| **5** | `"fallOver": true` committed: a new digest, the item *"The release serving staging has not been rehearsed yet"* |
+| **6** | its run FAILS — *"72.3% of requests were answered (14101 of 19500); the mark is 99%"* — the front page's `503`s, `/healthz` all `200`, no member out; staging given back; the item *"The load rehearsal did not pass on <today>: …"*; and LAST, a 601st request from one address in a minute `429` |
+
+**Measured 2026-10-16** (sitting 6): **789–796 s** — driver 1 fresh 789 s, re-used 794 s, from a `make reset` machine 794 s; driver 2 (the fake) fresh 794 s, re-used 796 s, from a `make reset` machine 792 s. Each rehearsal is ~367 s at §24's default profile (75 a second for 60 s,
+then 50 for 300); the builds ~18 s each, a cold cache after `make reset` included.
+
+**THE 601-REQUEST BURST IS THE DEMO'S LAST REQUEST TO STAGING** — it spends this address's minute on staging's hostname, and the
+limiter's counters outlive every redeploy (B sitting 1's F5), so a probe of staging after it in the same minute is `429` (sitting 6,
+F2). **Each member sees one path** (sitting 6, F3): the edge's round robin over three members and the generator's over three paths
+align, so the fall-over's front page is answered by one member — 1,101 answers, that member's capacity — the same count every run.
+
+**IT LEAVES ITS APP** in staging on the release that falls over — one instance — with its two rehearsals recorded. **Delete it
+before any unit Vitest** (`pnpm test` truncates the control plane's tables and orphans its containers — B sitting 5's F2); the next
+run deletes and remakes it anyway. A shorter profile for a control is the control plane's setting (`MANIFEST_LOAD_SYNCHRONISED`,
+e.g. `75x10,50x30`), never the demo's: every number it holds a run to is that run's own record.
+
 ## `make demo-github` — the D5 plan's acceptance: an application whose code is on GitHub
 
 *Added by the D5 plan's sitting 8, 2026-09-25 (Task 15).*
