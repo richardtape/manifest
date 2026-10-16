@@ -1204,7 +1204,7 @@ what those commands reported *on 2026-09-05*; P3 and then P4a have since added c
 and the current numbers are stated ONCE each (Rich, 2026-09-30): **`scripts/ci-acceptance.sh`'s `EXPECT_` lines** for
 `pnpm test`, `make doctor` and `make verify`, and **ORIENTATION §2's `pnpm test:docker` row** — this file states none of them. **The offline acceptance has not been
 re-run since 2026-09-05**, and P4a Task 15 owes it: it is Rich's to run, because
-disabling Wi-Fi cuts an agent off too. **It now has NINETEEN steps, 1 to 19, after step 0's offline check** (A1's Task 10 added step 19, `make demo-capacity`, on either driver — it builds and deploys, so `make refresh-vulndb` first with the network on; the U1 plan's Task 7 added step 18, `make demo-levels`; the faculty-ready plan's Task 11 step 17, `make demo-faculty-ready`; the launch path plan's Task 15 step 16, `make demo-launch`; the front-end enablement plan's Task 15 step 15, `make demo-frontend`; and the authoring API plan's Task 13 step 14, `make demo-authoring` — all six run on either driver; this line said EIGHTEEN until A1's sitting 8, SEVENTEEN until the U1 plan's sitting 3, SIXTEEN until the faculty-ready plan's sitting 7, FIFTEEN until the launch path plan's sitting 12, and FOURTEEN until its sitting 2's sweep) — P5a sitting 12 added `make demo-journey` as step 8,
+disabling Wi-Fi cuts an agent off too. **It now has TWENTY-ONE steps, 1 to 21, after step 0's offline check** (the load rehearsal plan's Task 8b added step 21, `make demo-load`, on either driver — it launches nothing, so no vulnerability-database refresh, and it downloads nothing once `make seed` has built the generator; P11's Task 12 added step 20, `make demo-admin`, which needs no control plane; A1's Task 10 added step 19, `make demo-capacity`, on either driver — it builds and deploys, so `make refresh-vulndb` first with the network on; the U1 plan's Task 7 added step 18, `make demo-levels`; the faculty-ready plan's Task 11 step 17, `make demo-faculty-ready`; the launch path plan's Task 15 step 16, `make demo-launch`; the front-end enablement plan's Task 15 step 15, `make demo-frontend`; and the authoring API plan's Task 13 step 14, `make demo-authoring` — all six run on either driver; this line said EIGHTEEN until A1's sitting 8, SEVENTEEN until the U1 plan's sitting 3, SIXTEEN until the faculty-ready plan's sitting 7, FIFTEEN until the launch path plan's sitting 12, and FOURTEEN until its sitting 2's sweep) — P5a sitting 12 added `make demo-journey` as step 8,
 P5b sitting 9 added `make demo-token` as step 9, P5c sitting 9 added the console's
 preflight as step 10 (2026-09-19), and P6a sitting 11 added `make demo-production` as step 11
 (2026-09-22), and P6b sitting 7 added `make demo-releases` as step 12 (2026-09-23) — whose
@@ -1526,7 +1526,8 @@ audience's arrival on it through the edge, judges it against the pass mark, and 
 API onto the bare `node-ts-mongo@1` skeleton; its production runs `640Mi` against staging's `512Mi`, and its committed
 `load-app.json` makes it fall over (`"fallOver": true`: the front page answers in 600 ms and refuses past two at once). It needs
 `make up`, the control plane per *Running the control plane*, and the generator's image `manifest/vegeta:<version>` in Docker's
-store (`make seed`). Nothing launches, so no vulnerability-database refresh is needed for it.
+store (`make seed`). Nothing launches, so no vulnerability-database refresh is needed for it. It is **`make ci-acceptance`'s step 14** and
+**the offline acceptance's step 21**, on either driver.
 
 ```bash
 make demo-load                     # ~13 min; each phase ends `every check passed`, exit 0
@@ -1540,15 +1541,17 @@ DEMO_LOAD_STOP_AFTER=3 make demo-load   # stop after step 3 — a negative contr
 | **3** | stepped up: `202` `running`; the grant READ BACK — three instances, `640Mi`, each `HostConfig.Memory` 671088640, `getEnvironment` serving exactly them; the edge's route skipping ONE `/32` (its admin API, by `node:http` — Caddy refuses Node's `fetch`); mid-run a staging deploy, a second run and the sign-in rehearsal each `409 LOAD_REHEARSAL_RUNNING`; the item *"running now"*; polled to `passed` |
 | **4** | staging given back: one FRESH instance at 536870912, answering through the edge; the generator's container gone; the route skipping nobody, 600 a minute; the item `met` (*"A load rehearsal passed on <today> for the release serving staging"*); one `load_rehearsal.completed` |
 | **5** | `"fallOver": true` committed: a new digest, the item *"The release serving staging has not been rehearsed yet"* |
-| **6** | its run FAILS — *"72.3% of requests were answered (14101 of 19500); the mark is 99%"* — the front page's `503`s, `/healthz` all `200`, no member out; staging given back; the item *"The load rehearsal did not pass on <today>: …"*; and LAST, a 601st request from one address in a minute `429` |
+| **6** | its run FAILS — *"82% of requests were answered (16005 of 19500); the mark is 99%"* — the front page's `503`s, `/healthz` all `200`, no member out; staging given back; the item *"The load rehearsal did not pass on <today>: …"*; and LAST, a 601st request from one address in a minute `429` |
 
 **Measured 2026-10-16** (sitting 6): **789–796 s** — driver 1 fresh 789 s, re-used 794 s, from a `make reset` machine 794 s; driver 2 (the fake) fresh 794 s, re-used 796 s, from a `make reset` machine 792 s. Each rehearsal is ~367 s at §24's default profile (75 a second for 60 s,
-then 50 for 300); the builds ~18 s each, a cold cache after `make reset` included.
+then 50 for 300); the builds ~18 s each, a cold cache after `make reset` included. **Sitting 7** (inside `make ci-acceptance`, after its fix wave): 793 s on driver 1, 794 s on driver 2 — the fall-over at **82%** (16,005 of 19,500) on both.
 
 **THE 601-REQUEST BURST IS THE DEMO'S LAST REQUEST TO STAGING** — it spends this address's minute on staging's hostname, and the
 limiter's counters outlive every redeploy (B sitting 1's F5), so a probe of staging after it in the same minute is `429` (sitting 6,
-F2). **Each member sees one path** (sitting 6, F3): the edge's round robin over three members and the generator's over three paths
-align, so the fall-over's front page is answered by one member — 1,101 answers, that member's capacity — the same count every run.
+F2). **Every member sees every path** (sitting 7's fix of sitting 6's F3, `108f4e30`): the edge hands requests to the three members in turn and the
+generator asks its paths in a Latin square (`/ /healthz /login  /healthz /login /  /login / /healthz`), so the fall-over's front page is
+answered by all three — 3,005 answers, three members' capacity, the same count every run. Until that fix the two round robins aligned and ONE
+member took every `/` (1,101 answers, 72.3%).
 
 **IT LEAVES ITS APP** in staging on the release that falls over — one instance — with its two rehearsals recorded. **Delete it
 before any unit Vitest** (`pnpm test` truncates the control plane's tables and orphans its containers — B sitting 5's F2); the next

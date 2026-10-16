@@ -1,5 +1,12 @@
 # An Agent Can Add a Dependency — FE-32 — Implementation Plan
 
+> **AND SINCE B (EXECUTED 2026-10-16) — READ THIS FIRST.** This plan follows B DIRECTLY: Rich's re-cut of 2026-10-03 15:28 (*"FE-46/47/5 →
+> A1 → B → FE-32 → Phase 3 → A2 is good"*) put A2 after Phase 3, and BYOA on the laptop comes after this plan (2026-10-13, `0b17f87`), so
+> the *Predecessor* line below (A2) is stale. B leaves the contract at `1.10.0` (this plan's Task 3 takes `1.11.0`, as written),
+> the gate numbers moved in their one place (`scripts/ci-acceptance.sh`'s `EXPECT_` lines — a doctor check for the generator's image among
+> them — and ORIENTATION §2's Docker-tier row), `make seed` building five images, and `make ci-acceptance` at fourteen steps. Every plan from *faculty-ready*'s last
+> sittings to B has landed since `eee5648`, so Task 1 re-reads every fact, as it says. ORIENTATION §7e has the hand-over.
+
 > **WRITTEN 2026-10-03, AFTERNOON, BY THE PLANNING SESSION `manifest-c7`** (coordinated by `manifest-94`), after the Manifest
 > team's step ([`2026-10-03-fe46-fe47-fe5.md`](./2026-10-03-fe46-fe47-fe5.md), approved the same afternoon). **Every fact in *Read this
 > first* was read from the code at `eee5648`**, while the faculty-ready plan's sitting 5 had uncommitted edits in `infra/`, `secrets/`,

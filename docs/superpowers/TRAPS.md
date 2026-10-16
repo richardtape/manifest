@@ -2892,6 +2892,20 @@ one'` — never `false && …`); `git diff --quiet -- packages/control-plane` af
 reads it as it goes, so a longer line before the current position shifts what it reads next (the same session's edit made a parse error
 after the loop; its exit trap restored 7100).
 
+**`load.docker.test.ts`'S *"COUNTS A REAL TIMEOUT AS A TIMEOUT"* CAN FAIL BY CHANCE — AND COULD SINCE IT WAS WRITTEN** (B sitting 7, F4,
+2026-10-16). Its ten requests at a 1 ms timeout assert every status-0 result was counted a timeout; about one whole-file run in four reads
+*"expected 6 to be 7"* (or 7 to be 8) — ONE status-0 result whose error carries none of Go's timeout words. An A/B with the old target order
+read it too (the whole file, 1 red of 2), so it is not `targetCycle`'s; alone (`-t`) 0 of 5, and by hand 0 in 110+ requests — the fold keeps
+no error text, so its words are uncaptured (the roadmap's tracked defects). **A red in this one case in a Docker tier is not evidence against
+your change**: re-run the file alone (a scratch config with `MANIFEST_TEST_DOCKER=1`, nothing truncated) and record it as this. A real
+rehearsal counts any status 0 as not answered, so it is never a false pass.
+
+**THE CONSOLE'S PREVIEW ON 7104 CAN BE GONE WHEN YOU ASK SOMEONE TO CLICK** (B sitting 7, F5, 2026-10-16). `vite preview` on 7104 — up
+since 2026-10-05 — stopped under another hand between ~10:31 and 10:44 (not the sitting's; the coordinator's heartbeat found it), and
+`https://console.manifest.internal/` then answers `502` (RUNBOOK's console table: nothing listening on 7104). Read `lsof -nP -iTCP:7104
+-sTCP:LISTEN` before a click; `nohup pnpm --filter @manifest/console preview &` brings it back from the built `dist/` — DETACHED, because a
+preview started as a session's background task ends with that session, and the machine as found has one.
+
 **NEVER `kill -STOP` A TEST RUN** (the gentler test tiers plan, Decision 5). Vitest's limits are wall-clock timers: on `kill -CONT` every
 one that came due while the run was stopped fires at once, and every test in flight times out — a red run made by the pause. To make room
 for Rich, stop the run (Ctrl-C) and start it again with `MANIFEST_TEST_QOS=background` (RUNBOOK, *Running the test tiers gently*).
