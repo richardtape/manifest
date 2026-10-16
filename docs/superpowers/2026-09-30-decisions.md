@@ -2156,3 +2156,8 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
       "It already does this: nothing needs to change." with [Not now]; nothing built, nothing claimed. Rejected: (b) the round ends with
       nothing committed, "It already did this, so nothing changed."; (c) close m187 as fixed by W8 and accept a small related change.
       New words of ours, approved; built in a later front-end round.
+
+    At ~19:30 PDT, typed in manifest-b-s4's tab (B's sitting 4), after its read-back of Spec action B's spec edits was refused by the
+    classifier: "go ahead with the spec read-back" — B4 retried once (allowed): the three drafted strings are in the spec exactly, and the
+    word diff is those three changes; committed cc7ef710 (the spec alone) and 9c12c8ec (the decisions page's l.172 sentence, manifest-coord5's
+    minor-wording ruling, for his review).
