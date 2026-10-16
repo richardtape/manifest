@@ -225,3 +225,29 @@ Each was read against the code; each is as the plan states.
 None new. The plan already puts its two to him with its approval: **Spec action A** (this review's word: **(a), apply as worded**) and **his
 click-6 question** (this review's word: **(a), as a small plan of its own** — the plan's recommendation). C2's fix changes the sittings table
 (a third landing); that is the author's to make under his delegation, and the coordinator names it when it puts the plan to him.
+
+---
+
+## Addendum — the revision checked (2026-10-16, ~16:40–16:52 PDT, `manifest-review4`, at `manifest-coord6`'s ask)
+
+**P11BP's revision `828215bf` closes all fifteen findings as this review meant them.** Each change is where its *Revised to the review*
+table (plan l.1135-1151) says it is.
+
+- **C1.** Task 3 now changes both readers (plan:706-709, :721-724). L1 runs `demo-launch` to step 6 on `launchpath-control` (plan:792-793).
+  `launch.ts` keeps its own constant, which `base.test.ts` holds (plan:731-734).
+- **C2.** Task 4 lands at L2 before it is run (plan:91-92, :897-898). The runs and controls are sitting 5, from the shared checkout. A live
+  control breaks a landed file and is never committed (plan:127-133, Decision 16), and is restored with `git checkout --`. Decision 13 now
+  names three landings, and nothing live runs in the worktree (plan:112-125).
+- **I1.** The slugs are `launchpath-adminedge-*`. `[M10]` measures the same `subject:"(<slug>)"` phrase `launch.ts:1413` searches, and
+  names a fallback.
+- **I2.** `make ci-acceptance` runs whole at sitting 7's open, before the click's seed (plan:992-995). Step 22 is in *Outstanding*.
+- **M1–M11.** Each is present, and the BYOA note and the design's *"three links"* are swept. Decisions 14 and 15 are sound; 15 rejects my
+  *"pass only while 7104 answers"* for a good reason.
+
+**One small side effect is new.** Control (b)'s live half (plan:812-814) edits the shared checkout's Caddyfile and restores it with
+`git checkout --`, *"statically, no `make up`"*. Both writes replace the file's inode, so the edge's single-file mount goes stale
+(ORIENTATION §4 trap 18), and no check reads the mount. The next `make up` — anyone's — then does the re-bind restart
+(`ensure-caddy-config.sh:43-58`) and drops every runtime route until 7100 restarts. **Fix:** after (b)'s restore, `make up` and a 7100
+restart, as (a) does; or write the break and the restore through the file in place. Nothing else the revision changed breaks: the
+seven-sitting, three-landing re-cut, Decision 13, the L1 control slug, the L2-before-runs order and every other `git checkout --` restore
+(each followed by its rebuild or restart) hold.
