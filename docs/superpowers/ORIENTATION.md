@@ -35,7 +35,9 @@ gentler test tiers, EXECUTED 2026-10-15): at utility priority, timeouts scaled, 
 **And an operator has a console of their own** (P11, EXECUTED 2026-10-16, clicked by Rich): `packages/admin-ui` on 7101 — the queue, oldest
 first, a release signed off from a stored preview, the team's step and UBC's answer, the fleet, a project's page, Health and Settings — on
 the mock's demo fleet (`make admin-ui`); serving it through the edge on the real platform is P11b, not written.
-**Now: B, the load rehearsal** (§7e) — then FE-32, Phase 3, A2, the vulnerability database in the console and FE-45 (§8 *Decided*).
+**And a large course's app is rehearsed under its audience's arrival before it launches** (B, the load rehearsal, EXECUTED 2026-10-16,
+clicked by Rich). **Now: FE-32, an agent can add a dependency** (§7e) — then BYOA on the laptop, Phase 3, A2, the vulnerability database
+in the console and FE-45 (§8 *Decided*).
 The roadmap's ledger outranks every document on status.
 
 *The gate numbers are stated once each (Rich, 2026-09-30): `scripts/ci-acceptance.sh`'s `EXPECT_` lines (the unit suite, doctor,
