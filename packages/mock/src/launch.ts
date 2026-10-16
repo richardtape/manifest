@@ -996,7 +996,8 @@ function loadRehearsalItem(o: LaunchOptions): Item[] {
       },
     ]
   const ended = loadRehearsalView(o, run)
-  const day = run.endedAt.slice(0, 10)
+  // Vancouver's day, in words — the platform's (`launch/readiness.ts`), never a UTC day.
+  const day = dayInWords(new Date(run.endedAt))
   return loadOf(o) === 'failed'
     ? [
         {

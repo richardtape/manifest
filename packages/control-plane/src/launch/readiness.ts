@@ -367,8 +367,9 @@ function covers(run: RehearsedAudience, audience: RehearsedAudience): boolean {
 const audienceInWords = (a: RehearsedAudience): string =>
   `${a.scale === 'public' ? 'the public' : 'a large course'} ${a.burst === 'synchronised' ? 'all arriving at once' : 'arriving steadily'}`
 
+/** A run's day as a person in Vancouver reads it, in words — never a UTC day, which runs a day ahead each evening. */
 const dayOf = (at: Date | null): string =>
-  at === null ? 'an unknown day' : at.toISOString().slice(0, 10)
+  at === null ? 'an unknown day' : vancouverDayInWords(at)
 
 /**
  * §13 and D9.1: production is reachable when EVERY BLOCKING item is met, and a

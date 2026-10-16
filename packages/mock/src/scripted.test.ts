@@ -1660,6 +1660,12 @@ describe('the load rehearsal plan’s Task 7 — MANIFEST_MOCK_LOAD', () => {
     const met = await loadItem(at)
     expect(met).toMatchObject({ state: 'met', since: passed.finishedAt })
     expect(met!.why).toContain(passed.evidence!.reason)
+    // ITS DAY IS VANCOUVER'S, IN WORDS — the platform's (found by sitting 5's walk: a UTC day read a day ahead each evening).
+    const day = new Intl.DateTimeFormat('en-CA', {
+      dateStyle: 'long',
+      timeZone: 'America/Vancouver',
+    }).format(new Date(passed.finishedAt!))
+    expect(met!.why).toContain(`passed on ${day} for the release serving staging`)
     // Staging is given back: a staging deploy answers again.
     expect((await deploy(at, f.STAGING_ID)).status).toBe(200)
     // Another id is not this project's run.

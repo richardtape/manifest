@@ -1104,9 +1104,26 @@ describe('the load-rehearsal item — met by a measurement (the load rehearsal p
         blocking: true,
         since: '2026-10-15T20:13:03.000Z',
       })
-      expect(load.why).toContain('2026-10-15')
+      expect(load.why).toContain('October 15, 2026')
       expect(load.why).toContain(PASSED)
       expect(load.why).toContain('a large course all arriving at once')
+    })
+  })
+
+  // FOUND BY THE CONSOLE WALK (sitting 5): a run that ended at 22:42 on 15 October in Vancouver said *"passed on
+  // 2026-10-16"* — a UTC day. A day a person reads is Vancouver's, in words, as every dated item here says it.
+  it('a pass dates itself in Vancouver: ended 05:42 UTC on the 16th is October 15, 2026', async () => {
+    await withProject(async (tx, { projectId, ownerId }) => {
+      await setAudience(tx, projectId, 'large_course', 'synchronised')
+      const release = await stagedRelease(tx, { projectId, ownerId })
+      await rehearsed(tx, projectId, release, {
+        state: 'passed',
+        reason: PASSED,
+        finishedAt: new Date('2026-10-16T05:42:00Z'),
+      })
+      const load = await item(tx, projectId)
+      expect(load.why).toContain('passed on October 15, 2026')
+      expect(load.why).not.toContain('2026-10-16')
     })
   })
 
@@ -1133,7 +1150,7 @@ describe('the load-rehearsal item — met by a measurement (the load rehearsal p
       const load = await item(tx, projectId)
       expect(load.state).toBe('unmet')
       expect(load.why).toContain(
-        'passed on 2026-10-15 for a large course all arriving at once',
+        'passed on October 15, 2026 for a large course all arriving at once',
       )
       expect(load.why).toContain('now the public all arriving at once')
     })
