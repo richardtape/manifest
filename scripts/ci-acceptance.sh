@@ -12,14 +12,15 @@
 #
 # IT IS NOT scripts/offline-acceptance.sh. That one is C1's — run by hand with the network
 # OFF, because turning the network off from a tool call cuts the agent off too — and its
-# twenty-one `=== n.` headings are numbered 0 to 20, where 0 is the precondition and 1-20 are
+# twenty-two `=== n.` headings are numbered 0 to 21, where 0 is the precondition and 1-21 are
 # the work (this line said "ten, 0 to 9" through P5c's step 10; P6a Task 19 found it; P6b
 # Task 11 added step 12, `make demo-releases`; the D5 plan's Task 15 step 13, `make
 # demo-github`; the authoring API plan's Task 13 step 14, `make demo-authoring`; the front-end
 # enablement plan's Task 15 step 15, `make demo-frontend`; the launch path plan's Task 15 step
 # 16, `make demo-launch`; the faculty-ready plan's Task 11 step 17, `make demo-faculty-ready`;
 # the U1 plan's Task 7 step 18, `make demo-levels`; A1's Task 10 step 19, `make demo-capacity`;
-# P11's Task 12 step 20, `make demo-admin`).
+# P11's Task 12 step 20, `make demo-admin`; the load rehearsal plan's Task 8b step 21, `make
+# demo-load`).
 # This one runs with the network on and asserts the gates' COUNTS as well.
 #
 # EVERY STEP REPORTS RATHER THAN EXITS (P4c Decision 26), so a red run is a MEASUREMENT of
@@ -643,6 +644,23 @@ esac
 #                     adds no test.
 run "make demo-admin" make demo-admin
 
+# ---------------------------------------------------------------- 14. the load rehearsal plan's acceptance
+#   demo-load       — a large course's app rehearsed under its audience's arrival (the load rehearsal
+#                     plan's Task 8): staging granted production's three instances at production's
+#                     memory, the edge skipping the generator's one address, a staging deploy and a
+#                     second run refused mid-run, a pass that meets the checklist's item, staging given
+#                     back; then a committed change that makes the app fall over — a new candidate, the
+#                     item unmet again — failing with its answered share; and LAST the edge's limit back
+#                     (a 601st request from one address is 429). EITHER driver, on its own project
+#                     (load-local or load-github), deleted and made again by every run — on driver 2 only
+#                     against the GitHub fake (the demo refuses real GitHub). ~13 minutes; it launches
+#                     nothing, so it needs no fresh vulnerability database. It leaves its app in staging on
+#                     the release that falls over. It adds no test.
+case "$DRIVER" in
+  local | github) run "make demo-load" make demo-load ;;
+  *) record "make demo-load" "NOT RUN" "no control plane answered the driver probe at 127.0.0.1:7100" ;;
+esac
+
 # ---------------------------------------------------------------- the summary
 bold "=== summary ==="
 printf '%s' "$STEPS" | while IFS='|' read -r name status note; do
@@ -668,7 +686,7 @@ cat <<'TAIL'
      services/, build/, releases/, identity/, sso/, secrets/, projects/, blueprints/,
      ai/, observability/, infra/ or a *.docker.test.ts;
    - the OFFLINE acceptance — `scripts/offline-acceptance.sh`, run by hand with the
-     network off, whose steps 0-20 include `make demo-identity` and `make demo-ai`;
+     network off, whose steps 0-21 include `make demo-identity` and `make demo-ai`;
    - BOTH source drivers in one run — one driver per control-plane process, so a run on
      driver 1 reads `make demo-github` NOT RUN, and a run on driver 2 the other four.
 TAIL

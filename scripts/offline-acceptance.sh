@@ -16,7 +16,7 @@ cd "$(dirname "$0")/.."
 
 # WHICH SOURCE DRIVER the control plane runs (the D5 plan's Decision 3: ONE per process), asked
 # the way `make demo-github` asks it — an unsigned delivery: `local`, `github`, or `none`. Steps 6
-# to 12 are DRIVER 1's, step 13 is DRIVER 2's, steps 14 to 19 run on either and step 20 needs no control plane at all; run a driver-1 demo on driver 2 and it CREATES
+# to 12 are DRIVER 1's, step 13 is DRIVER 2's, steps 14 to 19 and 21 run on either and step 20 needs no control plane at all; run a driver-1 demo on driver 2 and it CREATES
 # its project there, where no route can delete it (P6a F5) and driver 1 refuses it for ever.
 source_driver() {
   local answer
@@ -389,6 +389,28 @@ echo "=== 20. P11's acceptance: the administrator's console, walked headless on 
 # IT NEEDS NO CONTROL PLANE, no Docker and no driver: it runs whatever steps 1 to 19 left. It refuses while
 # `make admin-ui` (or another walk) holds 7101 or 7113.
 make demo-admin; echo "demo-admin exit=$?"
+
+echo
+echo "=== 21. The load rehearsal plan's acceptance: a large course's app rehearsed under its audience's arrival, offline ==="
+# APPENDED, like steps 7 to 20. WHAT THIS PROVES OFFLINE THAT THE OTHER TWENTY DO NOT: the load rehearsal —
+# staging granted production's three instances at production's memory, the generator (`manifest/vegeta:12.13.0`,
+# which `make seed` built from its cached, checksummed release, so nothing here downloads it) loading the app
+# THROUGH THE EDGE with its one address skipped by the route's rate limit, a staging deploy and a second run
+# refused while it runs, a pass meeting the checklist's item and staging given back; then a committed change
+# that makes the app fall over failing with its answered share, and last the edge's limit back (a 601st request
+# from one address is 429). ~13 minutes. It LAUNCHES NOTHING, so it needs no fresh vulnerability database, and
+# it calls no model.
+#
+# IT RUNS ON EITHER DRIVER, like steps 14 to 19: `load-local` on driver 1, `load-github` on driver 2 (only
+# against the GitHub fake — it refuses real GitHub, which an offline machine cannot reach anyway). Every run
+# deletes its app and makes it again; it leaves the app in staging on the release that falls over.
+case "$(source_driver)" in
+  local | github)
+    echo "  on driver $([ "$(source_driver)" = local ] && echo '1 — load-local' || echo '2 — load-github')"
+    make demo-load; echo "demo-load exit=$?"
+    ;;
+  *) echo "  SKIPPED: no control plane answered 127.0.0.1:7100/webhooks/github — start one on either driver (RUNBOOK)." ;;
+esac
 
 echo
 echo "=== done. Turn the network back on. ==="
