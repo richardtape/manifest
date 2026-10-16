@@ -2161,3 +2161,10 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
     classifier: "go ahead with the spec read-back" — B4 retried once (allowed): the three drafted strings are in the spec exactly, and the
     word diff is those three changes; committed cc7ef710 (the spec alone) and 9c12c8ec (the decisions page's l.172 sentence, manifest-coord5's
     minor-wording ruling, for his review).
+
+    At ~23:20 PDT, in chat to manifest-coord5, on m280 (the front end's 1100; manifest-app docs/research/2026-10-15-contract-1100-adoption.md):
+    "(a) is fine" — since B's Task 6 (30aa352) a large course's or public app's load-rehearsal item is `unmet`, and Going live has nothing to
+    press (runLoadRehearsal is session-only and stepped up). Chosen: (a) a small follow-up front-end job builds the press on the dry run's
+    pattern ([Run the test], stepped up, ~10 min, polled, passed/failed with [Fix it]), the refusals while one runs (m281) and the line in
+    what happened — AFTER he reads the proposed words (the record's "Proposed for Rich"), on B's sitting-5 mock stage (MANIFEST_MOCK_LOAD).
+    Rejected: (b) build now, words reviewed after; (c) leave the row as drawn.
