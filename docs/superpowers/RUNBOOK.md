@@ -657,6 +657,91 @@ platform (the P5 brief's §8). Specifically:
 **Stop it by port** when you are done —
 `lsof -nP -iTCP:7102 -sTCP:LISTEN -t | xargs kill`.
 
+## Running the administrator's console
+
+*Added by P11's sitting 8, 2026-10-15 (Task 12). §26's console for platform administrators — the queue of
+everything waiting on one, a release signed off from its stored preview, a launch record submitted to UBC or
+handed back and UBC's answer recorded, the fleet, one project as an operator sees it, Health and Settings — in
+the look Rich chose on 2026-09-27. It is a demo on a mock: the console through the edge on the real platform is
+a later plan, P11b, not built.*
+
+It is `packages/admin-ui`, a React + Vite client of the published contract and nothing else (D22's boundary
+binds it as it binds the reference console), run as a **host process on 7101** with **its own `manifest-mock`
+on 7113** — never the faculty front-end's mock on 7102, which another session may hold:
+
+```bash
+make admin-ui                                   # = bash scripts/admin-ui.sh — no platform, no Docker
+open http://127.0.0.1:7101/
+MANIFEST_MOCK_STEP_UP=1 make admin-ui           # the same, with Approve's step-up round trip on
+```
+
+The script builds `@manifest/contract`'s `dist/` first (it is git-ignored, and Vite bundles it — a stale one
+ships with every gate green), starts the mock with `MANIFEST_MOCK_ROLE=admin MANIFEST_MOCK_FLEET=demo`, then
+`vite dev` with `/v1` and `/auth` proxied to it. **Ctrl-C stops both**; a backgrounded run ignores SIGINT, so
+stop it with `kill -TERM <its pid>` (TRAPS.md). **`make doctor` knows both ports**: it asks 7101 for the
+console's title and 7113 for the mock's name, so a running console is not reported as a port claimed by
+something else.
+
+**Signing in** is the mock's: *Sign in* sets its cookie and comes straight back, as Operator One, a platform
+administrator. A mock started for anyone else (`MANIFEST_MOCK_ROLE=member`, as P11's control (g) started it) gets
+*"This console is for platform administrators"* — the gate, working. **Approve** answers `403 STEP_UP_REQUIRED` under
+`MANIFEST_MOCK_STEP_UP=1`; the console goes to the mock's step-up and comes back to the same preview with the
+reason still in the field, as it does on the platform.
+
+**The demo fleet** (`MANIFEST_MOCK_FLEET=demo`, `packages/mock/src/fleet.ts`) is thirteen projects beside
+`mock-app`, each in a state the platform can reach at the contract on `main`, each telling one part of an
+administrator's day:
+
+| App | What it shows |
+|---|---|
+| `reading-responses` | The queue's headline: a release approval asked by an agent on its owner's token, its preview's diff changing two sensitive fields |
+| `chem-lab-booking` | A first production launch waiting for sign-off, every other checklist item met |
+| `phys-101-labs` | A production registration its owner sent the Manifest team — submit it to UBC IAM, or hand it back |
+| `math-oh-queue` | A change to a live registration to file with UBC IAM; its production certificate expiring soon (Health, red) |
+| `rubric-helper` | A privacy assessment to submit, every gap answered; staging's deploy failed; an older blueprint |
+| `stats-sim` | A staging registration with UBC IAM — record UBC's answer; its serving release scanned against a stale database |
+| `lang-202-journal` | A change request UBC IAM is weighing — granting it is recorded in two steps |
+| `field-notes` | A privacy assessment with the Privacy Office — the oldest item in the queue, and not ours to headline |
+| `cpsc-110-help` | Production on two instances, one exited and replaced |
+| `econ-101-polls` | Production one instance short: a member stopped and replacing it gave up (Health, attention) |
+| `bio-201-scheduler` | An agent's question waiting for an answer; a rename an administrator made, with the reason the project's people read |
+| `hist-105-archive` | Archived — hidden from the fleet until *Archived* is chosen |
+| `mus-100-listening` | A large-course app: its launch checklist's load rehearsal, as the contract on `main` reads it |
+
+**The fleet keeps an administrator's decisions in the mock process** — an approved release leaves the queue, a
+submitted registration moves to UBC's band — and **a restart resets it**. Every request body it acts on is held
+to its operation's schema, so a console that sends the wrong body is refused here as the platform would refuse
+it. The faculty front-end's mock (7102) never has the fleet unless asked.
+
+**No web fonts**: the drawing loads Instrument Sans from Google Fonts; the console falls back to the system's
+sans, so nothing it does reaches the network.
+
+### `make demo-admin` — P11's acceptance, the headless half
+
+```bash
+make demo-admin                                 # = bash scripts/demo-admin.sh — refuses while 7101 or 7113 listens
+DEMO_ADMIN_SHOTS=/some/dir make demo-admin      # where each check's screenshot goes (default: a new temporary directory)
+DEMO_ADMIN_DEV=1 make demo-admin                # walk `vite dev` instead of the build
+DEMO_ADMIN_STOP_AFTER=4 make demo-admin         # stop after check 4 — a negative control's short run
+```
+
+It builds the contract and the console, starts a **fresh** mock (the demo fleet and the step-up on) and `vite
+preview`, starts Chrome headless on a debugging port the system picks, and walks nine checks
+(`packages/admin-ui/walk/walk.ts`): the sign-in and the rail, the headline from our own band and not UBC's, the
+keyboard, `reading-responses` approved through the step-up and back (and its emailed link after, saying who
+decided), `phys-101-labs` submitted to UBC IAM, `stats-sim`'s answer recorded and **read back through the API**
+(staging active as sent, production untouched), the fleet in production, `bio-201-scheduler`'s administrator's
+event and its question rejected, Health and Settings — and then the console: every line on it one of the few this
+console is known to print (the session read before signing in, the missing icon, the step-up's `403`, a socket
+closed before it opened). It prints `every check passed` last, and on a failure names each check that failed and
+what the screen showed instead. It needs **no control plane, no Docker and no network**, so it is a step of
+`make ci-acceptance` on either driver (or none) and step 20 of the offline acceptance. Everything it starts — the
+mock, the console, Chrome and its profile — is stopped and removed when it ends, however it ends.
+
+**`DEMO_ADMIN_DEV=1` is not a weaker run**: React's StrictMode runs every effect twice under `vite dev` and not
+in the build, and a defect of that kind (a decided release opened by its emailed link drew nothing, P11's
+sitting 5) shows only there — and `make admin-ui` serves dev.
+
 ## Mailpit — the laptop's mail sink
 
 *Added 2026-09-30, out of plan at Rich's word — §21's tenth container.*
@@ -1856,7 +1941,7 @@ of everything that is broken rather than a stop at the first thing. It runs, in 
 `make doctor`, `make verify`, `pnpm lint`, `pnpm typecheck`, `pnpm format:check`,
 `pnpm test`, the three package builds, then `make demo-journey`, `make demo-token`, `make demo-production`
 and — last of driver 1's, because it leaves `launch-app` on its leg C release — `make demo-releases`,
-then `make demo-github`, and then, on EITHER driver, `make demo-authoring`, `make demo-frontend`, `make demo-launch`, `make demo-faculty-ready`, `make demo-levels` and — last, the longest — `make demo-capacity` (A1's Task 10, against `launch-app` on driver 1 and `launchpath-github` on driver 2). *(It named neither of the last two until A1's sitting 8 found it; this line named
+then `make demo-github`, and then, on EITHER driver, `make demo-authoring`, `make demo-frontend`, `make demo-launch`, `make demo-faculty-ready`, `make demo-levels` and — the last of the platform's, the longest — `make demo-capacity` (A1's Task 10, against `launch-app` on driver 1 and `launchpath-github` on driver 2), and then `make demo-admin` (P11's Task 12), which needs no control plane and so runs on any driver or none. *(It named neither of the last two until A1's sitting 8 found it; this line named
 three demos until the D5 plan's sitting 8 found it; P6b sitting 7 had added `make demo-releases` to the script and not
 to this sentence — and the authoring API plan's Task 13 added `make demo-authoring` to the script and not to it, which
 the front-end enablement plan's Task 15 found when it added `make demo-frontend` to both.)*

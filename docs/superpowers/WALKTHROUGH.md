@@ -390,6 +390,30 @@ board, then the console signs the instructor in with no password (the IdP's sess
 through the commit API, the platform's own seed included, and the console reads a commit with no parent and no record as the
 seed (the front-end enablement plan's Task 5; until 2026-09-27 it read *pushed with git*).
 
+### The administrator's console, clicked — P11's demo, on its mock
+
+*Added by P11's sitting 8, 2026-10-15 (Task 12). The operator's console in the look Rich chose on 2026-09-27 —
+on a mock with a demo fleet, not on the platform (serving it through the edge is a later plan, P11b). `make
+demo-admin` is its headless half; RUNBOOK's* Running the administrator's console *has the rest.* No platform is
+needed: **`MANIFEST_MOCK_STEP_UP=1 make admin-ui`**, then **http://127.0.0.1:7101** — the mock signs you in as
+Operator One, a platform administrator. A restart of `make admin-ui` resets everything below.
+
+| # | Click | What must be true |
+|---|---|---|
+| 1 | the page opens on **Queue** | *Oldest waiting on us* is `reading-responses`' age — not `field-notes`', which has waited longer but with the Privacy Office; two bands, *Waiting on us* and *Waiting on UBC*; every row amber, none red; the URL is `/queue` |
+| 2 | `j`, `j`, `Enter`, then `Esc` | the second row of *Waiting on us* selected and opened, its URL `/queue/<kind>/<id>`; `Esc` closes it |
+| 3 | `reading-responses` → *Take the preview* → a reason → *Approve for production* | the request names *'the agent that builds this app'*; the diff shows its two sensitive changes; Approve goes through the step-up (the mock's asks no password) and brings you back to the **same preview with your reason still there**; Approve again → *Operator One approved this release for production.* — and the row is gone from the queue |
+| 4 | `phys-101-labs` → UBC's ticket → *Submit to UBC IAM* | Submit stays disabled until a ticket is typed; then *Submitted to UBC IAM*, and the row moves to *Waiting on UBC* |
+| 5 | `stats-sim` → *Record it* (active) | *Recorded as active*; the row leaves the queue — the STAGING registration moved, production's untouched |
+| 6 | `rubric-helper` → *Hand it back* | *"Manifest doesn’t keep a reason for a hand-back."* — and the row leaves the queue |
+| 7 | **Fleet** → *In production* | the launched apps only, the filter in the URL; `econ-101-polls`' production cell *healthy · 2* with *failed …m ago* — an Incident after its last deploy |
+| 8 | `econ-101-polls`, then `bio-201-scheduler` | econ: *1 of 2 serving*, *Stopped, not replaced*; bio: the data level *high*, a rename by *Operator One · as a platform administrator* with the reason quoted; its agent's question — *Reject for them* disabled until a reason, then *Refused for them* |
+| 9 | **Health**, then **Settings** | Health: `math-oh-queue`'s certificate red, an exit that stopped replacing first; each panel says what it cannot see. Settings: the blueprints read; every other value *"Manifest can’t read this yet."* |
+
+**What it does not do yet**: it runs on the mock alone (P11b serves it through the edge, on the real queue); People,
+Spend and Audit have no API; nothing in Settings can be changed; at 1440 wide the fleet's table scrolls sideways for its
+last two columns, as the drawing's does.
+
 ### Manifest itself — the control plane
 
 **https://console.manifest.internal/auth/login?returnTo=/v1/me** → sign in as `instructor` /
