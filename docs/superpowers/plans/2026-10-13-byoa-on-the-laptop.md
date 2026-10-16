@@ -1,5 +1,15 @@
 # Bring Your Own Agent, on the Laptop — Implementation Plan
 
+> **⚠ NOTE, 2026-10-16 ~15:58 PDT (`manifest-p11b-plan`, at `manifest-coord6`'s ask) — 7113 IS HELD BY P11's ADMIN MOCK UNTIL P11b's
+> PORT MOVE LANDS.** This plan's fact 15 (*"7113 is unassigned"*) and Decision 18 (the MCP server on 7113) were true when it was approved;
+> **P11, written the next day, took 7113 for the administrator's console's own mock** (P11's Decision 14): `scripts/admin-ui.sh:19`,
+> `scripts/demo-admin.sh:27` and `scripts/doctor.sh:218` (`PORT_ADMIN_MOCK=7113`), and `packages/admin-ui/vite.config.ts:21`'s default —
+> so **whenever `make admin-ui` or `make demo-admin` (`make ci-acceptance`'s step 13) runs, nothing else can bind 7113**. **P11b**
+> ([`2026-10-16-p11b-admin-console-edge.md`](./2026-10-16-p11b-admin-console-edge.md), its Task 2 and Decision 3) moves the demo pair to
+> **7114 (mock) and 7115 (console)** and leaves 7113 to this plan. **If this plan's sitting 1 comes first**, its Task 1 makes that move
+> itself — those four files, with `make demo-admin` green on the new ports — or picks another port for the MCP server and changes every
+> mention here; either way it is recorded in the sitting's record, and P11b's Task 1 re-reads which happened.
+
 > **✅ APPROVED BY RICH, 2026-10-13, ~21:50 PDT, AS REVISED (`7493be1`)** — *"Approve; inline per sitting (Recommended)"*, with every
 > departure from the design named to him and approved (D2, D9, D10's three non-tools, D14, D19, D20, D21, 7113, the `initialize` check, the
 > journey boundary): [`../2026-09-30-decisions.md`](../2026-09-30-decisions.md), *"Rich's decisions — 2026-10-13, 21:50 PDT (session
