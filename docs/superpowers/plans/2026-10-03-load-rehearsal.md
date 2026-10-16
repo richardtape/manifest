@@ -1608,7 +1608,7 @@ volume or route; its name answers the wildcard); 17 orphaned mirrors named, unto
 `capableModel` and `ubc-qwen-27b` registered, 16 secrets scrubbed, `loadRehearsalsAbandoned` 0; ONE call to `default-chat-large` answered
 `200` by **`gpt-6.1-sol`, 0 fallbacks**; **0 projects**; migration `0056` applied. Handed back to `manifest-coord5` at 18:29.
 
-### Sitting 4 — 2026-10-15, 18:33–21:31 PDT (`manifest-b-s4`, the third coordinated run's job B4): Spec action B, Task 5
+### Sitting 4 — 2026-10-15, 18:33–21:30 PDT (`manifest-b-s4`, the third coordinated run's job B4): Spec action B, Task 5
 
 **Opened** by `manifest-coord5`'s GO (18:33), relaying Rich's decisions — `3ba424a` (A–D approved as drafted), `d5b0eb2` (his
 allow line for committing an approved spec action with its pages' sweep), `bdfc6f2`, `3011e11`, `d2e2d772`, `624deb66` — and the
@@ -1716,4 +1716,4 @@ and `p4b-probe-user` (*"0 remain, was 3"*), `app-images.sh --apply` 16 images �
 containers. **At the close (21:29)**: 21 containers (13 running), 12 networks, 40 volumes, 65 image tags by `docker images -q` (55 unique;
 63 at sitting 3's close — the two since are not Manifest's: its newest image is still sitting 2's `manifest/vegeta:12.13.0`). `b4-load`
 deleted (no container, network or volume). **7100** (21:28, G4): real GitHub from `.env`, **0 projects** (the tier and the suites truncated
-them), migration `0057` applied. Handed back to `manifest-coord5` at 21:31.
+them), migration `0057` applied. Handed back to `manifest-coord5` at 21:30.
