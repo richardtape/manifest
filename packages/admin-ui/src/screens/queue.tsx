@@ -238,6 +238,7 @@ function ItemPane(props: {
         left={left}
         preview={props.preview}
         now={now}
+        onDecided={props.onDecided}
       />
     )
   if (item === null)

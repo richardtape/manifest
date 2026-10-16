@@ -4,7 +4,7 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { createApi } from '../api.js'
 import type { QueueItem } from '../queue-state.js'
-import { vancouverToday } from '../time.js'
+import { dayInWords, vancouverToday } from '../time.js'
 import { IAM_MOVES, iamAnswerBody, PIA_MOVES } from '../transitions.js'
 import {
   answerOptions,
@@ -304,9 +304,29 @@ describe('UBC’s answer — the form offers exactly the platform’s moves', ()
       certFingerprint: r.package!.certificate.fingerprint,
       certExpiresAt: r.package!.certificate.expiresAt,
     })
-    // An expiry changed in the form is that day, at midnight UTC.
+    // An expiry changed in the form is that day IN VANCOUVER, as the facts and Health read it back —
+    // never midnight UTC, the evening before there (the whole-branch review's I1).
     const changed = iamAnswerOf(r, { ...form, expires: '2028-01-31' })
-    expect(changed.certExpiresAt).toBe('2028-01-31T00:00:00.000Z')
+    expect(changed.certExpiresAt).toBe('2028-01-31T20:00:00.000Z')
+    expect(dayInWords(changed.certExpiresAt!)).toBe('January 31, 2028')
+  })
+
+  it('fills the expiry with the day Vancouver reads, so an expiry left alone sends the record’s own instant', () => {
+    const item = itemOf('stats-sim')
+    const found = recordOf(records.get('stats-sim')!, item)!
+    const r = found.record as Schemas['IamRegistration']
+    // 03:00 UTC on February 1 is the evening of January 31 in Vancouver: the facts say January 31.
+    const late: Schemas['IamRegistration'] = {
+      ...r,
+      certFingerprint: 'AA:BB',
+      certExpiresAt: '2028-02-01T03:00:00.000Z',
+    }
+    const form = formOf({ ...found, record: late } as typeof found, now)
+    expect(form.expires).toBe('2028-01-31')
+    expect(iamAnswerOf(late, form)).not.toHaveProperty('certExpiresAt')
+    expect(iamAnswerBody(late, item, iamAnswerOf(late, form)).certExpiresAt).toBe(
+      '2028-02-01T03:00:00.000Z',
+    )
   })
 
   it('lang-202-journal’s change with UBC IAM: the grant said as two steps, attributes editable', () => {

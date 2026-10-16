@@ -90,5 +90,19 @@ export function vancouverToday(now: Date): string {
  * winter, 1 p.m. in summer), so no offset moves it to the day before.
  */
 export function dayOfDate(ymd: string): string {
-  return dayInWords(`${ymd}T20:00:00Z`)
+  return dayInWords(instantOfDate(ymd))
+}
+
+/**
+ * THE INSTANT A DAY TYPED INTO A DATE INPUT IS SENT AS — a certificate's expiry UBC gives as a day:
+ * 20:00 UTC, which every reader in Vancouver puts on that day (the facts and Health say days so).
+ * Never midnight UTC: that is the evening before in Vancouver (the whole-branch review's I1).
+ */
+export function instantOfDate(ymd: string): string {
+  return `${ymd}T20:00:00.000Z`
+}
+
+/** *"2026-10-15"* — the day an instant falls on in Vancouver, as a date input holds a day. */
+export function dateOf(iso: string): string {
+  return VANCOUVER_DATE.format(new Date(iso))
 }

@@ -490,11 +490,40 @@ const checks: [string, Check][] = [
       )
         wrong(`no “${decided}” — ${await shown()}`)
       await shot('4b-approved')
-      // The 60-second read, asked now: the row is gone.
-      await go('/queue')
-      await until('document.querySelector(".mfa-head__age")')
-      if ((await bandSlugs('Waiting on us')).includes('reading-responses'))
-        wrong('reading-responses is still waiting on us')
+      // The row leaves on the same page, at once — not at the next 60-second read, and not by a reload
+      // (the whole-branch review's M1): a decision recorded reads the queue again.
+      if (
+        !(await until(
+          `![...document.querySelectorAll('section.mfa-band[aria-label="Waiting on us"] .mfa-row__slug')].some((s) => s.textContent === "reading-responses")`,
+          10_000,
+        ))
+      )
+        wrong('reading-responses is still waiting on us 10 s after it was approved')
+      // What the platform recorded, read back (the review's M4): approved, by Operator One, with the
+      // reason, on the preview the pane took and the digest the release built.
+      const preview = new URLSearchParams(await evaluate<string>('location.search')).get(
+        'preview',
+      )
+      const approval = await api<{
+        decision: string
+        decidedByName: string
+        reason: string | null
+        imageDigest: string
+        previewId: string
+      }>(`/v1/releases/${id}/approval`)
+      const release = await api<{ imageDigest: string }>(`/v1/releases/${id}`)
+      if (
+        approval.decision !== 'approved' ||
+        approval.decidedByName !== 'Operator One' ||
+        approval.reason !== REASON
+      )
+        wrong(
+          `the platform recorded ${js({ decision: approval.decision, by: approval.decidedByName, reason: approval.reason })}`,
+        )
+      if (approval.previewId !== preview || approval.imageDigest !== release.imageDigest)
+        wrong(
+          `the approval names preview ${approval.previewId} and ${approval.imageDigest}; the pane took ${preview} of ${release.imageDigest}`,
+        )
       // The team's email links the release: opened after the decision, it says who decided, and offers nothing.
       await go(`/releases/${id}/approval`)
       const elsewhere = `Operator One approved this on ${VANCOUVER_DAY.format(new Date())}.`

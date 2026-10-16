@@ -443,6 +443,11 @@ export interface ApprovalPaneProps {
   /** The preview named in the URL — the step-up's return. */
   preview: string | undefined
   now: Date
+  /**
+   * A decision recorded here: the queue reads again at once, so the row leaves and the headline moves
+   * now rather than at the next 60-second read (the whole-branch review's M1) — as the record pane does.
+   */
+  onDecided?: (() => void) | undefined
 }
 
 /**
@@ -452,7 +457,7 @@ export interface ApprovalPaneProps {
  * what became of it when it left the queue — read from `getApproval`, never from a refusal.
  */
 export function ApprovalPane(props: ApprovalPaneProps) {
-  const { api, releaseId, item } = props
+  const { api, releaseId, item, onDecided } = props
   const [pane, dispatch] = useReducer(paneAfter, { at: 'reading' } as Pane)
   const [release, setRelease] = useState<Schemas['Release'] | null>(null)
   const [readiness, setReadiness] = useState<Schemas['LaunchReadiness'] | null>(null)
@@ -528,10 +533,11 @@ export function ApprovalPane(props: ApprovalPaneProps) {
       (approval) => {
         reasonDraft(sessionStore(), draftReasonKey(releaseId, pane.preview.id)).clear()
         dispatch({ type: 'decided', approval })
+        onDecided?.()
       },
       (e: unknown) => dispatch({ type: 'failed', error: e }),
     )
-  }, [api, pane, reason, releaseId])
+  }, [api, onDecided, pane, reason, releaseId])
 
   // The step-up: a full-page round trip back to this preview; the reason is already in storage.
   useEffect(() => {

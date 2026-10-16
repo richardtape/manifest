@@ -3,8 +3,10 @@ import {
   ageShort,
   ageWords,
   clockInWords,
+  dateOf,
   dayInWords,
   dayOfDate,
+  instantOfDate,
   vancouverToday,
 } from './time.js'
 
@@ -75,5 +77,26 @@ describe('a day as the team’s submission names it', () => {
   it('a YYYY-MM-DD in words is that day, whatever the offset', () => {
     expect(dayOfDate('2026-10-15')).toBe('October 15, 2026')
     expect(dayOfDate('2026-01-05')).toBe('January 5, 2026')
+  })
+})
+
+/**
+ * A DAY TYPED INTO A DATE INPUT, AND BACK (the whole-branch review's I1): a certificate's expiry UBC gives
+ * as a day is sent as an instant, and the facts and Health read it back as Vancouver's day — so the instant
+ * is one every Vancouver reader puts on that day, never midnight UTC (the evening before there), and the
+ * input is filled with the day Vancouver reads, never the UTC date.
+ */
+describe('a day typed into a date input', () => {
+  it('is sent as 20:00 UTC — noon in Vancouver in winter, 1 p.m. in summer — and read back as that day', () => {
+    expect(instantOfDate('2028-01-31')).toBe('2028-01-31T20:00:00.000Z')
+    expect(dayInWords(instantOfDate('2028-01-31'))).toBe('January 31, 2028')
+    expect(dayInWords(instantOfDate('2027-07-01'))).toBe('July 1, 2027')
+    expect(dayInWords('2028-01-31T00:00:00.000Z')).toBe('January 30, 2028')
+  })
+
+  it('is filled from an instant as the day Vancouver reads it — not the UTC date', () => {
+    expect(dateOf('2028-02-01T03:00:00.000Z')).toBe('2028-01-31')
+    expect(dateOf('2028-09-04T16:12:00.000Z')).toBe('2028-09-04')
+    expect(dateOf(instantOfDate('2027-07-01'))).toBe('2027-07-01')
   })
 })

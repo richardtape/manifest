@@ -50,26 +50,48 @@ SHOTS="${DEMO_ADMIN_SHOTS:-$(mktemp -d -t manifest-demo-admin)}"
 mkdir -p "$SHOTS"
 PROFILE="$(mktemp -d -t manifest-demo-admin-chrome)"
 
-# A background job's whole tree, by TERM: a job a non-interactive script backgrounds ignores SIGINT,
-# and pnpm runs each package script through a shell, so killing pnpm alone can leave the node process
-# holding its port (P11 sitting 1's F2; scripts/admin-ui.sh's pattern).
-kill_tree() {
+# A background job's whole tree, every pid of it, read BEFORE any is signalled: a job a non-interactive
+# script backgrounds ignores SIGINT, and pnpm runs each package script through a shell, so killing pnpm
+# alone can leave the node process holding its port (P11 sitting 1's F2; scripts/admin-ui.sh's pattern),
+# and a child whose parent has gone is no longer found under it.
+tree_of() {
   local child
   for child in $(pgrep -P "$1" 2>/dev/null || true); do
-    kill_tree "$child"
+    tree_of "$child"
   done
-  kill -TERM "$1" 2>/dev/null || true
+  echo "$1"
+}
+# Running, and not merely a zombie this shell has not reaped yet (`kill -0` succeeds on one).
+running() {
+  local st
+  st="$(ps -o stat= -p "$1" 2>/dev/null)" || return 1
+  case "$st" in *Z*) return 1 ;; esac
+  return 0
 }
 MOCK_PID=""
 UI_PID=""
 CHROME_PID=""
 WALK_PID=""
+# TERM to every process of the four trees, then up to ten seconds, then KILL whatever ignored it — a
+# wedged server or Chrome must not hold this trap, the two ports and the profile for ever (the
+# whole-branch review's M3).
 stop() {
   trap - EXIT INT TERM
-  [ -n "$WALK_PID" ] && kill_tree "$WALK_PID"
-  [ -n "$CHROME_PID" ] && kill_tree "$CHROME_PID"
-  [ -n "$UI_PID" ] && kill_tree "$UI_PID"
-  [ -n "$MOCK_PID" ] && kill_tree "$MOCK_PID"
+  local pids="" p alive=""
+  for p in "$WALK_PID" "$CHROME_PID" "$UI_PID" "$MOCK_PID"; do
+    [ -n "$p" ] && pids="$pids $(tree_of "$p" | tr '\n' ' ')"
+  done
+  for p in $pids; do kill -TERM "$p" 2>/dev/null || true; done
+  for _ in $(seq 1 20); do
+    alive=""
+    for p in $pids; do running "$p" && alive="$alive $p"; done
+    [ -z "$alive" ] && break
+    sleep 0.5
+  done
+  if [ -n "$alive" ]; then
+    echo "demo-admin: KILL to what ignored TERM for 10 s:$alive" >&2
+    for p in $alive; do kill -KILL "$p" 2>/dev/null || true; done
+  fi
   wait 2>/dev/null || true
   rm -rf "$PROFILE"
 }

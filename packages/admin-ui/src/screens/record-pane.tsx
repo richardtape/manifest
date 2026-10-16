@@ -13,7 +13,14 @@ import {
   Tags,
   type ChoiceOption,
 } from '../system'
-import { ageWords, dayInWords, dayOfDate, vancouverToday } from '../time'
+import {
+  ageWords,
+  dateOf,
+  dayInWords,
+  dayOfDate,
+  instantOfDate,
+  vancouverToday,
+} from '../time'
 import {
   createKeys,
   grantedChange,
@@ -188,10 +195,14 @@ const BLANK: RecordForm = {
   reviewer: '',
 }
 
-const certOf = (r: Registration) => ({
-  fingerprint: r.certFingerprint ?? r.package?.certificate.fingerprint ?? '',
-  expires: (r.certExpiresAt ?? r.package?.certificate.expiresAt ?? '').slice(0, 10),
-})
+/** The certificate as the form first holds it: its expiry the day Vancouver reads, as the facts say it. */
+const certOf = (r: Registration) => {
+  const expiresAt = r.certExpiresAt ?? r.package?.certificate.expiresAt ?? null
+  return {
+    fingerprint: r.certFingerprint ?? r.package?.certificate.fingerprint ?? '',
+    expires: expiresAt === null ? '' : dateOf(expiresAt),
+  }
+}
 
 /** The form as a record first fills it. `ticket` keeps what was typed across a re-read. */
 export function formOf(found: Found, now: Date, ticket?: string): RecordForm {
@@ -218,7 +229,8 @@ export function listOf(text: string): string[] {
 
 /**
  * THE FORM AS AN ANSWER for `iamAnswerBody`: the lists as typed; the certificate as the form holds it —
- * an expiry left as pre-filled is sent as the record's own instant, never re-written as a midnight.
+ * an expiry left as pre-filled is sent as the record's own instant, and a day typed is sent as that day
+ * in Vancouver (`instantOfDate`), never a midnight UTC.
  */
 export function iamAnswerOf(r: Registration, form: RecordForm): IamAnswer {
   const requested = listOf(form.requested)
@@ -232,7 +244,7 @@ export function iamAnswerOf(r: Registration, form: RecordForm): IamAnswer {
     ...(fingerprint === '' ? {} : { certFingerprint: fingerprint }),
     ...(expires === '' || expires === certOf(r).expires
       ? {}
-      : { certExpiresAt: `${expires}T00:00:00.000Z` }),
+      : { certExpiresAt: instantOfDate(expires) }),
   }
 }
 
