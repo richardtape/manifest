@@ -2168,3 +2168,8 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
     pattern ([Run the test], stepped up, ~10 min, polled, passed/failed with [Fix it]), the refusals while one runs (m281) and the line in
     what happened — AFTER he reads the proposed words (the record's "Proposed for Rich"), on B's sitting-5 mock stage (MANIFEST_MOCK_LOAD).
     Rejected: (b) build now, words reviewed after; (c) leave the row as drawn.
+
+    On 2026-10-16 at ~09:52 PDT, in chat to manifest-coord5: "m280 words approved". These are the record's "Proposed for Rich"
+    (manifest-app docs/research/2026-10-15-contract-1100-adoption.md): the row's press; the refusal while one runs (m281); the line in
+    what happened. They are now approved words, and the small follow-up front-end job builds them, as his "(a) is fine" (above) chose:
+    the press on the dry run's pattern, the refusals, the history line, in mock mode on B's sitting-5 stage (MANIFEST_MOCK_LOAD).
