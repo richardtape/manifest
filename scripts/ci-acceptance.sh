@@ -358,8 +358,13 @@ red() { printf '\033[31m%s\033[0m' "$1"; }
 # shape kept narrow, the boot's pass 2⅞) — and +20 in files that existed: `launch/load.test.ts` +16 (`judge`, `phasesFor`,
 # `loadPathsFor`, the generator's `removeLeft`), `config.test.ts` +2 (the `MANIFEST_LOAD_*` settings), `releases/shape.test.ts` +1
 # (staging's load-rehearsal row), `releases/recover.test.ts` +1 (pass 2⅞'s place). Measured 4112/245 twice on `af407a46`.
-EXPECT_TESTS=4112
-EXPECT_FILES=245
+# EXPECT_TESTS 4112 -> 4152 and EXPECT_FILES 245 -> 246 (2026-10-15, the load rehearsal plan's sitting 4, `manifest-b-s4`): one new
+# file — `api/load-rehearsal.test.ts` (10: the operation answered at once and polled, its refusals, staging held while a run lasts,
+# the event, the codes declared where answered) — and +30 in files that existed: `api/authz-contract.ts` +27 (three rows × nine
+# actors), `launch/load-run.test.ts` +1 (a staging deploy refused while a run holds it), `api/instances.test.ts` +1 and
+# `api/incidents.test.ts` +1 (FE-63's `replacing`). Measured 4152/246 twice on `2258937e` (21:27, utility, load median 2.8).
+EXPECT_TESTS=4152
+EXPECT_FILES=246
 # EXPECT_DOCTOR 21 -> 22 (2026-10-03, the UBC AI Gateway plan's sitting 2, Task 2): the gateway key's expiry, a
 # check_warn — counted, never failing — from 14 days ahead (its Decision 11). Measured: 22 checks, 0 failed, 0 warnings.
 # EXPECT_DOCTOR 22 -> 23 (2026-10-15, the load rehearsal plan's sitting 2, Task 2): the load generator's image,
