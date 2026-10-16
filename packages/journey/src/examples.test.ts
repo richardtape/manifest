@@ -29,6 +29,7 @@ import { commitOnWhatIsThere } from './example-conflict.js'
 import { releaseToStaging } from './example-deploy.js'
 import { startDescribing, stopDescribing } from './example-intake.js'
 import { whatALaunchNeeds } from './example-launch.js'
+import { loadRehearsalToItsEnd } from './example-load-rehearsal.js'
 import {
   askForSignOff,
   draftARegistration,
@@ -754,6 +755,76 @@ describe('the guides’ examples, run against manifest-mock (Decision 16)', () =
       expect(queue.items.length).toBe(5)
       expect(queue.oldestSince).not.toBeNull()
     })
+  })
+
+  /**
+   * THE LOAD REHEARSAL, READ TO ITS END (the load rehearsal plan's Task 7), against the mock's stage (`MANIFEST_MOCK_LOAD`): a
+   * person starts it in their own session; the example reads it with a token. The mock reads a run `running` ONCE and its end
+   * after — so the case reads it once first, and the example meets the end without waiting the ten seconds `pollAfterSeconds`
+   * says. A run that did not pass is still what the example returns: a `200`, its `state` and its reason.
+   */
+  it('example-load-rehearsal: a run read to its end — passed, or failed with its reason, never a request error', async () => {
+    ran.add('example-load-rehearsal')
+    for (const load of ['passed', 'failed'] as const) {
+      await withMock({ load }, async (at) => {
+        const started = await fetch(`${at}/v1/projects/${PROJECT_ID}/load-rehearsal`, {
+          method: 'POST',
+          headers: {
+            cookie: `manifest_session=${SESSION}`,
+            'idempotency-key': crypto.randomUUID(),
+          },
+        })
+        expect(started.status).toBe(202)
+        const { id } = (await started.json()) as { id: string }
+        const once = await fetch(
+          `${at}/v1/projects/${PROJECT_ID}/load-rehearsals/${id}`,
+          {
+            headers: { authorization: `Bearer ${TOKEN}` },
+          },
+        )
+        expect(((await once.json()) as { state: string }).state).toBe('running')
+        const ended = await loadRehearsalToItsEnd(at, TOKEN, PROJECT_ID, id)
+        expect(ended).toMatchObject({ id, state: load, pollAfterSeconds: null })
+        expect(ended.evidence?.reason).toBe(
+          load === 'passed'
+            ? fixtures.LOAD_REHEARSAL_PASSED.evidence!.reason
+            : fixtures.LOAD_REHEARSAL_FAILED.evidence!.reason,
+        )
+      })
+    }
+    // AND THE LOOP ITSELF: a stand-in answers `running`, then the end — the example reads, waits `pollAfterSeconds`, and reads
+    // again (one second here, so the case need not wait the platform's ten). Without the pre-read above the mock would cost ten.
+    await withStandIn(
+      [
+        {
+          status: 200,
+          body: { ...fixtures.LOAD_REHEARSAL_RUNNING, pollAfterSeconds: 1 },
+        },
+        { status: 200, body: fixtures.LOAD_REHEARSAL_PASSED },
+      ],
+      async (at, heard) => {
+        const t0 = Date.now()
+        const ended = await loadRehearsalToItsEnd(
+          at,
+          TOKEN,
+          PROJECT_ID,
+          fixtures.LOAD_REHEARSAL_RUNNING.id,
+        )
+        expect(ended.state).toBe('passed')
+        expect(heard.map((h) => [h.method, h.url])).toEqual([
+          [
+            'GET',
+            `/v1/projects/${PROJECT_ID}/load-rehearsals/${fixtures.LOAD_REHEARSAL_RUNNING.id}`,
+          ],
+          [
+            'GET',
+            `/v1/projects/${PROJECT_ID}/load-rehearsals/${fixtures.LOAD_REHEARSAL_RUNNING.id}`,
+          ],
+        ])
+        expect(heard[0]!.headers.authorization).toBe(`Bearer ${TOKEN}`)
+        expect(Date.now() - t0).toBeGreaterThanOrEqual(950)
+      },
+    )
   })
 
   it('ran every example file in this directory', async () => {
