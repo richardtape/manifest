@@ -14,13 +14,19 @@ rejected and what changing course would cost.*
 > §10 now carries its status. The 2026-09-27 reading is at `e1712d8`. **The plan is written**:
 > [`plans/2026-10-14-p11-admin-console.md`](./plans/2026-10-14-p11-admin-console.md) — `packages/admin-ui`, against the mock, built in a
 > git worktree — **freshly reviewed (`14cffdc`), revised (`3d05fc8`) and APPROVED BY RICH 2026-10-15 ~08:54 PDT (`ab6c7b7a`)**.
+>
+> **BUILT — THE PLAN IS EXECUTED 2026-10-16** (nine sittings; `packages/admin-ui` on `main` since its LANDING 3, `c64f067d`): this design,
+> against the mock's demo fleet (`make admin-ui` on 7101, `make demo-admin` its headless half), **clicked by Rich 2026-10-16, 09:38–09:51
+> PDT** — *"I think this is a fantastic start, I'm sure there will be changes over time, but I really like the shape this is taking."* Serving
+> it through the edge on the real platform is P11b, not built. §13 says so; A19 carries his one question.
 
 **What this is.** The written design for **P11** (the roadmap's *Admin console*): the console's
 design, the design-system components it needs, and what the API cannot yet answer. **It is drawn as a
 clickable mockup** — [`design/admin-console.html`](./design/admin-console.html), published at
 <https://claude.ai/artifact/N8qj84CVbvJ7f2L6xKfQ25>, its files and their provenance in
-[`design/admin/README.md`](./design/admin/README.md). **`packages/admin-ui` is not built**; until 2026-10-14 no plan was written either
-(Rich, 2026-09-27: *"We're just trying to get some sense of a design"*) — §13 now points at the plan. **What it is not:** a change to
+[`design/admin/README.md`](./design/admin/README.md). **`packages/admin-ui` is built** (2026-10-16, the P11 plan, on the mock — the
+banner above); until 2026-10-14 no plan was written either (Rich, 2026-09-27: *"We're just trying to get some sense of a design"*) — §13
+now points at the plan. **What it is not:** a change to
 the API. Every gap the console meets is reported in §10 with the shape it would need, and none is assumed to exist.
 
 ---
@@ -621,7 +627,7 @@ built by P11, which changes no contract.
 | **A16** | **NEW** | **Agents' questions have no read across projects.** They are not in `listQueue` (rightly — §26: they are the minter's), so *"which agents are waiting on someone, platform-wide"* is a fan-out of `listPendingActions` over every project. The console does not build it; the project's page lists a project's |
 | **A17** | **NEW** | **The fleet carries no data level.** `Fleet` has no `classification` and neither does `Project`; the level is per release, in `Release.config.<environment>.classification`. Which apps hold U1 `high` or `very-high` data is the first thing an operator filters by, and costs a read per project. *Worth considering:* the serving release's level on each fleet environment |
 | **A18** | **NEW, at 1.10.0 (drafted)** | **Nothing says which project holds the one load rehearsal slot.** B's `LOAD_REHEARSAL_BUSY` deliberately names no other project to an owner — right for an owner — and no administrator's read says which run holds it. *Worth considering:* the running row on `listFleet` or a Health read |
-| **A19** | **NEW, minor** | **A hand-back keeps no reason.** `returnIamRegistration` and `returnPrivacyAssessment` take no body; *"why it came back travels outside the record"*. The console says so beside the button (§4). Filed for the team to decide whether it wants one kept, not as a defect |
+| **A19** | **NEW, minor** | **A hand-back keeps no reason.** `returnIamRegistration` and `returnPrivacyAssessment` take no body; *"why it came back travels outside the record"*. The console says so beside the button (§4). Filed for the team to decide whether it wants one kept, not as a defect. **Raised by Rich at P11's click, 2026-10-16:** *"why would we not keep a reason for handing it back to help the person out?"* — a contract change (a body carrying the reason, kept, shown to the owner and in the email), named for P11b or a plan of its own, at his call (the P11 plan's *Sitting 9*, F1) |
 | **A20** | **NEW** (found after the plan's first draft; confirmed by its fresh review) | **Recording that UBC GRANTED a change request takes two writes.** `IAM_ARROWS.change_requested` is `['submitted', 'expired']` (`launch/transitions.ts:47`): there is no arrow to `active`. So a granted change is `change_requested → submitted → active`. The first write **re-stamps `submittedAt`** (`launch/records.ts:263-269`), so the queue item turns from `iam-change-request` into `iam-registration` with its `since` reset to that day (`queue.ts:290`) — if the second write never lands, the weeks UBC held it vanish from the queue and it reads as freshly submitted. `registeredAt` is kept (`records.ts:249-253`), so the registration stays in force and production is not interrupted between the writes (`readiness.ts:552`). Its event reads *"… recorded this app's production UBC IAM registration as submitted"* for what was UBC's answer. *Worth considering:* an arrow `change_requested → active` for a change filed from `active` (`changeRequestedFrom: 'active'`), which is UBC's answer to that change |
 | **A21** | **NEW** (the plan's fresh review, I4) | **Nothing reads through which token a sign-off was asked.** `QueueItem` carries no token; no operation reads an `ApprovalRequest` (`requestApproval` is POST only; `getApproval` reads the decision); `approval.requested`'s `machineDetail.viaToken` is a boolean. The token's name is only the event's `actor.token`, on the project's stream. The console opens the stream to show it. *Worth considering:* `viaToken: { id, name } \| null` on `QueueItem` (or on a read of the open request) |
 
@@ -795,7 +801,9 @@ change and no SAML change (`safeReturnTo` accepts any same-origin path, `identit
 
 **WRITTEN 2026-10-14** — [`plans/2026-10-14-p11-admin-console.md`](./plans/2026-10-14-p11-admin-console.md), at Rich's *"Plan + review
 now, build after approval"* (`3011e11`); its shape follows the paragraph below, with the demo fleet in the mock first and the design
-system ported (decision 12, reversed). The paragraph is kept as it was written.
+system ported (decision 12, reversed). The paragraph is kept as it was written. **BUILT 2026-10-15/16** — the plan EXECUTED in nine
+sittings, three landings, clicked by Rich 2026-10-16; its *What executing this plan found* is the record, and P11b (through the edge) is
+what remains.
 
 **None is written** (Rich, 2026-09-27): the mockup is the deliverable for now. If the console is
 later built for real, the plan's shape would be: **the measurements and the mock's admin fixtures first**; then **the

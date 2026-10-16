@@ -32,6 +32,9 @@ UBC or hands it back, and is emailed; every record says who has it and since whe
 agent's question names what it would act on and when it stops waiting. **And production runs as many instances as its audience needs** (A1, EXECUTED 2026-10-13/14): `class` 2, `large_course` and `public` 3,
 behind one edge route that balances and routes around a dead member, a member that exits replaced. **And the test tiers run gently** (the
 gentler test tiers, EXECUTED 2026-10-15): at utility priority, timeouts scaled, refused above a load of 12, Docker Desktop at 6 CPUs.
+**And an operator has a console of their own** (P11, EXECUTED 2026-10-16, clicked by Rich): `packages/admin-ui` on 7101 — the queue, oldest
+first, a release signed off from a stored preview, the team's step and UBC's answer, the fleet, a project's page, Health and Settings — on
+the mock's demo fleet (`make admin-ui`); serving it through the edge on the real platform is P11b, not written.
 **Now: B, the load rehearsal** (§7e) — then FE-32, Phase 3, A2, the vulnerability database in the console and FE-45 (§8 *Decided*).
 The roadmap's ledger outranks every document on status.
 
@@ -62,7 +65,7 @@ everything.
 ## 2. Where things stand
 
 **Five spikes are done — S7, S2, S1, S3 and S6 — and all five answered yes (§5); S5 and S4 are deliberately later.
-NINETEEN plans are executed, and each has an acceptance that passes:**
+TWENTY-TWO plans are executed, and each has an acceptance that passes:**
 
 | Plan | Executed | What it made true | Acceptance |
 |---|---|---|---|
@@ -85,6 +88,9 @@ NINETEEN plans are executed, and each has an acceptance that passes:**
 | UBC AI Gateway | 2026-10-04 | **The capable model through UBC's AI Gateway**: Manifest's LiteLLM names UBC's gateway its upstream provider — `MANIFEST_CAPABLE_MODEL=ubc-ai-gateway/<model>`, the key by REFERENCE only, scrubbed from the control plane, the boot failing closed whatever the setting; `MANIFEST_GATEWAY_MODELS`, the gateway's own models by name and classification (a `confidential` one priced at the stand-in's rate); `make verify`'s fingerprint and `make doctor`'s expiry; the upstream's key headers stripped from every caller; an allowed fallback logged; LiteLLM **re-pinned to 1.102.0** so a streamed call is charged its provider's usage (F32) — two spec actions applied, all Rich's | `make demo-gateway` (the network on, the key) **and Rich watching the key's spend** |
 | U1 levels | 2026-10-04 | **Manifest's data classes as UBC's U1 levels**: `low`, `medium`, `high`, `very-high` in ONE rank table of seven names, the earlier three aliases at their level's rank for ever (`confidential` = `very-high`); stored and answered as the level, old rows too, a rename never a change; D17's hint in U1's words and no law; the capable model's level a setting (`MANIFEST_CAPABLE_MODEL_CLASSIFICATION`, `high` on Rich's laptop), registered by level and never kept above it, its fallback floor failing closed; a token refused `high` projects' staging and production Incidents whatever the builder setting; a lowered level taken off every running app's key at boot, or the key revoked — one spec action, Rich's; contract `1.7.0` | `make demo-levels` (either driver, offline) **and Rich reading a `high` app's privacy assessment** |
 | FE-46/47/5 | 2026-10-08/09 | **The Manifest team's step** (FE-46, FE-47, FE-5, FE-53, with FE-54 and FE-55): the owner SENDS each launch record to the Manifest team — a state of its own, `sent`, every gap of the privacy assessment answered by its stable id — and the team submits it to the Privacy Office or UBC IAM, or hands it back; the platform's first email (nodemailer 10.0.13, pinned, to Mailpit) tells the team of every send and sign-off request, never a person's words; every record and queue item says who has it and since when; a change to a live registration goes the same way and is filed as a change request; a question an agent raises names what it would act on and carries when it stops waiting; a commit's sensitive change against the last approved release; a CWL app asking no attribute refused, typed — three spec actions, all Rich's; contract `1.8.0` | `make demo-launch` (either driver) and `make demo-token`, **and Rich clicking the team's step** |
+| A1 | 2026-10-13/14 | **Production instances by audience**: production runs its audience's count of instances — `class` 2, `large_course` and `public` 3 — behind one edge route that balances and routes around a dead member; a redeploy moves the whole set once; a member that exits is replaced (at once, then 1 and 4 minutes, stopped after three in an hour); a CWL sign-in crosses instances (the SAML request cache in the app's Mongo); contract `1.9.0` | `make demo-capacity` (either driver), every launch demo on two instances, **and Rich clicking it** |
+| Gentler test tiers | 2026-10-14/15 | **The test tiers run without making the laptop unusable**: at utility priority (background on a call), every timeout scaled to it, refused above a 1-minute load of 12 unless forced, the load on every run's last line; `resetDatabase` survives a deadlock; Docker Desktop at 6 CPUs (Rich's choice) | `pnpm test` green under ten CPU burners, `pnpm test:docker` at 6 CPUs, **and Rich's Docker Desktop step** |
+| P11 | 2026-10-15/16 | **The administrator's console** (`packages/admin-ui`, on 7101, in the look Rich chose on 2026-09-27): the queue, oldest first, its headline from our own band; a release signed off from a stored preview, through the step-up and back; the team's step and UBC's answer, every body what the operation requires; the fleet; a project's page, its events naming who acted and why; Health and Settings, each saying what it cannot see — a client of the contract alone, against `manifest-mock`'s demo fleet (`MANIFEST_MOCK_FLEET=demo`); built in a worktree, three landings; no contract change | `make demo-admin` (no platform needed) **and Rich clicking it** |
 
 **Executing a plan finds defects at a rate that has never fallen with practice** — 18 in P1's 13 tasks, 52 in P2's
 21, 82 in P3's 19, 80 in P4a's 15, 140 in P4b's 16, 70 in P4c's 11, 146 in P5a's 17 — plus 8 more found in a
@@ -200,7 +206,7 @@ Read for your purpose, not front to back. The spec is ~2,340 lines; nobody reads
 | You are… | Read |
 |---|---|
 | **new, any role** | This file — §7e and §2 first. Then the roadmap's ledger and its *Lessons*. |
-| **executing a plan** | **[A1, production instances by audience](plans/2026-10-03-production-instances.md) is EXECUTED** (approved 2026-10-03; 2026-10-13/14, inline, one sitting per session, in the second coordinated run — eight sittings, the review's fix wave `745def2`, Rich's click ~10:23; contract `1.9.0` since its Task 5, added to by Tasks 6 and 7 and complete; §7e). **[The gentler test tiers](plans/2026-10-14-gentler-test-tiers.md) are EXECUTED** (2026-10-14/15, seven tasks in three sittings, inline, in the second and third coordinated runs; Docker Desktop at 6 CPUs, Rich's *"keep 6"*) — **B (the load rehearsal) is EXECUTING** (since 2026-10-15, five of its seven sittings done; contract `1.10.0` since its Task 5, `2258937e`; §7e). [The FE-46/47/5 plan](plans/2026-10-03-fe46-fe47-fe5.md) was EXECUTED on 2026-10-08/09 — eleven tasks (1–9, with 2b, and 8 as 8a and 8b) in five sittings, inline, in the coordinated run; contract `1.8.0`; its *What executing this plan found* is the record. [The U1 plan](plans/2026-10-03-u1-classification.md) was EXECUTED on 2026-10-04 — eight tasks (0–7) in three sittings, its one spec action Rich's (contract `1.7.0`); its *What executing this plan found* is the record. [The UBC AI Gateway plan](plans/2026-10-03-ubc-ai-gateway.md) was EXECUTED on 2026-10-04 — seven tasks in three sittings; its record and `spikes/gateway-baseline/`. [The faculty-ready plan](plans/2026-09-30-faculty-ready.md) was EXECUTED on 2026-10-03 — eighteen tasks in eight sittings, all five of its spec actions Rich's (a sixth, on `passport-ubcshib`'s facts, applied by him); its *What executing this plan found* is the record. [The launch path plan](plans/2026-09-29-launch-path.md) was EXECUTED on 2026-10-02 — nineteen tasks in fourteen sittings, all ten of its spec actions Rich's; its *What executing this plan found* is the record. [The front-end enablement plan](plans/2026-09-27-front-end-enablement.md) was EXECUTED on 2026-09-29 — eighteen tasks in fifteen sittings, all ten of its spec actions Rich's; its *What executing this plan found* is the record. **The current plan is always the one §7e names**: when one is, its sittings table says which sitting is next, and its *What executing this plan found* is the record of every sitting before — read that before the task. One sitting per session, with a check-in at each boundary. A plan is self-contained by construction; if it is not, that is a defect in the plan — fix it there. |
+| **executing a plan** | **[A1, production instances by audience](plans/2026-10-03-production-instances.md) is EXECUTED** (approved 2026-10-03; 2026-10-13/14, inline, one sitting per session, in the second coordinated run — eight sittings, the review's fix wave `745def2`, Rich's click ~10:23; contract `1.9.0` since its Task 5, added to by Tasks 6 and 7 and complete; §7e). **[The gentler test tiers](plans/2026-10-14-gentler-test-tiers.md) are EXECUTED** (2026-10-14/15, seven tasks in three sittings, inline, in the second and third coordinated runs; Docker Desktop at 6 CPUs, Rich's *"keep 6"*). **[P11, the administrator's console](plans/2026-10-14-p11-admin-console.md) is EXECUTED** (2026-10-15/16, thirteen tasks in nine sittings, a parallel lane beside B in a git worktree since removed, three landings; Rich's click 2026-10-16; §7e) — **B (the load rehearsal) is EXECUTING** (since 2026-10-15, five of its seven sittings done; contract `1.10.0` since its Task 5, `2258937e`; §7e). [The FE-46/47/5 plan](plans/2026-10-03-fe46-fe47-fe5.md) was EXECUTED on 2026-10-08/09 — eleven tasks (1–9, with 2b, and 8 as 8a and 8b) in five sittings, inline, in the coordinated run; contract `1.8.0`; its *What executing this plan found* is the record. [The U1 plan](plans/2026-10-03-u1-classification.md) was EXECUTED on 2026-10-04 — eight tasks (0–7) in three sittings, its one spec action Rich's (contract `1.7.0`); its *What executing this plan found* is the record. [The UBC AI Gateway plan](plans/2026-10-03-ubc-ai-gateway.md) was EXECUTED on 2026-10-04 — seven tasks in three sittings; its record and `spikes/gateway-baseline/`. [The faculty-ready plan](plans/2026-09-30-faculty-ready.md) was EXECUTED on 2026-10-03 — eighteen tasks in eight sittings, all five of its spec actions Rich's (a sixth, on `passport-ubcshib`'s facts, applied by him); its *What executing this plan found* is the record. [The launch path plan](plans/2026-09-29-launch-path.md) was EXECUTED on 2026-10-02 — nineteen tasks in fourteen sittings, all ten of its spec actions Rich's; its *What executing this plan found* is the record. [The front-end enablement plan](plans/2026-09-27-front-end-enablement.md) was EXECUTED on 2026-09-29 — eighteen tasks in fifteen sittings, all ten of its spec actions Rich's; its *What executing this plan found* is the record. **The current plan is always the one §7e names**: when one is, its sittings table says which sitting is next, and its *What executing this plan found* is the record of every sitting before — read that before the task. One sitting per session, with a check-in at each boundary. A plan is self-contained by construction; if it is not, that is a defect in the plan — fix it there. |
 | **writing a plan** | **The queue after A1 is already written** — A1 ([`plans/2026-10-03-production-instances.md`](plans/2026-10-03-production-instances.md), EXECUTED), the gentler test tiers ([`-gentler-test-tiers.md`](plans/2026-10-14-gentler-test-tiers.md), EXECUTED 2026-10-15), B ([`-load-rehearsal.md`](plans/2026-10-03-load-rehearsal.md)), FE-32 ([`-fe32-dependencies.md`](plans/2026-10-03-fe32-dependencies.md)) and A2 ([`-hibernation.md`](plans/2026-10-03-hibernation.md)), A2 awaiting a second review, B second-reviewed (`6f99611`), revised (`b25d7e3`) and approved (`0e9db93`, under Rich's delegation); **not yet written**: Phase 3 (sandboxes), the vulnerability database in the console and FE-45, in Rich's order (§8 *Decided*). House style: [`plans/2026-08-30-p1-local-substrate.md`](plans/2026-08-30-p1-local-substrate.md), or the newest, [`plans/2026-09-27-front-end-enablement.md`](plans/2026-09-27-front-end-enablement.md). |
 | **seeing it run end to end** | [`WALKTHROUGH.md`](WALKTHROUGH.md) — start it, deploy the demos, what to open in a browser and with which test users, how to check it, and the traps. |
 | **running the platform** | [`RUNBOOK.md`](RUNBOOK.md) — `make seed && make host-setup && make up`, every demo step by step, and *Known gaps*. Its *Running the control plane* is the export block to start it with. |
@@ -297,6 +303,10 @@ packages/journey/                 §22's journey through that client — make de
                                   API reference as one page opened from disk; the guides stay Markdown) — the authoring API plan's Task 11
 packages/console/reference.html   the HTML reference: Scalar's standalone bundle over /v1/openapi.json; reference/ imports
                                   nothing (Task 11)
+packages/admin-ui/                P11's administrator's console (React, Vite) on 7101 — a client of the contract alone (src/api.ts,
+                                  held by a boundary test and a lint rule); the drawing's components ported in src/system/, held to
+                                  it by parity tests; make admin-ui runs it against manifest-mock's demo fleet on 7113
+                                  (MANIFEST_MOCK_FLEET=demo), make demo-admin walks it headless
 packages/github-fake/             D5's GitHub FAKE (the D5 plan, Tasks 4–6, 9–10, 12): App JWTs, scoped tokens, repositories,
                                   git over HTTP, signed webhooks (push; repository publicized/privatized), `main`'s
                                   protection by plan, enforced by its own pre-receive in GitHub's GH006 words — held to
@@ -2020,6 +2030,7 @@ named in the row below.*
 | **A1** | [`plans/2026-10-03-production-instances.md`](plans/2026-10-03-production-instances.md) — **EXECUTED 2026-10-13/14**, ten tasks in eight sittings, inline, in the second coordinated run | `make demo-capacity` — either driver, green on both (five controls red as predicted); every launch demo on two instances on both drivers; a step of `make ci-acceptance` (12) and of the offline acceptance (19); **Rich clicking it** | **Sitting 8's F2–F4 are the ones to read**: the edge ejected a member for the APP's own `502`/`504` (a shared outage ejected all), a replacement that failed before it started stopped replacing for good, and the deploy's identity window failed good releases under traffic — all three found only by the plan's one whole-branch review. **Sitting 7's F1**: a launched app on the laptop signs in at UBC's real IdP. **Sitting 7's F6**: every route change resets idle sockets through the edge. **Sitting 1's `[M3]`**: a CWL sign-in could not cross instances until the SAML request cache moved into the app's Mongo |
 | **FE-46/47/5** | [`plans/2026-10-03-fe46-fe47-fe5.md`](plans/2026-10-03-fe46-fe47-fe5.md) — **EXECUTED 2026-10-08/09**, eleven tasks (1–9, with 2b, and 8 as 8a and 8b) in five sittings, inline, in the coordinated run | `make demo-launch` — either driver, green three times on EACH (fresh, re-use with the change leg, re-use again) and from a `make reset` machine; `make demo-token` fresh, re-use and from `make reset` (driver 1's alone); step 16 of the offline acceptance; a step of `make ci-acceptance`; six controls, one per Review Focus line; **Rich clicking the team's step** | **Sitting 5's F1 and F5 are the ones to read**: a change UBC sent back with questions was drafted again from the launch CANDIDATE and sent as NO change — the new attribute dropped silently — found only by the plan's one whole-branch review; and the acceptance's own *"since the SECOND send"* check could not fail, because it compared a column with itself — found by making a control go red through the edge. **Sitting 5's F19**: the cleanup script every sitting runs with `--apply` deleted an ARCHIVED project's data. **Sitting 5's F9–F11**: controls predicted without re-reading an earlier sitting's, red for the wrong reason (a database CHECK), or green because a guard is three layers deep. **Sitting 4's F1**: one Vitest file turns the next demo fresh. **Sitting 2's F13**: nodemailer folds a CR/LF in a subject itself |
 | **Gentler test tiers** | [`plans/2026-10-14-gentler-test-tiers.md`](plans/2026-10-14-gentler-test-tiers.md) — **EXECUTED 2026-10-14/15**, seven tasks in three sittings, inline, in the second and third coordinated runs | `pnpm test` and `pnpm test:docker` through `scripts/test-gently.sh` — green under ten CPU burners at utility 5, under six at background 7, refused above a load of 12; the Docker tier at 12 CPUs, then at 6 (Rich's *"keep 6"*) | **Sitting 2's F2 and F3 are the ones to read**: twelve burners STARVE a utility run (~1 % of a core), so the gate, not a scale, keeps a run out of saturation; and a scale set from a quiet ratio read 4 red at the gate's edge. **Sitting 3's F1**: Docker Desktop's *Apply & restart* also applied a pending update (4.87.0 → 4.95.0) — read the version on both sides of a restart a measurement brackets |
+| **P11** | [`plans/2026-10-14-p11-admin-console.md`](plans/2026-10-14-p11-admin-console.md) — **EXECUTED 2026-10-15/16**, thirteen tasks in nine sittings, inline, in the third coordinated run, in a git worktree with three fast-forward landings | `make demo-admin` — the console built and walked headless on its mock's demo fleet, nine checks each asserting a shape, no platform needed; a step of `make ci-acceptance` (13) and of the offline acceptance (20); eight controls; **Rich clicking it** | **Sitting 6's F1 is the one to read**: a launch record written without its certificate ERASES it — the platform's upsert writes the body as sent. **Sitting 8's review**: a certificate expiry typed into UBC's answer was recorded the day before in Vancouver (UTC midnight). **Sitting 5's F2**: a StrictMode defect only a walk could see. **Sitting 2**: four of the demo fleet's planned states were ones the platform cannot reach |
 ### 7e. B, the load rehearsal — its sitting 7 (`manifest-b-s7`: Task 8b, the rest of the acceptance and Rich's click) ← **START HERE**
 
 **THE GENTLER TEST TIERS PLAN IS EXECUTED** (2026-10-14/15 — `manifest-gt-s1`, `-s2` and `-s3` in the second and third coordinated runs; its
@@ -2123,46 +2134,19 @@ demo's ~13 minutes, the burst that must stay last, the app it leaves — delete 
 (03:15, G4): real GitHub from `.env`, proved on `gpt-6.1-sol` (0 fallbacks), **0 projects** (the suites truncated them), migration
 `0057`; 13 networks; `make verify` 67/0/0.
 
-**P11, THE ADMINISTRATOR'S CONSOLE, IS A PARALLEL LANE BESIDE B** — [`plans/2026-10-14-p11-admin-console.md`](plans/2026-10-14-p11-admin-console.md),
-approved by Rich 2026-10-15 ~08:54 (`ab6c7b7a`), nine sittings, one tab each (`manifest-p11-s1` … `-s9`), GOed by the coordinator. **It is
-built in the git worktree `/Users/rich/Developer/manifest-p11` on branch `p11-admin-ui`** (Rich's word, `3011e11`) and changes this checkout
-only by its three fast-forward landings and its sittings' documents. **Sitting 1 is done** (2026-10-15: the baseline
-[`spikes/p11-baseline/`](spikes/p11-baseline/README.md), `7fd25e4`; the skeleton `c2cb418` on the branch — `packages/admin-ui` on 7101,
-its own mock on 7113 by `make admin-ui` from the worktree — `8f9038f` since sitting 2's rebase: **a branch sha moves at every sitting's
-opening rebase; find a commit by its subject**); **so is sitting 2** (2026-10-15: the demo fleet `b289297` on the branch,
-`MANIFEST_MOCK_FLEET=demo` — its record names four planned states the platform cannot reach, built as it answers, and what Tasks 9–12
-inherit); **so is sitting 3** (2026-10-15, `manifest-p11-s3`): Task 4, the fleet's decisions — every request body validated, a sign-off on
-a stored preview, the team's step and UBC's answer as `records.ts` writes them, an agent refused with §26's reason, the replay's hash keeping
-that reason (I7) — **and LANDING 1: `main` at `355f612`**, so `packages/admin-ui`, `MANIFEST_MOCK_FLEET=demo` and `make admin-ui` are on
-`main`, `pnpm test` runs the `admin-ui` project (231 files / 3756 tests, the `EXPECT_` lines), and the faculty front-end's mock carries the
-fleet (off unless asked) and the platform's replay of a reasoned retry; **so is sitting 4** (2026-10-15, `manifest-p11-s4`): Task 5, the look
-— the drawing's six shared and fourteen operations components ported to TSX in `packages/admin-ui/src/system/`, held markup-identical to
-it by 103 parity cases, its stylesheets `@import`ed, the shell's rail its `ConsoleRail` with a working *Sign out* (`74e02bd8` on the
-branch; its record's *What Tasks 6–12 inherit*); **so is sitting 5** (2026-10-15, `manifest-p11-s5`): Task 6, the queue — the headline
-from our own band, never `oldestSince`, two bands by who holds the wait, the filter and the selection in the URL, `j`/`k`/`Esc`/`/`
-(`dc111c61`) — and Task 7, the release approval pane — the token it was asked through read from the project's stream, a stored preview on
-a click, the step-up round trip back to the same preview with the reason kept, stale and expired said, decided elsewhere read from
-`getApproval` and the stream and never decided again (`df332286`), both on the branch, walked on the demo fleet; its F2 is a StrictMode
-defect only a walk can see (Task 12's walk inherits a check for it). **so is sitting 6** (2026-10-15, `manifest-p11-s6`): Task 8, the
-team's step and UBC's answer — submit, file, hand back, record, every body exactly what the operation requires (the certificate on every
-write: the platform's upsert erases one left out), a granted change in its two writes, the team's emailed `/projects/<id>/records`
-(`6cad9bc0`) — and Task 9, the fleet — filters and sort in the URL, the set's count, an Incident after the last deploy (`800f3f18`); the
-demo fleet's `lastSeenAt` made the platform's (`bf980116`: only a deploy writes it, so `Fleet.lastDeployAt` IS the last deploy); **and
-LANDING 2: `main` at `6c66944e`**, `pnpm test` 244 files / 4076 tests twice (the `EXPECT_` lines). **Its F7: after the landing, 7100 could not
-be restarted — a peer's uncommitted file in the shared checkout failed the control plane's `tsc` build — and was handed to B3.** **So is sitting 7**
-(2026-10-15, `manifest-p11-s7`): Task 10, the project's page — the data's U1 level from the SERVING release, each environment's two
-facts and its set, the Incidents by cause, the releases, the launch with who has each record and since, an agent's question rejected with
-the reason as the body AND §26's header (`b0a96e07`, `3637cb9d`) — and Task 11, Health (five panels, each saying what it cannot see, its
-reads counted: 35 on the demo fleet) and Settings (52 rows, each held by a test to where the platform reads it; every value but a
-blueprint's *"Manifest can’t read this yet."*) (`23c58ea3`), all on the branch, walked on the demo fleet. **So is sitting 8**
-(2026-10-15, `manifest-p11-s8`): Task 12, **`make demo-admin`** — the console built and walked headless in Chrome on its own mock's demo
-fleet, nine checks each asserting a shape and nothing unexpected on the console, no control plane, Docker or network, so **a step of `make
-ci-acceptance` (13) on any driver or none, and the offline acceptance's step 20** (`5bff2852`) — and the plan's one whole-branch review
-(*approve with fixes*; its fix wave `783fb175`: a certificate expiry typed into UBC's answer is Vancouver's day both ways) — **and LANDING 3:
-`main` at `c64f067d`**, `pnpm test` 252 files / 4212 tests twice (the `EXPECT_` lines); RUNBOOK *Running the administrator's console* and
-WALKTHROUGH's clicked section (`cdbfd462`). **Its sitting 9 (Task 13: Rich clicks it — G9, he is at the machine) is next**, and alone: it
-changes documents only, then removes the worktree. Two of its traps are in TRAPS.md: a backgrounded `scripts/admin-ui.sh` ignores SIGINT
-(stop it with TERM), and `make doctor` in the worktree reads three fails for git-ignored files.
+**P11, THE ADMINISTRATOR'S CONSOLE, IS EXECUTED** (2026-10-16) — [`plans/2026-10-14-p11-admin-console.md`](plans/2026-10-14-p11-admin-console.md),
+thirteen tasks in nine sittings (`manifest-p11-s1` … `-s9`), a parallel lane beside B, built in a git worktree that is now REMOVED with its
+branch (`p11-admin-ui`, merged). **`packages/admin-ui` is on `main`** (LANDING 3, `c64f067d`): the queue — its headline from our own band,
+never `oldestSince` — the release approval pane through the step-up, the team's step and UBC's answer, the fleet, a project's page, Health
+and Settings, on 7101 against `manifest-mock`'s demo fleet on 7113 (`MANIFEST_MOCK_FLEET=demo`: thirteen projects, every state one the
+platform can reach, a restart the reset). **`make admin-ui`** runs it (RUNBOOK *Running the administrator's console*; WALKTHROUGH's nine
+clicks); **`make demo-admin`** is its headless half — a step of `make ci-acceptance` (13) and of the offline acceptance (20); `pnpm test` runs
+its `admin-ui` Vitest project (the `EXPECT_` lines). **Rich clicked it 2026-10-16, 09:38–09:51** — nine of nine as described, *"I think this
+is a fantastic start … I really like the shape this is taking"*; his one question, why a hand-back keeps no reason, is the design's A19 — a
+contract change, at his call. **Not built, and named in its *Sitting 9***: **P11b** — the console through the edge on the real queue (a
+Caddy route for `/admin*`, Vite's `base`, `make verify`'s 7101 check, `mail/team.ts`'s links), not written and not in Rich's order; Task
+10's *Load rehearsals* section (B's `1.10.0`); M6 (no `recordedBy` on a record). TRAPS.md keeps its two traps: a backgrounded
+`scripts/admin-ui.sh` ignores SIGINT (stop it with TERM), and `make doctor` in a worktree reads three fails for git-ignored files.
 
 **WHAT A1 LEFT THE NEXT PLANS, B ABOVE ALL (2026-10-14; A1's *What executing this plan found*, *Sitting 8*, has the story):**
 - **A1's review fix wave, `745def2`** — read it before Task 1's measurements, because B's generator is exactly the traffic it is about:
@@ -2216,8 +2200,8 @@ Constraints*:
   LINE DELIBERATELY DOES NOT RESTATE IT.** Read it: **other agents are working in this
   repository at the same time as you** — and a SECOND REPOSITORY now depends on this one's working tree (the faculty
   front-end links `packages/contract`, and runs `packages/mock` from source) — and `superpowers:executing-plans` and `using-git-worktrees` will both push you toward a
-  branch you must not make. **The one exception is P11's build** (Rich, `3011e11`): its sittings work in their worktree and branch, as
-  its plan's *How this plan is to be executed* says — and commit their documents here, by pathspec, like any sitting.
+  branch you must not make. **The one exception was P11's build** (Rich, `3011e11`): its sittings worked in a worktree and branch, as
+  its plan's *How this plan is to be executed* says — both removed 2026-10-16, when it was EXECUTED.
 - **Ask before `sudo`, and before touching anything outside the repository** — `~/Developer/manifest-app` and
   `~/Developer/saml-metadata-generator` included (the latter is read-only, and dirty with changes that are not ours).
   §6 rule 2, and CLAUDE.md's *Non-negotiables* has the rest.
@@ -2229,6 +2213,12 @@ reasoning is recorded.**
 
 ### Open
 
+- **SHOULD A HAND-BACK KEEP ITS REASON?** (Rich, 2026-10-16, at P11's click 6: *"why would we not keep a reason for handing it back to help
+  the person out?"* — *"a follow up question for later"*). Today `returnIamRegistration` and `returnPrivacyAssessment` take no body
+  (`packages/contract/openapi.json:5197`, `:6364`): *"why it came back travels outside the record"*, FE-46/47/5's scope cut, the admin console
+  design's A19, and the console says so beside the button. **Keeping one is a contract change**: a body carrying the reason (§26's own shape,
+  or a field), kept on the record or its event, shown to the owner in the faculty front-end and in the email. Not urgent; **his call when**
+  — with P11b, or a small plan of its own (the P11 plan's *Sitting 9*, F1).
 - **AN APP MADE BEFORE A1'S SAML REQUEST CACHE (`0ba9af8`) WOULD BREAK SIGN-IN ON TWO INSTANCES, AND NOTHING SAYS SO** (raised 2026-10-14
   by A1's sitting 8's whole-branch review, M6, deferred as minor): an app keeps the skeleton it was made from, so one made before
   2026-10-13 keeps `passport-ubcshib`'s per-process request cache — and launched as `class` or larger, a CWL sign-in started on one
@@ -2616,7 +2606,8 @@ reasoning is recorded.**
   shared design system (`design/admin-console.html`, published at
   <https://claude.ai/artifact/N8qj84CVbvJ7f2L6xKfQ25>). `packages/admin-ui` was not built and no P11 plan written then;
   the design's §13 said what one would do. **Since:** the P11 plan, written 2026-10-14 at Rich's *"Plan + review now, build after
-  approval"* (`3011e11`) and approved by him 2026-10-15 (`ab6c7b7a`), is being built in its worktree — §7e has where it is.
+  approval"* (`3011e11`) and approved by him 2026-10-15 (`ab6c7b7a`), is EXECUTED (2026-10-16, clicked by Rich): `packages/admin-ui`
+  is on `main`, on the mock's demo fleet; P11b, through the edge on the real platform, is not written — §7e.
 - **HOW SCALAR ARRIVES — OPTION (a): THE NETWORK, FOR THAT ONE ADD, IN THE AUTHORING API PLAN'S SITTING 8** (Rich,
   2026-09-26, after its sitting 7, taking the recommendation). Sitting 7 measured `pnpm --filter @manifest/console add
   --offline @scalar/api-reference@1.72.0` refused by pnpm 11's supply-chain check in a scratch copy of the workspace, so

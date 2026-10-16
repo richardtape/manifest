@@ -27,6 +27,14 @@
 > mock stateless"; "Not now". **Nine sittings, nine tabs (`manifest-p11-s1` … `-s9`), which Rich opens and `manifest-coord5` GOes.** **Its
 > build runs as a parallel lane beside B**, in its own git worktree, taking 7100 windows from the coordinator only to land.
 >
+> **EXECUTED 2026-10-16 — ALL THIRTEEN TASKS IN NINE SITTINGS, THREE LANDINGS** (`manifest-p11-s1` … `-s9`, inline, in the third
+> coordinated run; built in the worktree `/Users/rich/Developer/manifest-p11`, **removed at the close** with its branch `p11-admin-ui`, merged).
+> `packages/admin-ui` is on `main` since LANDING 3 (`c64f067d`): the queue, the release approval pane, the team's step and UBC's answer, the
+> fleet, a project's page, Health and Settings — on `manifest-mock`'s demo fleet, `make admin-ui`, with `make demo-admin` its headless half.
+> **Rich clicked it 2026-10-16, 09:38–09:51 PDT**: all nine of the WALKTHROUGH's clicks as described, *Decisions* 2 and 3 standing — *"I
+> think this is a fantastic start, I'm sure there will be changes over time, but I really like the shape this is taking."* *What executing
+> this plan found*, *Sitting 1* to *Sitting 9*, is the record. **P11b — the console through the edge on the real platform — is not built.**
+>
 > **The design it builds** is [`../2026-09-27-admin-console-design.md`](../2026-09-27-admin-console-design.md), **refreshed the same evening
 > against `1.9.0`** (its §0 says what moved; §10 gives every finding its status; §11 decisions 12 and 13 are revised and 21–25 added) — and
 > its clickable mockup, [`../design/admin-console.html`](../design/admin-console.html) with [`../design/admin/`](../design/admin/),
@@ -111,7 +119,7 @@ records and UBC's order), **§20** (step-up). **Design:** the refreshed [`2026-0
 | 6 | 8, 9 | **The team's step and UBC's answer** — submit, file, hand back, record, every body exactly what the operation requires, a granted change in its two writes (Task 8) — and **the fleet**: the table, its filters in the URL, the instance count, archived rows (Task 9). **LANDING 2** at the close | **Yes — L2** | After L2's merge, read back. **If it overflows, L2 moves to sitting 7's open** | ✅ **DONE 2026-10-15** (`manifest-p11-s6`, 13:17–16:50 PDT, HOLD 13:20–15:47): Task 8 `6cad9bc0` (+ `dbf18178`), the mock's `lastSeenAt` fix `bf980116`, Task 9 `800f3f18`; **LANDING 2 — `main` at `6c66944e`**, `pnpm test` 244 / 4076 twice; seven findings, F7 a peer's uncommitted file keeping 7100 down at G4; *What executing this plan found*, *Sitting 6* |
 | 7 | 10, 11 | **The project's page** — environments and their sets, incidents by cause, releases, the launch, people and agents, events live with the administrator's reason; reject an agent's question (Task 10) — and **Health and Settings** (Task 11) | No (L2 landed at sitting 6) | After Task 11's commit | ✅ **DONE 2026-10-15** (`manifest-p11-s7`, 16:51–18:41 PDT, HOLD 16:55–17:04 and 17:04–18:29): Task 10 `b0a96e07` (+ `3637cb9d`), Task 11 `23c58ea3` on `p11-admin-ui` — walked on the demo fleet, both controls red as predicted, 56 files / 703 tests twice; *What executing this plan found*, *Sitting 7* |
 | 8 | 12 | **The acceptance's headless half**: `make demo-admin` (the walk) and its step in both acceptances, its negative controls, **the plan's one whole-branch review and its one fix wave**. **LANDING 3** at the close; then RUNBOOK and WALKTHROUGH in the shared checkout | **Yes — L3** | After L3's merge and the two documents, read back | ✅ **DONE 2026-10-15** (`manifest-p11-s8`, 18:42–22:22 PDT, HOLD 19:25–20:14 and 20:17–21:30): Task 12 `5bff2852` and the review's fix wave `783fb175` (0 Critical, 1 Important, 6 Minor — four taken, two ruled, one gap); **LANDING 3 — `main` at `c64f067d`**, `pnpm test` 252 / 4212 twice; RUNBOOK and WALKTHROUGH `cdbfd462`; eleven findings; *What executing this plan found*, *Sitting 8* |
-| 9 | 13 | **Rich clicks it** (G9 — he is at the machine); his words recorded; the close-out: EXECUTED, the roadmap, ORIENTATION, CLAUDE.md's *State*; the worktree removed; the machine as found | Documents only (in the shared checkout) | After the close-out commit | ← **next** (`manifest-p11-s9`, Rich at the machine — G9: the coordinator opens it with ⚠ BLOCKED ON YOU; `make admin-ui` with `MANIFEST_MOCK_STEP_UP=1` from the shared checkout, WALKTHROUGH's nine clicks; *Sitting 8*'s *What sitting 9 inherits*) |
+| 9 | 13 | **Rich clicks it** (G9 — he is at the machine); his words recorded; the close-out: EXECUTED, the roadmap, ORIENTATION, CLAUDE.md's *State*; the worktree removed; the machine as found | Documents only (in the shared checkout) | After the close-out commit | ✅ **DONE 2026-10-16** (`manifest-p11-s9`, 09:36–~10:10 PDT, under B7's HOLD from 09:50): **Rich clicked it, 09:38–09:51** — all nine of the WALKTHROUGH's clicks as described, *Decisions* 2 and 3 standing, his words recorded verbatim; one question for later (a hand-back keeps no reason — the design's A19, F1); the worktree removed and `p11-admin-ui` deleted; *What executing this plan found*, *Sitting 9* — **THE PLAN IS EXECUTED** |
 
 **THE WORKTREE** (Task 1 creates it; every sitting works in it):
 
@@ -2744,3 +2752,77 @@ naming step 13; WALKTHROUGH *The administrator's console, clicked — P11's demo
 WALKTHROUGH's nine clicks are Rich's walk (*What Rich does* 3); a restart resets the demo fleet; at 1440 the fleet's table scrolls sideways
 for its last columns, as the drawing's does (sitting 6's F5); a failed deploy is amber, not the drawing's green (sitting 7's F2); Task
 10's *Load rehearsals* not built; M6's gap; the worktree, its branch and its `.env` symlink are Task 13's to remove.
+
+### Sitting 9 — Task 13: Rich clicks it, and the plan closes (2026-10-16, `manifest-p11-s9`)
+
+*GOed by `manifest-coord5` at ~09:36 PDT, Rich at the machine (G9). Inline, in the shared checkout at `7ac35b33`; no Vitest, no Docker, no
+7100. The flag read FREE at the open (Hatchery holding a Docker window to ~10:20) and **HOLD from 09:50:31, for B7 on 7100** — and Rich asked
+for Hatchery's work to take precedence today — so this sitting ran no Vitest, typecheck, lint, build or install, and its close-out is documents
+only.*
+
+**Step 1 — the console, started** (09:37; load 3.48): 7101 and 7113 free (`lsof`); `MANIFEST_MOCK_STEP_UP=1 make admin-ui` from the shared
+checkout, in the background. The mock up on 7113, `vite` 8.3.0 *"ready in 145 ms"* on 7101; `curl` read `<title>Manifest operations</title>`
+from 7101 and *"manifest-mock has no route for GET /v1/__doctor"* from 7113 — `make doctor`'s two questions (Decision 16), answered as ours.
+Rich was given <http://127.0.0.1:7101> and the WALKTHROUGH's nine clicks one at a time, each with its *What must be true*, and with the first
+**the two decisions flagged for him, in the review's words** (*For Rich* 1 and 2: yes to both, on the conditions it names, which this plan
+built).
+
+**Rich's clicked half — his words, verbatim, typed in this tab; each time is `date`'s, read as it was recorded:**
+
+| # | The WALKTHROUGH's click | Rich |
+|---|---|---|
+| 1, with *Decisions* 2 and 3 | the queue: the headline from our own band, the two bands, every row amber, `/queue` | 09:38:55 — *"looks right, both decisions stand — next"* |
+| 2 | `j`, `j`, `Enter`, `Esc` | 09:39:52 — *"works — next"* |
+| 3 | `reading-responses`: the preview, a reason, *Approve for production* through the step-up and back | 09:41:53 — *"approved, row gone — next"* |
+| 4 | `phys-101-labs`: a ticket, *Submit to UBC IAM* | 09:42:58 — *"correct, proceed"* |
+| 5 | `stats-sim`: *Record it* (active) | 09:43:35 — *"recorded as active, row gone — next"* |
+| 6 | `rubric-helper`: *Hand it back* | 09:44:56 — *"handed back, row gone — next (although perhaps a follow up question for later, why would we not keep a reason for handing it back to help the person out?)"* |
+| 7 | **Fleet** → *In production* | 09:47:20 — *"yep I see all of that as noted"* |
+| 8 | `econ-101-polls`, then `bio-201-scheduler` and its agent's question refused | 09:49:01 — *"all as described, refused for them — next"* |
+| 9 | **Health**, then **Settings** — and what is wrong with it | 09:51:23 — *"yes I see all that. I think this is a fantastic start, I'm sure there will be changes over time, but I really like the shape this is taking. Please proceed."* |
+
+**So the clicked half is DONE**: nine of nine as the WALKTHROUGH says, nothing he called wrong; *Decisions this plan makes* 2 (the mock's demo
+fleet keeps state, on the review's two conditions) and 3 (the edge waits for P11b) **stand**, in his words, as approved at `ab6c7b7a`. Also in
+`docs/superpowers/2026-09-30-decisions.md`, under the 2026-10-15 entry where `manifest-coord5` records 2026-10-16's words.
+
+**F1 — Rich's question, for later: a hand-back keeps no reason** (click 6). The console's *"Manifest doesn’t keep a reason for a
+hand-back."* is true of the platform: `returnIamRegistration` and `returnPrivacyAssessment` take no body (`packages/contract/openapi.json:5197`,
+`:6364` — *"Why it came back travels outside the record"*), a scope cut by the FE-46/47/5 plan (*What this plan does not build*, l.1686:
+*"it travels outside it, as UBC's questions do"*), filed by the design as **A19**, *"for the team to decide whether it wants one kept"*. His
+question raises that decision. Keeping one is a contract change — a request body carrying the reason, kept on the record or its event, shown
+to the owner in the faculty front-end and in the email — so it is **not** fixed here (Step 2: not small, and this sitting is documents only
+under a HOLD): **named for P11b or a plan of its own, at Rich's call**; the design's A19 row says so. Told to `manifest-coord5`.
+
+**F2 — ORIENTATION §2's table of executed plans had no A1 and no gentler test tiers row**, and its count read *"NINETEEN"* while CLAUDE.md's
+*State* read twenty-one — both close-outs swept CLAUDE.md's table and §7a but not §2's. Both rows added from CLAUDE.md's, with P11's, and the
+count made twenty-two.
+
+**Step 2 — nothing else found.** The walk was the WALKTHROUGH's, click for click; no defect. Stopped by `kill -TERM` to the script's `bash`
+(TRAPS.md: a backgrounded `scripts/admin-ui.sh` ignores SIGINT) — both ports free at once; the `make` exited 2, its script's 143.
+
+**Step 3 — the close-out** (documents only, by pathspec): this plan EXECUTED (its banner, the sittings table, this record); the roadmap's P11
+row, its P6–P11 ledger cell, and two rows of its defect table (this sitting's and the plan's total); ORIENTATION's summary, §2's table (F2),
+§3 (the map's *executing a plan* row and `packages/admin-ui` in *The code*), §7a (a row), §7e (P11's paragraph, now its outcome; the rule's
+*one exception* in the past), §8 (the admin console entry's *Since*, and F1's question under *Open*); CLAUDE.md's *State* (twenty-two plans, the newest P11, its row); the
+design's banner, §13 (*BUILT*) and A19's row; the decisions page (his words). **The worktree removed**: `git status` in it clean at
+`c64f067d`; `p11-admin-ui` an ancestor of `main` (`git merge-base --is-ancestor`); no `.env` link (`ls` read none — sitting 8 removed it
+after L3); only `packages/admin-ui/dist/`, `packages/contract/dist/` and `packages/control-plane/.test-fixtures/` ignored. `git worktree
+remove /Users/rich/Developer/manifest-p11` exit 0; `git branch -d p11-admin-ui` — *"Deleted branch p11-admin-ui (was c64f067d)"*; `git
+worktree list` the shared checkout alone.
+
+**Step 4 — the machine, as found** (09:52, load 6.05 with B7 running): 7101 and 7113 — nothing listens (`lsof`); no walk's Chrome (`pgrep -fl
+'remote-debugging-port=0'` none) — this sitting ran no walk, so no profile. **The three scripts, bare — P11 makes no Docker resource, and
+nothing they name is its**: `dead-app-resources.sh` *"Nothing was changed. 0 network(s) and 0 volume(s) are dead"*; `litellm-orphans.sh`
+*"Nothing to delete"* (2 app containers read); `app-images.sh` read **1 dead, 2 kept** and, a minute later, **0 dead, 3 kept** (`proof-app`
+twice and `fixture-app`, each *"a container uses it"*) — B7 deploying under its HOLD as the script ran, so a count read under another
+sitting's run is that run's. **No `--apply`**: nothing was P11's, and the machine is B7's. 7100 not touched. A `packages/console` `vite
+preview` (pid 25769), not this sitting's, left running.
+
+**The gates:** none run — documents only, under the HOLD, and Prettier owns `packages/` only. No code changed since LANDING 3's two whole runs
+(252 files / 4212 tests) and `make demo-admin` 9/9 from the shared checkout (sitting 8).
+
+**THE PLAN IS EXECUTED.** It leaves `packages/admin-ui` on `main`, run by `make admin-ui` and proved by `make demo-admin` (a step of `make
+ci-acceptance` and of the offline acceptance) and by Rich's click. **Not built, and named:** P11b (the console through the edge on the real
+queue — a Caddy route for `/admin*`, Vite's `base`, `make verify`'s 7101 check, `mail/team.ts`'s links); Task 10's *Load rehearsals* section
+(B's `1.10.0`); M6's gap (no `recordedBy` on a record); the agent sessions table, unwalked (the demo fleet has none); the fleet's table
+scrolling sideways at 1440, and a failed deploy drawn amber; and F1.

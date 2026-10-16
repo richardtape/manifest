@@ -2179,3 +2179,23 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
     unblocked for hatchery". So manifest-coord5 PAUSES Manifest's heavy work for the day: B's sitting 7 (its demos, the Docker tier, make
     ci-acceptance, and Rich's clicked half) stops at its first safe point; M280 writes code only; P11 sitting 9's docs-only close-out goes
     on. The platform window is FREE for Hatchery, and a Manifest session runs nothing heavy without asking Hatchery first.
+
+    On 2026-10-16, 09:38–09:51 PDT, typed in manifest-p11-s9's tab — P11's CLICKED HALF (Task 13, G9), at Rich's own machine:
+    MANIFEST_MOCK_STEP_UP=1 make admin-ui from the shared checkout, http://127.0.0.1:7101, the WALKTHROUGH's nine clicks one at a time,
+    with the plan's two flagged decisions (2: the mock's demo fleet keeps state; 3: the edge waits for P11b) put to him in the review's
+    words. His words, verbatim, each time read from `date` as it was recorded:
+      09:38:55 (click 1, and decisions 2 and 3): "looks right, both decisions stand — next"
+      09:39:52 (2): "works — next"
+      09:41:53 (3, reading-responses approved through the step-up): "approved, row gone — next"
+      09:42:58 (4, phys-101-labs submitted to UBC IAM): "correct, proceed"
+      09:43:35 (5, stats-sim recorded active): "recorded as active, row gone — next"
+      09:44:56 (6, rubric-helper handed back): "handed back, row gone — next (although perhaps a follow up question for later, why would
+        we not keep a reason for handing it back to help the person out?)"
+      09:47:20 (7, Fleet → In production): "yep I see all of that as noted"
+      09:49:01 (8, econ-101-polls, bio-201-scheduler, its agent's question refused): "all as described, refused for them — next"
+      09:51:23 (9, Health and Settings, and what is wrong with it): "yes I see all that. I think this is a fantastic start, I'm sure there
+        will be changes over time, but I really like the shape this is taking. Please proceed."
+    So P11's last step is DONE and P11 IS EXECUTED; decisions 2 and 3 stand as approved at ab6c7b7a. His click-6 question is not a
+    decision: a hand-back keeps no reason because returnIamRegistration and returnPrivacyAssessment take no body (FE-46/47/5's scope;
+    the admin console design's A19, "for the team to decide whether it wants one kept"). Keeping one is a contract change, named for P11b
+    or a plan of its own, at his call (the P11 plan's Sitting 9, F1).

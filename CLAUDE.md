@@ -12,13 +12,13 @@ names the next job** and the current plan's sittings table says how far it has g
 `EXPECT_` lines and ORIENTATION §2's `pnpm test:docker` row, stated nowhere else; and the roadmap's ledger
 (`docs/superpowers/plans/2026-08-29-plan-roadmap.md`) outranks every document on status (Rich, 2026-09-24 and 2026-09-30).*
 
-**The design is approved and complete, five spikes are done, and twenty-one plans are executed** — each with an acceptance that
-passes; the newest is **the gentler test tiers** (`docs/superpowers/plans/2026-10-14-gentler-test-tiers.md`), EXECUTED 2026-10-14/15,
-inline, three sittings in the second and third coordinated runs — `pnpm test` and `pnpm test:docker` run through `scripts/test-gently.sh`,
-and Docker Desktop runs 6 CPUs (Rich's *"keep 6"*, `d2e2d77`); the contract is `1.10.0` since B's Task 5 (`2258937e`). **B is executing** (the load
-rehearsal, FE-44, `docs/superpowers/plans/2026-10-03-load-rehearsal.md`, since 2026-10-15 — ORIENTATION §7e names its next sitting); **P11, the administrator's console,
-is building as a parallel lane beside B** (`docs/superpowers/plans/2026-10-14-p11-admin-console.md`, approved by Rich 2026-10-15,
-`ab6c7b7a`; its worktree `/Users/rich/Developer/manifest-p11`; ORIENTATION §7e); then FE-32 with §12's package allowlist (approved), BYOA on the laptop (approved 2026-10-13, `2b3dd6d`), Phase 3 (sandboxes), A2 (hibernation), the
+**The design is approved and complete, five spikes are done, and twenty-two plans are executed** — each with an acceptance that
+passes; the newest is **P11, the administrator's console** (`docs/superpowers/plans/2026-10-14-p11-admin-console.md`), EXECUTED 2026-10-15/16,
+inline, nine sittings in the third coordinated run, a parallel lane beside B built in a git worktree (removed at its close) — `packages/admin-ui`
+on 7101 against the mock's demo fleet, `make admin-ui`, clicked by Rich; serving it through the edge is P11b, not written. The gentler test tiers
+(EXECUTED 2026-10-14/15) run `pnpm test` and `pnpm test:docker` through `scripts/test-gently.sh`, and Docker Desktop runs 6 CPUs (Rich's
+*"keep 6"*, `d2e2d77`); the contract is `1.10.0` since B's Task 5 (`2258937e`). **B is executing** (the load
+rehearsal, FE-44, `docs/superpowers/plans/2026-10-03-load-rehearsal.md`, since 2026-10-15 — ORIENTATION §7e names its next sitting); then FE-32 with §12's package allowlist (approved), BYOA on the laptop (approved 2026-10-13, `2b3dd6d`), Phase 3 (sandboxes), A2 (hibernation), the
 vulnerability database in the console, and FE-45 (Rich, 2026-10-03, 15:28; A2 awaits a second review; B's is done, `6f99611`, revised `b25d7e3`, approved `0e9db93`). Rich's decisions since 2026-09-30 are in `docs/superpowers/2026-09-30-decisions.md`. Each plan's *What executing this plan found* is its record; this file keeps none of it.
 
 | Plan | Executed | What it made true | Acceptance |
@@ -44,6 +44,7 @@ vulnerability database in the console, and FE-45 (Rich, 2026-10-03, 15:28; A2 aw
 | A1 | 2026-10-13/14 | Production runs its audience's count of instances — `class` 2, `large_course` and `public` 3 — behind one edge route that balances and routes around a dead member; a redeploy moves the whole set once; a member that exits is replaced (at once, then 1 and 4 minutes, stopped after three in an hour); a CWL sign-in crosses instances (the SAML request cache in the app's Mongo); contract `1.9.0` | `make demo-capacity` (either driver), every launch demo on two instances, **and Rich clicking it** |
 | FE-46/47/5 | 2026-10-08/09 | The Manifest team's step: the owner SENDS each launch record to the team (`sent`, every gap of the assessment answered), the team submits it to UBC or hands it back, emailed through nodemailer to Mailpit; who has each record and since when; a change to a live registration through the team (FE-47); a question that names what it would act on (FE-5) and when it stops waiting (FE-53); FE-54, FE-55 | `make demo-launch` (either driver) and `make demo-token`, **and Rich clicking the team's step** |
 | Gentler test tiers | 2026-10-14/15 | The test tiers run without making the laptop unusable: at utility priority (background on a call), every timeout scaled to it, refused above a 1-minute load of 12 unless forced, the load on every run's last line; `resetDatabase` survives a deadlock; Docker Desktop at 6 CPUs (Rich's choice) | `pnpm test` green under ten CPU burners, `pnpm test:docker` at 6 CPUs, **and Rich's Docker Desktop step** |
+| P11 | 2026-10-15/16 | The administrator's console, `packages/admin-ui` on 7101, in the look Rich chose: the queue, oldest first, its headline from our own band; a release signed off from a stored preview through the step-up; the team's step and UBC's answer; the fleet; a project's page, its events naming who acted and why; Health and Settings — a client of the contract alone, on `manifest-mock`'s demo fleet (`MANIFEST_MOCK_FLEET=demo`, `make admin-ui`); no contract change | `make demo-admin` (no platform needed), **and Rich clicking it** |
 
 **Outstanding, and Rich's** (ORIENTATION §2 and §8 have the detail):
 - **the offline acceptance** — `scripts/offline-acceptance.sh`, run by hand, because turning the network off from a tool call cuts the
