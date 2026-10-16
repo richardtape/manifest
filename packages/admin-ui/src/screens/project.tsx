@@ -714,15 +714,17 @@ function agents(props: ProjectViewProps) {
   ]
   return (
     <>
-      {done.map((a) =>
-        result('Refused for them', [
-          <>
-            {'The agent was told no, in your words: '}
-            <q>{a.reason ?? ''}</q>
-          </>,
-          `${read.project.owner.displayName} and the project’s people read it with your name, as a platform administrator.`,
-        ]),
-      )}
+      {done.map((a) => (
+        <Fragment key={a.id}>
+          {result('Refused for them', [
+            <>
+              {'The agent was told no, in your words: '}
+              <q>{a.reason ?? ''}</q>
+            </>,
+            `${read.project.owner.displayName} and the project’s people read it with your name, as a platform administrator.`,
+          ])}
+        </Fragment>
+      ))}
       {waiting.length === 0
         ? para('No agent’s question is waiting.')
         : waiting.map((a) => question(a, props))}
