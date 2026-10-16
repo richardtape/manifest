@@ -109,43 +109,51 @@ export async function runLoadRehearsal(
   if (staging === undefined)
     throw new Error(`project '${input.projectId}' has no staging environment`)
 
-  const candidate = await candidateFor(db, input.projectId)
-  if (candidate === undefined)
-    throw new RehearsalError(
-      'REHEARSAL_NO_CANDIDATE',
-      'nothing is serving in staging, so there is no release to put the audience’s arrival on. The load ' +
-        'rehearsal runs the release staging serves; deploy one there first.',
-    )
-  const resolved = candidate.release.resolvedConfig as ResolvedConfigSet
-  const target: LoadTarget = {
-    origin: `https://${staging.hostname}`,
-    paths: loadPathsFor(resolved.staging),
-    timeoutMs: settings.requestTimeoutMs,
-  }
-
-  const row = await tryWithRehearsalLock(input.projectId, () =>
-    insertRunning(db, {
-      projectId: input.projectId,
-      environmentId: staging.id,
-      releaseId: candidate.release.id,
-      imageDigest: candidate.build.imageDigest ?? '',
-      scale: audience.scale as 'large_course' | 'public',
-      burst: audience.burst,
-      profile: {
-        phases,
-        paths: target.paths,
-        timeoutMs: target.timeoutMs,
-        pass: settings.pass,
-      },
-      runBy: input.actor.id,
+  // THE CANDIDATE IS READ, AND THE ROW WRITTEN, UNDER STAGING'S LOCK (inside the rehearsal lock — the sanctioned order:
+  // nothing takes them the other way round). A staging deploy already holding it finishes first, and the run rehearses
+  // what that deploy left serving; one that comes after finds the `running` row and is refused. Read before the lock, a
+  // deploy under way was answered 200 and then undone — the grant and the take-down both deployed the release it
+  // replaced (the whole-branch review's I2). The `202` waits at most that one deploy.
+  const started = await tryWithRehearsalLock(input.projectId, () =>
+    withEnvironmentLock(staging.id, async () => {
+      const candidate = await candidateFor(db, input.projectId)
+      if (candidate === undefined)
+        throw new RehearsalError(
+          'REHEARSAL_NO_CANDIDATE',
+          'nothing is serving in staging, so there is no release to put the audience’s arrival on. The load ' +
+            'rehearsal runs the release staging serves; deploy one there first.',
+        )
+      const resolved = candidate.release.resolvedConfig as ResolvedConfigSet
+      const target: LoadTarget = {
+        origin: `https://${staging.hostname}`,
+        paths: loadPathsFor(resolved.staging),
+        timeoutMs: settings.requestTimeoutMs,
+      }
+      const row = await insertRunning(db, {
+        projectId: input.projectId,
+        environmentId: staging.id,
+        releaseId: candidate.release.id,
+        imageDigest: candidate.build.imageDigest ?? '',
+        scale: audience.scale as 'large_course' | 'public',
+        burst: audience.burst,
+        profile: {
+          phases,
+          paths: target.paths,
+          timeoutMs: target.timeoutMs,
+          pass: settings.pass,
+        },
+        runBy: input.actor.id,
+      })
+      return { row, resolved, target }
     }),
   )
-  if (row === undefined)
+  if (started === undefined)
     throw new RehearsalError(
       'REHEARSAL_RUNNING',
       'the pre-production rehearsal of this app is running, so the load rehearsal was not started and nothing ' +
         'was deployed. Run it again once that one has finished.',
     )
+  const { row, resolved, target } = started
 
   const done = run(deps, { row, staging, audience, phases, target, resolved }).catch(
     (error: unknown) => {

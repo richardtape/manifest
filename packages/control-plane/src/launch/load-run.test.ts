@@ -891,6 +891,99 @@ describe('staging is the run’s while it lasts (Task 5, Decision 6; Review Focu
     expect(after.instances.map((member) => member.state)).toEqual(['healthy'])
     await f.retirer.idle()
   })
+
+  it('a staging deploy under way when the run is asked for: the run rehearses what that deploy left serving, and gives it back — never the release it replaced', async () => {
+    // The whole-branch review's I2: the run read its candidate before it held staging, so a deploy already holding
+    // staging's lock was answered 200 and then undone — the grant and the take-down both deployed the release it replaced.
+    const fake = createFakeDriver()
+    const f = await staged(fake)
+    const [specB] = await db
+      .insert(appSpecs)
+      .values({
+        projectId: f.project.id,
+        commitSha: 'b'.repeat(40),
+        parsed: {},
+        schemaVersion: 1,
+        valid: true,
+      })
+      .returning()
+    const buildB = await buildToEnd(
+      { db, driver: fake, bus },
+      {
+        projectId: f.project.id,
+        projectSlug: f.project.slug,
+        appSpecId: specB!.id,
+        commitSha: specB!.commitSha,
+        blueprintRef: f.project.blueprintRef,
+        repoPath: `/tmp/${f.project.slug}.git`,
+      },
+    )
+    const releaseB = await createRelease(db, {
+      projectId: f.project.id,
+      buildId: buildB.id,
+      appSpecId: specB!.id,
+      createdBy: f.user.id,
+      resolvedConfig: RESOLVED,
+    })
+
+    // B's deploy holds staging's lock, stopped inside its first ensure until the test opens the gate.
+    let first = true
+    let entered: () => void = () => {}
+    const inside = new Promise<void>((resolve) => {
+      entered = resolve
+    })
+    let openGate: () => void = () => {}
+    const gate = new Promise<void>((resolve) => {
+      openGate = resolve
+    })
+    const gated: FakeDriver = {
+      ...fake,
+      async ensureInstances(specs) {
+        if (first) {
+          first = false
+          entered()
+          await gate
+        }
+        return fake.ensureInstances(specs)
+      },
+    }
+    const deployingB = deployReleaseSet(db, gated, config, f.deploy, {
+      releaseId: releaseB.id,
+      environmentId: f.staging.id,
+    })
+    await inside
+
+    const gen = fakeGenerator([])
+    const asked = runLoadRehearsal(depsFor(f, gated, gen.generator), {
+      projectId: f.project.id,
+      actor: { id: f.user.id },
+    })
+    // Long enough for a run that does not wait for staging to write its row (it did, at once, before the fix).
+    for (let i = 0; i < 50; i++) {
+      if ((await db.select().from(loadRehearsals)).length > 0) break
+      await new Promise((resolve) => setTimeout(resolve, 10))
+    }
+    openGate()
+    const deployed = await deployingB
+    expect(deployed.instances.map((member) => member.state)).toEqual(['healthy'])
+
+    const { row, done } = await asked
+    const ended = await done
+    expect(ended.state, ended.evidence?.reason).toBe('passed')
+    await f.retirer.idle()
+    const handles = await fake.servingInstances(f.staging.hostname)
+    const rows = await db
+      .select()
+      .from(instances)
+      .where(eq(instances.environmentId, f.staging.id))
+    const servesAfter = [
+      ...new Set(handles.map((h) => rows.find((r) => r.handle === h)?.releaseId)),
+    ]
+    expect({ rehearsed: row.releaseId, servesAfter }).toEqual({
+      rehearsed: releaseB.id,
+      servesAfter: [releaseB.id],
+    })
+  })
 })
 
 describe('takeDownLeftLoadRehearsals — the boot’s pass 2⅞ (Decision 13)', () => {
