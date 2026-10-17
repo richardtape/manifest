@@ -429,3 +429,209 @@ start 16:12:56 load { 7.20 51.87 49.73 }
      → Test timed out in 25000ms.
 Terminated: 15
 test-gently: load (1-min) min 7.20 / median 197.96 / max 461.55 over 60 samples 30 s apart; QoS utility, timeout scale 5, gate 12, forced no; exit 143
+
+## [M5] Step 5's pnpm test, the owed run (20:56:34-21:19:01, after a8f9eb15's 'Hatchery first, then Manifest')
+start 20:56:34 load { 4.40 4.20 3.41 }
+ Test Files  253 passed (253)
+      Tests  4240 passed (4240)
+   Duration  1339.49s (transform 5.88s, setup 388ms, collect 78.06s, tests 1219.56s, environment 29ms, prepare 9.88s)
+test-gently: load (1-min) min 2.25 / median 3.45 / max 8.46 over 45 samples 30 s apart; QoS utility, timeout scale 5, gate 12, forced no; exit 0
+exit 0 end 21:19:01
+-- the slow list (every test over 5 s, under its file; lines cut at 170 characters)
+ ✓ |unit| src/api/launch.test.ts (43 tests) 129551ms
+   ✓ the owner sends each record to the Manifest team, which submits it to UBC (FE-46/47/5 plan Task 5) > the production registration: the owner sends it, the team submit
+   ✓ D19’s registration package (Task 10) > drafts the staging package: staging’s entity, the certificate staging registers with, a justification per attribute 7530ms
+ ✓ |unit| src/api/agents.test.ts (42 tests) 63884ms
+   ✓ FE-36 — a session never holds more than its project now allows (Spec action 10; Task 14a) — narrowed in place (Spec action 1; the launch path plan’s Task 7) > a rais
+   ✓ FE-36 — a session never holds more than its project now allows (Spec action 10; Task 14a) — narrowed in place (Spec action 1; the launch path plan’s Task 7) > a sess
+ ✓ |unit| src/api/questions-end-atomic.test.ts (5 tests) 23025ms
+   ✓ a question’s end is recorded in the transaction that ends it (Task 16) > token_revoked — an event write that fails undoes the whole act, and the same request repeate
+ ✓ |unit| src/lifecycle.test.ts (1 test) 7102ms
+   ✓ P2 acceptance: the full lifecycle against the fake driver > goes from no project to a healthy staging instance, in under a second 6867ms
+ ✓ |unit| src/db/truncate.test.ts (6 tests) 22904ms
+   ✓ resetDatabase > has a lock budget of its own: a lock held past three of them fails the reset with 55P03, named on stderr, before the lock is let go 20263ms
+ ✓ |unit| src/api/contract/document.test.ts (8 tests) 29500ms
+   ✓ the OpenAPI document (§16 Contract, D23.8) > is exactly what the route definitions generate 29352ms
+ ✓ |packages| packages/github-fake/src/conformance.test.ts (5 tests) 18037ms
+   ✓ the fake against golden.json (source: github.com 2026-09-24, App 5068172) > leaves no repository behind on the target — C14 deletes both 5180ms
+   ✓ the fake against golden.json (source: github.com 2026-09-24, App 5068172) > carries no credential in any answer — and the rule refuses one that does 5626ms
+ ✓ |unit| src/api/authz-contract.test.ts (852 tests) 43567ms
+   ✓ authorization contract (fake driver) > declares PROJECT_ARCHIVED on exactly the operations that answer it once the project is archived 8693ms
+
+## [M3] the clean re-run (probes/m3-run.sh with FE32_PHASE, 21:19:22-21:21:15) — stdout
+---- up, uplink refused (127.0.0.1:9) (21:19:22)
+networks before: 12
+8:    max_users: 10
+11:    url: http://127.0.0.1:9/
+23:log: { type: stdout, format: pretty, level: http }
+network mf-fe32-probe
+volume mf-fe32-probe-storage
+image=sha256:fcb86134563534e2f634752e6c6c3edcdb78242ec16578c73ce39d1dadbaa801 [manifest-build-internal 172.19.0.4 aliases=[mf-verdaccio-probe]] [mf-fe32-probe 172.20.0.2 aliases=[]] 
+ping ok after 2s
+networks after: 13
+---- seed marked (metadata only) and ms (metadata and tarballs) from the live mirror (21:19:23)
+seeded marked: package.json 
+seeded ms: ms-2.0.0.tgz ms-2.1.3.tgz package.json 
+  .
+  ./.verdaccio-db.json
+  ./marked
+  ./marked/package.json
+  ./ms
+  ./ms/ms-2.0.0.tgz
+  ./ms/ms-2.1.3.tgz
+  ./ms/package.json
+---- (i)/(ii)/(iv) as the throwaway answers them, uplink refused (21:19:23)
+curl /left-pad -> 404 0.010774s {  "error": "no such package available"}
+curl /manifest-no-such-package-210762 -> 404 0.004042s {  "error": "no such package available"}
+curl /marked -> 200 0.039487s {  "name": "marked",  "versions": {    "0.0.1": {      "name": "marked",      "version": "0.0.1",      "keywords": [        "markdown",        "markup"      ], 
+curl /ms -> 200 0.008569s {  "name": "ms",  "versions": {    "0.1.0": {      "name": "ms",      "version": "0.1.0",      "_id": "ms@0.1.0",      "maintainers": [        {          "name"
+---- (i) left-pad@1.3.0, never cached (21:19:24)
+{"case":"probe:left-pad@1.3.0","buildId":"fe32-refused-probe-left-p-mvbw0k4f","baseImage":"manifest-registry:5000/base/node@sha256:38a36422dc7de80f3ced964270f23b3b17f73af816728d21a5fbbf84bf8be46f","exitCode":1,"timedOut":false,"error":null,"msBuilderStart":1936,"msBuild":3120,"msTotal":5056,"exported":[],"exportedCount":0,"logLines":76}
+---- (ii) manifest-no-such-package-210762@1.0.0, cannot exist (21:19:29)
+{"case":"probe:manifest-no-such-package-210762@1.0.0","buildId":"fe32-refused-probe-manife-mvbw0o36","baseImage":"manifest-registry:5000/base/node@sha256:38a36422dc7de80f3ced964270f23b3b17f73af816728d21a5fbbf84bf8be46f","exitCode":1,"timedOut":false,"error":null,"msBuilderStart":1153,"msBuild":2250,"msTotal":3404,"exported":[],"exportedCount":0,"logLines":78}
+---- (iv) marked@999.0.0, cached, never published (21:19:32)
+{"case":"probe:marked@999.0.0","buildId":"fe32-refused-probe-marked-mvbw0qsf","baseImage":"manifest-registry:5000/base/node@sha256:38a36422dc7de80f3ced964270f23b3b17f73af816728d21a5fbbf84bf8be46f","exitCode":1,"timedOut":false,"error":null,"msBuilderStart":883,"msBuild":2234,"msTotal":3117,"exported":[],"exportedCount":0,"logLines":70}
+---- (iv) ms@999.0.0 (21:19:36)
+{"case":"probe:ms@999.0.0","buildId":"fe32-refused-probe-ms-999-mvbw0t9g","baseImage":"manifest-registry:5000/base/node@sha256:38a36422dc7de80f3ced964270f23b3b17f73af816728d21a5fbbf84bf8be46f","exitCode":1,"timedOut":false,"error":null,"msBuilderStart":906,"msBuild":2097,"msTotal":3003,"exported":[],"exportedCount":0,"logLines":70}
+---- (iv) positive: ms@2.1.3 served from the seeded storage, uplink down (21:19:39)
+{"case":"min:ms@2.1.3","buildId":"fe32-refused-min-ms-2-1-3-mvbw0vmx","baseImage":"manifest-registry:5000/base/node@sha256:38a36422dc7de80f3ced964270f23b3b17f73af816728d21a5fbbf84bf8be46f","exitCode":0,"timedOut":false,"error":null,"msBuilderStart":1088,"msBuild":2966,"msTotal":4055,"exported":["package-lock.json"],"exportedCount":1,"logLines":60}
+---- uplink a name that does not resolve (registry.npmjs.invalid) (21:19:43)
+8:    max_users: 10
+11:    url: http://registry.npmjs.invalid/
+23:log: { type: stdout, format: pretty, level: http }
+ping ok after 2s
+curl /left-pad -> 404 0.036865s {  "error": "no such package available"}
+curl /manifest-no-such-package-210762 -> 404 0.012516s {  "error": "no such package available"}
+---- (i) DNS: left-pad@1.3.0 (21:19:45)
+{"case":"probe:left-pad@1.3.0","buildId":"fe32-dns-probe-left-pad-1-mvbw1066","baseImage":"manifest-registry:5000/base/node@sha256:38a36422dc7de80f3ced964270f23b3b17f73af816728d21a5fbbf84bf8be46f","exitCode":1,"timedOut":false,"error":null,"msBuilderStart":629,"msBuild":2459,"msTotal":3088,"exported":[],"exportedCount":0,"logLines":77}
+---- (ii) DNS: manifest-no-such-package-210762@1.0.0 (21:19:48)
+{"case":"probe:manifest-no-such-package-210762@1.0.0","buildId":"fe32-dns-probe-manifest-n-mvbw12mq","baseImage":"manifest-registry:5000/base/node@sha256:38a36422dc7de80f3ced964270f23b3b17f73af816728d21a5fbbf84bf8be46f","exitCode":1,"timedOut":false,"error":null,"msBuilderStart":884,"msBuild":2393,"msTotal":3277,"exported":[],"exportedCount":0,"logLines":77}
+---- uplink REACHABLE (https://registry.npmjs.org/) — what a registry that has no such name answers (21:19:51)
+8:    max_users: 10
+11:    url: https://registry.npmjs.org/
+23:log: { type: stdout, format: pretty, level: http }
+ping ok after 2s
+curl /manifest-no-such-package-210762 -> 404 0.108515s {  "error": "no such package available"}
+---- (ii) online: manifest-no-such-package-210762@1.0.0 (21:19:53)
+{"case":"probe:manifest-no-such-package-210762@1.0.0","buildId":"fe32-online-probe-manifes-mvbw16id","baseImage":"manifest-registry:5000/base/node@sha256:38a36422dc7de80f3ced964270f23b3b17f73af816728d21a5fbbf84bf8be46f","exitCode":1,"timedOut":false,"error":null,"msBuilderStart":540,"msBuild":2082,"msTotal":2622,"exported":[],"exportedCount":0,"logLines":72}
+---- [M4] uplink refused again; a user, then @manifest-probe/postinstall-210762 published (21:19:55)
+8:    max_users: 10
+11:    url: http://127.0.0.1:9/
+23:log: { type: stdout, format: pretty, level: http }
+ping ok after 2s
+token minted: yes
+npm error code E503
+npm error 503 Service Unavailable - PUT http://127.0.0.1:7196/@manifest-probe%2fpostinstall-210762 - one of the uplinks is down, refuse to publish
+npm error A complete log of this run can be found in: /Users/rich/.npm/_logs/2026-10-17T04_19_57_738Z-debug-0.log
+curl /@manifest-probe/postinstall-210762 -> 404 0.002681s {  "error": "no such package available"}
+---- [M4] resolved with scripts OFF (Task 2's recipe) (21:21:08)
+{"case":"m4:@manifest-probe/postinstall-210762@1.0.0","buildId":"fe32-online-m4--manifest--mvbw2sko","baseImage":"manifest-registry:5000/base/node@sha256:38a36422dc7de80f3ced964270f23b3b17f73af816728d21a5fbbf84bf8be46f","exitCode":1,"timedOut":false,"error":null,"msBuilderStart":722,"msBuild":2378,"msTotal":3100,"exported":[],"exportedCount":0,"logLines":77}
+---- [M4] positive control: the same with scripts ON (21:21:11)
+{"case":"m4on:@manifest-probe/postinstall-210762@1.0.0","buildId":"fe32-online-m4on--manifes-mvbw2v19","baseImage":"manifest-registry:5000/base/node@sha256:38a36422dc7de80f3ced964270f23b3b17f73af816728d21a5fbbf84bf8be46f","exitCode":1,"timedOut":false,"error":null,"msBuilderStart":795,"msBuild":2195,"msTotal":2990,"exported":[],"exportedCount":0,"logLines":78}
+find: /private/tmp/claude-501/-Users-rich-Developer-manifest/19c992e3-4594-457f-90ed-144d31583fb6/scratchpad/m3r/m4__manifest-probe_postinstall-210762_1.0.0/out: No such file or directory
+m4:@manifest-probe/postinstall-210762@1.0.0: RAN absent; exported 0 files
+find: /private/tmp/claude-501/-Users-rich-Developer-manifest/19c992e3-4594-457f-90ed-144d31583fb6/scratchpad/m3r/m4on__manifest-probe_postinstall-210762_1.0.0/out: No such file or directory
+m4on:@manifest-probe/postinstall-210762@1.0.0: RAN absent; exported 0 files
+---- [M4] unpublish --force (21:21:14)
+npm error 404 tarball, folder, http url, or git url.
+npm error A complete log of this run can be found in: /Users/rich/.npm/_logs/2026-10-17T04_21_14_906Z-debug-0.log
+curl /@manifest-probe/postinstall-210762 -> 404 0.003981s {  "error": "no such package available"}
+storage after unpublish: 0 entries under @manifest-probe; tgz 0
+---- done (21:21:15)
+gone: container=0 volume=0 network=0
+networks: 12
+
+## [M3] the clean re-run — npm's lines per phase directory
+-- refused-min_ms_2.1.3 exit 0
+#8 0.346 npm http fetch GET 404 http://mf-verdaccio-probe:4873/npm 20ms
+#8 0.350 npm http fetch GET 404 http://mf-verdaccio-probe:4873/npm 3ms
+#8 0.380 npm http fetch GET 200 http://mf-verdaccio-probe:4873/ms 20ms (cache miss)
+#8 0.404 npm http fetch GET 200 http://mf-verdaccio-probe:4873/ms/-/ms-2.1.3.tgz 13ms (cache miss)
+#8 0.408 added 1 package in 291ms
+-- refused-probe_left-pad_1.3.0 exit 1
+#8 0.326 npm http fetch GET 404 http://mf-verdaccio-probe:4873/npm 24ms
+#8 0.330 npm http fetch GET 404 http://mf-verdaccio-probe:4873/npm 4ms
+#8 0.366 npm http fetch GET 404 http://mf-verdaccio-probe:4873/left-pad 5ms (cache skip)
+#8 0.373 npm error code E404
+#8 0.373 npm error 404 Not Found - GET http://mf-verdaccio-probe:4873/left-pad - no such package available
+#8 0.373 npm error 404
+#8 0.373 npm error 404  The requested resource 'left-pad@1.3.0' could not be found or you do not have permission to access it.
+-- refused-probe_manifest-no-such-package-210762_1.0.0 exit 1
+#8 0.296 npm http fetch GET 404 http://mf-verdaccio-probe:4873/npm 20ms
+#8 0.300 npm http fetch GET 404 http://mf-verdaccio-probe:4873/npm 3ms
+#8 0.332 npm http fetch GET 404 http://mf-verdaccio-probe:4873/manifest-no-such-package-210762 4ms (cache skip)
+#8 0.338 npm error code E404
+#8 0.338 npm error 404 Not Found - GET http://mf-verdaccio-probe:4873/manifest-no-such-package-210762 - no such package available
+#8 0.338 npm error 404
+#8 0.339 npm error 404  The requested resource 'manifest-no-such-package-210762@1.0.0' could not be found or you do not have permission to access it.
+-- refused-probe_marked_999.0.0 exit 1
+#8 0.295 npm http fetch GET 404 http://mf-verdaccio-probe:4873/npm 23ms
+#8 0.299 npm http fetch GET 404 http://mf-verdaccio-probe:4873/npm 3ms
+#8 0.383 npm http fetch GET 200 http://mf-verdaccio-probe:4873/marked 47ms (cache miss)
+#8 0.394 npm error code ETARGET
+#8 0.394 npm error notarget No matching version found for marked@999.0.0.
+#8 0.394 npm error notarget In most cases you or one of your dependencies are requesting a package version that doesn't exist.
+-- refused-probe_ms_999.0.0 exit 1
+#8 0.267 npm http fetch GET 404 http://mf-verdaccio-probe:4873/npm 18ms
+#8 0.271 npm http fetch GET 404 http://mf-verdaccio-probe:4873/npm 2ms
+#8 0.318 npm http fetch GET 200 http://mf-verdaccio-probe:4873/ms 17ms (cache miss)
+#8 0.326 npm error code ETARGET
+#8 0.326 npm error notarget No matching version found for ms@999.0.0.
+#8 0.326 npm error notarget In most cases you or one of your dependencies are requesting a package version that doesn't exist.
+-- dns-probe_left-pad_1.3.0 exit 1
+#8 0.388 npm http fetch GET 404 http://mf-verdaccio-probe:4873/npm 29ms
+#8 0.395 npm http fetch GET 404 http://mf-verdaccio-probe:4873/npm 6ms
+#8 0.441 npm http fetch GET 404 http://mf-verdaccio-probe:4873/left-pad 6ms (cache skip)
+#8 0.451 npm error code E404
+#8 0.451 npm error 404 Not Found - GET http://mf-verdaccio-probe:4873/left-pad - no such package available
+#8 0.451 npm error 404
+#8 0.452 npm error 404  The requested resource 'left-pad@1.3.0' could not be found or you do not have permission to access it.
+-- dns-probe_manifest-no-such-package-210762_1.0.0 exit 1
+#8 0.428 npm http fetch GET 404 http://mf-verdaccio-probe:4873/npm 24ms
+#8 0.436 npm http fetch GET 404 http://mf-verdaccio-probe:4873/npm 6ms
+#8 0.482 npm http fetch GET 404 http://mf-verdaccio-probe:4873/manifest-no-such-package-210762 6ms (cache skip)
+#8 0.491 npm error code E404
+#8 0.492 npm error 404 Not Found - GET http://mf-verdaccio-probe:4873/manifest-no-such-package-210762 - no such package available
+#8 0.492 npm error 404
+#8 0.492 npm error 404  The requested resource 'manifest-no-such-package-210762@1.0.0' could not be found or you do not have permission to access it.
+-- online-probe_manifest-no-such-package-210762_1.0.0 exit 1
+#8 0.328 npm http fetch GET 404 http://mf-verdaccio-probe:4873/manifest-no-such-package-210762 35ms (cache skip)
+#8 0.335 npm error code E404
+#8 0.335 npm error 404 Not Found - GET http://mf-verdaccio-probe:4873/manifest-no-such-package-210762 - no such package available
+#8 0.335 npm error 404
+#8 0.336 npm error 404  The requested resource 'manifest-no-such-package-210762@1.0.0' could not be found or you do not have permission to access it.
+#8 0.336 npm error 404
+#8 0.336 npm error 404 Note that you can also install from a
+-- the throwaway's log, refused phase (filtered)
+http <-- 200, user: null(172.19.0.5), req: 'GET /marked', bytes: 0/120526
+info <-- 172.19.0.5 requested 'GET /npm'
+http <-- 200, user: null(172.19.0.5), req: 'GET /npm', bytes: 0/0
+http <-- 404, user: null(172.19.0.5), req: 'GET /npm', error: no such package available
+info <-- 172.19.0.5 requested 'GET /npm'
+http <-- 200, user: null(172.19.0.5), req: 'GET /npm', bytes: 0/0
+http <-- 404, user: null(172.19.0.5), req: 'GET /npm', error: no such package available
+info <-- 172.19.0.5 requested 'GET /ms'
+http <-- 200, user: null(172.19.0.5), req: 'GET /ms', bytes: 0/0
+http <-- 200, user: null(172.19.0.5), req: 'GET /ms', bytes: 0/18249
+-- the throwaway's log, dns phase (filtered)
+warn --- host registry.npmjs.invalid is now offline
+info <-- 172.19.0.5 requested 'GET /npm'
+http <-- 200, user: null(172.19.0.5), req: 'GET /npm', bytes: 0/0
+http <-- 404, user: null(172.19.0.5), req: 'GET /npm', error: no such package available
+info <-- 172.19.0.5 requested 'GET /npm'
+http <-- 200, user: null(172.19.0.5), req: 'GET /npm', bytes: 0/0
+http <-- 404, user: null(172.19.0.5), req: 'GET /npm', error: no such package available
+info <-- 172.19.0.5 requested 'GET /left-pad'
+http <-- 200, user: null(172.19.0.5), req: 'GET /left-pad', bytes: 0/0
+http <-- 404, user: null(172.19.0.5), req: 'GET /left-pad', error: no such package available
+-- the throwaway's log, online phase (filtered)
+info --- using htpasswd file: /verdaccio/storage/htpasswd
+info --- plugin verdaccio-htpasswd successfully loaded (authentication)
+info --- plugin @verdaccio/ui-theme successfully loaded (theme)
+warn --- http address - http://0.0.0.0:4873/ - verdaccio/6.10.1
+info <-- 172.20.0.1 requested 'GET /manifest-no-such-package-210762'
+http <-- 200, user: null(172.20.0.1), req: 'GET /manifest-no-such-package-210762', bytes: 0/0
+info --- making request: 'GET https://registry.npmjs.org/manifest-no-such-package-210762'
+http --- 404, req: 'GET https://registry.npmjs.org/manifest-no-such-package-210762' (streaming)
+http --- 404, req: 'GET https://registry.npmjs.org/manifest-no-such-package-210762', bytes: 0/21
+http <-- 404, user: null(172.20.0.1), req: 'GET /manifest-no-such-package-210762', error: no such package available

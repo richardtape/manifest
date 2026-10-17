@@ -7,6 +7,15 @@
 > them — and ORIENTATION §2's Docker-tier row), `make seed` building five images, and `make ci-acceptance` at fourteen steps. Every plan from *faculty-ready*'s last
 > sittings to B has landed since `eee5648`, so Task 1 re-reads every fact, as it says. ORIENTATION §7e has the hand-over.
 
+> **SITTING 1 IS DONE (2026-10-16, `manifest-fe32-s1`, the fourth coordinated run's FE32-1, Task 1 `eca8bf97`)** — the measurements are
+> [`../spikes/fe32-baseline/README.md`](../spikes/fe32-baseline/README.md), and a *SITTING 1 MEASURED* note sits under *Read this first*,
+> Decision 5, Review Focus 4, Tasks 2, 3, 4 and 6, and Spec action C. **`[M3]`'S STOP-AND-ASK FIRED (F3)**: npm prints the same `E404` for
+> a package the offline mirror never cached and for a name that cannot exist, so Decision 5's `E404` → `DEPENDENCY_NOT_FOUND` is Rich's
+> to re-decide — put to him through `manifest-coord6` at 15:58, (a) recommended. **`manifest-review4`'s fresh review against these
+> measurements has landed** (decision 18; [`2026-10-16-review-of-fe32-plan.md`](./2026-10-16-review-of-fe32-plan.md), `4cef5374`: approve
+> with fixes — 0 Critical, 5 Important, 10 Minor). **Sitting 2 waits for Rich's answers** to Spec actions A and B and to F3's mapping (C before
+> Task 4); **its opener then revises this plan to the review, finding by finding** — none of it applied yet.
+
 > **WRITTEN 2026-10-03, AFTERNOON, BY THE PLANNING SESSION `manifest-c7`** (coordinated by `manifest-94`), after the Manifest
 > team's step ([`2026-10-03-fe46-fe47-fe5.md`](./2026-10-03-fe46-fe47-fe5.md), approved the same afternoon). **Every fact in *Read this
 > first* was read from the code at `eee5648`**, while the faculty-ready plan's sitting 5 had uncommitted edits in `infra/`, `secrets/`,
@@ -89,8 +98,8 @@ by audience), B (the load rehearsal, FE-44: *"Build the load rehearsal first"*),
 
 | Sitting | Tasks | What it delivers | `pnpm test:docker` owed? | Where it stops | Status |
 |---|---|---|---|---|---|
-| 1 | 1 | **The measurements**: every fact re-read; `--output type=local` from the rootless remote builder; a full install against the mirror, with the committed lock kept; what npm says when the mirror cannot fetch (a THROWAWAY Verdaccio whose uplink is unreachable); install scripts proved off; Verdaccio's unpublish for a test package; the gate numbers | No | After Task 1's commit. **It stops and asks Rich** if `[M2]` finds the builder cannot export a file, or `[M3]` finds the mirror's two failures indistinguishable | ← **next**, once this plan is approved and the plan before it has closed |
-| 2 | 2 | **The driver resolves**: `Driver.resolveDependencies` on both drivers and in the driver contract; the descriptor's `dependencies` block; `Resolve.tmpl` in both blueprints; the driver's hard-coded `'package-lock.json'` read from the descriptor | Yes — `runtime/`, `blueprints/`, `build/` | After the commit, with the Docker case green and one resolution through the real builder quoted | |
+| 1 | 1 | **The measurements**: every fact re-read; `--output type=local` from the rootless remote builder; a full install against the mirror, with the committed lock kept; what npm says when the mirror cannot fetch (a THROWAWAY Verdaccio whose uplink is unreachable); install scripts proved off; Verdaccio's unpublish for a test package; the gate numbers | No | After Task 1's commit. **It stops and asks Rich** if `[M2]` finds the builder cannot export a file, or `[M3]` finds the mirror's two failures indistinguishable | **DONE 2026-10-16** (`manifest-fe32-s1`, the fourth coordinated run's FE32-1): Task 1 `eca8bf97` — [`../spikes/fe32-baseline/`](../spikes/fe32-baseline/README.md); 13 findings; **`[M2]` no stop** (the builder exports a file); **`[M3]`'s stop FIRED** (F3 — `E404` for both), put to Rich; a *SITTING 1 MEASURED* note under every part it changes |
+| 2 | 2 | **The driver resolves**: `Driver.resolveDependencies` on both drivers and in the driver contract; the descriptor's `dependencies` block; `Resolve.tmpl` in both blueprints; the driver's hard-coded `'package-lock.json'` read from the descriptor | Yes — `runtime/`, `blueprints/`, `build/` | After the commit, with the Docker case green and one resolution through the real builder quoted | ← **next**, once Rich has decided Spec actions A and B and F3's mapping — then its opener revises this plan to `manifest-review4`'s review (`4cef5374`, decision 18), finding by finding, before Task 2 |
 | 3 | 3, 4 | **The operation**: `resolveDependencies`, its refusals, contract `1.11.0`. **The allowlist** — a platform setting; the operation and the build's gate both refuse an unlisted direct dependency | Yes — `source/`, `build/`, `blueprints/`, `runtime/` | After both commits, with a resolution and an allowlist refusal through the edge on driver 1 | |
 | 4 | 5 | **The clients**: the mock, the knowledge pack's rule, the guide *Authoring*'s *Adding a dependency*, an example run against the mock | No, unless a fix touches the owed list | After the commit, with `pnpm docs:write` clean and the front-end told | |
 | 5 | 6 | **The acceptance**: `make demo-authoring`, extended, three times on each driver; the fixture that warms `marked`; every other demo; a clicked half; the plan's one whole-branch review. **Alone, and last** | Yes, if any code changes | After the clicked half and the review's one fix wave | |
@@ -197,6 +206,12 @@ before Rich has decided that spec action (A and B before sitting 2; C before Tas
     (`infra/verdaccio/config.yaml:9-13`, `uplinks.npmjs`, `cache: true`) — a resolution online asks npmjs, through the mirror, even for a
     package the mirror holds.
 
+> **SITTING 1 MEASURED** ([`../spikes/fe32-baseline/`](../spikes/fe32-baseline/README.md), `facts-at-4cb1f2c9.md` there, every line number at `4cb1f2c9`): **none of the fifteen changed
+> in meaning but 13 — the skeleton's `overrides` block is GONE** (`1dcb905b`, 2026-10-03 15:18) and no committed `package.json` has one (F1).
+> 12's count is **298** `resolved` URLs, every one public. 15 is MEASURED: online, the live mirror refreshed every asked package's metadata
+> from npmjs and fetched no tarball. Not in the facts: the base image pulls with no token only while 7100's realm answers (F2); the builder's
+> network, and a throwaway joined to it under its own alias; `# syntax=` refused in `build/context.ts`, not the registry (F11).
+
 ---
 
 ## Decisions this plan makes, and why
@@ -240,6 +255,17 @@ before Rich has decided that spec action (A and B before sitting 2; C before Tas
      non-registry specifier, which the operation's allowlist check refuses first once Task 4 lands), with npm's `error` lines as `log`.
 
    `[M3]` measures what npm prints for the first two against the mirror; if the two cannot be told apart, the sitting stops and asks Rich.
+
+   > **SITTING 1 MEASURED — THE STOP FIRED (F3; put to Rich 2026-10-16 15:58 through `manifest-coord6`, gating sitting 2):** npm prints
+   > the SAME `npm error code E404` / `404 Not Found - GET <mirror>/<name> - no such package available` for a real package the mirror never
+   > cached with its uplink down, for a name that cannot exist with its uplink down, and for that name with the uplink UP (npmjs's own 404) —
+   > Verdaccio 6.10.1 answers all three `404 no such package available`. What npm CAN tell apart: **`ETARGET`** (a cached package at a version
+   > never published — offline too), **`E500 … uplink is offline`** (cached metadata, no tarball; after 72 s of npm's retries) and
+   > **`EAI_AGAIN`** (the mirror unreachable; 87 s). The options put: (a) `E404` → `DEPENDENCY_UNAVAILABLE`, `ETARGET` →
+   > `DEPENDENCY_NOT_FOUND` (recommended — Task 4 refuses a hallucinated NAME before the mirror, so Review Focus 1's three cases stay
+   > distinct; an ALLOWED package npmjs has since unpublished reads *"not now"*); (b) the mirror's own `http`-level log; (c) as written.
+   > **Rich's answer: not yet** — with him through `manifest-coord6` since 15:58, beside Spec actions A and B (the fourth run's G6). `manifest-review4`'s review (`4cef5374`) gives (a) its word, provisional until the clean re-run — which CONFIRMED the measurement (21:19–21:21: the identical `E404` lines under all three uplink states, each phase's npm log on disk)
+
 6. **A BOUNDED REQUEST, REFUSED BEFORE ANY BUILDER STARTS**: the manifest's text at most 64 KiB (`400 VALIDATION_FAILED`, the route's schema);
    a `baseCommit` the project does not have is `409 SOURCE_COMMIT_NOT_FOUND` (the source routes' code). Nothing about the manifest's
    CONTENT is checked here (Decision 3).
@@ -338,6 +364,11 @@ before Rich has decided that spec action (A and B before sitting 2; C before Tas
    `file:../` specifier. Expected: **no marker in anything exported; at the driver, the two specifiers fail as
    `DEPENDENCY_RESOLUTION_FAILED`, the builder having reached nothing** — and through the operation, once Task 4 lands, they never reach a
    builder at all (Review Focus 6). Owned by Task 2's *scripts are off, and only the mirror is reached*.
+   > **SITTING 1 MEASURED (F4, F5):** at the driver **`file:../x` does NOT fail** — exit 0, a `link: true` entry to a directory that does
+   > not exist; `git+https:` fails `ENOENT` / `spawn git` (the base image has no git). So for `file:` the expected *"fail as
+   > `DEPENDENCY_RESOLUTION_FAILED`"* above holds only if Task 2's driver refuses an exported `link` — otherwise Task 4's two checks are the
+   > only doors.
+
 5. **A request that costs before it is refused.** A 65 KiB manifest; a `baseCommit` the project does not have; a token on another
    project. Expected: **refused before any builder starts** (assert no builder container appeared). Owned by Task 3's matrix.
 6. **An allowlist a push or a specifier routes around.** A person pushes a `package.json` naming an unlisted package with a hand-written
@@ -439,6 +470,18 @@ docs/superpowers/spikes/fe32-baseline/                                          
 ## Task 2: The driver resolves — a blueprint's recipe, in the network-restricted builder
 
 **Sitting 2. Spec actions A and B decided first.** Decisions 3, 4, 5, 9. **Its caller is Task 3's route.**
+
+> **SITTING 1 MEASURED** ([`../spikes/fe32-baseline/`](../spikes/fe32-baseline/README.md)): **the recipe works as written** — `--output type=local` exports exactly the lockfile (~0.6 s to
+> a ready builder, ~3.3 s to resolve the skeleton plus one package); the glob `package-lock.jso[n]` matching nothing is accepted; every base
+> pin kept with its `resolved` and `integrity`; Decision 12's `sed` makes every host public and changes nothing else; one `npm http fetch GET
+> 200 http://manifest-verdaccio:4873/<path>.tgz <ms> (cache miss)` line per tarball (control (b)'s witness; `http cache … (cache hit)` lines
+> appear too — match `fetch GET 200 ….tgz`). **And eight things this task's text does not yet say:** (F2) the base pulls with no token only
+> while 7100 answers — mint a pull-only token; (F3) the `E404` mapping is Rich's, before this sitting; (F4) `file:../x` resolves to a `link`;
+> (F5) `git+https:` is `ENOENT spawn git`; (F6) the *scripts are off* case cannot publish to the platform's mirror offline (`503`) — use the
+> throwaway, its probe scope local; (F7) **`[M2]`'s package is `passport-saml@3.2.4`** (the mirror's only tarball outside the lockfile) — good
+> for *existing pins stay*, but a BUILD of it is refused by the scan (13 fixable Highs in `@xmldom/xmldom@0.7.13`), so *"then a build …
+> succeeds"* needs `cookie@0.7.1` (scan-clean, one forced pin) or the network; (F8, F9) npm's retries cost 70–90 s offline, and npm asks for
+> `npm` itself each run; (F11) `# syntax=` is refused in `build/context.ts`.
 
 **Files:**
 - Modify: `blueprints/node-ts-mongo/blueprint.yaml`, `blueprints/fixture-node/blueprint.yaml` — `dependencies: { manifest: package.json,
@@ -571,6 +614,10 @@ docs/superpowers/spikes/fe32-baseline/                                          
 
 **Sitting 3.** Decisions 1, 2, 5–8. **The contract goes to `1.11.0` here.**
 
+> **SITTING 1 MEASURED:** the contract is `1.10.0` with 79 operations (`api/contract/document.ts:140`), so `1.11.0` stands. **Step 4's
+> build through the edge cannot use `[M2]`'s package** — the scan refuses `passport-saml@3.2.4`'s closure (F7); `cookie@0.7.1` builds. A
+> resolution the mirror cannot serve takes 70–90 s of npm's retries before it is refused (F8) — the route's time budget should say so.
+
 **Files:**
 - Modify: `api/routes/source.ts` (the route, beside `createCommit`); `api/representations/source.ts` (`ResolveDependenciesRequest
   { manifest: string ≤ 65,536 chars, baseCommit?: Sha }`, `ResolvedDependencies { lockfile: { path, content, sha256 }, baseCommit, log }`);
@@ -603,6 +650,12 @@ docs/superpowers/spikes/fe32-baseline/                                          
 ## Task 4: The allowlist — the direct dependencies an app may name
 
 **Sitting 3, after Task 3. Spec action C decided first.** Decision 11.
+
+> **SITTING 1 MEASURED:** **the skeleton has no `overrides` block any more** (F1, `1dcb905b`) — the passing row *"the skeleton's own
+> `@xmldom/xmldom` override passes"* needs a test manifest of its own (an override of a package in the base closure). **The committed
+> lockfiles hold exactly two entry shapes, plain and `peer`** — no `bundled`, `optional`, `devOptional`, `inBundle` or `link` — and every
+> `resolved` (298) is public. A `file:` specifier makes `"node_modules/x": { "resolved": "../x", "link": true }` and an empty `"../x": {}`
+> (F4): the gate's `link` refusal sees it.
 
 **Files:**
 - Create: `infra/dependencies/allowed.txt` (one name per line, each with a `#` reason; seeded by hand with nothing beyond what the skeletons
@@ -673,6 +726,11 @@ docs/superpowers/spikes/fe32-baseline/                                          
 ## Task 6: The acceptance — `make demo-authoring`, extended, and a person clicking it
 
 **Sitting 5. Alone, and last.** *What Rich does* 3 is asked at its open.
+
+> **SITTING 1 MEASURED:** **`marked@999.0.0` → `ETARGET` offline holds** — `[M3]` (iv) on a throwaway seeded with the live mirror's own
+> `marked` document (the live mirror holds `marked`'s METADATA and no tarball; `dist-tags.latest` 18.0.14 on 2026-10-16). A real `marked`
+> version on a mirror without its tarball fails `E500 … uplink is offline` after 72 s — what a clean machine whose warm loop missed the
+> fixture would meet.
 
 **Files:**
 - Modify: `packages/journey/src/authoring.ts` — a step after the board is built: the agent adds `marked`, resolves, commits both, builds,
@@ -782,6 +840,10 @@ minor: *"names no package manager"* was contradicted by that reader, which Task 
 
 *Shared pages:* `manifest-decisions.html` if it describes the supply chain; `manifest-schematic.html`'s supply-chain line — check.
 
+> **SITTING 1 MEASURED (F12):** A2's sentence is not in §26 (A2 now follows this plan), so C's *"after A2's sentence (which follows B's …)"*
+> is *after B's*: *"…And the load rehearsal's profile and pass mark (§24)."* (spec l.3068-3069), which is followed by *"Each change is audited
+> with its actor (below)."* — read C's *"(the gap B's Spec action B names)"* against that. §12's first bullet is l.1600-1602. Rich's words.
+
 ---
 
 ## Revised to the review — what changed, finding by finding (2026-10-03)
@@ -834,3 +896,78 @@ case is a held package at a version never published (an unknown name would send 
 ## What executing this plan found
 
 *(One dated section per sitting.)*
+
+### Sitting 1 — 2026-10-16, 15:30–16:55, and 20:56–21:23 PDT (`manifest-fe32-s1`, the fourth coordinated run's job FE32-1): Task 1 — the measurements
+
+**Opened** by `manifest-coord6`'s GO (15:28), which relayed Rich's decisions — the decisions file's *2026-10-16 ~15:10* entry
+(`4cb1f2c9`: the fourth run, FE-32's sitting 1 among its four sets; decision 18, the plan's second fresh review AFTER this sitting) and
+his standing ones (`6c9949a` delegation, `3ba424a`, `d5b0eb2` settings, `bdfc6f2` the standing yeses — inline execution among them —
+`3011e11`, `c5b77ac8` Hatchery first today) — and gave it 7100 (*"7100 is yours"*: real GitHub, `gpt-6.1-sol`, 0 projects). HEAD `4cb1f2c9`,
+clean but an untracked `.claude/`. **The flag was Hatchery's standing window**, so every Docker step and the `pnpm test` ran in a HOLD the
+coordinator wrote for it and was given back the moment it ended: Step 2 15:40:26–15:46:30, Steps 3–4 15:50:36–15:57:41, Step 5
+16:07:42–16:46:40 — its `pnpm test` STOPPED by the coordinator at 16:46:40 when Rich needed his machine for a call (a 1-min load median of 198, max 462; its one red, a 25 s timeout in `launch/records.test.ts`, VOID) — and 20:56:12–21:21:38, after Rich's *"Hatchery first, then Manifest"* (`a8f9eb15`), for the owed run and `[M3]`'s clean re-run. **Task 1 was committed between them** (`eca8bf97`, at the coordinator's word, the run recorded VOID and OWED). **Task 1** (`eca8bf97`): the record is [`../spikes/fe32-baseline/README.md`](../spikes/fe32-baseline/README.md), its raw
+output `results-task1-2026-10-16.txt`, its probes `probes/`, and `[M1]`'s fact-by-fact table at `4cb1f2c9`, `facts-at-4cb1f2c9.md` — read
+by hand, every line number opened. **Measured on Docker Desktop 4.95.0, Engine 29.8.2, `NCPU` 6**, buildx v0.37.2, BuildKit v0.32.2
+rootless, Verdaccio 6.10.1, npm 11.19.0 in the base image; on battery (97 → 89 at the pause; on AC, 100, for the owed window %), the network on, load 5–10 between others' runs.
+A *SITTING 1 MEASURED* note now sits under *Read this first*, Decision 5, Review Focus 4, Tasks 2, 3, 4 and 6, and Spec action C.
+
+**The answers.** `[M1]`: none of the fifteen facts changed in meaning but fact 13 (the skeleton's `overrides` block is gone); fact 12's
+count is 298, every one public; fact 15 is measured. `[M2]`: **the builder exports a file** — `--output type=local` from the driver's own
+`withEphemeralBuilder`, ~0.6 s to a ready builder and ~3.3 s to resolve the skeleton plus one package; every base pin kept (163 of 163,
+`resolved` and `integrity` untouched); the new entries name `manifest-verdaccio:4873` until Decision 12's rewrite, then all
+`https://registry.npmjs.org/`; `make seed`'s warm loop installs the rewritten lockfile with no `WARN` and the unrewritten one `WARN`s
+(`ENOTFOUND manifest-verdaccio`) — **no stop for `[M2]`**. `[M3]`: **THE STOP FIRED** — with the uplink down, a real package never
+cached and a name that cannot exist print the same `E404 … no such package available`, and so does npmjs's own 404 online (F3, below).
+`[M4]`: **scripts are off** (no `RAN`; the positive control with scripts on: `RAN`), and unpublish leaves nothing. `[M5]`:
+the `EXPECT_` lines unmoved — **`pnpm test` once, 20:56:34–21:19:01: 253 files, 4240 tests, all passed** (equal to `EXPECT_FILES`/`EXPECT_TESTS`), 1,339.5 s at utility, load min 2.25 / median 3.45 / max 8.46; `EXPECT_DOCTOR` 23, `EXPECT_VERIFY` 67; the Docker tier 316/46 (§2's row, not owed); contract `1.10.0`, 79 operations. **The slow list** (11 tests over 5 s, under 8 files — `api/launch.test.ts` 2, `api/agents.test.ts` 2, `api/questions-end-atomic.test.ts` 1, `lifecycle.test.ts` 1 (6.9 s), `db/truncate.test.ts` 1 (20.3 s, the lock budget's own wait), `api/contract/document.test.ts` 1 (29.4 s), `github-fake`'s `conformance.test.ts` 2, `api/authz-contract.test.ts` 1 (8.7 s)): this sitting changed no code, so none is its doing; the results file has every line
+
+**Findings (13)** — the spike README's *Findings for the later sittings* has each with its measurement; the sitting that owns it rules on
+it, except F3:
+
+1. **F1 — THE SKELETON'S `overrides` BLOCK IS GONE** (`1dcb905b`, 2026-10-03 15:18, 34 minutes after this plan's revision). No committed
+   `package.json` has one, so Task 4's passing row *"the skeleton's own `@xmldom/xmldom` override passes"* and Review Focus 6's last clause
+   have no subject. → Task 4 (a test manifest with an override of a package in the base closure).
+2. **F2 — THE BASE IMAGE PULLS WITHOUT A TOKEN ONLY WHILE 7100 ANSWERS**: buildx's host-side client follows the registry's realm, and 7100
+   hands an anonymous `base/*` pull token; Task 2's *"no registry token (it pushes nothing)"* fails in the Docker tier, which stops 7100. →
+   Task 2 (a minted pull-only token, as `buildImage` does).
+3. **F3 — `[M3]`'S STOP-AND-ASK: (i) AND (ii) PRINT THE SAME CODE.** `npm error code E404` / `404 Not Found - GET <mirror>/<name> - no such
+   package available` for `left-pad` never cached (uplink refused, and unresolvable) and for `manifest-no-such-package-<nonce>` (uplink
+   refused, unresolvable, AND reachable — npmjs's own 404). Verdaccio 6.10.1 answers both `404 no such package available`; only its own
+   `http`-level log differs. Distinct, offline: `ETARGET` (a cached package at a version never published), `E500 … uplink is offline` (cached
+   metadata, no tarball, 72 s), `EAI_AGAIN` (the mirror unreachable, 87 s). Decision 5 maps `E404` to `DEPENDENCY_NOT_FOUND`. **Put to Rich
+   through `manifest-coord6` at 15:58**, gating sitting 2 with Spec actions A and B, and to REV4's review: (a) `E404` →
+   `DEPENDENCY_UNAVAILABLE`, `ETARGET` → `DEPENDENCY_NOT_FOUND` — recommended; (b) the mirror's own log; (c) as written (rejected). *His
+   answer: **not yet** — with him through `manifest-coord6` since 15:58, beside Spec actions A and B (the fourth run's G6). `manifest-review4`'s review (`4cef5374`) gives (a) its word, provisional until the clean re-run — which CONFIRMED the measurement (21:19–21:21: the identical `E404` lines under all three uplink states, each phase's npm log on disk)*
+4. **F4 — `file:../x` RESOLVES SILENTLY** — exit 0, a `link: true` entry to a directory that does not exist. Review Focus 4's *"the two
+   specifiers fail as `DEPENDENCY_RESOLUTION_FAILED`"* is false for `file:`; only Task 4's two checks stop it. → Task 2 (refuse an exported
+   `link`, or assert it and leave the refusal to Task 4).
+5. **F5 — `git+https:` FAILS AS `ENOENT` / `spawn git`** (the image has no git; npm never reaches a network). → Task 2's mapping: it is
+   `RESOLUTION_FAILED`, never *"not now"*.
+6. **F6 — VERDACCIO REFUSES A PUBLISH WHILE THE PACKAGE'S UPLINK IS DOWN** (`503 … one of the uplinks is down, refuse to publish`). Task 2's
+   *scripts are off* case cannot publish to the platform's mirror offline, and may not change its configuration. → Task 2 (the throwaway it
+   already starts, its probe scope local).
+7. **F7 — `[M2]`'S PACKAGE CANNOT BE BUILT: THE SCAN WOULD REFUSE IT.** The mirror's only tarball outside the skeleton's lockfile is
+   `passport-saml@3.2.4`'s closure; its `@xmldom/xmldom@0.7.13` has 13 fixable Highs. It serves every resolution assertion; Task 2's *"then a
+   build … succeeds"* and Task 3 Step 4's build through the edge need `cookie@0.7.1` (scan-clean; the one pin it forces named) or the
+   network. → Tasks 2 and 3.
+8. **F8 — NPM'S RETRIES COST 70–90 s** for the two slow *"not now"* shapes; the operation answers synchronously. → Tasks 2 and 3 (a
+   deliberate `--fetch-retries`, a stated budget).
+9. **F9 — THE LIVE MIRROR REFRESHES EVERY ASKED PACKAGE'S METADATA ONLINE** (fact 15, measured; no tarball fetched), and npm asks for `npm`
+   itself on every run. → Task 2 (read `npm error code` lines, never `http fetch GET 404`; `--no-update-notifier`).
+10. **F10 — VERDACCIO IS PINNED BY TAG ONLY** (`verdaccio/verdaccio:6`). Recorded beside Postgres's, not placed.
+11. **F11 — `# syntax=` IS REFUSED IN `build/context.ts`, NOT THE REGISTRY.** → Task 2's Files line.
+12. **F12 — SPEC ACTION C'S §26 WORDS NAME A2'S SENTENCE**, which is not there; C follows B's (spec l.3068-3069). → Rich's words, before Task 4.
+13. **F13 — THE THREE UPLINK PHASES REUSED CASE NAMES**, so (i)'s and (ii)'s refused-phase npm logs on disk were the later phases' (their
+    refused-phase answers stand in the throwaway's log and the `curl` lines). **RE-RUN 21:19–21:21** with `FE32_PHASE` prefixing each directory: refused, unresolvable and reachable each on disk, the same `E404` lines in all three — F3 confirmed. (Its `[M4]` tail ran under the last phase's prefix, `online-`, with the uplink refused: the `503` publish refusal again — a label, not a measurement.)
+
+**Rulings this sitting made** (the ledger, `.superpowers/sdd/2026-10-03-fe32-dependencies/progress.md`): `[M2]`'s package and its forced
+companion; `first` on one exact held package; the probe through the compiled driver; `[M3]` (iv) seeded by copy, not by the uplink; (i)/(ii)
+under three uplink states; `[M4]`'s scope local on the throwaway; the stop read as gating sitting 2, not Task 1's commit (the sittings
+table's own words); and Task 1 committed before Step 5's run, at the coordinator's word, the run and `[M3]`'s re-run landing with this close-out.
+
+**The sweep**: this plan's sittings table, banner, notes and this record; ORIENTATION §7e (replaced), §8 *Open* (F3 and the spec
+actions, now Rich's) and §7e's *Recorded, not placed* (Verdaccio's tag pin); the roadmap's FE-32 entry and its defect-rate row; CLAUDE.md's
+*State* sentence (FE-32 has started). **The four shared HTML pages: checked** — none names FE-32, the allowlist or `resolveDependencies`, and no
+spec action was applied, so none moves.
+
+**The machine as left:** **7100** listening (node 96622, `manifest-coord6`'s G4 at 20:51 — real GitHub, `gpt-6.1-sol`, 0 fallbacks; this sitting never restarted it), its tables truncated by the suite (0 projects); **7104** up (node 54250); **12 networks** (as found), **0 `mf-` containers**, no builder, no throwaway container, network or volume, 7196 free; 0 Vitest; the flag FREE (written by the coordinator 21:21). The three cleanup scripts bare: `dead-app-resources.sh` 0 networks, 0 volumes; `app-images.sh` 0 images; `litellm-orphans.sh` *"/user/list answered no users at all"* (the suite truncated 7100's users; the third run's carried M13/B6-F13, not this sitting's) — nothing for `--apply`. The four protected containers as found (`docker-simple-saml-saml-idp-1` Exited, the other three up). **Docker Desktop restarted during the pause** (~20:50, not this sitting's doing; the platform stack came back by itself). `scripts/snapshot-machine.sh` before (15:31) and after (21:22) differ only by that restart's uptimes, the host name and free disk

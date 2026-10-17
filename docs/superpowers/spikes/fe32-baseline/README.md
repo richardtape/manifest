@@ -23,7 +23,7 @@ fact-by-fact re-read, every line number at `4cb1f2c9`: [`facts-at-4cb1f2c9.md`](
 | `[M2]` | The builder exports a file | **Yes.** `--output type=local,dest=<dir>` from the driver's own `withEphemeralBuilder` exports exactly `package-lock.json` (the `FROM scratch` stage). **~0.6 s to a ready builder, ~3.2–3.4 s to resolve** the skeleton plus one package (`added 172 packages in 2s`). **Every base pin kept** (163 of 163, versions, `resolved` and `integrity` unchanged); the 9 new entries all name **`http://manifest-verdaccio:4873/`** (the review's I2, measured); **Decision 12's rewrite makes all 172 `https://registry.npmjs.org/`**, a scoped path included, and changes nothing else (the two files differ only in the host); **`make seed`'s warm loop installs the rewritten lockfile with no `WARN`, and the unrewritten one `WARN`s** (`ENOTFOUND manifest-verdaccio`). One `http fetch GET 200 …` line per tarball, every one through the mirror. The same inputs answered the same bytes twice | Task 2 (no stop): the recipe as written, its time budget, its `existing pins stay` and rewrite assertions, control (b)'s line; Decision 12 |
 | `[M3]` | What npm says when the mirror cannot serve | **THE STOP-AND-ASK FIRED: (i) and (ii) print the SAME code.** With the uplink unreachable, a real package the mirror never cached and a name that cannot exist each end `npm error code E404` / `404 Not Found - GET <mirror>/<name> - no such package available` — and so does the name that cannot exist with the uplink REACHABLE (npmjs's own 404). Only Verdaccio's `http`-level log tells them apart. **Distinct, and offline:** (iv) a cached package at a version never published → **`ETARGET`** (`No matching version found for marked@999.0.0`); cached metadata with no tarball → **`E500 … uplink is offline`**, after ~70 s of npm's retries; the mirror itself unreachable → **`EAI_AGAIN`**, ~85 s. (iii): **`git+https:` fails** (`ENOENT`, `spawn git` — the image has no git), **but `file:../x` SUCCEEDS** — a `link: true` entry to a directory that does not exist | **Rich, before sitting 2** (put to him 15:58 through `manifest-coord6`): Decision 5's E404. Task 2's mapping table, retry budget and its `file:` row; Task 6's offline `marked@999.0.0` (ETARGET holds) |
 | `[M4]` | Scripts are off; a test package unpublished | **Off.** A probe package whose `postinstall` writes `/resolve/RAN`, resolved through the real builder with Task 2's recipe: **no `RAN` in what is exported**; the same with scripts ON (the positive control): **`RAN` present**. **`npm unpublish --force` leaves nothing** (`404`; the scope's directory empty). **But Verdaccio REFUSES A PUBLISH while the package's uplink is down** — `503 … one of the uplinks is down, refuse to publish` — so the probe's scope had to be made local (no proxy) on the throwaway | Task 2's *scripts are off* case: it cannot publish to the platform's own mirror offline, and must not change its configuration — run it against the throwaway |
-| `[M5]` | The gate numbers | **Read, unmoved: `EXPECT_TESTS` 4240, `EXPECT_FILES` 253, `EXPECT_DOCTOR` 23, `EXPECT_VERIFY` 67; contract `1.10.0`, 79 operations.** **`pnpm test` once is OWED**: the one run (16:12:56) was stopped by `manifest-coord6` at 16:46:40 when Rich needed the machine (a 1-min load median of 198, max 462, over its 30 minutes — a Zoom call and others' runs) — VOID, not a result | Every later gate; the next window |
+| `[M5]` | The gate numbers | **Read, unmoved: `EXPECT_TESTS` 4240, `EXPECT_FILES` 253, `EXPECT_DOCTOR` 23, `EXPECT_VERIFY` 67; contract `1.10.0`, 79 operations.** **`pnpm test` once: 253 files, 4240 tests, all passed** (20:56–21:19, load median 3.45) — the numbers unmoved. The first run (16:12:56) was stopped by `manifest-coord6` at 16:46:40 when Rich needed the machine (load median 198, max 462) — VOID | Every later gate |
 
 ## `[M2]` — the builder exports a file
 
@@ -124,8 +124,10 @@ call for that sitting: the recipe can pass `--fetch-retries`). **A resolver must
 ones:** npm asks the registry for `npm` itself (`GET 404 …/npm`, twice) in runs that succeed.
 
 **The phases' directories.** The three uplink phases ran the same case names, so (i)'s and (ii)'s npm logs on disk from the first run are the
-LAST phase's; their refused-phase answers are in the throwaway's log and the `curl` lines. A re-run with each phase in its own directory
-(`FE32_PHASE`, now in `m2-export.mjs` and `m3-run.sh`) is OWED to the next window (the pause that voided Step 5 stopped it).
+LAST phase's; their refused-phase answers are in the throwaway's log and the `curl` lines. **The clean re-run (21:19:22–21:21:15)**, each phase in
+its own directory (`FE32_PHASE`, now in `m2-export.mjs` and `m3-run.sh`): **(i) and (ii) print the identical `npm error code E404` / `404
+Not Found - GET http://mf-verdaccio-probe:4873/<name> - no such package available` with the uplink refused, unresolvable, AND reachable**,
+each run's log on disk; (iv) `ETARGET` again; `ms@2.1.3` served with the uplink down. F3 stands as measured.
 
 ## `[M4]` — scripts are off; a test package unpublished
 
@@ -150,7 +152,10 @@ and nothing left in the platform's storage if a `finally` never runs.
 
 ## `[M5]` — the gate numbers
 
-**`pnpm test` once is OWED.** It started 16:12:56 PDT (1-min load 7.20) in a HOLD `manifest-coord6` wrote for it, and **was stopped by the coordinator at 16:46:40** (`kill -TERM` of its process group, by id) when Rich needed his machine for a call: `test-gently`'s line read *"load (1-min) min 7.20 / median 197.96 / max 461.55 over 60 samples 30 s apart; QoS utility, timeout scale 5, gate 12, forced no; exit 143"*. Its one red before the stop — `launch/records.test.ts`, *"the owner's send from change_requested clears it — and keeps where it was sent from"*, `Test timed out in 25000ms` — came at that load and is **VOID, not a result** (§4's load trap). The run goes in the next window this sitting is given; its numbers will be added here, dated. Read without a run: `scripts/ci-acceptance.sh`'s **`EXPECT_TESTS=4240`,
+**`pnpm test` once, in the owed window (20:56:34–21:19:01 PDT, after Rich's *"Hatchery first, then Manifest"*, `a8f9eb15`): 253 files,
+4240 tests, all passed** — equal to `EXPECT_FILES`/`EXPECT_TESTS`, so no number moved; 1,339.5 s at utility; `test-gently`'s line *"load (1-min)
+min 2.25 / median 3.45 / max 8.46 over 45 samples 30 s apart; QoS utility, timeout scale 5, gate 12, forced no; exit 0"*. The slow list (11 tests
+over 5 s, under 8 files) is in the results file; this sitting changed no code. **The first run** started 16:12:56 PDT (1-min load 7.20) in a HOLD `manifest-coord6` wrote for it, and **was stopped by the coordinator at 16:46:40** (`kill -TERM` of its process group, by id) when Rich needed his machine for a call: `test-gently`'s line read *"load (1-min) min 7.20 / median 197.96 / max 461.55 over 60 samples 30 s apart; QoS utility, timeout scale 5, gate 12, forced no; exit 143"*. Its one red before the stop — `launch/records.test.ts`, *"the owner's send from change_requested clears it — and keeps where it was sent from"*, `Test timed out in 25000ms` — came at that load and is **VOID, not a result** (§4's load trap). Read without a run: `scripts/ci-acceptance.sh`'s **`EXPECT_TESTS=4240`,
 `EXPECT_FILES=253`** (`:378-379`), **`EXPECT_DOCTOR=23`** (`:385`), **`EXPECT_VERIFY=67`** (`:390`); the Docker tier **316 / 0 skipped / 46
 files** (ORIENTATION §2's row, not re-run — nothing here is owed one). **Contract `1.10.0`** (`api/contract/document.ts:140`;
 `packages/contract/openapi.json`'s `info.version`, **79 operations**) — so this plan's Task 3 takes **`1.11.0`**, as written.
@@ -173,8 +178,9 @@ which the plan's own stop-and-ask gives to Rich.
    (recommended: Task 4's allowlist refuses a hallucinated name before the mirror, so Review Focus 1's three cases stay distinct as
    measured; what is lost is an ALLOWED package npmjs has since unpublished, which reads *"not now"*); (b) read the mirror's own log
    (`level: http` in `infra/verdaccio/config.yaml:23`, a driver coupled to Verdaccio 6.10.1's log text); (c) keep `E404` →
-   `NOT_FOUND` (rejected: offline, a real allowed package would read *"no such thing"*). **It gates sitting 2.** *(His answer, when it
-   comes, is recorded in the plan's Sitting 1 and in `docs/superpowers/2026-09-30-decisions.md`.)*
+   `NOT_FOUND` (rejected: offline, a real allowed package would read *"no such thing"*). **It gates sitting 2.** **`manifest-review4`'s review (`4cef5374`)
+   gives (a) its word** — provisional until the clean re-run, which confirmed the measurement. *(Rich's answer, when it comes, is recorded in
+   the plan's Sitting 1 and in `docs/superpowers/2026-09-30-decisions.md`.)*
 4. **F4 — `file:../x` RESOLVES SILENTLY** (`[M3]` (iii)): exit 0, a `link: true` entry to a directory that does not exist. Review Focus 4's
    *"at the driver, the two specifiers fail as `DEPENDENCY_RESOLUTION_FAILED`"*, and Task 2's Docker row for them, are **false for
    `file:`** — only Task 4's specifier check (the operation, before any builder) and its lockfile check (the gate's `link: true` refusal)
@@ -205,3 +211,6 @@ which the plan's own stop-and-ask gives to Rich.
 12. **F12 — SPEC ACTION C'S §26 WORDS NAME A2'S SENTENCE**, which is not there (A2 now comes after this plan): C goes after B's *"And the load
     rehearsal's profile and pass mark (§24)."* (spec l.3068-3069), and its *"(the gap B's Spec action B names)"* is re-read against l.3069's
     *"Each change is audited with its actor"*. Rich's words to decide; recorded here so the reviewer reads them against the spec as it is.
+13. **F13 — THE THREE UPLINK PHASES REUSED CASE NAMES**, so `[M3]`'s first run left (i)'s and (ii)'s npm logs from the LATER phases on disk
+    (the refused phase's answers stand in the throwaway's log and the `curl` lines). `m2-export.mjs` now prefixes each directory with
+    `FE32_PHASE`; **the clean re-run ran 21:19–21:21 and confirmed F3** (*`[M3]`*, above).
