@@ -213,3 +213,41 @@ Read against the code and the measurements; each is as the plan or the baseline 
 - **Held for the re-run.** If the re-run shows the refused phase's npm lines differ from the throwaway's log and `curl` answers, the
   addendum says so. That covers (i) and (ii) with the uplink refused, which the baseline reads from the throwaway's log and `curl`, not
   from npm's own lines on disk (F13).
+
+---
+
+## Addendum — after sitting 1's close-out (2026-10-16, ~21:28 PDT, `manifest-review4`, at `manifest-coord6`'s "close-out landed")
+
+Read at `d9b2d6e3`: FE32-1's close-out, on Task 1's `eca8bf97`. It is the spike README, `results-task1-2026-10-16.txt` and the plan's
+*Sitting 1* record with its *SITTING 1 MEASURED* notes.
+
+- **`[M3]`: (a) is now FIRM.**
+  - The clean re-run (21:19:22–21:21:15) put each uplink phase's npm lines on disk (`results-task1-2026-10-16.txt:461-604`).
+    `left-pad@1.3.0` (never cached) and `manifest-no-such-package-210762@1.0.0` (cannot exist) print the identical `npm error code E404`
+    and `404 Not Found - GET http://mf-verdaccio-probe:4873/<name> - no such package available`. That holds with the uplink refused
+    (`:551-566`) and unresolvable (`:581-596`), and the second also prints it with the uplink reachable (`:597-604`).
+  - `ETARGET` is again distinct, offline (`:567-580`), and `ms@2.1.3` is served from storage with the uplink refused (`:545-550`).
+  - The reachable phase prints npm's generic E404 footer lines as well. Those do not separate (i) from (ii) offline, which is the
+    question. Nothing in npm's own output tells them apart.
+  - So (b) and (c) stay rejected for the reasons above, and (a)'s one loss (an allowed name npmjs lacks reads *"not now"*) is recorded,
+    not designed around.
+- **The gate numbers are confirmed.** `pnpm test` once, 20:56:34–21:19:01, gave **253 files, 4240 tests, all passed**, equal to
+  `EXPECT_FILES`/`EXPECT_TESTS` (load median 3.45, max 8.46, exit 0). `EXPECT_DOCTOR` 23 and `EXPECT_VERIFY` 67 are unmoved. The contract
+  is `1.10.0`, 79 operations.
+- **What the close-out changes in this review: nothing.**
+  - Its *SITTING 1 MEASURED* notes carry F1–F12 under the facts, Decision 5, Review Focus 4, Tasks 2, 3, 4 and 6, and Spec action C. They
+    are the same measurements I2–I4 and M2–M5 rest on, and they say the plan *"is not revised to the review"*. That is sitting 2's
+    opener's job, after Rich's answers. So every finding stands as written.
+  - Two are not in those notes and must not be lost at the revision. **I1's ripple**: the fake driver's and the mock's
+    `manifest-no-such-` → `NOT_FOUND`, the pack sentence and the guide. **I5**: `marked` named at the fixture's exact version. Task 6's
+    note confirms I5's premise: the live mirror holds `marked`'s metadata and no tarball, `dist-tags.latest` 18.0.14 on 2026-10-16.
+  - **M9 is now live.** Rich decided his click-6 question on 2026-10-16 (~20:49, `a8f9eb15`): a hand-back keeps an optional reason, as a
+    small plan of its own, *"not yet written or placed in his order"* (decisions page l.2236-2238). It is a contract minor that could land
+    before FE-32's Task 3, so Task 3 should read *"`1.11.0`, or the next minor"*.
+
+**Final words for Rich, unchanged from the review:**
+- **A**: apply as worded.
+- **B**: apply as worded.
+- **C**: item 1 as worded (it also repairs §12's garbled first bullet). Item 2 goes after B's *"And the load rehearsal's profile and pass
+  mark (§24)."*, without its *"not yet audited"* clause.
+- **`[M3]`**: (a), firm, with I1's ripple taken in sitting 2's revision.
