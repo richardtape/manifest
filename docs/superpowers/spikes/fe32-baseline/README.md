@@ -179,8 +179,8 @@ which the plan's own stop-and-ask gives to Rich.
    measured; what is lost is an ALLOWED package npmjs has since unpublished, which reads *"not now"*); (b) read the mirror's own log
    (`level: http` in `infra/verdaccio/config.yaml:23`, a driver coupled to Verdaccio 6.10.1's log text); (c) keep `E404` →
    `NOT_FOUND` (rejected: offline, a real allowed package would read *"no such thing"*). **It gates sitting 2.** **`manifest-review4`'s review (`4cef5374`)
-   gives (a) its word** — provisional until the clean re-run, which confirmed the measurement. *(Rich's answer, when it comes, is recorded in
-   the plan's Sitting 1 and in `docs/superpowers/2026-09-30-decisions.md`.)*
+   gives (a) its word** — provisional until the clean re-run, which confirmed the measurement. **Rich DECIDED (a)**, 2026-10-16 ~23:39
+   (`ad6648a0`, the decisions file): *"(a) E404 → 'not now'"*.
 4. **F4 — `file:../x` RESOLVES SILENTLY** (`[M3]` (iii)): exit 0, a `link: true` entry to a directory that does not exist. Review Focus 4's
    *"at the driver, the two specifiers fail as `DEPENDENCY_RESOLUTION_FAILED`"*, and Task 2's Docker row for them, are **false for
    `file:`** — only Task 4's specifier check (the operation, before any builder) and its lockfile check (the gate's `link: true` refusal)

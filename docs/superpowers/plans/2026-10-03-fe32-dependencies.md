@@ -12,9 +12,10 @@
 > Decision 5, Review Focus 4, Tasks 2, 3, 4 and 6, and Spec action C. **`[M3]`'S STOP-AND-ASK FIRED (F3)**: npm prints the same `E404` for
 > a package the offline mirror never cached and for a name that cannot exist, so Decision 5's `E404` → `DEPENDENCY_NOT_FOUND` is Rich's
 > to re-decide — put to him through `manifest-coord6` at 15:58, (a) recommended. **`manifest-review4`'s fresh review against these
-> measurements has landed** (decision 18; [`2026-10-16-review-of-fe32-plan.md`](./2026-10-16-review-of-fe32-plan.md), `4cef5374`: approve
-> with fixes — 0 Critical, 5 Important, 10 Minor). **Sitting 2 waits for Rich's answers** to Spec actions A and B and to F3's mapping (C before
-> Task 4); **its opener then revises this plan to the review, finding by finding** — none of it applied yet.
+> measurements has landed** (decision 18; [`2026-10-16-review-of-fe32-plan.md`](./2026-10-16-review-of-fe32-plan.md), `4cef5374`, its
+> addendum `e7aff475`: approve with fixes — 0 Critical, 5 Important, 10 Minor; `[M3]` (a) FIRM). **RICH DECIDED ALL FOUR** (Rich, 2026-10-16 ~23:39, through `manifest-coord6`'s question tool, `ad6648a0`):
+> Spec actions A and B *"Apply as worded"*, C *"As REV4 says"*, `[M3]` *"(a) E404 → 'not now'"*. **So sitting 2 may start: its opener
+> revises this plan to the review, finding by finding (I1's ripple and I5 included), then applies A and B** — none of it done yet.
 
 > **WRITTEN 2026-10-03, AFTERNOON, BY THE PLANNING SESSION `manifest-c7`** (coordinated by `manifest-94`), after the Manifest
 > team's step ([`2026-10-03-fe46-fe47-fe5.md`](./2026-10-03-fe46-fe47-fe5.md), approved the same afternoon). **Every fact in *Read this
@@ -99,7 +100,7 @@ by audience), B (the load rehearsal, FE-44: *"Build the load rehearsal first"*),
 | Sitting | Tasks | What it delivers | `pnpm test:docker` owed? | Where it stops | Status |
 |---|---|---|---|---|---|
 | 1 | 1 | **The measurements**: every fact re-read; `--output type=local` from the rootless remote builder; a full install against the mirror, with the committed lock kept; what npm says when the mirror cannot fetch (a THROWAWAY Verdaccio whose uplink is unreachable); install scripts proved off; Verdaccio's unpublish for a test package; the gate numbers | No | After Task 1's commit. **It stops and asks Rich** if `[M2]` finds the builder cannot export a file, or `[M3]` finds the mirror's two failures indistinguishable | **DONE 2026-10-16** (`manifest-fe32-s1`, the fourth coordinated run's FE32-1): Task 1 `eca8bf97` — [`../spikes/fe32-baseline/`](../spikes/fe32-baseline/README.md); 13 findings; **`[M2]` no stop** (the builder exports a file); **`[M3]`'s stop FIRED** (F3 — `E404` for both), put to Rich; a *SITTING 1 MEASURED* note under every part it changes |
-| 2 | 2 | **The driver resolves**: `Driver.resolveDependencies` on both drivers and in the driver contract; the descriptor's `dependencies` block; `Resolve.tmpl` in both blueprints; the driver's hard-coded `'package-lock.json'` read from the descriptor | Yes — `runtime/`, `blueprints/`, `build/` | After the commit, with the Docker case green and one resolution through the real builder quoted | ← **next**, once Rich has decided Spec actions A and B and F3's mapping — then its opener revises this plan to `manifest-review4`'s review (`4cef5374`, decision 18), finding by finding, before Task 2 |
+| 2 | 2 | **The driver resolves**: `Driver.resolveDependencies` on both drivers and in the driver contract; the descriptor's `dependencies` block; `Resolve.tmpl` in both blueprints; the driver's hard-coded `'package-lock.json'` read from the descriptor | Yes — `runtime/`, `blueprints/`, `build/` | After the commit, with the Docker case green and one resolution through the real builder quoted | ← **next** — Rich DECIDED Spec actions A and B and F3's mapping (`ad6648a0`); its opener revises this plan to `manifest-review4`'s review (`4cef5374` + `e7aff475`) finding by finding, I1's ripple and I5 included, then applies A and B, then Task 2 |
 | 3 | 3, 4 | **The operation**: `resolveDependencies`, its refusals, contract `1.11.0`. **The allowlist** — a platform setting; the operation and the build's gate both refuse an unlisted direct dependency | Yes — `source/`, `build/`, `blueprints/`, `runtime/` | After both commits, with a resolution and an allowlist refusal through the edge on driver 1 | |
 | 4 | 5 | **The clients**: the mock, the knowledge pack's rule, the guide *Authoring*'s *Adding a dependency*, an example run against the mock | No, unless a fix touches the owed list | After the commit, with `pnpm docs:write` clean and the front-end told | |
 | 5 | 6 | **The acceptance**: `make demo-authoring`, extended, three times on each driver; the fixture that warms `marked`; every other demo; a clicked half; the plan's one whole-branch review. **Alone, and last** | Yes, if any code changes | After the clicked half and the review's one fix wave | |
@@ -138,7 +139,8 @@ before Rich has decided that spec action (A and B before sitting 2; C before Tas
 ## What Rich does, and when
 
 1. ~~Review this plan~~ — **APPROVED 2026-10-03, 15:20 PDT** (the allowlist answered: *"Yes, in this plan"*; the sittings with the plan).
-2. **Read and decide Spec actions A and B before sitting 2, and C before Task 4.**
+2. ~~Read and decide Spec actions A and B before sitting 2, and C before Task 4~~ — **DECIDED 2026-10-16** (`ad6648a0`): A and B *"Apply as
+   worded"*, C *"As REV4 says"*; and `[M3]`'s mapping (a) (F3). A and B are applied at sitting 2's open, C at sitting 3's.
 3. **The network, at sitting 5**, for the acceptance's first resolution of `marked`: Verdaccio fetches it from npmjs through its uplink,
    as `make seed` does. *Asked at that sitting's open.* After it the fixture's lockfile is committed, and `make seed` warms `marked` on any
    machine.
@@ -256,7 +258,7 @@ before Rich has decided that spec action (A and B before sitting 2; C before Tas
 
    `[M3]` measures what npm prints for the first two against the mirror; if the two cannot be told apart, the sitting stops and asks Rich.
 
-   > **SITTING 1 MEASURED — THE STOP FIRED (F3; put to Rich 2026-10-16 15:58 through `manifest-coord6`, gating sitting 2):** npm prints
+   > **SITTING 1 MEASURED — THE STOP FIRED (F3; put to Rich 2026-10-16 15:58 through `manifest-coord6`, gating sitting 2 — DECIDED (a) by Rich, `ad6648a0`):** npm prints
    > the SAME `npm error code E404` / `404 Not Found - GET <mirror>/<name> - no such package available` for a real package the mirror never
    > cached with its uplink down, for a name that cannot exist with its uplink down, and for that name with the uplink UP (npmjs's own 404) —
    > Verdaccio 6.10.1 answers all three `404 no such package available`. What npm CAN tell apart: **`ETARGET`** (a cached package at a version
@@ -264,7 +266,12 @@ before Rich has decided that spec action (A and B before sitting 2; C before Tas
    > **`EAI_AGAIN`** (the mirror unreachable; 87 s). The options put: (a) `E404` → `DEPENDENCY_UNAVAILABLE`, `ETARGET` →
    > `DEPENDENCY_NOT_FOUND` (recommended — Task 4 refuses a hallucinated NAME before the mirror, so Review Focus 1's three cases stay
    > distinct; an ALLOWED package npmjs has since unpublished reads *"not now"*); (b) the mirror's own `http`-level log; (c) as written.
-   > **Rich's answer: not yet** — with him through `manifest-coord6` since 15:58, beside Spec actions A and B (the fourth run's G6). `manifest-review4`'s review (`4cef5374`) gives (a) its word, provisional until the clean re-run — which CONFIRMED the measurement (21:19–21:21: the identical `E404` lines under all three uplink states, each phase's npm log on disk)
+   > **DECIDED (a)** (Rich, 2026-10-16 ~23:39, through `manifest-coord6`'s question tool, `ad6648a0`): *"(a) E404 → 'not now'"* — `E404` → `503 DEPENDENCY_UNAVAILABLE`; `ETARGET` →
+   > `422 DEPENDENCY_NOT_FOUND`; `E500` and `EAI_AGAIN` → `DEPENDENCY_UNAVAILABLE`; everything else → `422 DEPENDENCY_RESOLUTION_FAILED`. Its one
+   > loss accepted: an allowed name npmjs lacks reads *"not now"*. Rejected: (b), (c). The clean re-run (21:19–21:21) had confirmed the
+   > measurement, and the review's addendum (`e7aff475`) made its word firm. **This Decision's own text above is not yet revised** — sitting
+   > 2's opener does it, with the ripple the review's I1 names (the fake driver's and the mock's answers, Review Focus 1, the pack sentence,
+   > the guide).
 
 6. **A BOUNDED REQUEST, REFUSED BEFORE ANY BUILDER STARTS**: the manifest's text at most 64 KiB (`400 VALIDATION_FAILED`, the route's schema);
    a `baseCommit` the project does not have is `409 SOURCE_COMMIT_NOT_FOUND` (the source routes' code). Nothing about the manifest's
@@ -781,14 +788,14 @@ docs/superpowers/spikes/fe32-baseline/                                          
 
 ---
 
-## Spec actions — DRAFTED, NONE APPLIED
+## Spec actions — DECIDED BY RICH 2026-10-16 (`ad6648a0`), NONE APPLIED YET
 
 **Each is Rich's to read and decide; `manifest-94` applies an approved one.** The four shared HTML pages are checked with each.
 **§11's interface is changed by four plans, read in order** (the review's cross-plan 2): A1's A, B's C, A2's C, then this plan's A — each
 worded against the interface as the one before leaves it. **§26's settings sentence gains words from three**: B's B, A2's B, then this
 plan's C.
 
-### A. §11 and §12 — the driver resolves an app's dependencies (before sitting 2)
+### A. §11 and §12 — the driver resolves an app's dependencies (before sitting 2) — **DECIDED: *"Apply as worded"*** (`ad6648a0`; applied at sitting 2's open)
 
 **Why.** FE-32 (a) needs the platform to resolve a lockfile, and §11 says the `Driver` is *"everything the control plane may ask of
 infrastructure, and nothing more"*: resolution runs in the builder, so the interface gains it.
@@ -805,7 +812,7 @@ infrastructure, and nothing more"*: resolution runs in the builder, so the inter
 *Shared pages:* `manifest-decisions.html` (D13, D24 if it lists what a token may do) and `manifest-stories.html` (an agent's day that
 adds a package) — check; likely unchanged.
 
-### B. §25 — a blueprint declares how its apps' dependencies are resolved (before sitting 2)
+### B. §25 — a blueprint declares how its apps' dependencies are resolved (before sitting 2) — **DECIDED: *"Apply as worded"*** (`ad6648a0`; applied at sitting 2's open)
 
 **Proposed.** In the descriptor example, after `dockerfile: ./Dockerfile.tmpl`:
 
@@ -824,7 +831,7 @@ minor: *"names no package manager"* was contradicted by that reader, which Task 
 
 *Shared pages:* none names the descriptor's fields — check.
 
-### C. §12 and §26 — the allowlist made concrete (before Task 4; the allowlist itself is Rich's *"Yes, in this plan"*)
+### C. §12 and §26 — the allowlist made concrete (before Task 4; the allowlist itself is Rich's *"Yes, in this plan"*) — **DECIDED: *"As REV4 says"*** (`ad6648a0`): item 1 as worded; item 2 after B's *"…And the load rehearsal's profile and pass mark (§24)."* and WITHOUT its clause *"so a change is not yet audited with its actor"*; applied at sitting 3's open, before Task 4
 
 **Proposed.**
 1. **§12, *Supply chain***, the first bullet ⟶ *"dependencies resolve through a private registry mirror, and **an app names as a direct
@@ -937,7 +944,7 @@ it, except F3:
    metadata, no tarball, 72 s), `EAI_AGAIN` (the mirror unreachable, 87 s). Decision 5 maps `E404` to `DEPENDENCY_NOT_FOUND`. **Put to Rich
    through `manifest-coord6` at 15:58**, gating sitting 2 with Spec actions A and B, and to REV4's review: (a) `E404` →
    `DEPENDENCY_UNAVAILABLE`, `ETARGET` → `DEPENDENCY_NOT_FOUND` — recommended; (b) the mirror's own log; (c) as written (rejected). *His
-   answer: **not yet** — with him through `manifest-coord6` since 15:58, beside Spec actions A and B (the fourth run's G6). `manifest-review4`'s review (`4cef5374`) gives (a) its word, provisional until the clean re-run — which CONFIRMED the measurement (21:19–21:21: the identical `E404` lines under all three uplink states, each phase's npm log on disk)*
+   answer: **DECIDED (a)**, 2026-10-16 ~23:39 (`ad6648a0`) — before that, with him through `manifest-coord6` since 15:58, beside Spec actions A and B (the fourth run's G6). `manifest-review4`'s review (`4cef5374`) gives (a) its word, provisional until the clean re-run — which CONFIRMED the measurement (21:19–21:21: the identical `E404` lines under all three uplink states, each phase's npm log on disk)*
 4. **F4 — `file:../x` RESOLVES SILENTLY** — exit 0, a `link: true` entry to a directory that does not exist. Review Focus 4's *"the two
    specifiers fail as `DEPENDENCY_RESOLUTION_FAILED`"* is false for `file:`; only Task 4's two checks stop it. → Task 2 (refuse an exported
    `link`, or assert it and leave the refusal to Task 4).

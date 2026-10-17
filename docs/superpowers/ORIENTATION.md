@@ -2035,7 +2035,7 @@ named in the row below.*
 | **Gentler test tiers** | [`plans/2026-10-14-gentler-test-tiers.md`](plans/2026-10-14-gentler-test-tiers.md) — **EXECUTED 2026-10-14/15**, seven tasks in three sittings, inline, in the second and third coordinated runs | `pnpm test` and `pnpm test:docker` through `scripts/test-gently.sh` — green under ten CPU burners at utility 5, under six at background 7, refused above a load of 12; the Docker tier at 12 CPUs, then at 6 (Rich's *"keep 6"*) | **Sitting 2's F2 and F3 are the ones to read**: twelve burners STARVE a utility run (~1 % of a core), so the gate, not a scale, keeps a run out of saturation; and a scale set from a quiet ratio read 4 red at the gate's edge. **Sitting 3's F1**: Docker Desktop's *Apply & restart* also applied a pending update (4.87.0 → 4.95.0) — read the version on both sides of a restart a measurement brackets |
 | **P11** | [`plans/2026-10-14-p11-admin-console.md`](plans/2026-10-14-p11-admin-console.md) — **EXECUTED 2026-10-15/16**, thirteen tasks in nine sittings, inline, in the third coordinated run, in a git worktree with three fast-forward landings | `make demo-admin` — the console built and walked headless on its mock's demo fleet, nine checks each asserting a shape, no platform needed; a step of `make ci-acceptance` (13) and of the offline acceptance (20); eight controls; **Rich clicking it** | **Sitting 6's F1 is the one to read**: a launch record written without its certificate ERASES it — the platform's upsert writes the body as sent. **Sitting 8's review**: a certificate expiry typed into UBC's answer was recorded the day before in Vancouver (UTC midnight). **Sitting 5's F2**: a StrictMode defect only a walk could see. **Sitting 2**: four of the demo fleet's planned states were ones the platform cannot reach |
 | **B** | [`plans/2026-10-03-load-rehearsal.md`](plans/2026-10-03-load-rehearsal.md) — **EXECUTED 2026-10-15/16**, eight tasks in seven sittings, inline, in the third coordinated run | `make demo-load` — a large course's app rehearsed and passing, then one that falls over failing with its answered share, the platform's refusals mid-run, staging given back; green three times on each driver, a step of `make ci-acceptance` (14) and of the offline acceptance (21); nine controls, one per Review Focus line; **Rich clicking it** | **Sitting 7's review**: the generator's and the edge's round robins aligned, so one member took every front page — a false fail (F3, fixed); a staging deploy under way silently undone (I2, fixed). **Sitting 6's ruling**: the fall-over fixture's two-at-once arithmetic (Little's law). **Sitting 3's F1**: an uncommitted test file in the shared checkout kept 7100 down for a peer. [`spikes/load-baseline/`](spikes/load-baseline/README.md) |
-### 7e. FE-32, an agent can add a dependency — Rich's answers, then its sitting 2 (its fresh review landed) ← **START HERE**
+### 7e. FE-32, an agent can add a dependency — its sitting 2 (the plan revised to its review, Spec actions A and B, then Task 2) ← **START HERE**
 
 **FE-32'S SITTING 1 IS DONE** (2026-10-16, `manifest-fe32-s1`, the fourth coordinated run's FE32-1, inline; Task 1 `eca8bf97` —
 [`spikes/fe32-baseline/`](spikes/fe32-baseline/README.md) the measurements, the plan's *Sitting 1* the record, and a *SITTING 1 MEASURED*
@@ -2046,28 +2046,31 @@ rewritten lockfile with no `WARN` (the unrewritten one `WARN`s). **Scripts are o
 present). **And `[M3]`'s stop-and-ask FIRED (F3)**: with the mirror unable to reach npmjs, npm prints the same `E404 … no such package
 available` for a real package the mirror never cached and for a name that cannot exist (and for npmjs's own 404) — Decision 5 maps `E404`
 to `DEPENDENCY_NOT_FOUND`. It went to Rich through `manifest-coord6` at 15:58, with (a) recommended (`E404` → `DEPENDENCY_UNAVAILABLE`,
-`ETARGET` → `DEPENDENCY_NOT_FOUND`; the allowlist refuses a hallucinated name first). **Rich's answer is not yet in** — it waits with Spec actions A and B. A clean re-run of `[M3]`'s refused phase (21:19–21:21, each uplink state's npm log on disk) CONFIRMED the measurement, so the review's provisional word on it can be firm.
+`ETARGET` → `DEPENDENCY_NOT_FOUND`; the allowlist refuses a hallucinated name first). A clean re-run of `[M3]`'s refused phase (21:19–21:21, each uplink state's npm log on disk) CONFIRMED the measurement. **RICH DECIDED IT,
+AND THE SPEC ACTIONS** (Rich, 2026-10-16 ~23:39, through `manifest-coord6`'s question tool, `ad6648a0`): `[M3]` *"(a) E404 → 'not now'"*; Spec actions A and B *"Apply as worded"*; C *"As REV4 says"*.
 
-**THE NEXT JOB IS NOT A SITTING — IN THIS ORDER:**
+**THE NEXT JOB IS FE-32'S SITTING 2 — WHAT COMES BEFORE IT IS DONE:**
 1. **`manifest-review4`'s fresh review against sitting 1's measurements — LANDED** (decision 18):
    [`plans/2026-10-16-review-of-fe32-plan.md`](plans/2026-10-16-review-of-fe32-plan.md), `4cef5374` — **approve with fixes, 0 Critical, 5
    Important, 10 Minor**: I1 `[M3]`'s ripple reaches past `resolve.ts` (the fake driver's and the mock's `manifest-no-such-` answers, Review
    Focus 1, the knowledge pack's sentence, the guide); I2 a pull-only base token for resolution; I3 refuse an exported lockfile holding a
    `link`; I4 *scripts are off* on the throwaway, and `cookie@0.7.1` for the build half; I5 `marked` at an EXACT version in Task 6. **Its
    word**: Spec actions A and B as worded; C's item 1 as worded, item 2 without its *"not yet audited"* clause; `[M3]` option (a) —
-   provisional until sitting 1's clean re-run of `[M3]`'s refused phase landed; it has (this close-out, 21:19–21:21), and it confirmed the
-   measurement.
-2. **Rich decides** Spec actions A and B and F3's mapping (Decision 5's `E404`) before sitting 2, and C before Task 4 (the fourth run's G6).
-   **None is applied.**
-3. **Then FE-32's sitting 2** (`manifest-fe32-s2`, asked of Rich by the coordinator): **its opener revises the plan to the review, finding
-   by finding, AFTER Rich's decisions** (a *Revised to the review* section in the plan, finding by finding, as `2d74a5d` wrote one for the first review), applies A and B if approved,
+   provisional until sitting 1's clean re-run of `[M3]`'s refused phase landed; it has (21:19–21:21), and **the review's addendum
+   (`e7aff475`) makes (a) FIRM**, the gate numbers confirmed, nothing else in the review changed.
+2. **Rich DECIDED** (`ad6648a0`, the fourth run's G6): A and B *"Apply as worded"* — applied at sitting 2's open; C *"As REV4 says"* —
+   item 1 as worded, item 2 after B's *"…pass mark (§24)."* WITHOUT *"so a change is not yet audited with its actor"*, applied at sitting
+   3's open, before Task 4; `[M3]` (a) — `E404` → `503 DEPENDENCY_UNAVAILABLE`, `ETARGET` → `422 DEPENDENCY_NOT_FOUND`, `E500` and
+   `EAI_AGAIN` → `UNAVAILABLE`, else `RESOLUTION_FAILED`; its one loss accepted; I1's ripple goes with it. **None is applied yet.**
+3. **NEXT: FE-32's sitting 2** (`manifest-fe32-s2`, asked of Rich by the coordinator): **its opener revises the plan to the review
+   (`4cef5374` + `e7aff475`), finding by finding — I1's ripple and I5 included, Decision 5 to Rich's (a)** (a *Revised to the review* section in the plan, finding by finding, as `2d74a5d` wrote one for the first review), applies A and B if approved,
    and then **Task 2 alone** — the driver resolves; Docker-heavy; `pnpm test:docker` owed. **Sitting 1 did not revise the plan**: its
    *SITTING 1 MEASURED* notes record what it measured, not the fixes.
 
 **WHAT SITTING 1 LEAVES SITTING 2** (each in the spike README with its measurement; the task notes say where it bites):
 - **Task 2's recipe works as written** — the glob `package-lock.jso[n]` matching nothing is accepted, Decision 12's `sed` changes only the
   host — **and its text misses eight things**: a pull-only registry token (F2 — with none, the base pulls only while 7100's realm answers,
-  and the Docker tier stops 7100); F3's mapping (Rich's); `file:../x` resolves to a `link` (F4); `git+https:` is `ENOENT spawn git` (F5);
+  and the Docker tier stops 7100); F3's mapping (Rich's (a), `ad6648a0`); `file:../x` resolves to a `link` (F4); `git+https:` is `ENOENT spawn git` (F5);
   the *scripts are off* case cannot publish to the platform's mirror offline (F6 — `503 … one of the uplinks is down`; use the throwaway,
   its probe scope local); **`[M2]`'s package is `passport-saml@3.2.4`**, the mirror's only tarball outside the skeleton's lockfile — good
   for *existing pins stay*, but the build's scan refuses it (13 fixable Highs), so *"then a build … succeeds"* and Task 3's build through the
@@ -2128,8 +2131,8 @@ tell the question's expiry from the token's; the control plane has no shutdown h
 answer `LAUNCH_GAP_ANSWERS_INVALID` where the platform answers `REQUEST_INVALID`; a response example in the published document is validated
 only by the mock's `server.test.ts` (A1 sitting 6, F6); B's ten Minors.
 
-**WHERE THE NEXT SITTING STOPS, AND HOW IT ENDS:** the next PLATFORM sitting is FE-32's sitting 2, and it does not open until Rich has
-decided Spec actions A and B and F3's mapping. **At its open it revises the plan to `manifest-review4`'s review, finding by finding** (I1–I5
+**WHERE THE NEXT SITTING STOPS, AND HOW IT ENDS:** the next PLATFORM sitting is FE-32's sitting 2, and it may open now — Rich has
+decided Spec actions A and B and F3's mapping (`ad6648a0`). **At its open it revises the plan to `manifest-review4`'s review, finding by finding** (I1–I5
 and the Minors; a *Revised to the review* section, as `2d74a5d` wrote one), applies A and B in Rich's words, then builds **Task 2 alone** and
 stops after its commit with the Docker case green and one resolution through the real builder quoted (the plan's sittings table).
 `pnpm test:docker` is owed. Its close-out is every sitting's (§6): the plan's sittings table and *What executing this plan found*, this §7e
@@ -2155,13 +2158,6 @@ reasoning is recorded.**
 
 ### Open
 
-- **FE-32 BEFORE ITS SITTING 2: SPEC ACTIONS A AND B, AND `[M3]`'S MAPPING (F3)** (raised 2026-10-16 by its sitting 1; put to Rich through
-  `manifest-coord6` at 15:58; the fourth run's G6). npm prints the same `E404 … no such package available` for a package the offline mirror
-  never cached and for a name that cannot exist (measured twice, the second with each uplink state's log on disk), so Decision 5's `E404` →
-  `DEPENDENCY_NOT_FOUND` needs his word: (a) `E404` → `DEPENDENCY_UNAVAILABLE`, `ETARGET` → `DEPENDENCY_NOT_FOUND` (recommended, and
-  `manifest-review4`'s word, `4cef5374`); (b) read the mirror's own log; (c) as written. Spec actions A and B as worded (the review's word);
-  C before Task 4 (item 2 without its *"not yet audited"* clause, the review's word). [`plans/2026-10-03-fe32-dependencies.md`](plans/2026-10-03-fe32-dependencies.md)
-  Decision 5 and *Spec actions*; [`spikes/fe32-baseline/`](spikes/fe32-baseline/README.md) F3.
 - **AN APP MADE BEFORE A1'S SAML REQUEST CACHE (`0ba9af8`) WOULD BREAK SIGN-IN ON TWO INSTANCES, AND NOTHING SAYS SO** (raised 2026-10-14
   by A1's sitting 8's whole-branch review, M6, deferred as minor): an app keeps the skeleton it was made from, so one made before
   2026-10-13 keeps `passport-ubcshib`'s per-process request cache — and launched as `class` or larger, a CWL sign-in started on one
@@ -2222,6 +2218,8 @@ reasoning is recorded.**
 
 ### Decided
 
+- **FE-32'S `[M3]` MAPPING (F3) — RICH, 2026-10-16 ~23:39** (*"(a) E404 → 'not now' (Recommended)"*, through `manifest-coord6`'s question tool, `ad6648a0`): `E404` → `503 DEPENDENCY_UNAVAILABLE`, `ETARGET` → `422 DEPENDENCY_NOT_FOUND`, `E500` and `EAI_AGAIN` → `UNAVAILABLE`, else `RESOLUTION_FAILED`; the one loss (an allowed name npmjs lacks reads *"not now"*) accepted; built into the plan by its sitting 2's revision with the review's I1. *Rejected:* (b) reading Verdaccio's log; (c) as written.
+- **FE-32'S SPEC ACTIONS A, B AND C — RICH, 2026-10-16 ~23:39** (`ad6648a0`): A and B *"Apply as worded (Recommended)"* — at its sitting 2's open; C *"As REV4 says (Recommended)"* — item 1 as worded, item 2 after B's *"…pass mark (§24)."* without *"so a change is not yet audited with its actor"* — at its sitting 3's open, before Task 4. None applied yet.
 - **A HAND-BACK KEEPS AN OPTIONAL REASON — RICH, 2026-10-16 ~20:49** (*"(a) Keep it, optional (Recommended)"*, through `manifest-coord6`'s question tool, `a8f9eb15`): optional in the contract, always asked by the console, shown to the owner in the faculty front end and the console and never in an email, **as a small plan of its own — not yet written or placed in his order**; the options and their cost are P11b's plan's *Rich's click-6 question — an option* ([`plans/2026-10-16-p11b-admin-console-edge.md`](plans/2026-10-16-p11b-admin-console-edge.md)).
 - **GENTLER TEST TIERS — RICH, 2026-10-14 ~08:12** (*"yes to 1–4 … (and include in the plan the reminder for me to change Docker
   Desktop's settings)"*, `abdd01e`): written by `manifest-fix` (`7cb15c2`), approved by `manifest-coord3` under his delegation (`b492e31`),
