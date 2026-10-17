@@ -2237,3 +2237,21 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
        kept reason shows in the faculty front end and the console, never in an email): "(a) Keep it, optional (Recommended)" — optional
        in the contract, always asked by the console, as a small plan of its own (not yet written or placed in his order). Rejected: (b)
        required (a compatibility break); (c) not now.
+
+    On 2026-10-16, asked at ~21:30 PDT and answered by ~23:39, through manifest-coord6's question tool — FE-32's SPEC ACTIONS AND ITS
+    [M3] MAPPING (G6), after sitting 1 (d9b2d6e3) and REV4's fresh review (4cef5374, addendum e7aff475). Four answers:
+    1. Spec action A (§11's Driver gains resolveDependencies; §12's lockfile bullet: an agent obtains a lockfile from Manifest and never
+       writes one by hand): "Apply as worded (Recommended)" — applied at sitting 2's open, the shared pages checked.
+    2. Spec action B (§25's descriptor gains the dependencies block and the sentence "The platform runs no package manager: …"): "Apply
+       as worded (Recommended)" — applied at sitting 2's open.
+    3. Spec action C (§12's first supply-chain bullet: the allowlist made concrete; §26's settings sentence gains the dependency
+       allowlist): "As REV4 says (Recommended)" — item 1 as worded (it also repairs §12's garbled "with an allowlist, or allowlist.");
+       item 2 placed after B's "…And the load rehearsal's profile and pass mark (§24)." and WITHOUT its clause "so a change is not yet
+       audited with its actor", which contradicts §26's next sentence. Applied at sitting 3's open, before Task 4. Rejected: as drafted;
+       not yet.
+    4. [M3] — npm prints the same E404 for a never-cached real package offline and for a name that cannot exist: "(a) E404 → 'not now'
+       (Recommended)" — E404 → 503 DEPENDENCY_UNAVAILABLE; ETARGET → 422 DEPENDENCY_NOT_FOUND; E500 and EAI_AGAIN → UNAVAILABLE;
+       everything else → 422 DEPENDENCY_RESOLUTION_FAILED. Its one loss, accepted: an allowed name npmjs lacks reads "not now". The ripple
+       REV4 named (I1: the fake driver's and the mock's answers, Review Focus 1, the pack sentence, the guide) goes with it in sitting 2's
+       revision. Rejected: (b) reading Verdaccio's log; (c) the plan as written.
+    So FE-32's sitting 2 may start (its opener first revises the plan to REV4's review, finding by finding, then applies A and B).
