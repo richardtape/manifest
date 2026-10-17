@@ -14,9 +14,12 @@
 > every live run and control is in the shared checkout (C2) — so **SEVEN SITTINGS AND THREE LANDINGS**; the seed's slugs are ones
 > `demo-launch` accepts (I1); and **`make ci-acceptance` runs whole once** on the final tree (I2).
 >
-> **STATUS: WRITTEN AND REVIEWED — NOT APPROVED, NOT STARTED.** **Its build waits for Rich's approval** (G8). **Rich's click-6 question**
-> (*"why would we not keep a reason for handing it back to help the person out?"*) is **not planned in**: it is drafted as an option with its
-> cost (*Rich's click-6 question — an option*), for him to decide.
+> **✅ APPROVED BY RICH, 2026-10-16, ~20:49 PDT** — through `manifest-coord6`'s question tool, *"Approve (Recommended)"* (`a8f9eb15`, `docs/superpowers/2026-09-30-decisions.md`, the entry *"On 2026-10-16 at ~20:49 PDT … RESUMING, AND P11b"*),
+> as revised (`828215bf`, `d6d98e10`) to REV4's review (`2c47ba24`) and its addendum (`a6cabc82`): **seven sittings, seven tabs
+> (`manifest-p11b-s1` … `-s7`), three landings, no contract change.** **Spec action A — *"Apply as worded (Recommended)"*: applied at
+> sitting 3's open** (Task 3 Step 0), the shared pages checked. **His click-6 question — *"(a) Keep it, optional (Recommended)"***: optional
+> in the contract, always asked by the console, **as a small plan of its own** — not this plan's, and not yet written or placed in his order.
+> **NOT STARTED: its build is the fifth run's**, whose brief asks him for the tabs.
 
 > **For agentic workers:** REQUIRED SUB-SKILL: **superpowers:executing-plans, inline** (Rich's standing yes (d), `bdfc6f2`: *"inline
 > execution, one sitting per session"*). Steps use checkbox (`- [ ]`) syntax for tracking. **THE CODE IS BUILT ON A WORKTREE BRANCH AND
@@ -85,9 +88,9 @@ its own (*the option*).
 
 | Sitting | Tasks | What it delivers | Lands on `main`? (a 7100 window) | Where it stops | Status |
 |---|---|---|---|---|---|
-| 1 | 1 | **The measurements and the worktree**: every fact re-read; Vite 8.3.0 under a base, in dev and preview, behind a throwaway Caddy; the walk's imports under Node 24; the platform's build in its own `outDir`; the ports; the edge as it is; the seed's queue, slug and emails; every reader of the team's links; the mock's load rehearsals for a fleet project | No (the baseline is a document on `main`) | After Task 1's commit | ← **next, once Rich approves** |
+| 1 | 1 | **The measurements and the worktree**: every fact re-read; Vite 8.3.0 under a base, in dev and preview, behind a throwaway Caddy; the walk's imports under Node 24; the platform's build in its own `outDir`; the ports; the edge as it is; the seed's queue, slug and emails; every reader of the team's links; the mock's load rehearsals for a fleet project | No (the baseline is a document on `main`) | After Task 1's commit | ← **next — in the fifth run** (approved 2026-10-16, `a8f9eb15`) |
 | 2 | 2 | **The base path and the demo's own ports**: `/admin/` everywhere, the router and the step-up's return under it; the demo on 7114/7115; `make doctor` asking `/admin/`; `scripts/admin-ui.sh`'s stop bounded; `make demo-admin` green on the new ports | No | After Task 2's commit | |
-| 3 | 3 | **The edge**: the Caddyfile's `/admin` run, `make verify`'s new check and its parity check taught the one exception, the team's email links **and their two other readers**, the agreement test, `make admin-ui-edge`. **LANDING 1** — then, **from the shared checkout**, `make up`, 7100 restarted, `make doctor`, `make verify`, the console through the edge, **`make demo-launch` through step 6 on a control slug**, the port lines in RUNBOOK, WALKTHROUGH, ORIENTATION and TRAPS | **Yes — L1** | After L1's merge, the live checks and the documents' port lines, read back | |
+| 3 | 3 | **Spec action A applied at its open** (Rich's *"apply as worded"*). **The edge**: the Caddyfile's `/admin` run, `make verify`'s new check and its parity check taught the one exception, the team's email links **and their two other readers**, the agreement test, `make admin-ui-edge`. **LANDING 1** — then, **from the shared checkout**, `make up`, 7100 restarted, `make doctor`, `make verify`, the console through the edge, **`make demo-launch` through step 6 on a control slug**, the port lines in RUNBOOK, WALKTHROUGH, ORIENTATION and TRAPS | **Yes — L1** | After L1's merge, the live checks and the documents' port lines, read back | |
 | 4 | 4 (Steps 0–5) | **The Docker tier L1's `infra/` change owes** (once, in the background, under HOLD) while **the acceptance's headless half** is written in the worktree — `make demo-admin-edge`, the seed, the walk, its steps in both acceptances — then its gates and **LANDING 2** (no `packages/mock` file, so no G3) | **Yes — L2** | After L2's merge, read back | |
 | 5 | 4 (Steps 6–8) | **The acceptance, run — from the shared checkout**: three runs on driver 1 and one on the fake; **its controls, each a landed file broken in the shared checkout inside the window, never committed, restored**; any defect the runs find fixed on the branch, test-first, for L3 | No (a fix lands at L3) | After the runs and controls are recorded | |
 | 6 | 5, 6 | ***Load rehearsals*** on the project's page and the demo fleet's runs (Task 5, **G3**); **the plan's one whole-branch review and its fix wave**; **LANDING 3**; both acceptances from the shared checkout; RUNBOOK, WALKTHROUGH and the design in the shared checkout | **Yes — L3** | After L3's merge and the documents, read back. **If it overflows, L3 moves to sitting 7's open** | |
@@ -192,7 +195,8 @@ the coordinator, each commit's sha and a line. **Two rules survive any re-cut:**
 
 ## What Rich does, and when
 
-1. **Approve this plan** (G8) — the coordinator puts it to him with REV4's verdict and the seven tabs. **Two things are his to answer with
+1. ✅ **DONE 2026-10-16 ~20:49** (`a8f9eb15`): approved; Spec action A *"apply as worded"*; click-6 *"(a) Keep it, optional"*, as a
+   small plan of its own. *As it was put to him:* **Approve this plan** (G8) — the coordinator puts it to him with REV4's verdict and the seven tabs. **Two things are his to answer with
    it:** (i) **Spec action A**'s words (§21 says where the admin UI is served; REV4: *"(a), apply as worded"*) — or *"at sitting 3's
    open"*; (ii) **his click-6 question** — keep a hand-back's reason (option (a) or (b)), not now (c), or later (*the option*; REV4 concurs
    with (a), as a small plan of its own). Every other choice here, the third landing included, is recorded under his delegation.
@@ -701,7 +705,15 @@ coordinator first**; a Docker command waits for the flag to read FREE (the run's
 
 ## Task 3: The edge — the route, `make verify`, the team's links and their readers, the platform's console on 7101
 
-**Sitting 3. In the worktree; then LANDING 1, and the live checks FROM THE SHARED CHECKOUT.**
+**Sitting 3. Spec action A first, in the shared checkout; then the worktree; then LANDING 1, and the live checks FROM THE SHARED CHECKOUT.**
+
+- [ ] **Step 0: Spec action A, applied as worded** (Rich, 2026-10-16 ~20:49, `a8f9eb15`: *"Apply as worded (Recommended)"*) — the two
+  edits in *Spec actions*, below, `cmp`'d against their words there; the four shared HTML pages re-grepped (`7101`, `admin ui`,
+  `console.manifest`) and left unchanged if still silent; committed alone by pathspec in the shared checkout
+  (`docs(spec): §21 — the admin UI is served at console.manifest.internal/admin/ (P11b's Spec action A, Rich's "apply as worded")`), and the
+  roadmap's P11b section marks it APPLIED. **The classifier has refused spec edits and their commits before** (the memory *Spec edits and
+  the classifier*): try once; a refusal goes to the coordinator as one script Rich runs (the edit, a guarded commit, the page check),
+  never another way.
 
 **Files:** Modify `infra/caddy/Caddyfile`, `infra/lib/common.sh`, `scripts/doctor.sh`, `scripts/verify.sh`,
 `packages/control-plane/src/mail/team.ts`, `packages/control-plane/src/mail/team.test.ts`, **`packages/control-plane/src/launch/records.test.ts`
@@ -1035,7 +1047,7 @@ once Step 1 is done).**
 - **The reference console's queue headline reading `oldestSince`** (P11's review M12) — the reference console's, not this plan's.
 - **Narrow screens; the fleet's table scrolling sideways at 1440; a failed deploy drawn amber** (P11's sittings 6–7) — as P11 left them.
 
-## Spec actions — ONE DRAFTED, NONE APPLIED
+## Spec actions — ONE DRAFTED; ✅ DECIDED BY RICH, *"APPLY AS WORDED"* (2026-10-16 ~20:49, `a8f9eb15`) — TO BE APPLIED AT SITTING 3'S OPEN
 
 **A — §21: where the admin UI is served.** Today §21's inventory row reads *"Admin UI (Vite) | 7101 | Host process"* (l.2243) and *The
 front-end in the local topology* says only that *"The reference console and the API share one origin"* (l.2305). After Task 3 the admin UI
@@ -1066,6 +1078,11 @@ may land during the build: a rebase brings it, the contract's `dist/` is rebuilt
 ---
 
 ## Rich's click-6 question — an option, not a task
+
+> **✅ DECIDED BY RICH, 2026-10-16 ~20:49 PDT** (`a8f9eb15`, `docs/superpowers/2026-09-30-decisions.md`, the entry *"On 2026-10-16 at ~20:49 PDT … RESUMING, AND P11b"*): ***"(a) Keep it, optional (Recommended)"*** — optional in the
+> contract, always asked by the console, **as a small plan of its own** (*not yet written or placed in his order*). *Rejected:* (b) required
+> (a compatibility break); (c) not now. **So none of it is in this plan**; the table below is kept as it was put to him, for the plan that
+> builds it.
 
 *Rich, 2026-10-16 09:44:56, at P11's click 6:* ***"why would we not keep a reason for handing it back to help the person out?"*** *— "a
 follow up question for later". The design's A19; ORIENTATION §8 Open's first item. Nothing below is in the plan until he chooses it.*
