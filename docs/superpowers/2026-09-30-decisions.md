@@ -2216,3 +2216,24 @@ Same rule: each answer is Rich's own, given in this session to the context, opti
     second fresh review AFTER sitting 1, against its measurements, by a documents-only reviewer (manifest-review4), which then also
     reviews P11b's plan. Rejected: a review before sitting 1; no second review. FE-32's spec actions A, B and C, and P11b's approval,
     stay his.
+
+    On 2026-10-16 at ~16:46 PDT, in chat to manifest-coord6 — THE MACHINE PAUSED. "I need to use my machine, so please are you able to
+    pause the docker work as everything has gone very slow. And it's urgent." manifest-coord6 stopped FE32-1's Step 5 `pnpm test` (its
+    process group, by id, 16:46:40; that run is VOID), kept the flag HOLD and told every Manifest and Hatchery session to run nothing. Docker
+    Desktop was quit at ~17:02 (not by a session of the run).
+
+    On 2026-10-16 at ~20:49 PDT, through manifest-coord6's question tool — RESUMING, AND P11b. (hatchery-coord had relayed his "ok we are
+    good to continue"; manifest-coord6 asked him directly.) Four answers:
+    1. Resume: "Hatchery first, then Manifest" — Docker Desktop back and FREE for Hatchery now (its API runs, its image build and perf
+       smoke); Manifest's owed runs (FE32-1's Step 5 `pnpm test` and the [M3] clean re-run, MIN12's last tests) wait until Hatchery's build
+       and smoke are done. Rejected: resume everything in Manifest's order; Hatchery only tonight; keep everything paused.
+    2. P11b's plan (docs/superpowers/plans/2026-10-16-p11b-admin-console-edge.md, 531434b2 revised 828215bf and d6d98e10; REV4's review
+       2c47ba24 and addendum a6cabc82): "Approve (Recommended)". P11b IS APPROVED — seven sittings, seven tabs (manifest-p11b-s1 … -s7),
+       three landings, no contract change. Its build tabs are asked of him in the fifth run's brief.
+    3. P11b's Spec action A (§21's Admin UI row, and one sentence in "The front-end in the local topology": the admin UI is served at
+       console.manifest.internal/admin/ on the console's origin): "Apply as worded (Recommended)" — applied at P11b's sitting 3's open (or
+       its close), with the shared pages checked.
+    4. His click-6 question, whether a hand-back keeps its reason (the admin console design's A19; no email ever reaches an owner, so a
+       kept reason shows in the faculty front end and the console, never in an email): "(a) Keep it, optional (Recommended)" — optional
+       in the contract, always asked by the console, as a small plan of its own (not yet written or placed in his order). Rejected: (b)
+       required (a compatibility break); (c) not now.
