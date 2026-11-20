@@ -129,6 +129,34 @@ snapshot of `/etc/hosts` and `ifconfig lo0` is taken before.
   edge, `infra/lib/common.sh:17`), so this is the next free loopback address.
 - **Own git repository** in `~/Developer/litellm`, committed locally, nothing pushed.
 
+## What building it found (2026-11-20)
+
+Built and passing: `make doctor` in `~/Developer/litellm` — 17 checks, all `ok`; with
+Caddy stopped, 6 fail. `~/Developer/litellm/README.md` is the operating document. Three
+things differ from the design above:
+
+1. **Docker Desktop 4.100.1 could not publish `127.0.0.4:443`.** Only root may bind a port
+   below 1024 on one address, and Docker's privileged helper (`com.docker.vmnetd`) is not
+   installed on this Mac; Docker tries `0.0.0.0:443` instead, which Valet's nginx holds
+   (`listen tcp4 0.0.0.0:443: bind: address already in use`). Ticking *Allow privileged
+   port forwarding to external machines* and restarting Docker did not install it. **So
+   Caddy publishes `127.0.0.1:4443` and `:4080`, and two inetd-style LaunchDaemons
+   (`local.litellm.https`, `.http`) hold ports 443 and 80 on the service's addresses and
+   relay each connection through `nc` running as `nobody`.** Measured: HTTP/2, a verified
+   certificate, a streamed completion, 30 requests 10 at a time.
+   **MANIFEST INHERITS THIS — NOT YET MEASURED:** its edge publishes `127.0.0.2:80/443` and
+   `127.0.0.3:443` the same way (`infra/compose.yaml:99-106`), and at the time `manifest-caddy`
+   was running with no published ports and `lo0` without `.2`/`.3`. The next `make up` on
+   this Docker Desktop version is expected to be refused the same way.
+2. **A `.local` name with only an IPv4 `/etc/hosts` line took 5.01 s per lookup** (macOS
+   waits on mDNS for the IPv6 record). The service has an IPv6 loopback address of its
+   own, `fd4c:6974:654c::4`, and a second hosts line: 0.006 s. Not `::1`, which Valet uses.
+3. **The host step is four changes, not three** — the two addresses, their boot job, the
+   hosts block, the two listeners — still one script, still reversed by `host/undo.sh`.
+
+Not done: a reboot (Rich's, at his next restart — `make doctor` afterwards says whether
+the addresses and listeners came back), and a login clicked in a browser by a person.
+
 ## Left for task 2 (named so it is not forgotten)
 
 - Manifest's apps reach LiteLLM by the container name `manifest-litellm` on per-app
