@@ -42,7 +42,7 @@ Ollama model.
 ## Approaches considered
 
 1. **Own compose stack, own loopback alias, Caddy for TLS — chosen.** Three containers
-   in a compose project named `litellm`. Caddy binds `127.0.0.3:443`; Valet keeps
+   in a compose project named `litellm`. Caddy binds `127.0.0.4:443`; Valet keeps
    `127.0.0.1`. The pattern is Manifest's edge on `127.0.0.2`, already proven on this Mac.
 2. **Valet proxy** (`valet proxy litellm …`). Rejected: it yields `litellm.test`, not
    `litellm.local`, and it changes Valet, which this machine's rules forbid.
@@ -73,15 +73,15 @@ README.md             what it is, how to run it, how to point a project at it
   `extra_hosts: host.docker.internal:host-gateway`; published on `127.0.0.1:4000` for
   plain-HTTP API use by host processes.
 - `litellm-postgres` — `postgres:16-alpine`, a named volume, no published port.
-- `litellm-caddy` — stock `caddy:2.11.4` (no plugins), publishes `127.0.0.3:443` and
-  `127.0.0.3:80` (redirect), serves the mkcert certificate from `certs/`.
+- `litellm-caddy` — stock `caddy:2.11.4` (no plugins), publishes `127.0.0.4:443` and
+  `127.0.0.4:80` (redirect), serves the mkcert certificate from `certs/`.
 - All `restart: unless-stopped`, so they return with Docker Desktop after a reboot.
 
 **Name, address, certificate**
 
-- `127.0.0.3` as an `lo0` alias. Aliases are lost at reboot, so `host/setup.sh` installs
+- `127.0.0.4` as an `lo0` alias. Aliases are lost at reboot, so `host/setup.sh` installs
   a LaunchDaemon (`local.litellm.loopback`) that re-adds it at boot.
-- `/etc/hosts`: `127.0.0.3 litellm.local`, in a marked block so undo removes only it.
+- `/etc/hosts`: `127.0.0.4 litellm.local`, in a marked block so undo removes only it.
   `/etc/hosts` is used rather than a resolver file because it is one name. `.local` is
   also the mDNS domain; `/etc/hosts` is consulted first, and the build measures lookup
   time rather than assuming it is instant.
@@ -123,8 +123,8 @@ snapshot of `/etc/hosts` and `ifconfig lo0` is taken before.
   what the second project needs.
 - **Port 4000 on `127.0.0.1`** as well as the HTTPS name, for scripts and SDKs that do
   not want TLS.
-- **`127.0.0.3`**, the next free loopback after Manifest's `127.0.0.2` (and its second
-  public address — confirmed free at build time before use).
+- **`127.0.0.4`**: Manifest holds `127.0.0.2` (its edge) and `127.0.0.3` (its public
+  edge, `infra/lib/common.sh:17`), so this is the next free loopback address.
 - **Own git repository** in `~/Developer/litellm`, committed locally, nothing pushed.
 
 ## Left for task 2 (named so it is not forgotten)
