@@ -1,6 +1,6 @@
 # A standalone LiteLLM on this Mac — short design
 
-**Status:** DRAFT, awaiting Rich's approval (written 2026-11-20). Nothing is built.
+**Status:** APPROVED by Rich 2026-11-20 (*"I approve the design as written"*, with the version changed to the newest release and local models only confirmed). Built in `~/Developer/litellm`.
 **Scope:** task 1 of 2. Task 2 — pointing Manifest at this service — is a separate design, not started.
 
 ## Intent
@@ -29,7 +29,7 @@ Ollama model.
 
 | Piece | Manifest | Carried over? |
 |---|---|---|
-| Image | `ghcr.io/berriai/litellm@sha256:32cfd7a4…` (1.102.0) | Yes, same digest |
+| Image | `ghcr.io/berriai/litellm@sha256:32cfd7a4…` (1.102.0) | No — 1.110.2, the newest (Rich) |
 | Database | `litellm` database in the shared `postgres:16-alpine` | Own Postgres, same image |
 | Catalogue | `STORE_MODEL_IN_DB=True`, bootstrap entries in `config.yaml` | Yes |
 | Ollama | host app, reached as `host.docker.internal:11434` | Yes |
@@ -68,12 +68,12 @@ README.md             what it is, how to run it, how to point a project at it
 
 **Containers**
 
-- `litellm` — the pinned digest; `DATABASE_URL` to the stack's own Postgres; master and
+- `litellm` — 1.110.2 by tag and digest; `DATABASE_URL` to the stack's own Postgres; master and
   salt keys from `.env`; `UI_USERNAME`/`UI_PASSWORD` for the `/ui` login;
   `extra_hosts: host.docker.internal:host-gateway`; published on `127.0.0.1:4000` for
   plain-HTTP API use by host processes.
 - `litellm-postgres` — `postgres:16-alpine`, a named volume, no published port.
-- `litellm-caddy` — stock `caddy:2.11.4` (no plugins), publishes `127.0.0.4:443` and
+- `litellm-caddy` — stock `caddy:2.11.9` (no plugins), publishes `127.0.0.4:443` and
   `127.0.0.4:80` (redirect), serves the mkcert certificate from `certs/`.
 - All `restart: unless-stopped`, so they return with Docker Desktop after a reboot.
 
@@ -117,8 +117,10 @@ snapshot of `/etc/hosts` and `ifconfig lo0` is taken before.
 
 ## Calls I made (correct any of them)
 
-- **Same 1.102.0 digest as Manifest**, so task 2 is like for like. Moving to UBC's
-  gateway version is a one-line change later.
+- **LiteLLM 1.110.2, the newest release** (Rich, 2026-11-20: *"let's update LiteLLM to the most
+  recent"*) — `v1.110.2@sha256:ef798594…`, which `main-stable` and `latest` also resolved to that
+  day. Manifest stays on 1.102.0, so task 2 is also a version move: its measured behaviours
+  (the fallback guard, the error mapping, stream usage) need re-measuring on 1.110.2.
 - **Starter models are local Ollama only**; provider keys optional. Rich had not said
   what the second project needs.
 - **Port 4000 on `127.0.0.1`** as well as the HTTPS name, for scripts and SDKs that do
